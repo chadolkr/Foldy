@@ -434,6 +434,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("terminal.cmd", "명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, false));
         Add("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, true));
         Add("view.hidden", "숨김 파일 보기 켜기/끄기", ToggleHidden, Key.H, ModifierKeys.Control);
+        Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
         Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.TreeVisible = !ActiveView.TreeVisible, Key.B, ModifierKeys.Control);
         Add("view.themeSystem", "테마: 시스템 설정 따르기", () => SetTheme(FoldyTheme.System));
         Add("view.themeLight", "테마: 라이트", () => SetTheme(FoldyTheme.Light));
@@ -870,6 +871,8 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnAbout(object sender, RoutedEventArgs e) => ShowAbout();
 
     private void ShowAbout() => new AboutWindow { Owner = this }.ShowDialog();
+
+    private void OnFnPreview(object sender, RoutedEventArgs e) => ActiveView.TogglePreview();
 
     private void OnHelp(object sender, RoutedEventArgs e) => ShowHelp();
 

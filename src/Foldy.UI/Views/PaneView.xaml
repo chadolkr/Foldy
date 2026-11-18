@@ -175,7 +175,11 @@
         <ColumnDefinition x:Name="TreeColumn" Width="200" MinWidth="0" />
         <ColumnDefinition x:Name="SplitColumn" Width="6" />
         <ColumnDefinition Width="*" MinWidth="200" />
+        <ColumnDefinition x:Name="PreviewSplitColumn" Width="0" />
+        <ColumnDefinition x:Name="PreviewColumn" Width="0" MinWidth="0" />
       </Grid.ColumnDefinitions>
+      <GridSplitter x:Name="PreviewSplitter" Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False" Visibility="Collapsed" />
+      <Border x:Name="PreviewHost" Grid.Column="4" Style="{DynamicResource Foldy.ListBorder}" ClipToBounds="True" Visibility="Collapsed" />
       <Border x:Name="TreeHost" Style="{DynamicResource Foldy.ListBorder}" Padding="2,6,2,6">
         <TreeView x:Name="Tree" BorderThickness="0" Background="Transparent" SelectedItemChanged="OnTreeSelected"
                   VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
