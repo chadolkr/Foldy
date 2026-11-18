@@ -20,3 +20,6 @@ bench-data/
 
 # Claude Code 작업 트리 (병렬 에이전트)
 .claude/
+
+# 배포용 설치 폴더
+dist/
