@@ -1,0 +1,2 @@
+# Foldy
+Advanced File Manager
