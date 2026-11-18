@@ -23,7 +23,7 @@ public sealed class CopyEngineFfiTests : IDisposable
     {
         var sw = Stopwatch.StartNew();
         NativeProgress p;
-        while ((p = job.Poll()).State is NativeJobState.Created or NativeJobState.Running or NativeJobState.Paused)
+        while (!(p = job.Poll()).IsTerminal)
         {
             if (sw.Elapsed > (timeout ?? TimeSpan.FromSeconds(30)))
             {
@@ -115,7 +115,7 @@ public sealed class CopyEngineFfiTests : IDisposable
         if (paused.State == NativeJobState.Paused)
         {
             Thread.Sleep(100);
-            job.Poll().BytesDone.Should().BeLessThanOrEqualTo(paused.BytesDone + (1 << 20), "일시정지 중에는 최대 한 덩어리만 진행");
+            job.Poll().BytesDone.Should().BeLessThanOrEqualTo(paused.BytesDone + (8 << 20), "일시정지 중에는 최대 한 덩어리만 진행 (CopyFileEx 덩어리 크기)");
             job.Resume();
             job.Cancel();
             WaitDone(job).State.Should().Be(NativeJobState.Canceled);

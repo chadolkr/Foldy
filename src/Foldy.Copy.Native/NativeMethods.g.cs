@@ -25,7 +25,9 @@ namespace Foldy.Copy.Native
         internal static extern uint fc_abi_version();
 
         /// <summary>
-        ///  작업을 만든다. `spec_json`은 UTF-16 JSON: {"sources":["C:\\a.txt"],"dest_dir":"D:\\out"}
+        ///  작업을 만든다. `spec_json`은 UTF-16 JSON. 필드는 docs/copy-engine.md 참고:
+        ///  {"sources":["C:\\a"],"dest_dir":"D:\\out","mode":"copy|move","conflict":"skip|overwrite|rename|ask",
+        ///   "verify":"none|size_time|hash","threads":0,"journal_path":"...","resume":false,"tuning_path":"..."}
         ///
         ///  # Safety
         ///  `spec_json`은 `spec_len`개의 u16을 읽을 수 있어야 하고, `out_handle`은 쓰기 가능해야 한다.
@@ -53,6 +55,42 @@ namespace Foldy.Copy.Native
         internal static extern int fc_job_poll(ulong handle, FcProgress* @out);
 
         /// <summary>
+        ///  마지막으로 시작한 파일의 원본 전체 경로를 UTF-16으로 `buf`에 쓴다 (NUL 없음, 길이는 `out_len`).
+        ///  버퍼가 작으면 FC_ERR_BUFFER_TOO_SMALL과 함께 필요한 길이를 돌려준다.
+        ///
+        ///  # Safety
+        ///  `buf`는 null이거나 `cap`개의 u16을 쓸 수 있어야 하고, `out_len`은 쓰기 가능해야 한다.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "fc_job_current_name", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int fc_job_current_name(ulong handle, ushort* buf, nuint cap, nuint* out_len);
+
+        /// <summary>
+        ///  문제 목록(충돌·실패)을 UTF-16 JSON 배열로 쓴다:
+        ///  [{"id":1,"kind":"conflict|failed","source":"..","dest":"..","message":"..","resolved":false}]
+        ///
+        ///  # Safety
+        ///  `buf`는 null이거나 `cap`개의 u16을 쓸 수 있어야 하고, `out_len`은 쓰기 가능해야 한다.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "fc_job_issues", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int fc_job_issues(ulong handle, ushort* buf, nuint cap, nuint* out_len);
+
+        /// <summary>
+        ///  충돌 해결. `action`: 0 건너뛰기, 1 덮어쓰기, 2 이름 바꾸기("이름 (2)"). `apply_all`이 0이 아니면
+        ///  남은 충돌 전체에 적용한다 (`issue_id`는 무시).
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "fc_job_resolve", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int fc_job_resolve(ulong handle, ulong issue_id, uint action, uint apply_all);
+
+        /// <summary>
+        ///  저널 파일의 작업 명세(JSON)를 읽는다. 크래시 뒤 C#이 "resume":true를 더해 fc_job_create로 이어 간다.
+        ///
+        ///  # Safety
+        ///  `path`는 `path_len`개의 u16을 읽을 수 있어야 하고, `buf`/`out_len`은 fc_job_current_name과 같다.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "fc_journal_read_spec", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int fc_journal_read_spec(ushort* path, nuint path_len, ushort* buf, nuint cap, nuint* out_len);
+
+        /// <summary>
         ///  작업을 해제한다. 실행 중이면 취소하고 기다리지 않는다 (워커는 Arc로 살아 있다가 스스로 끝난다).
         /// </summary>
         [DllImport(__DllName, EntryPoint = "fc_job_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -68,23 +106,48 @@ namespace Foldy.Copy.Native
     }
 
     /// <summary>
-    ///  진행 상황 스냅샷. C#의 바인딩 구조체와 배치가 같아야 한다.
+    ///  진행 상황 스냅샷. C#의 바인딩 구조체와 배치가 같아야 한다 (80바이트).
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe partial struct FcProgress
     {
         /// <summary>
-        ///  JobState 값 (0 Created, 1 Running, 2 Paused, 3 Done, 4 Failed, 5 Canceled)
+        ///  JobState 값 (0 Created, 1 Running, 2 Paused, 3 Done, 4 Failed, 5 Canceled, 6 NeedsAttention)
         /// </summary>
         public uint state;
         /// <summary>
-        ///  마지막 오류 코드 (FC_OK 또는 FC_ERR_*)
+        ///  마지막 오류 코드 (FC_OK 또는 FC_ERR_*). Done인데 FC_ERR_IO면 일부 파일이 실패했다.
         /// </summary>
         public int last_error;
+        /// <summary>
+        ///  끝난 파일 (건너뛴 파일 포함, 실패 제외)
+        /// </summary>
         public ulong files_done;
         public ulong files_total;
         public ulong bytes_done;
         public ulong bytes_total;
+        /// <summary>
+        ///  최근 처리 속도 (바이트/초, 0.5초 단위 지수 평균)
+        /// </summary>
+        public ulong bytes_per_sec;
+        public ulong files_failed;
+        public ulong files_skipped;
+        /// <summary>
+        ///  사용자 확인을 기다리는 충돌 수 (0보다 크면 state가 NeedsAttention)
+        /// </summary>
+        public uint issues_pending;
+        /// <summary>
+        ///  지금 복사 중인 워커 수
+        /// </summary>
+        public uint threads_active;
+        /// <summary>
+        ///  현재 동시 실행 상한 (자동 조절 값)
+        /// </summary>
+        public uint thread_limit;
+        /// <summary>
+        ///  0 대기, 1 스캔, 2 계획, 3 복사, 4 마무리, 5 끝
+        /// </summary>
+        public uint phase;
     }
 
 

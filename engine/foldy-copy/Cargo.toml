@@ -1,6 +1,6 @@
 [package]
 name = "foldy-copy"
-description = "Foldy 병렬 복사 엔진 코어 (C ABI). M0: FFI 경계 검증용 순차 복사 작업"
+description = "Foldy 병렬 복사 엔진 코어 (C ABI): 대형/소형 두 줄, CopyFileExW, 자동 스레드 조절, 작업 저널"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -11,9 +11,15 @@ license.workspace = true
 name = "foldy_copy"
 crate-type = ["cdylib", "rlib"]
 
+# robocopy /MT 기준선 비교 벤치 (docs/copy-engine.md)
+[[bin]]
+name = "foldy-copy-bench"
+path = "src/bin/foldy-copy-bench.rs"
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
+windows-sys = { workspace = true, features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_System_IO", "Win32_System_Ioctl"] }
 
 [build-dependencies]
 csbindgen = "1"

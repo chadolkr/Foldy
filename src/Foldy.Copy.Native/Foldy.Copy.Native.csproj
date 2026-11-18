@@ -8,6 +8,10 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Foldy.Interop.Tests" />
   </ItemGroup>
+  <!-- IFileOperationService 어댑터 (NativeCopyFileOperationService). Presentation은 WPF를 참조하지 않는다. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Foldy.Presentation\Foldy.Presentation.csproj" />
+  </ItemGroup>
   <!-- Rust 빌드 산출물이 있으면 출력 폴더로 복사 (없으면 C# 폴백 경로로 동작) -->
   <ItemGroup Condition="Exists('$(FoldyEngineOut)foldy_copy.dll')">
     <None Include="$(FoldyEngineOut)foldy_copy.dll" Link="foldy_copy.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
