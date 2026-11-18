@@ -452,6 +452,18 @@ public sealed partial class FolderTabViewModel : TabBase
         }
 
         _watch = _env.Watcher.Watch(Path, () => _env.Ui.Post(ScheduleRefresh));
+        if (_watch is null)
+        {
+            // 감시할 수 없는 드라이브(네트워크·SFTP)는 활성 탭만 주기적으로 새로 고친다 (DESIGN.md: 30~60초 폴링)
+            var period = PathUtil.IsSftp(Path) ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(45);
+            _watch = new Timer(_ => _env.Ui.Post(() =>
+            {
+                if (_active && State == LoadState.Idle)
+                {
+                    _ = RefreshAsync();
+                }
+            }), null, period, period);
+        }
     }
 
     private void StopWatching()
