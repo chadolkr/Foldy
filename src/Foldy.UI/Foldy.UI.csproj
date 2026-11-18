@@ -18,6 +18,11 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Foldy.UI.Tests" />
+    <InternalsVisibleTo Include="Foldy.Mascot.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 마스코트 장면 정의: 모던·레트로 렌더러가 공유 (assets/mascot/scenes.json) -->
+    <EmbeddedResource Include="..\..\assets\mascot\scenes.json" LogicalName="Foldy.UI.Mascot.scenes.json" Link="Mascot\scenes.json" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\..\assets\icons\png\foldy-16.png" Link="Assets\foldy-16.png" />
