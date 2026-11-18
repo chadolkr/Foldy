@@ -66,7 +66,7 @@ npx wrangler deploy
 GitHub 토큰: Settings → Developer settings → Fine-grained personal access tokens →
 Repository access "Only select repositories" = `chadolkr/Foldy`, Permissions → Issues: Read and write. 다른 권한은 주지 않는다.
 
-배포 후 나온 `https://foldy-crash-relay.<계정>.workers.dev/v1/crash`를 `FoldyCrashRelayUrl`에 넣는다.
+배포 주소: `https://foldy-crash-relay.foldy-crash-relay.workers.dev/v1/crash` (`FoldyCrashRelayUrl`에 들어 있음).
 
 ### 테스트
 

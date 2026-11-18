@@ -6,7 +6,7 @@
     <RootNamespace>Foldy.Reporting</RootNamespace>
     <!-- 크래시 릴레이 주소. 비우면 크래시 리포트는 로컬에만 저장되고 전송하지 않는다.
          배포 후 tools/crash-relay의 workers.dev 주소(…/v1/crash)를 넣는다. -->
-    <FoldyCrashRelayUrl Condition="'$(FoldyCrashRelayUrl)' == ''"></FoldyCrashRelayUrl>
+    <FoldyCrashRelayUrl Condition="'$(FoldyCrashRelayUrl)' == ''">https://foldy-crash-relay.foldy-crash-relay.workers.dev/v1/crash</FoldyCrashRelayUrl>
   </PropertyGroup>
   <ItemGroup>
     <AssemblyMetadata Include="FoldyCrashRelayUrl" Value="$(FoldyCrashRelayUrl)" />
