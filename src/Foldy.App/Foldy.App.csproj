@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Foldy.Providers.Local\Foldy.Providers.Local.csproj" />
     <ProjectReference Include="..\Foldy.Copy.Native\Foldy.Copy.Native.csproj" />
     <ProjectReference Include="..\Foldy.Indexer.Client\Foldy.Indexer.Client.csproj" />
+    <ProjectReference Include="..\Foldy.Reporting\Foldy.Reporting.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Serilog" />

@@ -21,7 +21,9 @@
         </TextBlock>
         <TextBlock Margin="0,2,0,0">
           <Run Text="버그 제보: " />
-          <Hyperlink NavigateUri="https://github.com/chadolkr/Foldy/issues" RequestNavigate="OnNavigate">GitHub Issues</Hyperlink>
+          <Hyperlink Click="OnReportBug" ToolTip="앱·Windows 버전과 최근 로그를 채운 GitHub 이슈 작성 페이지를 엽니다">버그 신고…</Hyperlink>
+          <Run Text=" · " />
+          <Hyperlink NavigateUri="https://github.com/chadolkr/Foldy/issues" RequestNavigate="OnNavigate">이슈 목록</Hyperlink>
         </TextBlock>
         <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="360"
                    Text="이 프로그램은 GNU 일반 공중 사용 허가서 3판 이상(GPL-3.0-or-later)으로 배포되는 자유 소프트웨어입니다. 소스 코드는 위 프로젝트 주소에서 받을 수 있습니다." />

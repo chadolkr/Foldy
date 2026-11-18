@@ -11,6 +11,7 @@
       <Platform Project="x64" />
     </Project>
     <Project Path="src/Foldy.Providers.Local/Foldy.Providers.Local.csproj" />
+    <Project Path="src/Foldy.Reporting/Foldy.Reporting.csproj" />
     <Project Path="src/Foldy.UI/Foldy.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -24,6 +25,9 @@
       <Platform Project="x64" />
     </Project>
     <Project Path="tests/Foldy.Presentation.Tests/Foldy.Presentation.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="tests/Foldy.Reporting.Tests/Foldy.Reporting.Tests.csproj">
       <Platform Project="x64" />
     </Project>
   </Folder>

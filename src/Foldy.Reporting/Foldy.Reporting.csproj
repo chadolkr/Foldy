@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 버그 신고 링크와 크래시 리포트(저장·스크럽·전송). UI에 의존하지 않는다.
+       앱은 App.xaml.cs의 몇 줄과 동의 대화상자로만 연결한다 (docs/bug-reporting.md). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Foldy.Reporting</RootNamespace>
+    <!-- 크래시 릴레이 주소. 비우면 크래시 리포트는 로컬에만 저장되고 전송하지 않는다.
+         배포 후 tools/crash-relay의 workers.dev 주소(…/v1/crash)를 넣는다. -->
+    <FoldyCrashRelayUrl Condition="'$(FoldyCrashRelayUrl)' == ''"></FoldyCrashRelayUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="FoldyCrashRelayUrl" Value="$(FoldyCrashRelayUrl)" />
+    <AssemblyMetadata Include="FoldyRepositoryUrl" Value="$(RepositoryUrl)" />
+    <InternalsVisibleTo Include="Foldy.Reporting.Tests" />
+  </ItemGroup>
+</Project>

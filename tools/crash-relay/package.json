@@ -1,0 +1,20 @@
+{
+  "name": "foldy-crash-relay",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "description": "Foldy 크래시 리포트를 받아 GitHub Issues로 올리는 Cloudflare Worker (중복은 댓글로 합침)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261118.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1",
+    "wrangler": "^4.164.0"
+  }
+}
