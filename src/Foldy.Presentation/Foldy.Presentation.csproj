@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Foldy.Core\Foldy.Core.csproj" />
     <ProjectReference Include="..\Foldy.Git\Foldy.Git.csproj" />
+    <ProjectReference Include="..\Foldy.Analysis\Foldy.Analysis.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />

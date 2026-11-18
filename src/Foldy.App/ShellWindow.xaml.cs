@@ -125,6 +125,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         MarkdownTabViewModel md => CreateDocumentView(md, pane),
         Foldy.Presentation.Git.GitTabViewModel git => new Foldy.UI.Git.GitView { DataContext = git },
+        Foldy.Presentation.Analysis.AnalysisTabViewModel an => new Foldy.UI.Analysis.AnalysisView { DataContext = an },
         _ => null,
     };
 
@@ -462,6 +463,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("terminal.cmd", "명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, false));
         Add("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, true));
         Add("view.hidden", "숨김 파일 보기 켜기/끄기", ToggleHidden, Key.H, ModifierKeys.Control);
+        Add("analysis.open", "디스크 분석 (현재 드라이브)", OpenAnalysis);
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
         Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.TreeVisible = !ActiveView.TreeVisible, Key.B, ModifierKeys.Control);
         Add("view.themeSystem", "테마: 시스템 설정 따르기", () => SetTheme(FoldyTheme.System));
@@ -901,6 +903,46 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnAbout(object sender, RoutedEventArgs e) => ShowAbout();
 
     private void ShowAbout() => new AboutWindow { Owner = this }.ShowDialog();
+
+    private Foldy.Analysis.AnalysisCoordinator? _analysis;
+
+    private void OnMenuAnalysis(object sender, RoutedEventArgs e) => OpenAnalysis();
+
+    private void OpenAnalysis()
+    {
+        var pane = Shell.ActivePane;
+        var path = pane.ActiveFolder?.Path;
+        if (string.IsNullOrEmpty(path) || path.Length < 2 || path[1] != ':')
+        {
+            Shell.Status = "디스크 분석은 로컬 드라이브에서만 할 수 있습니다";
+            return;
+        }
+
+        _analysis ??= new Foldy.Analysis.AnalysisCoordinator(new IndexerAnalysisService());
+        var tab = new Foldy.Presentation.Analysis.AnalysisTabViewModel(_analysis, path);
+        tab.RecycleRequested += async (_, e) =>
+        {
+            var ok = MessageBox.Show(this, $"{e.Paths.Count:N0}개 ({Foldy.Presentation.Files.FileItem.FormatBytes(e.TotalBytes)})를 휴지통으로 옮길까요?\n휴지통에서 되살릴 수 있습니다.",
+                "디스크 정리", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK
+                && await Shell.RecycleAsync(e.Paths);
+            foreach (var item in e.Items)
+            {
+                tab.MarkRecycled(item, ok);
+            }
+        };
+        tab.OpenRequested += (_, e) =>
+        {
+            if (e.IsFolder)
+            {
+                pane.NewFolderTab(e.Path);
+            }
+            else if (Path.GetDirectoryName(e.Path) is { } dir)
+            {
+                pane.NewFolderTab(dir).FocusName = Path.GetFileName(e.Path);
+            }
+        };
+        pane.AddTab(tab, activate: true, assignColor: true);
+    }
 
     private void OnFnPreview(object sender, RoutedEventArgs e) => ActiveView.TogglePreview();
 

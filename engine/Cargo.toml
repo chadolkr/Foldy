@@ -22,6 +22,8 @@ foldy-update = { path = "foldy-update" }
 rayon = "1"
 memchr = "2"
 windows-service = "0.8"
+# 디스크 분석 DB (설계서 7.2/7.3): bundled = 최신 SQLite 소스를 함께 빌드, OS의 sqlite에 기대지 않는다.
+rusqlite = { version = "0.43", features = ["bundled"] }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

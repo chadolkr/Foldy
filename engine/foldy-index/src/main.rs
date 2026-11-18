@@ -16,8 +16,11 @@
 //!   --scan-dir  일반 폴더 열거로 색인 (관리자 권한 없이 검색 시험·폴백용, 여러 번 가능)
 //!   --update-*  콘솔 모드 자동 업데이트 시험 (update/mod.rs `from_console_args`, docs/auto-update.md).
 //!               `--update-api <URL>`이 있을 때만 켜진다. 서비스 모드는 항상 켜지고 이 인자를 읽지 않는다.
+//!   --analysis-dir  분석 DB 폴더 (기본 %ProgramData%\Foldy\Analysis, 시험용. 지정하면 ACL을 건드리지 않는다)
 
 mod acl;
+mod analysis;
+mod analysis_job;
 mod bench;
 mod query;
 mod server;
@@ -39,6 +42,7 @@ pub(crate) struct Args {
     service: bool,
     /// `--update-…` 인자 (이름, 값)
     update: Vec<(String, String)>,
+    analysis_dir: Option<String>,
 }
 
 fn parse_args() -> Args {
@@ -58,6 +62,7 @@ fn parse_args() -> Args {
             "--bench" => a.bench = Some(it.next().unwrap_or_else(|| "C:".into())),
             "--service" => a.service = true,
             x if x.starts_with("--update-") => a.update.push((x.to_string(), it.next().unwrap_or_default())),
+            "--analysis-dir" => a.analysis_dir = it.next(),
             _ => eprintln!("unknown argument: {x}"),
         }
     }
@@ -66,7 +71,7 @@ fn parse_args() -> Args {
 
 /// 색인 대상 슬롯을 만들고 백그라운드 구축을 시작한다.
 pub(crate) fn start_indexer(args: &Args) -> Arc<Indexer> {
-    let mut ix = Indexer::default();
+    let mut ix = Indexer { analysis_dir: args.analysis_dir.as_ref().map(std::path::PathBuf::from), ..Default::default() };
     let mut ntfs = Vec::new();
     for d in &args.scan_dirs {
         ix.volumes.push(Arc::new(VolumeSlot::new(d.trim_end_matches(['\\', '/']))));

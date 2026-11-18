@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 디스크 분석: 쿼리(생성한 DB), 정리 규칙, 트리맵 배치 계산, 폴백 스캐너, AnalysisTabViewModel, AnalysisView 렌더 스모크 -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- UseWPF 프로젝트는 System.IO를 암묵 using에서 뺀다 -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Foldy.UI\Foldy.UI.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.Analysis\Foldy.Analysis.csproj" />
+  </ItemGroup>
+</Project>

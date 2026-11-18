@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 디스크 분석 DB 읽기(쿼리), 정리 규칙, 트리맵 배치 계산, 서비스 없을 때의 폴백 스캐너 (설계서 7.3).
+       WPF를 참조하지 않는다 → Presentation(ViewModel)과 테스트가 화면 없이 쓴다. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Foldy.Analysis</RootNamespace>
+    <!-- LibraryImport 소스 생성기(GetVolumeNameForVolumeMountPointW)가 만드는 코드용. 직접 쓰는 unsafe 코드는 없다. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 기본 정리 규칙. Rust foldy-index도 같은 파일을 include_str!로 넣는다. -->
+    <EmbeddedResource Include="..\..\assets\cleanup-rules.json" LogicalName="Foldy.Analysis.cleanup-rules.json" Link="cleanup-rules.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Foldy.Analysis.Tests" />
+  </ItemGroup>
+</Project>
