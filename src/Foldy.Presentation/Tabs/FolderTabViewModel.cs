@@ -108,6 +108,9 @@ public sealed partial class FolderTabViewModel : TabBase
     /// <summary>탭을 다시 보일 때 복원할 세로 스크롤 위치.</summary>
     public double ScrollOffset { get; set; }
 
+    /// <summary>이미지만 보기 (탭마다 기억, 설계서 5.12).</summary>
+    public bool ImagesOnly { get; set; }
+
     /// <summary>마지막 열기 소요 시간 (진단용).</summary>
     public TimeSpan LastLoadTime { get; private set; }
 
