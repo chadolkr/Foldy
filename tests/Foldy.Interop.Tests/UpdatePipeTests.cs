@@ -180,7 +180,7 @@ public class UpdatePipeTests
         while (true)
         {
             var s = await client.UpdateStatusAsync(Ct);
-            if (done(s) || sw.Elapsed > TimeSpan.FromSeconds(20))
+            if (done(s) || sw.Elapsed > TimeSpan.FromSeconds(60)) // CI는 느리다 (설치 + 재실행 지연 5초)
             {
                 return s;
             }
@@ -195,7 +195,7 @@ public class UpdatePipeTests
         while (true)
         {
             var lines = File.Exists(path) ? await File.ReadAllLinesAsync(path, Ct) : [];
-            if (lines.Length >= count || sw.Elapsed > TimeSpan.FromSeconds(20))
+            if (lines.Length >= count || sw.Elapsed > TimeSpan.FromSeconds(60)) // CI는 느리다 (설치 + 재실행 지연 5초)
             {
                 return lines;
             }
