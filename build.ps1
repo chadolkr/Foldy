@@ -55,7 +55,7 @@ Push-Location $root
 try {
     Step ".NET: dotnet build ($Configuration)" { dotnet build Foldy.slnx -c $Configuration }
     if (-not $SkipTests) {
-        Step '.NET: 테스트 (Core, Interop)' { dotnet test --solution Foldy.slnx -c $Configuration --no-build }
+        Step '.NET: 테스트 (전체)' { dotnet test --solution Foldy.slnx -c $Configuration --no-build --max-parallel-test-modules 3 }
     }
     if ($Bench) {
         $exe = Join-Path $root "src\Foldy.App\bin\$Configuration\net10.0-windows\Foldy.exe"
