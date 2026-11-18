@@ -22,6 +22,9 @@ public sealed record AppOptions
     public bool ThemeGiven { get; init; }
     public bool Synthetic { get; init; }
     public string? Screenshot { get; init; }
+
+    /// <summary>명령줄로 받은 폴더(또는 .md 파일): 활성 패널에서 연다 ("Foldy.exe C:\경로").</summary>
+    public string? OpenPath { get; init; }
     public Foldy.UI.Theming.FoldyTheme Theme { get; init; } = Foldy.UI.Theming.FoldyTheme.System;
 
     public bool IsBench => BenchList || BenchFolder is not null;
@@ -45,6 +48,7 @@ public sealed record AppOptions
                 "--synthetic" => o with { Synthetic = true },
                 "--screenshot" => o with { Screenshot = Next() },
                 "--theme" => o with { Theme = Enum.Parse<Foldy.UI.Theming.FoldyTheme>(Next(), ignoreCase: true), ThemeGiven = true },
+                var a when !a.StartsWith("--", StringComparison.Ordinal) => o with { OpenPath = a },
                 _ => o,
             };
         }

@@ -60,6 +60,7 @@ public partial class ShellWindow : Window, IPaneHost
             TypeName = TypeNames.Get,
             Watcher = new FolderWatchService(),
             ShowHidden = () => _settings.ShowHidden,
+            Git = new GitStatusService(new Foldy.Git.GitService()),
         };
         Shell = new ShellViewModel(_env, new ShellServices(
             new ShellFileOperationService(() => OwnerHandle),
@@ -132,6 +133,11 @@ public partial class ShellWindow : Window, IPaneHost
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         ActiveView.FocusList();
+        if (App.Options.OpenPath is { } open && Shell.ActivePane.ActiveFolder is { } tab)
+        {
+            _ = tab.NavigateAsync(open);
+        }
+
         RefreshDrives();
         if (!App.Options.IsBench && App.Options.Screenshot is null)
         {
