@@ -47,7 +47,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         InitializeComponent();
         _settings = AppSettings.Migrate(JsonFileStore.Load(_settingsPath, () => new AppSettings()));
-        _queues = new DriveQueueRegistry();
+        _queues = new DriveQueueRegistry(nativeIo: new NativeIoCancel(Foldy.Platform.SystemInfo.Drives.CurrentNativeThreadId, id => Foldy.Platform.SystemInfo.Drives.CancelSynchronousIo(id)));
         _provider = new LocalProvider(_queues);
         _drives = new DriveService(_queues);
         var ui = new WpfDispatcher(Dispatcher);

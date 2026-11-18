@@ -8,10 +8,16 @@ public sealed class DriveQueueRegistry : IAsyncDisposable
     private readonly ConcurrentDictionary<DriveKey, Lazy<DriveWorkQueue>> _queues = new();
     private readonly TimeSpan? _stallTimeout;
 
-    public DriveQueueRegistry(TimeSpan? stallTimeout = null) => _stallTimeout = stallTimeout;
+    private readonly NativeIoCancel? _nativeIo;
+
+    public DriveQueueRegistry(TimeSpan? stallTimeout = null, NativeIoCancel? nativeIo = null)
+    {
+        _stallTimeout = stallTimeout;
+        _nativeIo = nativeIo;
+    }
 
     public DriveWorkQueue Get(DriveKey key) =>
-        _queues.GetOrAdd(key, k => new Lazy<DriveWorkQueue>(() => new DriveWorkQueue(k, _stallTimeout))).Value;
+        _queues.GetOrAdd(key, k => new Lazy<DriveWorkQueue>(() => new DriveWorkQueue(k, _stallTimeout, nativeIo: _nativeIo))).Value;
 
     public DriveWorkQueue ForPath(string path) => Get(DriveKey.FromPath(path));
 

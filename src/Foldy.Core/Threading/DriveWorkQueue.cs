@@ -6,6 +6,9 @@ public enum WorkPriority { ActiveTab = 0, Icons = 1, Prefetch = 2, SizeCalc = 3 
 
 public enum DriveHealth { Ok, Slow, Unresponsive }
 
+/// <summary>막힌 동기 I/O 끊기 훅 (Win32 CancelSynchronousIo는 Foldy.Platform이 제공한다).</summary>
+public sealed record NativeIoCancel(Func<uint> CurrentThreadId, Action<uint> Cancel);
+
 /// <summary>워치독이 작업을 포기했을 때 대기 중인 호출자에게 전달되는 예외.</summary>
 public sealed class DriveUnresponsiveException(DriveKey drive)
     : IOException($"드라이브 {drive}가 응답하지 않습니다.")
@@ -29,16 +32,18 @@ public sealed class DriveWorkQueue : IAsyncDisposable
     private readonly PriorityQueue<WorkItem, (int Priority, long Seq)> _queue = new();
     private readonly Timer _watchdog;
     private readonly Action<Thread>? _onStall;
+    private readonly NativeIoCancel? _nativeIo;
     private long _seq;
     private int _generation;
     private bool _disposed;
     private Worker _worker;
 
-    public DriveWorkQueue(DriveKey drive, TimeSpan? stallTimeout = null, Action<Thread>? onStall = null)
+    public DriveWorkQueue(DriveKey drive, TimeSpan? stallTimeout = null, Action<Thread>? onStall = null, NativeIoCancel? nativeIo = null)
     {
         Drive = drive;
         StallTimeout = stallTimeout ?? TimeSpan.FromSeconds(5);
         _onStall = onStall;
+        _nativeIo = nativeIo;
         _worker = StartWorker();
         var period = TimeSpan.FromMilliseconds(Math.Clamp(StallTimeout.TotalMilliseconds / 5, 20, 500));
         _watchdog = new Timer(_ => CheckStall(), null, period, period);
@@ -100,6 +105,7 @@ public sealed class DriveWorkQueue : IAsyncDisposable
 
     private void WorkerLoop(Worker self)
     {
+        self.NativeId = _nativeIo?.CurrentThreadId() ?? 0;
         while (true)
         {
             WorkItem item;
@@ -149,6 +155,7 @@ public sealed class DriveWorkQueue : IAsyncDisposable
     {
         WorkItem? stalled = null;
         Thread? stalledThread = null;
+        uint stalledNativeId = 0;
         lock (_gate)
         {
             if (_disposed)
@@ -162,12 +169,19 @@ public sealed class DriveWorkQueue : IAsyncDisposable
                 w.Abandoned = true;
                 stalled = cur;
                 stalledThread = w.Thread;
+                stalledNativeId = w.NativeId;
                 _worker = StartWorker();
             }
         }
 
         if (stalled is not null)
         {
+            // 먼저 막힌 동기 I/O를 끊어 본다 (CancelSynchronousIo). 끊기지 않아도 스레드는 이미 버렸다.
+            if (_nativeIo is not null && stalledNativeId != 0)
+            {
+                try { _nativeIo.Cancel(stalledNativeId); } catch (Exception) { /* 진단용 시도 */ }
+            }
+
             stalled.Fail(new DriveUnresponsiveException(Drive));
             SetHealth(DriveHealth.Unresponsive);
             if (stalledThread is not null)
@@ -224,6 +238,7 @@ public sealed class DriveWorkQueue : IAsyncDisposable
         public WorkItem? Current { get; set; }
         public long StartedTicks { get; set; }
         public bool Abandoned { get; set; }
+        public uint NativeId { get; set; }
     }
 
     private abstract class WorkItem
