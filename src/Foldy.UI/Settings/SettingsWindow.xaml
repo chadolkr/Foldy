@@ -247,8 +247,8 @@
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.MarkdownChoices}"
                    SelectedValue="{Binding MarkdownOpen, Mode=TwoWay}" />
           <TextBlock Text="애니메이션" Style="{StaticResource Settings.Section}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="화면 전환 애니메이션 사용" IsChecked="{Binding Animations, Mode=TwoWay}" />
-          <TextBlock Text="끄면 탭 전환, 패널 이동 등의 움직임이 사라집니다. Windows의 '애니메이션 효과 줄이기'도 따릅니다." Style="{StaticResource Settings.Hint}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="애니메이션 사용 (연주·우진 포함)" IsChecked="{Binding Animations, Mode=TwoWay}" />
+          <TextBlock Text="끄면 작업 패널의 연주·우진과 화면 움직임이 사라집니다. Windows의 '애니메이션 효과 줄이기'도 따릅니다." Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="오류 보고" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="오류가 나면 보고서를 보내는 것에 동의" IsChecked="{Binding SendCrashReports, Mode=TwoWay}" />
           <TextBlock Text="경로·파일 이름 같은 개인 정보는 제거한 뒤 보내며, 언제든 끌 수 있습니다." Style="{StaticResource Settings.Hint}" />
