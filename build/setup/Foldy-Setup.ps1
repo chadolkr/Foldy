@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Foldy 한 번에 설치: 프로그램(Program Files\Foldy) + 시작 메뉴 + 색인 서비스(FoldyIndexer) + 프로그램 추가/제거 등록.
   관리자 권한이 필요하며, 일반 권한으로 실행하면 UAC 창을 한 번 띄워 스스로 다시 실행한다.
@@ -27,6 +27,17 @@ if (-not $isAdmin) {
     return
 }
 
+$log = Join-Path $env:TEMP 'Foldy-Setup.log'
+Start-Transcript -Path $log -Force | Out-Null
+trap {
+    Write-Host ''
+    Write-Host "설치 중 오류: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "기록: $log"
+    Stop-Transcript | Out-Null
+    Read-Host 'Enter 키를 누르면 닫힙니다'
+    exit 1
+}
+
 function Step($text) { Write-Host "  · $text" }
 
 Write-Host ''
@@ -48,6 +59,7 @@ if ($Uninstall) {
     Remove-Item $uninstallKey -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $env:ProgramData 'Foldy') -Recurse -Force -ErrorAction SilentlyContinue
     Write-Host '제거했습니다. 설정과 세션은 %LOCALAPPDATA%\Foldy 에 남아 있습니다.' -ForegroundColor Green
+    Stop-Transcript | Out-Null
     Start-Sleep -Seconds 3
     return
 }
@@ -117,4 +129,5 @@ if (-not $NoLaunch) {
     Start-Process explorer.exe -ArgumentList "`"$exe`""
 }
 
+Stop-Transcript | Out-Null
 Start-Sleep -Seconds 4
