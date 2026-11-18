@@ -495,6 +495,58 @@ public partial class PaneView : UserControl
             _tab.FocusName = List.FocusedIndex >= 0 && List.FocusedIndex < items.Count ? items[List.FocusedIndex].Name : null;
         }
         SelectionInfoChanged?.Invoke(this, EventArgs.Empty);
+        UpdatePreview();
+    }
+
+    // ───────────── 미리보기 (F3) ─────────────
+
+    private static Foldy.Presentation.Preview.PreviewProviderRegistry? s_previewRegistry;
+    private Foldy.Presentation.Preview.PreviewViewModel? _preview;
+
+    public bool PreviewVisible => PreviewHost.Visibility == Visibility.Visible;
+
+    public void TogglePreview()
+    {
+        if (PreviewVisible)
+        {
+            PreviewHost.Visibility = Visibility.Collapsed;
+            PreviewSplitter.Visibility = Visibility.Collapsed;
+            PreviewSplitColumn.Width = new GridLength(0);
+            PreviewColumn.Width = new GridLength(0);
+            _ = _preview?.ShowAsync((Foldy.Presentation.Preview.PreviewRequest?)null);
+            return;
+        }
+
+        if (_preview is null)
+        {
+            s_previewRegistry ??= Foldy.Presentation.Preview.PreviewProviderRegistry.CreateDefault(
+                shellHandlerAvailable: Foldy.Platform.Preview.ShellPreviewHandlers.IsAvailable,
+                isImage: Foldy.Platform.Imaging.ImageFormats.IsImage);
+            _preview = new Foldy.Presentation.Preview.PreviewViewModel(s_previewRegistry);
+            PreviewHost.Child = new Foldy.UI.Preview.PreviewPane { DataContext = _preview };
+        }
+
+        PreviewHost.Visibility = Visibility.Visible;
+        PreviewSplitter.Visibility = Visibility.Visible;
+        PreviewSplitColumn.Width = new GridLength(6);
+        PreviewColumn.Width = new GridLength(Math.Max(260, ActualWidth * 0.38));
+        UpdatePreview();
+    }
+
+    private void UpdatePreview()
+    {
+        if (_preview is null || !PreviewVisible)
+        {
+            return;
+        }
+
+        FileItem? item = null;
+        if (CurrentItems is { } items && List.FocusedIndex >= 0 && List.FocusedIndex < items.Count)
+        {
+            item = items[List.FocusedIndex];
+        }
+
+        _ = _preview.ShowAsync(item);
     }
 
     /// <summary>선택 개수·용량 표시용 (상태바).</summary>
@@ -575,6 +627,10 @@ public partial class PaneView : UserControl
         {
             case Key.Back when mods == ModifierKeys.None:
                 _ = _tab.GoUpAsync();
+                e.Handled = true;
+                break;
+            case Key.F3 when mods == ModifierKeys.None:
+                TogglePreview();
                 e.Handled = true;
                 break;
             case Key.F2 when mods == ModifierKeys.None:

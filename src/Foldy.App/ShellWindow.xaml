@@ -89,6 +89,9 @@
       <Button Click="OnFnRename" ToolTip="이름 바꾸기">
         <TextBlock><Run Text="F2 " Foreground="{DynamicResource Brush.TextSecondary}" /><Run Text="이름 바꾸기" /></TextBlock>
       </Button>
+      <Button Click="OnFnPreview" ToolTip="미리보기 창">
+        <TextBlock><Run Text="F3 " Foreground="{DynamicResource Brush.TextSecondary}" /><Run Text="미리보기" /></TextBlock>
+      </Button>
       <Button Click="OnFnCopy" ToolTip="반대 패널로 복사">
         <TextBlock><Run Text="F5 " Foreground="{DynamicResource Brush.TextSecondary}" /><Run Text="복사" /></TextBlock>
       </Button>

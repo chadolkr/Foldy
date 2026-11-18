@@ -50,6 +50,8 @@ public sealed class LocalProvider(DriveQueueRegistry queues) : IFileSystemProvid
 
         await foreach (var batch in channel.Reader.ReadAllAsync(ct))
         {
+            // ReadAllAsync는 버퍼에 남은 배치를 취소 뒤에도 내준다. 취소되면 바로 멈춘다.
+            ct.ThrowIfCancellationRequested();
             yield return batch;
         }
     }
