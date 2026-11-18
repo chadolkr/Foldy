@@ -1,0 +1,137 @@
+using System.Net.Sockets;
+using Renci.SshNet;
+using Renci.SshNet.Common;
+
+namespace Foldy.Providers.Sftp;
+
+/// <summary>SSH.NET <see cref="SftpClient"/>를 <see cref="ISftpClient"/>로 감싼다. 연결 끊김 계열 예외는 <see cref="SftpConnectionLostException"/>으로 바꾼다.</summary>
+internal sealed class SshNetSftpClient : ISftpClient
+{
+    private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan KeepAlive = TimeSpan.FromSeconds(30);
+
+    private readonly SftpConnectionRequest _request;
+    private readonly HostKeyVerifier _verifier;
+    private SftpClient? _client;
+
+    public SshNetSftpClient(SftpConnectionRequest request, KnownHostsFile knownHosts)
+    {
+        _request = request;
+        _verifier = new HostKeyVerifier(knownHosts, request.HostKeyHandler);
+    }
+
+    public bool IsConnected => _client?.IsConnected == true;
+
+    public void Connect(CancellationToken ct)
+    {
+        _client?.Dispose();
+        var loc = _request.Location;
+        var user = loc.User ?? throw new InvalidOperationException("SFTP 사용자 이름이 필요합니다.");
+
+        var client = new SftpClient(BuildConnectionInfo(loc, user, _request.Auth))
+        {
+            KeepAliveInterval = KeepAlive,
+        };
+        client.HostKeyReceived += (_, e) => e.CanTrust = _verifier.Verify(loc.Host, loc.Port, e.HostKey);
+        _client = client;
+        Guard(() => client.ConnectAsync(ct).GetAwaiter().GetResult());
+    }
+
+    public IEnumerable<SftpEntryInfo> ListDirectory(string path, CancellationToken ct)
+    {
+        var client = Connected();
+        // 서버가 응답하는 대로 흘려 보내도록 비동기 열거를 큐 스레드에서 동기로 소비한다.
+        var e = client.ListDirectoryAsync(path, ct).GetAsyncEnumerator(ct);
+        try
+        {
+            while (Guard(() => e.MoveNextAsync().AsTask().GetAwaiter().GetResult()))
+            {
+                var f = e.Current;
+                yield return new SftpEntryInfo(f.Name, f.IsDirectory, f.IsSymbolicLink, f.Length, f.LastWriteTimeUtc);
+            }
+        }
+        finally
+        {
+            Guard(() => e.DisposeAsync().AsTask().GetAwaiter().GetResult());
+        }
+    }
+
+    public Stream OpenRead(string path) => Guard(() => Connected().OpenRead(path));
+
+    public void Download(string path, Stream destination, Action<long> progress, CancellationToken ct) =>
+        Guard(() => Connected()
+            .DownloadFileAsync(path, destination, new Reporter<DownloadFileProgressReport>(r => progress(unchecked((long)r.TotalBytesDownloaded))), ct)
+            .GetAwaiter().GetResult());
+
+    public void Upload(Stream source, string path, Action<long> progress, CancellationToken ct) =>
+        Guard(() => Connected()
+            .UploadFileAsync(source, path, true, new Reporter<UploadFileProgressReport>(r => progress(unchecked((long)r.TotalBytesUploaded))), ct)
+            .GetAwaiter().GetResult());
+
+    public void Dispose()
+    {
+        _client?.Dispose();
+        _client = null;
+    }
+
+    private SftpClient Connected() =>
+        _client is { IsConnected: true } c ? c : throw new SftpConnectionLostException("SFTP 연결이 끊어졌습니다.");
+
+    private static ConnectionInfo BuildConnectionInfo(SftpLocation loc, string user, SftpAuth auth)
+    {
+        var methods = new List<AuthenticationMethod>();
+        switch (auth.Kind)
+        {
+            case SftpAuthKind.Password:
+                var pw = auth.Password ?? "";
+                methods.Add(new PasswordAuthenticationMethod(user, pw));
+                var ki = new KeyboardInteractiveAuthenticationMethod(user);
+                ki.AuthenticationPrompt += (_, e) =>
+                {
+                    foreach (var p in e.Prompts)
+                    {
+                        p.Response = pw;
+                    }
+                };
+                methods.Add(ki);
+                break;
+            case SftpAuthKind.KeyFile:
+                var keyPath = auth.KeyFilePath ?? throw new InvalidOperationException("키 파일 경로가 필요합니다.");
+                var key = string.IsNullOrEmpty(auth.Passphrase) ? new PrivateKeyFile(keyPath) : new PrivateKeyFile(keyPath, auth.Passphrase);
+                methods.Add(new PrivateKeyAuthenticationMethod(user, key));
+                break;
+            default:
+                throw new NotSupportedException($"지원하지 않는 인증 방식: {auth.Kind}");
+        }
+
+        return new ConnectionInfo(loc.Host, loc.Port, user, [.. methods]) { Timeout = ConnectTimeout };
+    }
+
+    private static T Guard<T>(Func<T> action)
+    {
+        try
+        {
+            return action();
+        }
+        catch (Exception ex) when (IsConnectionFailure(ex))
+        {
+            throw new SftpConnectionLostException(ex.Message, ex);
+        }
+    }
+
+    private static void Guard(Action action) => Guard(() => { action(); return 0; });
+
+    internal static bool IsConnectionFailure(Exception ex) =>
+        ex is SshConnectionException or SocketException or SshOperationTimeoutException or ObjectDisposedException;
+
+    private sealed class Reporter<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
+    }
+}
+
+/// <summary>실제 SSH.NET 클라이언트를 만드는 기본 팩터리. 호스트 키는 known_hosts로 검증한다.</summary>
+public sealed class SshNetSftpClientFactory(KnownHostsFile knownHosts) : ISftpClientFactory
+{
+    public ISftpClient Create(SftpConnectionRequest request) => new SshNetSftpClient(request, knownHosts);
+}
