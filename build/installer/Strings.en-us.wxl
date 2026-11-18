@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WixUI 기본 문구 덮어쓰기: 환영 화면에 SYSTEM 색인 서비스 안내를 넣는다 -->
+<WixLocalization Culture="en-us" Codepage="949" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="WelcomeDlgDescription" Value="The Setup Wizard will install [ProductName] on your computer.&#xD;&#xA;&#xD;&#xA;NOTICE: this also installs a background indexing service (FoldyIndexer) that runs as SYSTEM, to power instant file-name search. It starts with Windows (delayed) and is removed when you uninstall Foldy.&#xD;&#xA;&#xD;&#xA;[ProductName] 설치 시 빠른 파일 검색을 위한 SYSTEM 권한 백그라운드 색인 서비스(FoldyIndexer)가 함께 설치됩니다.&#xD;&#xA;&#xD;&#xA;Click Next to continue or Cancel to exit the Setup Wizard." Overridable="yes" />
+</WixLocalization>

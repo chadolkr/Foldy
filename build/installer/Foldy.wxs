@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Foldy MSI (WiX 6). 빌드: build/installer/build-msi.ps1
+  -d PayloadDir=<자체 포함 게시 폴더>  -d Version=<x.y.z>  -d RepoRoot=<저장소 루트>  -d LicenseRtf=<license.rtf>
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="Foldy"
+           Manufacturer="David CHA"
+           Version="$(Version)"
+           UpgradeCode="6B1E4F0A-5C3D-4E8B-9A27-F01D1D7A4C21"
+           Scope="perMachine"
+           InstallerVersion="500"
+           Compressed="yes">
+
+    <SummaryInformation Description="Foldy - dual-pane file manager" />
+
+    <!-- 새 버전이 설치되면 이전 MSI를 제거하고 교체한다. 같은 버전(프리릴리스 등)도 허용 -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Foldy is already installed."
+                  AllowSameVersionUpgrades="yes" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- 프로그램 추가/제거(ARP) -->
+    <Icon Id="FoldyIcon" SourceFile="$(RepoRoot)\assets\icons\foldy.ico" />
+    <Property Id="ARPPRODUCTICON" Value="FoldyIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/chadolkr/Foldy" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/chadolkr/Foldy" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/chadolkr/Foldy/releases" />
+
+    <!-- 스크립트 설치본(Foldy-Setup.ps1) 감지: 정보용 속성 (동작은 아래 RemoveRegistryKey/RemoveFile 참고) -->
+    <Property Id="SCRIPT_INSTALL_FOUND">
+      <RegistrySearch Id="ScriptInstallSearch" Root="HKLM"
+                      Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Foldy"
+                      Name="UninstallString" Type="raw" Bitness="always64" />
+    </Property>
+
+    <!-- 설치 UI: 라이선스(RTF) + 설치 경로. 환영 화면에 SYSTEM 색인 서비스 안내를 덧붙인다 (Strings.en-us.wxl) -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(LicenseRtf)" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <ui:WixUI Id="WixUI_InstallDir" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Foldy">
+
+        <!-- 본체 + 시작 메뉴 바로가기 -->
+        <Component Id="FoldyExe" Bitness="always64">
+          <File Id="FoldyExeFile" Source="$(PayloadDir)\Foldy.exe" KeyPath="yes">
+            <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Foldy"
+                      Description="Foldy file manager" WorkingDirectory="INSTALLFOLDER"
+                      Icon="FoldyIcon" Advertise="no" />
+          </File>
+          <!-- 스크립트 설치본이 남긴 흔적 정리 (없으면 아무 일도 하지 않는다) -->
+          <RemoveRegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Foldy"
+                             Action="removeOnInstall" />
+          <RemoveFile Id="RemoveScriptSetup" Name="Foldy-Setup.ps1" On="install" />
+        </Component>
+
+        <!-- 색인 서비스: LocalSystem, 지연된 자동 시작, 실패 시 재시작 -->
+        <Component Id="IndexerService" Bitness="always64">
+          <File Id="FoldyIndexExe" Source="$(PayloadDir)\foldy-index.exe" KeyPath="yes" />
+          <ServiceInstall Id="FoldyIndexerInstall"
+                          Name="FoldyIndexer"
+                          DisplayName="Foldy Indexer"
+                          Description="Foldy Indexer by David CHA"
+                          Type="ownProcess"
+                          Start="auto"
+                          Account="LocalSystem"
+                          ErrorControl="normal"
+                          Arguments="--service"
+                          Vital="yes" />
+          <!-- 지연된 자동 시작은 MsiServiceConfig(문서상 불안정) 대신 아래 CustomAction(sc.exe)으로 지정한다 -->
+          <!-- 실패 시 60초 뒤 재시작, 24시간 후 카운터 초기화 -->
+          <util:ServiceConfig ServiceName="FoldyIndexer"
+                              FirstFailureActionType="restart"
+                              SecondFailureActionType="restart"
+                              ThirdFailureActionType="none"
+                              RestartServiceDelayInSeconds="60"
+                              ResetPeriodInDays="1" />
+          <ServiceControl Id="FoldyIndexerControl" Name="FoldyIndexer"
+                          Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- 서비스 시작 유형을 '자동(지연된 시작)'으로: ServiceInstall 직후 sc.exe로 변경 (64비트 System32) -->
+    <CustomAction Id="SetIndexerDelayedAuto" Directory="TARGETDIR"
+                  ExeCommand="&quot;[System64Folder]sc.exe&quot; config FoldyIndexer start= delayed-auto"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="SetIndexerDelayedAuto" After="InstallServices" Condition="NOT REMOVE" />
+    </InstallExecuteSequence>
+
+    <!-- 나머지 모든 파일(수백 개의 DLL, 로캘 폴더 등)은 페이로드에서 자동 수집 -->
+    <Feature Id="Main" Title="Foldy" Level="1" AllowAbsent="no">
+      <ComponentRef Id="FoldyExe" />
+      <ComponentRef Id="IndexerService" />
+      <ComponentGroupRef Id="PayloadFiles" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="PayloadFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(PayloadDir)\**">
+        <Exclude Files="$(PayloadDir)\Foldy.exe" />
+        <Exclude Files="$(PayloadDir)\foldy-index.exe" />
+      </Files>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
