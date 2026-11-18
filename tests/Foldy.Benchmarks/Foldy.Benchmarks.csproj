@@ -14,5 +14,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Foldy.Core\Foldy.Core.csproj" />
     <ProjectReference Include="..\..\src\Foldy.Providers.Local\Foldy.Providers.Local.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.Indexer.Client\Foldy.Indexer.Client.csproj" />
   </ItemGroup>
 </Project>
