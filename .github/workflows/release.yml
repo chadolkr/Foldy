@@ -90,7 +90,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = '${{ github.ref_name }}'
-          $files = Get-ChildItem artifacts/release -File | ForEach-Object FullName
+          $files = Get-ChildItem artifacts/release -File | Where-Object Extension -ne '.wixpdb' | ForEach-Object FullName
           $flags = @('--generate-notes', '--title', "Foldy $tag", '--verify-tag')
           if ('${{ steps.ver.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
           gh release create $tag @files @flags
