@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 미리보기 (설계서 9장): 공급자 선택, 클라우드·네트워크 보호, 텍스트 인코딩, 처리기 실패 격리, 셸 처리기 호스트 스모크. WPF 시험은 STA 스레드에서. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <!-- CA2201: 시험이 COMException을 일부러 던져 처리기 실패를 흉내 낸다 -->
+    <NoWarn>$(NoWarn);CA2201</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Foldy.Platform\Foldy.Platform.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.Presentation\Foldy.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.UI\Foldy.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- UseWPF 프로젝트는 System.IO를 암묵적으로 가져오지 않는다 -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+</Project>
