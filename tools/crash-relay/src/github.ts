@@ -19,7 +19,8 @@ export class GitHub {
   constructor(
     private readonly token: string,
     private readonly repo: string,
-    private readonly fetcher: typeof fetch = fetch,
+    // Workers의 fetch는 전역 this로 불러야 한다 (메서드로 부르면 Illegal invocation)
+    private readonly fetcher: typeof fetch = (input, init) => fetch(input, init),
   ) {}
 
   private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
