@@ -62,6 +62,9 @@
     <Project Path="tests/Foldy.Presentation.Tests/Foldy.Presentation.Tests.csproj">
       <Platform Project="x64" />
     </Project>
+    <Project Path="tests/Foldy.Preview.Tests/Foldy.Preview.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="tests/Foldy.Reporting.Tests/Foldy.Reporting.Tests.csproj">
       <Platform Project="x64" />
     </Project>

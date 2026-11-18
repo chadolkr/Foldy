@@ -1,0 +1,44 @@
+<UserControl x:Class="Foldy.UI.Preview.PreviewPane"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource Brush.Window}"
+             Foreground="{DynamicResource Brush.Text}"
+             FontFamily="{DynamicResource Font.UI}"
+             FontSize="{DynamicResource Font.Size}"
+             Focusable="True">
+  <!--
+    미리보기 창 (설계서 9장, 5.9, 5.12). 위: 파일 이름 · 크기 · 수정일, 가운데: 내용(종류별 뷰는 코드에서 지연 생성),
+    아래/가운데: 상태 문구와 [미리보기] 버튼. 색·글꼴은 모두 DynamicResource 토큰 → 테마 전환이 바로 반영된다.
+    DataContext = Foldy.Presentation.Preview.PreviewViewModel.
+  -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <Border x:Name="HeaderBar" Grid.Row="0" Padding="10,8"
+            Background="{DynamicResource Brush.Surface}"
+            BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
+      <StackPanel>
+        <TextBlock x:Name="NameText" Text="{Binding FileName}" FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis" ToolTip="{Binding FileName}" />
+        <TextBlock x:Name="InfoText" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,2,0,0"
+                   TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="1">
+      <!-- 종류별 뷰가 들어가는 자리 -->
+      <Grid x:Name="ContentHost" />
+
+      <!-- 상태 문구: 내용이 없을 때 가운데 -->
+      <StackPanel x:Name="StatusPanel" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16" Visibility="Collapsed">
+        <TextBlock x:Name="StatusText" Text="{Binding StatusText}" TextWrapping="Wrap" TextAlignment="Center"
+                   Foreground="{DynamicResource Brush.TextSecondary}" />
+        <Button x:Name="ForceButton" Content="미리보기" Margin="0,10,0,0" Padding="14,4" HorizontalAlignment="Center"
+                Command="{Binding ForceCommand}" Visibility="Collapsed" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>
