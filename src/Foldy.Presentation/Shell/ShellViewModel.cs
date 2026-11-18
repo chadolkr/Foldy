@@ -305,7 +305,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public async Task TransferAsync(IReadOnlyList<string> src, string dest, bool move)
     {
         var verb = move ? "이동" : "복사";
-        var job = StartJob($"{JobViewModel.Describe(src)} {verb} → {PathUtil.DisplayName(dest)}");
+        var job = StartJob($"{JobViewModel.Describe(src)} {verb} → {PathUtil.DisplayName(dest)}", move ? Mascot.JobKind.Move : Mascot.JobKind.Copy);
         var r = move
             ? await _services.FileOps.MoveAsync(src, dest, job, job.Token)
             : await _services.FileOps.CopyAsync(src, dest, job, job.Token);
@@ -322,7 +322,7 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
-        var job = StartJob($"{JobViewModel.Describe(src)} {(permanent ? "영구 삭제" : "휴지통으로")}");
+        var job = StartJob($"{JobViewModel.Describe(src)} {(permanent ? "영구 삭제" : "휴지통으로")}", permanent ? Mascot.JobKind.DeletePermanent : Mascot.JobKind.Delete);
         var r = await _services.FileOps.DeleteAsync(src, recycle: !permanent, job, job.Token);
         FinishJob(job, r);
         await RefreshFoldersAsync(src.Select(s => PathUtil.Parent(s) ?? s));
@@ -367,9 +367,9 @@ public sealed partial class ShellViewModel : ObservableObject
         return created;
     }
 
-    private JobViewModel StartJob(string title)
+    private JobViewModel StartJob(string title, Mascot.JobKind kind = Mascot.JobKind.Copy)
     {
-        var job = new JobViewModel(title, _env.Ui) { State = JobState.Running };
+        var job = new JobViewModel(title, _env.Ui) { State = JobState.Running, MascotKind = kind, MascotEnabled = Settings.Animations };
         Jobs.Insert(0, job);
         while (Jobs.Count > 30)
         {

@@ -30,6 +30,12 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
     [ObservableProperty]
     private JobState _state = JobState.Queued;
 
+    /// <summary>마스코트(연주·우진) 장면을 고르는 작업 종류.</summary>
+    public Foldy.Presentation.Mascot.JobKind MascotKind { get; init; } = Foldy.Presentation.Mascot.JobKind.Copy;
+
+    /// <summary>설정의 애니메이션 켜기/끄기.</summary>
+    public bool MascotEnabled { get; init; } = true;
+
     public JobViewModel(string title, IUiDispatcher ui)
     {
         _title = title;
