@@ -104,6 +104,9 @@
       <Button Click="OnFnPalette" ToolTip="모든 명령">
         <TextBlock><Run Text="Ctrl+Shift+P " Foreground="{DynamicResource Brush.TextSecondary}" /><Run Text="명령" /></TextBlock>
       </Button>
+      <Button Click="OnHelp" ToolTip="사용 설명서 (F1)">
+        <TextBlock><Run Text="F1 " Foreground="{DynamicResource Brush.TextSecondary}" /><Run Text="? 도움말" /></TextBlock>
+      </Button>
       <Button x:Name="MoreButton" Click="OnMore" ToolTip="설정과 정보">
         <TextBlock Text="&#xE712;" FontFamily="{DynamicResource Font.Icon}" />
         <Button.ContextMenu>
@@ -128,6 +131,7 @@
             <MenuItem Header="색인 서비스 설치 (관리자)…" Click="OnInstallIndexer" />
             <Separator />
             <MenuItem Header="설정 파일 열기" Click="OnOpenSettings" />
+            <MenuItem Header="도움말" InputGestureText="F1" Click="OnHelp" />
             <MenuItem Header="Foldy 정보" Click="OnAbout" />
           </ContextMenu>
         </Button.ContextMenu>

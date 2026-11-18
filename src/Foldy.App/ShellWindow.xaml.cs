@@ -441,6 +441,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("indexer.install", "색인 서비스 설치 (관리자, 전체 드라이브 즉시 검색)", () => RunIndexerSetup(install: true));
         Add("indexer.uninstall", "색인 서비스 제거 (관리자)", () => RunIndexerSetup(install: false));
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
+        Add("app.help", "도움말 (사용 설명서)", ShowHelp, Key.F1, inText: true);
         Add("app.about", "Foldy 정보", ShowAbout);
         Add("app.checkUpdate", "업데이트 확인", CheckUpdateNow);
     }
@@ -782,4 +783,46 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnAbout(object sender, RoutedEventArgs e) => ShowAbout();
 
     private void ShowAbout() => new AboutWindow { Owner = this }.ShowDialog();
+
+    private void OnHelp(object sender, RoutedEventArgs e) => ShowHelp();
+
+    /// <summary>설명서(help\*.md)를 버전을 채워 %LOCALAPPDATA%\Foldy\help에 펼치고 Markdown 탭으로 연다.</summary>
+    private void ShowHelp()
+    {
+        var src = Path.Combine(AppContext.BaseDirectory, "help");
+        var index = Path.Combine(src, "index.md");
+        if (!File.Exists(index))
+        {
+            MessageBox.Show(this, "설명서 파일을 찾을 수 없습니다.\n" + index, "도움말", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var version = typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "?";
+        var dst = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Foldy", "help");
+        try
+        {
+            Directory.CreateDirectory(dst);
+            foreach (var f in Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories))
+            {
+                var target = Path.Combine(dst, Path.GetRelativePath(src, f));
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                if (f.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
+                {
+                    File.WriteAllText(target, File.ReadAllText(f).Replace("{{version}}", version, StringComparison.Ordinal));
+                }
+                else
+                {
+                    File.Copy(f, target, overwrite: true);
+                }
+            }
+
+            index = Path.Combine(dst, "index.md");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Warning(ex, "도움말 복사 실패, 원본을 연다");
+        }
+
+        ShellViewModel.OpenMarkdown(Shell.ActivePane, index);
+    }
 }
