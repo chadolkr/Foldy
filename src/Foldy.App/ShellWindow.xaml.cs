@@ -739,26 +739,59 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
+    private DispatcherTimer? _updateAfterJobs;
+
     private void UpdateUpdateButton()
     {
         if (_updater.ReadyVersion is { } v)
         {
-            UpdateButton.Content = $"Foldy {v} · 재시작하고 업데이트";
+            UpdateButton.Content = _updateAfterJobs is null
+                ? $"Foldy {v} · 재시작하고 업데이트"
+                : $"작업이 끝나면 {v}(으)로 업데이트 · 취소";
             UpdateButton.Visibility = Visibility.Visible;
         }
     }
 
+    /// <summary>
+    /// [재시작하고 업데이트]. 진행 중인 작업(복사·이동·삭제)이 있으면 끊지 않고 예약해 두었다가,
+    /// 모두 끝나면 자동으로 설치·재시작한다. 예약 중에 다시 누르면 취소.
+    /// </summary>
     private void OnInstallUpdate(object sender, RoutedEventArgs e)
     {
-        var running = Shell.Jobs.Any(j => !j.IsFinished);
-        if (running && MessageBox.Show(this, "진행 중인 작업이 있습니다. 그래도 지금 업데이트할까요?", "Foldy 업데이트", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+        if (_updateAfterJobs is not null)
         {
+            _updateAfterJobs.Stop();
+            _updateAfterJobs = null;
+            Shell.Status = "업데이트 예약을 취소했습니다";
+            UpdateUpdateButton();
             return;
         }
 
+        if (Shell.Jobs.Any(j => !j.IsFinished))
+        {
+            _updateAfterJobs = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, (_, _) =>
+            {
+                if (!Shell.Jobs.Any(j => !j.IsFinished))
+                {
+                    _updateAfterJobs?.Stop();
+                    _updateAfterJobs = null;
+                    InstallNow();
+                }
+            }, Dispatcher);
+            _updateAfterJobs.Start();
+            Shell.Status = "진행 중인 작업이 끝나면 업데이트합니다";
+            UpdateUpdateButton();
+            return;
+        }
+
+        InstallNow();
+    }
+
+    private void InstallNow()
+    {
         if (_updater.LaunchInstaller())
         {
-            Close(); // 세션 저장 후 종료, 설치 스크립트가 끝나면 Foldy를 다시 띄운다
+            Close(); // 세션 저장 후 종료, 설치가 끝나면 Foldy를 다시 띄운다
         }
         else
         {
@@ -766,6 +799,7 @@ public partial class ShellWindow : Window, IPaneHost
                 ? $"업데이트 설치를 시작하지 못했습니다: {_updater.LastError}"
                 : "업데이트 설치가 취소됐습니다. 관리자 권한 창에서 [예]를 눌러야 설치됩니다.";
             Shell.Status = why;
+            UpdateUpdateButton();
             MessageBox.Show(this, why, "Foldy 업데이트", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
