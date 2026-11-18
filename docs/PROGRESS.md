@@ -91,6 +91,27 @@
 5. M6 출시 준비: 1.0 체크리스트(접근성, 성능 회귀, 설치·제거, SignPath 코드 서명), Git diff/blame, 색인 영속화.
 6. 0.3.0 릴리스.
 
+## 재개 방법 (세션 정보)
+
+- **프로젝트**: Claude 프로젝트 "Foldy". 작업 스레드는 "다기능 파일매니저 (윈도우용)"이고, 이 스레드에서 이어서 말하면 된다.
+- **Claude Code 세션**: 로컬 transcript는 `C:\Users\cuser\.claude\projects\C--WorkSpace-Foldy\06fb3c7c-e696-4feb-a9ca-dbc84dc367d8.jsonl`. 프로젝트 메모리는 `C:\Users\cuser\.claude\projects\C--WorkSpace-Foldy\memory\foldy-project.md`.
+- **작업 폴더**: `C:\WorkSpace\Foldy` (git `main`, origin = https://github.com/chadolkr/Foldy). 남은 작업 트리는 `.claude\worktrees\` 아래에 있고, 모두 main에 병합했다.
+- **시작할 때**: "docs/PROGRESS.md 읽고 이어서 진행해줘"라고 말하면 된다.
+- **빌드와 시험**
+  - `./build.ps1`: Rust, .NET, 시험 전체
+  - `./build.ps1 -SkipRust`: .NET만
+- **로컬 설치본**: `./build/setup/make-setup.ps1 -SkipRust`를 실행하면 `dist\Foldy-Setup\Foldy 설치.cmd`가 생긴다.
+- **릴리스**
+  1. `Directory.Build.props`의 `<Version>`을 올린다.
+  2. 커밋하고 `git tag vX.Y.Z`를 만든다.
+  3. `git push origin main`, `git push origin vX.Y.Z`
+  4. Actions "Release"가 끝나면 `gh release view vX.Y.Z`로 확인한다.
+- **업데이트 상태를 확인할 때**: `C:\ProgramData\Foldy\Updates\updater.log`, `state.json`. 서비스에 바로 확인을 요청하는 도구는 scratchpad의 `upd` 프로그램이다(IndexerClient `CheckForUpdateAsync`). 세션이 바뀌면 사라질 수 있다.
+- **키와 비밀값의 위치** (값은 여기 적지 않는다)
+  - 업데이트 서명 비밀키: `%LOCALAPPDATA%\Foldy\signing\foldy-update.signing.key`. 공개키는 저장소에 있다. GitHub secret은 `FOLDY_UPDATE_SIGNING_KEY`.
+  - 오류 신고 릴레이: Cloudflare Worker `foldy-crash-relay` (`tools/crash-relay`, `npx wrangler deploy`). Worker secret은 `GITHUB_TOKEN`(Issues 쓰기 PAT). KV는 `CRASH_KV`.
+- **권한 메모**: 관리자 권한 설치는 사용자가 직접 한다. 서비스에 설치를 시키는 명령도 사용자가 버튼으로 한다.
+
 ## 작업 환경 메모
 
 - .NET 10 SDK: `%LOCALAPPDATA%\Microsoft\dotnet` (build.ps1이 PATH를 잡는다). Rust: rustup.
