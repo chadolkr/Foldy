@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Foldy.UI 단위 테스트 (Markdown 뷰어 등). WPF 객체는 STA 스레드에서 만든다. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Foldy.UI\Foldy.UI.csproj" />
+  </ItemGroup>
+</Project>

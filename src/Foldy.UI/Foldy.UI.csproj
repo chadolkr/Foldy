@@ -7,6 +7,15 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Foldy.Platform\Foldy.Platform.csproj" />
+    <!-- 의존 방향 UI → Presentation (설계서 4장). MarkdownView의 DataContext가 MarkdownTabViewModel. -->
+    <ProjectReference Include="..\Foldy.Presentation\Foldy.Presentation.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Markdown 파서 (BSD-2-Clause, GPL-3.0 호환). 설계서 5.9 -->
+    <PackageReference Include="Markdig" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Foldy.UI.Tests" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\..\assets\icons\png\foldy-16.png" Link="Assets\foldy-16.png" />
