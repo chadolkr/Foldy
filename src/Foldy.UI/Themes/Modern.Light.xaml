@@ -21,4 +21,13 @@
   <SolidColorBrush x:Key="Brush.ScrollThumbHover" Color="#9C9CA4" />
   <SolidColorBrush x:Key="Brush.Error" Color="#C42B1C" />
   <SolidColorBrush x:Key="Brush.Done" Color="#0F7B0F" />
+  <!-- OneNote 스타일 탭 색 (탭마다 다른 색) -->
+  <SolidColorBrush x:Key="Brush.Tab0" Color="#D6E6FF" />
+  <SolidColorBrush x:Key="Brush.Tab1" Color="#FFE0C2" />
+  <SolidColorBrush x:Key="Brush.Tab2" Color="#D5F0DC" />
+  <SolidColorBrush x:Key="Brush.Tab3" Color="#EFD9F7" />
+  <SolidColorBrush x:Key="Brush.Tab4" Color="#FFF0B8" />
+  <SolidColorBrush x:Key="Brush.Tab5" Color="#D2EFF5" />
+  <SolidColorBrush x:Key="Brush.Tab6" Color="#FFD9E0" />
+  <SolidColorBrush x:Key="Brush.Tab7" Color="#E3DFFA" />
 </ResourceDictionary>

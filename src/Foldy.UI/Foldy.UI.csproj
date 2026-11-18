@@ -4,9 +4,12 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <RootNamespace>Foldy.UI</RootNamespace>
+    <!-- CA1001: 앱 수명 동안 사는 UI 서비스(아이콘 큐 등) -->
+    <NoWarn>$(NoWarn);CA1001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Foldy.Platform\Foldy.Platform.csproj" />
+    <ProjectReference Include="..\Foldy.Presentation\Foldy.Presentation.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\..\assets\icons\png\foldy-16.png" Link="Assets\foldy-16.png" />

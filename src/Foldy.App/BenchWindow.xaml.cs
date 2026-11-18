@@ -22,7 +22,7 @@ namespace Foldy.App;
 /// M0 기술 검증 화면. 10만 개 목록 스크롤 벤치, 로컬 폴더 스트리밍 열기, Rust 엔진 연결 상태를 보여준다.
 /// M1에서 Presentation 프로젝트의 ViewModel(MVVM)과 듀얼 패널 화면으로 대체된다.
 /// </summary>
-public partial class MainWindow : Window
+public partial class BenchWindow : Window
 {
     private static readonly JsonSerializerOptions JsonOut = new() { WriteIndented = true };
 
@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _openCts;
     private IndexerClient? _indexer;
 
-    public MainWindow()
+    public BenchWindow()
     {
         InitializeComponent();
         _local = new LocalProvider(_queues);
@@ -65,7 +65,7 @@ public partial class MainWindow : Window
         ThemeManager.Attach(this);
 
         // 제목 표시줄 왼쪽 위: "Foldy 0.0.1"
-        Title = $"Foldy {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)}";
+        Title = $"Foldy {typeof(BenchWindow).Assembly.GetName().Version?.ToString(3)}";
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)

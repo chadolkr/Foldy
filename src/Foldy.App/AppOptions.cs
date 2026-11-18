@@ -19,6 +19,7 @@ public sealed record AppOptions
     public string? Font { get; init; }
     public bool FullAutomation { get; init; }
     public bool ListWpf { get; init; }
+    public bool ThemeGiven { get; init; }
     public bool Synthetic { get; init; }
     public string? Screenshot { get; init; }
     public Foldy.UI.Theming.FoldyTheme Theme { get; init; } = Foldy.UI.Theming.FoldyTheme.System;
@@ -43,7 +44,7 @@ public sealed record AppOptions
                 "--list-wpf" => o with { ListWpf = true },
                 "--synthetic" => o with { Synthetic = true },
                 "--screenshot" => o with { Screenshot = Next() },
-                "--theme" => o with { Theme = Enum.Parse<Foldy.UI.Theming.FoldyTheme>(Next(), ignoreCase: true) },
+                "--theme" => o with { Theme = Enum.Parse<Foldy.UI.Theming.FoldyTheme>(Next(), ignoreCase: true), ThemeGiven = true },
                 _ => o,
             };
         }

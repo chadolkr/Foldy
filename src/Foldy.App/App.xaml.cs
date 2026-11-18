@@ -41,10 +41,19 @@ public partial class App : Application
             Log.Fatal(ev.ExceptionObject as Exception, "처리되지 않은 예외 (종료됨: {Terminating})", ev.IsTerminating);
 
         _stallDetector = new UiStallDetector(Dispatcher, TimeSpan.FromMilliseconds(200));
-        Foldy.UI.Theming.ThemeManager.Initialize(this, Options.Theme);
+        var settings = Foldy.Presentation.Persistence.AppSettings.Migrate(Foldy.Presentation.Persistence.JsonFileStore.Load(Path.Combine(DataDir, "settings.json"), () => new Foldy.Presentation.Persistence.AppSettings()));
+        var theme = Options.ThemeGiven ? Options.Theme : Enum.TryParse<Foldy.UI.Theming.FoldyTheme>(settings.Theme, ignoreCase: true, out var t) ? t : Foldy.UI.Theming.FoldyTheme.System;
+        Foldy.UI.Theming.ThemeManager.Initialize(this, theme);
 
         base.OnStartup(e);
-        new MainWindow().Show();
+        if (Options.IsBench || Options.Synthetic || Options.ListWpf)
+        {
+            new BenchWindow().Show();
+        }
+        else
+        {
+            new ShellWindow().Show();
+        }
     }
 
     private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

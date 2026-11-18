@@ -91,6 +91,9 @@ public sealed partial class FolderTabViewModel : TabBase
     /// <summary>현재 포커스 행 이름 (세션 저장·목록 교체 후 복원용).</summary>
     public string? FocusName { get; set; }
 
+    /// <summary>탭을 다시 보일 때 복원할 세로 스크롤 위치.</summary>
+    public double ScrollOffset { get; set; }
+
     /// <summary>마지막 열기 소요 시간 (진단용).</summary>
     public TimeSpan LastLoadTime { get; private set; }
 

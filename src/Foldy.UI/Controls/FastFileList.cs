@@ -12,6 +12,13 @@ using System.Windows.Media;
 
 namespace Foldy.UI.Controls;
 
+public sealed class FileListContextEventArgs(int index, Point screenPoint) : EventArgs
+{
+    public int Index { get; } = index;
+
+    public Point ScreenPoint { get; } = screenPoint;
+}
+
 /// <summary>목록 열 정의. 텍스트는 처음 보일 때 한 번만 만들어 캐시한다.</summary>
 public sealed class FastColumn(string header, double width, Func<object, string> text, bool alignRight = false)
 {
@@ -77,6 +84,12 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     private double _renderTotalMs;
     private int _renderCount;
     private Typeface? _typeface;
+    private int _resizeColumn = -1;
+    private double _resizeStartX;
+    private double _resizeStartWidth;
+    private Point _dragStart;
+    private int _dragCandidate = -1;
+    private int _pendingClick = -1;
     private FormattedText[]? _headerCache;
 
     public FastFileList()
@@ -91,6 +104,75 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     public event EventHandler? SelectionChanged;
 
     public event EventHandler<int>? ItemActivated;
+
+    /// <summary>열 머리글을 눌렀을 때 (정렬). 값은 열 번호.</summary>
+    public event EventHandler<int>? HeaderClicked;
+
+    /// <summary>열 너비를 끌어서 바꾼 뒤.</summary>
+    public event EventHandler? ColumnsChanged;
+
+    /// <summary>우클릭·메뉴 키. 항목이 없는 곳이면 Index = -1 (폴더 배경 메뉴).</summary>
+    public event EventHandler<FileListContextEventArgs>? ContextRequested;
+
+    /// <summary>선택한 항목을 끌기 시작했을 때. 처리기가 DoDragDrop을 호출한다.</summary>
+    public event EventHandler? DragRequested;
+
+    /// <summary>글자를 입력했을 때 (Type-ahead).</summary>
+    public event EventHandler<string>? TypeAhead;
+
+    /// <summary>이름 열 앞에 그릴 아이콘 (null이면 아이콘 칸 없음).</summary>
+    public Func<object, ImageSource?>? IconSelector { get; set; }
+
+    /// <summary>흐리게 그릴 항목 (숨김 파일 등).</summary>
+    public Func<object, bool>? IsDimmed { get; set; }
+
+    public const double IconSize = 16;
+
+    /// <summary>첫 열(이름)이 남는 너비를 채운다. 사용자가 이름 열 너비를 직접 바꾸면 그 값을 따른다.</summary>
+    public bool FillFirstColumn { get; set; } = true;
+
+    private bool _userResizedFirst;
+
+    /// <summary>정렬 표시를 그릴 열 (-1이면 없음).</summary>
+    public int SortColumn { get; set; } = -1;
+
+    public bool SortDescending { get; set; }
+
+    /// <summary>행 하나의 화면 위치 (컨트롤 좌표). 이름 바꾸기 입력칸 배치용.</summary>
+    public Rect RowRect(int index) => new(0, HeaderHeight + index * RowHeight - _offset.Y, ActualWidth, RowHeight);
+
+    /// <summary>이름 칸(아이콘 뒤)의 위치.</summary>
+    public Rect NameCellRect(int index)
+    {
+        var r = RowRect(index);
+        var iconSpace = IconSelector is null ? 0 : IconSize + 6;
+        var w = Columns.Count > 0 ? Columns[0].Width : r.Width;
+        return new Rect(-_offset.X + CellPadding + iconSpace - 4, r.Y + 1, Math.Max(40, w - CellPadding - iconSpace), r.Height - 2);
+    }
+
+    /// <summary>한 항목에 포커스·선택을 두고 보이게 스크롤한다.</summary>
+    public void FocusIndex(int index, bool select = true)
+    {
+        if (index < 0 || index >= Count)
+        {
+            return;
+        }
+
+        if (select)
+        {
+            SelectWithModifiers(index, ModifierKeys.None);
+        }
+        else
+        {
+            _focus = _anchor = index;
+            InvalidateVisual();
+        }
+
+        ScrollIntoView(index);
+    }
+
+    /// <summary>아이콘이 늦게 도착했을 때 다시 그린다.</summary>
+    public void Redraw() => InvalidateVisual();
 
     public List<FastColumn> Columns { get; } = [];
 
@@ -222,6 +304,19 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     protected override Size ArrangeOverride(Size finalSize)
     {
         _viewport = new Size(finalSize.Width, Math.Max(0, finalSize.Height - HeaderHeight));
+        if (FillFirstColumn && Columns.Count > 1 && !_userResizedFirst)
+        {
+            // 이름 열이 남는 너비를 채운다 (좁은 패널에서 가로 스크롤 없이)
+            var others = Columns.Skip(1).Sum(c => c.Width);
+            var w = Math.Max(120, finalSize.Width - others - 2);
+            if (Math.Abs(Columns[0].Width - w) > 0.5)
+            {
+                Columns[0].Width = w;
+                _textCache.Clear();
+                _headerCache = null;
+            }
+        }
+
         InvalidateScroll();
         return finalSize;
     }
@@ -268,14 +363,36 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
                 }
 
                 var texts = GetRowText(list, i, selected, dpi);
+                var item = list[i]!;
+                var dim = IsDimmed?.Invoke(item) == true;
+                if (dim)
+                {
+                    dc.PushOpacity(0.55);
+                }
+
                 var x = x0;
                 for (var c = 0; c < Columns.Count; c++)
                 {
                     var col = Columns[c];
                     var ft = texts[c];
                     var tx = col.AlignRight ? x + col.Width - CellPadding - ft.Width : x + CellPadding;
+                    if (c == 0 && IconSelector is not null)
+                    {
+                        if (IconSelector(item) is { } icon)
+                        {
+                            dc.DrawImage(icon, new Rect(Math.Round(x + CellPadding), Math.Round(y + (rh - IconSize) / 2), IconSize, IconSize));
+                        }
+
+                        tx += IconSize + 6;
+                    }
+
                     dc.DrawText(ft, new Point(Math.Round(tx), Math.Round(y + (rh - ft.Height) / 2)));
                     x += col.Width;
+                }
+
+                if (dim)
+                {
+                    dc.Pop();
                 }
             }
 
@@ -312,7 +429,30 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
             var col = Columns[c];
             var ft = _headerCache[c];
             var tx = col.AlignRight ? x + col.Width - CellPadding - ft.Width : x + CellPadding;
+            if (c == 0 && IconSelector is not null)
+            {
+                tx += IconSize + 6;
+            }
+
             dc.DrawText(ft, new Point(Math.Round(tx), Math.Round((hh - ft.Height) / 2)));
+            if (c == SortColumn)
+            {
+                // 정렬 방향 표시: 작은 꺾쇠
+                var ax = col.AlignRight ? tx - 12 : tx + ft.Width + 6;
+                var ay = hh / 2;
+                var g = new StreamGeometry();
+                using (var gc = g.Open())
+                {
+                    var d = SortDescending ? 1.5 : -1.5;
+                    gc.BeginFigure(new Point(ax, ay - d), false, false);
+                    gc.LineTo(new Point(ax + 3.5, ay + d), true, false);
+                    gc.LineTo(new Point(ax + 7, ay - d), true, false);
+                }
+
+                g.Freeze();
+                dc.DrawGeometry(null, new Pen(HeaderForeground, 1.2) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, g);
+            }
+
             x += col.Width;
             dc.DrawRectangle(GridLineBrush, null, new Rect(Math.Round(x) - 1, 6, 1, hh - 12));
         }
@@ -344,9 +484,10 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
             {
                 var col = Columns[c];
                 var brush = selected ? SelectionForeground : c == 0 ? Foreground : SecondaryForeground;
+                var iconSpace = c == 0 && IconSelector is not null ? IconSize + 6 : 0;
                 slot[c] = new FormattedText(col.Text(item), CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, tf, fs, brush, dpi)
                 {
-                    MaxTextWidth = Math.Max(1, col.Width - 2 * CellPadding),
+                    MaxTextWidth = Math.Max(1, col.Width - 2 * CellPadding - iconSpace),
                     MaxLineCount = 1,
                     Trimming = TextTrimming.CharacterEllipsis,
                 };
@@ -375,14 +516,130 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         return i >= 0 && i < Count ? i : -1;
     }
 
+    /// <summary>머리글에서 열 경계(±4px) 위면 그 열 번호, 아니면 -1.</summary>
+    private int ColumnEdgeAt(double x)
+    {
+        var edge = -_offset.X;
+        for (var c = 0; c < Columns.Count; c++)
+        {
+            edge += Columns[c].Width;
+            if (Math.Abs(x - edge) <= 4)
+            {
+                return c;
+            }
+        }
+
+        return -1;
+    }
+
+    private int ColumnAt(double x)
+    {
+        var left = -_offset.X;
+        for (var c = 0; c < Columns.Count; c++)
+        {
+            if (x >= left && x < left + Columns[c].Width)
+            {
+                return c;
+            }
+
+            left += Columns[c].Width;
+        }
+
+        return -1;
+    }
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
-        var i = IndexAt(e.GetPosition(this));
+        var p = e.GetPosition(this);
+
+        if (_resizeColumn >= 0)
+        {
+            Columns[_resizeColumn].Width = Math.Max(48, _resizeStartWidth + p.X - _resizeStartX);
+            _userResizedFirst |= _resizeColumn == 0;
+            _textCache.Clear();
+            _headerCache = null;
+            InvalidateScroll();
+            return;
+        }
+
+        Cursor = p.Y < HeaderHeight && ColumnEdgeAt(p.X) >= 0 ? Cursors.SizeWE : null;
+
+        if (_dragCandidate >= 0 && e.LeftButton == MouseButtonState.Pressed &&
+            (Math.Abs(p.X - _dragStart.X) > SystemParameters.MinimumHorizontalDragDistance ||
+             Math.Abs(p.Y - _dragStart.Y) > SystemParameters.MinimumVerticalDragDistance))
+        {
+            _dragCandidate = -1;
+            _pendingClick = -1;
+            DragRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        var i = IndexAt(p);
         if (i != _hover)
         {
             _hover = i;
             InvalidateVisual();
+        }
+    }
+
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonUp(e);
+        if (_resizeColumn >= 0)
+        {
+            _resizeColumn = -1;
+            ReleaseMouseCapture();
+            ColumnsChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        if (_pendingClick >= 0)
+        {
+            // 이미 선택된 항목을 눌렀다 뗐으면(끌지 않았으면) 그 항목만 선택
+            SelectWithModifiers(_pendingClick, ModifierKeys.None);
+        }
+
+        _pendingClick = -1;
+        _dragCandidate = -1;
+    }
+
+    protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseRightButtonDown(e);
+        Focus();
+        var i = IndexAt(e.GetPosition(this));
+        if (i >= 0 && !IsSelected(i))
+        {
+            SelectWithModifiers(i, ModifierKeys.None);
+        }
+        else if (i < 0 && e.GetPosition(this).Y >= HeaderHeight)
+        {
+            ClearSelection();
+        }
+
+        e.Handled = true;
+    }
+
+    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseRightButtonUp(e);
+        var p = e.GetPosition(this);
+        if (p.Y >= HeaderHeight)
+        {
+            ContextRequested?.Invoke(this, new FileListContextEventArgs(IndexAt(p), PointToScreen(p)));
+        }
+
+        e.Handled = true;
+    }
+
+    protected override void OnTextInput(TextCompositionEventArgs e)
+    {
+        base.OnTextInput(e);
+        if (!string.IsNullOrEmpty(e.Text) && !char.IsControl(e.Text[0]) && Keyboard.Modifiers is ModifierKeys.None or ModifierKeys.Shift)
+        {
+            TypeAhead?.Invoke(this, e.Text);
+            e.Handled = true;
         }
     }
 
@@ -400,7 +657,27 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     {
         base.OnMouseLeftButtonDown(e);
         Focus();
-        var i = IndexAt(e.GetPosition(this));
+        var pos = e.GetPosition(this);
+        if (pos.Y < HeaderHeight)
+        {
+            var edge = ColumnEdgeAt(pos.X);
+            if (edge >= 0)
+            {
+                _resizeColumn = edge;
+                _resizeStartX = pos.X;
+                _resizeStartWidth = Columns[edge].Width;
+                CaptureMouse();
+            }
+            else if (ColumnAt(pos.X) is var col and >= 0)
+            {
+                HeaderClicked?.Invoke(this, col);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        var i = IndexAt(pos);
         if (e.ClickCount == 2 && i >= 0)
         {
             ItemActivated?.Invoke(this, i);
@@ -418,7 +695,18 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
             return;
         }
 
-        SelectWithModifiers(i, Keyboard.Modifiers);
+        _dragStart = pos;
+        _dragCandidate = i;
+        if (IsSelected(i) && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            _pendingClick = i; // 여러 개를 끌 수 있게 선택 변경은 버튼을 뗄 때
+            _focus = i;
+        }
+        else
+        {
+            SelectWithModifiers(i, Keyboard.Modifiers);
+        }
+
         e.Handled = true;
     }
 
@@ -480,6 +768,12 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         else if (e.Key == Key.Space && Keyboard.Modifiers == ModifierKeys.Control && _focus >= 0)
         {
             SelectWithModifiers(_focus, ModifierKeys.Control);
+            e.Handled = true;
+        }
+        else if ((e.Key == Key.Apps || (e.Key == Key.F10 && Keyboard.Modifiers == ModifierKeys.Shift)) && _focus >= 0)
+        {
+            var r = RowRect(_focus);
+            ContextRequested?.Invoke(this, new FileListContextEventArgs(_focus, PointToScreen(new Point(r.X + 40, r.Bottom))));
             e.Handled = true;
         }
         else if (e.Key == Key.Enter && _focus >= 0)

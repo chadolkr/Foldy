@@ -13,6 +13,8 @@
   <sys:Double x:Key="Font.Size">12.5</sys:Double>
   <sys:Double x:Key="List.RowHeight">26</sys:Double>
   <CornerRadius x:Key="Radius">6</CornerRadius>
+  <!-- ScrollViewer 모서리(가로·세로 스크롤바가 만나는 칸)가 흰 사각형으로 보이지 않게 -->
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="Transparent" />
 
   <Style x:Key="Foldy.Window" TargetType="Window">
     <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
@@ -91,6 +93,31 @@
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Foreground" Value="{DynamicResource Brush.TextDisabled}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- 브레드크럼 조각 버튼 -->
+  <Style x:Key="Foldy.CrumbButton" TargetType="Button">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.UI}" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+            <ContentPresenter VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Pressed}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>

@@ -115,4 +115,13 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
+  <!-- OneNote 스타일 탭 색 (탭마다 다른 색) -->
+  <SolidColorBrush x:Key="Brush.Tab0" Color="#A8C8F0" />
+  <SolidColorBrush x:Key="Brush.Tab1" Color="#F8C890" />
+  <SolidColorBrush x:Key="Brush.Tab2" Color="#B0E0B8" />
+  <SolidColorBrush x:Key="Brush.Tab3" Color="#E0B8F0" />
+  <SolidColorBrush x:Key="Brush.Tab4" Color="#F8E890" />
+  <SolidColorBrush x:Key="Brush.Tab5" Color="#A8E0E8" />
+  <SolidColorBrush x:Key="Brush.Tab6" Color="#F8B8C8" />
+  <SolidColorBrush x:Key="Brush.Tab7" Color="#C8C0F0" />
 </ResourceDictionary>
