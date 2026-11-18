@@ -386,6 +386,8 @@ public partial class ShellWindow : Window, IPaneHost
         Add("view.themeDark", "테마: 다크", () => SetTheme(FoldyTheme.Dark));
         Add("view.themeRetro", "테마: 레트로", () => SetTheme(FoldyTheme.Retro));
         Add("sftp.connect", "SFTP 서버에 연결…", ConnectSftp, Key.O, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("indexer.install", "색인 서비스 설치 (관리자, 전체 드라이브 즉시 검색)", () => RunIndexerSetup(install: true));
+        Add("indexer.uninstall", "색인 서비스 제거 (관리자)", () => RunIndexerSetup(install: false));
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
         Add("app.about", "Foldy 정보", ShowAbout);
     }
@@ -429,6 +431,39 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
+    private async void RunIndexerSetup(bool install)
+    {
+        var exe = Path.Combine(AppContext.BaseDirectory, "foldy-index.exe");
+        if (install && !File.Exists(exe))
+        {
+            Shell.Status = "foldy-index.exe가 없습니다 (설치본에서 실행하세요)";
+            return;
+        }
+
+        try
+        {
+            using var p = Process.Start(install ? Foldy.Platform.SystemInfo.IndexerService.BuildInstall(exe) : Foldy.Platform.SystemInfo.IndexerService.BuildUninstall());
+            if (p is not null)
+            {
+                await p.WaitForExitAsync();
+            }
+
+            Shell.Status = install ? "색인 서비스를 설치했습니다. 첫 색인에 수십 초 걸릴 수 있습니다." : "색인 서비스를 제거했습니다.";
+            await Task.Delay(install ? 3000 : 500);
+            if (_indexer is not null)
+            {
+                await _indexer.DisposeAsync();
+                _indexer = null;
+            }
+
+            await ProbeEnginesAsync();
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            Shell.Status = "관리자 권한 요청이 취소됐습니다";
+        }
+    }
+
     private void ConnectSftp()
     {
         var dlg = new SftpConnectWindow(_sftp) { Owner = this };
@@ -439,6 +474,8 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private void OnSftpConnect(object sender, RoutedEventArgs e) => ConnectSftp();
+
+    private void OnInstallIndexer(object sender, RoutedEventArgs e) => RunIndexerSetup(install: true);
 
     private void ToggleHidden()
     {
