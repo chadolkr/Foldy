@@ -3,6 +3,7 @@
     <Project Path="src/Foldy.App/Foldy.App.csproj" />
     <Project Path="src/Foldy.Copy.Native/Foldy.Copy.Native.csproj" />
     <Project Path="src/Foldy.Core/Foldy.Core.csproj" />
+    <Project Path="src/Foldy.Git/Foldy.Git.csproj" />
     <Project Path="src/Foldy.Indexer.Client/Foldy.Indexer.Client.csproj" />
     <Project Path="src/Foldy.Platform/Foldy.Platform.csproj">
       <Platform Project="x64" />
@@ -18,6 +19,9 @@
       <Platform Project="x64" />
     </Project>
     <Project Path="tests/Foldy.Core.Tests/Foldy.Core.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="tests/Foldy.Git.Tests/Foldy.Git.Tests.csproj">
       <Platform Project="x64" />
     </Project>
     <Project Path="tests/Foldy.Interop.Tests/Foldy.Interop.Tests.csproj">
