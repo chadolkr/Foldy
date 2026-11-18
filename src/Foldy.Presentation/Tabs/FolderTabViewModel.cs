@@ -193,7 +193,7 @@ public sealed partial class FolderTabViewModel : TabBase
 
         try
         {
-            await foreach (var batch in _env.Provider.ListBatchedAsync(FsPath.Local(target), cts.Token))
+            await foreach (var batch in _env.Provider.ListBatchedAsync(PathUtil.IsSftp(target) ? new FsPath(ProviderId.Sftp, target) : FsPath.Local(target), cts.Token))
             {
                 var mapped = new List<FileItem>(batch.Count);
                 foreach (var e in batch)

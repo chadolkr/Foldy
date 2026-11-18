@@ -12,6 +12,11 @@ public static class PathUtil
         }
 
         var p = input.Trim().Trim('"');
+        if (IsSftp(p))
+        {
+            return NormalizeSftp(p);
+        }
+
         p = Environment.ExpandEnvironmentVariables(p);
         if (p.Length == 2 && p[1] == ':' && char.IsAsciiLetter(p[0]))
         {
@@ -52,8 +57,43 @@ public static class PathUtil
         return p;
     }
 
+    public const string SftpScheme = "sftp://";
+
+    public static bool IsSftp(string? path) => path?.StartsWith(SftpScheme, StringComparison.OrdinalIgnoreCase) == true;
+
+    /// <summary>sftp://user@host:port/a/b → 경로 부분의 중복 /와 끝 / 정리 (루트는 /).</summary>
+    private static string? NormalizeSftp(string p)
+    {
+        var rest = p[SftpScheme.Length..];
+        var slash = rest.IndexOf('/');
+        var authority = slash < 0 ? rest : rest[..slash];
+        if (authority.Length == 0)
+        {
+            return null;
+        }
+
+        var path = slash < 0 ? "/" : rest[slash..];
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return SftpScheme + authority + "/" + string.Join('/', parts);
+    }
+
+    private static (string Root, string[] Parts) SplitSftp(string p)
+    {
+        var rest = p[SftpScheme.Length..];
+        var slash = rest.IndexOf('/');
+        var authority = slash < 0 ? rest : rest[..slash];
+        var parts = slash < 0 ? [] : rest[slash..].Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return (SftpScheme + authority + "/", parts);
+    }
+
     public static string? Parent(string path)
     {
+        if (IsSftp(path))
+        {
+            var (sroot, parts) = SplitSftp(path);
+            return parts.Length == 0 ? null : sroot + string.Join('/', parts[..^1]);
+        }
+
         var root = System.IO.Path.GetPathRoot(path);
         if (root is null || string.Equals(root.TrimEnd('\\'), path.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
         {
@@ -66,6 +106,12 @@ public static class PathUtil
 
     public static string DisplayName(string path)
     {
+        if (IsSftp(path))
+        {
+            var (sroot, parts) = SplitSftp(path);
+            return parts.Length == 0 ? sroot[SftpScheme.Length..].TrimEnd('/') : parts[^1];
+        }
+
         var root = System.IO.Path.GetPathRoot(path) ?? path;
         if (string.Equals(root.TrimEnd('\\'), path.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
         {
@@ -79,6 +125,20 @@ public static class PathUtil
     public static IReadOnlyList<(string Name, string Path)> Segments(string path)
     {
         var list = new List<(string, string)>();
+        if (IsSftp(path))
+        {
+            var (sroot, parts) = SplitSftp(path);
+            list.Add((sroot[SftpScheme.Length..].TrimEnd('/'), sroot));
+            var sacc = sroot.TrimEnd('/');
+            foreach (var part in parts)
+            {
+                sacc += "/" + part;
+                list.Add((part, sacc));
+            }
+
+            return list;
+        }
+
         var root = System.IO.Path.GetPathRoot(path);
         if (string.IsNullOrEmpty(root))
         {

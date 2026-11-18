@@ -74,6 +74,18 @@ public class PathUtilTests
     public void Normalize_rejects(string input) => PathUtil.Normalize(input).Should().BeNull();
 
     [Fact]
+    public void Sftp_paths()
+    {
+        PathUtil.Normalize("sftp://me@host:2222//var//log/").Should().Be("sftp://me@host:2222/var/log");
+        PathUtil.Normalize("sftp://me@host").Should().Be("sftp://me@host/");
+        PathUtil.Parent("sftp://me@host/var/log").Should().Be("sftp://me@host/var");
+        PathUtil.Parent("sftp://me@host/var").Should().Be("sftp://me@host/");
+        PathUtil.Parent("sftp://me@host/").Should().BeNull();
+        PathUtil.DisplayName("sftp://me@host/").Should().Be("me@host");
+        PathUtil.Segments("sftp://me@host/var/log").Select(s => s.Name).Should().Equal("me@host", "var", "log");
+    }
+
+    [Fact]
     public void Parent_of_root_is_null()
     {
         PathUtil.Parent(@"C:\").Should().BeNull();

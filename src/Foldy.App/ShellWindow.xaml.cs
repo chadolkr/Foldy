@@ -40,6 +40,7 @@ public partial class ShellWindow : Window, IPaneHost
     private readonly string _settingsPath = Path.Combine(App.DataDir, "settings.json");
     private readonly List<PaletteCommand> _commands = [];
     private IndexerClient? _indexer;
+    private readonly SftpSessions _sftp;
     private readonly FileSearchService _search;
     private AppSettings _settings;
     private HwndSource? _hwndSource;
@@ -52,7 +53,8 @@ public partial class ShellWindow : Window, IPaneHost
         _provider = new LocalProvider(_queues);
         _drives = new DriveService(_queues);
         var ui = new WpfDispatcher(Dispatcher);
-        _env = new TabEnvironment(_provider, ui)
+        _sftp = new SftpSessions();
+        _env = new TabEnvironment(new ProviderRouter(_provider, _sftp.Provider), ui)
         {
             TypeName = TypeNames.Get,
             Watcher = new FolderWatchService(),
@@ -61,7 +63,7 @@ public partial class ShellWindow : Window, IPaneHost
         Shell = new ShellViewModel(_env, new ShellServices(
             new ShellFileOperationService(() => OwnerHandle),
             new ShellOpenFileService(),
-            new TerminalService(() => _settings)))
+            new TerminalService(() => _settings, (p, sudo) => _sftp.OpenTerminal(p, sudo))))
         {
             Settings = _settings,
         };
@@ -383,6 +385,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("view.themeLight", "테마: 라이트", () => SetTheme(FoldyTheme.Light));
         Add("view.themeDark", "테마: 다크", () => SetTheme(FoldyTheme.Dark));
         Add("view.themeRetro", "테마: 레트로", () => SetTheme(FoldyTheme.Retro));
+        Add("sftp.connect", "SFTP 서버에 연결…", ConnectSftp, Key.O, ModifierKeys.Control | ModifierKeys.Shift);
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
         Add("app.about", "Foldy 정보", ShowAbout);
     }
@@ -425,6 +428,17 @@ public partial class ShellWindow : Window, IPaneHost
             ActiveView.BeginRename(); // 새 폴더에 포커스가 간 뒤 바로 이름 입력
         }
     }
+
+    private void ConnectSftp()
+    {
+        var dlg = new SftpConnectWindow(_sftp) { Owner = this };
+        if (dlg.ShowDialog() == true && dlg.Result is { } url)
+        {
+            Shell.ActivePane.NewFolderTab(url);
+        }
+    }
+
+    private void OnSftpConnect(object sender, RoutedEventArgs e) => ConnectSftp();
 
     private void ToggleHidden()
     {

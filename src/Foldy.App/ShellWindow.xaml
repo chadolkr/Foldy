@@ -118,6 +118,8 @@
             <MenuItem x:Name="DensityNormal" Header="목록 간격: 보통" Click="OnDensity" Tag="normal" />
             <MenuItem x:Name="DensityComfortable" Header="목록 간격: 널널하게" Click="OnDensity" Tag="comfortable" />
             <Separator />
+            <MenuItem Header="SFTP 서버에 연결…" InputGestureText="Ctrl+Shift+O" Click="OnSftpConnect" />
+            <Separator />
             <MenuItem Header="설정 파일 열기" Click="OnOpenSettings" />
             <MenuItem Header="Foldy 정보" Click="OnAbout" />
           </ContextMenu>

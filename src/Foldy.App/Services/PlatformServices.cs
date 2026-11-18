@@ -66,10 +66,16 @@ public sealed class ShellOpenFileService : IOpenFileService
     }
 }
 
-public sealed class TerminalService(Func<AppSettings> settings) : ITerminalService
+public sealed class TerminalService(Func<AppSettings> settings, Action<string, bool>? sftpTerminal = null) : ITerminalService
 {
     public void Open(string folder, TerminalKind kind, bool elevated)
     {
+        if (Foldy.Presentation.Navigation.PathUtil.IsSftp(folder) && sftpTerminal is not null)
+        {
+            sftpTerminal(folder, elevated); // SFTP 탭: 같은 서버로 SSH, 관리자 버튼은 sudo 셸
+            return;
+        }
+
         var s = settings().Terminal;
         var shell = kind switch
         {

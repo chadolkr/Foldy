@@ -1,0 +1,71 @@
+<Window x:Class="Foldy.App.SftpConnectWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SFTP 연결" Width="460" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Style="{DynamicResource Foldy.Window}">
+  <StackPanel Margin="20">
+    <TextBlock Text="SFTP 서버에 연결" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12" />
+
+    <TextBlock Text="저장된 연결" Foreground="{DynamicResource Brush.TextSecondary}" />
+    <ComboBox x:Name="ProfileBox" Margin="0,4,0,12" DisplayMemberPath="Name" SelectionChanged="OnProfileSelected" />
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="90" />
+      </Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock Text="서버 주소" Foreground="{DynamicResource Brush.TextSecondary}" />
+        <Border Style="{DynamicResource Foldy.InputBorder}" Margin="0,4,0,10"><TextBox x:Name="HostBox" /></Border>
+      </StackPanel>
+      <StackPanel Grid.Column="2">
+        <TextBlock Text="포트" Foreground="{DynamicResource Brush.TextSecondary}" />
+        <Border Style="{DynamicResource Foldy.InputBorder}" Margin="0,4,0,10"><TextBox x:Name="PortBox" Text="22" /></Border>
+      </StackPanel>
+    </Grid>
+
+    <TextBlock Text="사용자 이름" Foreground="{DynamicResource Brush.TextSecondary}" />
+    <Border Style="{DynamicResource Foldy.InputBorder}" Margin="0,4,0,10"><TextBox x:Name="UserBox" /></Border>
+
+    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+      <RadioButton x:Name="PasswordRadio" Content="비밀번호" IsChecked="True" Margin="0,0,16,0" Checked="OnAuthChanged"
+                   Foreground="{DynamicResource Brush.Text}" />
+      <RadioButton x:Name="KeyRadio" Content="키 파일" Checked="OnAuthChanged" Foreground="{DynamicResource Brush.Text}" />
+    </StackPanel>
+    <Border x:Name="PasswordPanel" Style="{DynamicResource Foldy.InputBorder}" Margin="0,0,0,10">
+      <PasswordBox x:Name="PasswordBox" BorderThickness="0" Background="Transparent" Padding="6,0" VerticalContentAlignment="Center"
+                   Foreground="{DynamicResource Brush.Text}" />
+    </Border>
+    <Grid x:Name="KeyPanel" Margin="0,0,0,10" Visibility="Collapsed">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="찾아보기…" Margin="6,0,0,0" Click="OnBrowseKey" />
+        <Border Style="{DynamicResource Foldy.InputBorder}"><TextBox x:Name="KeyBox" /></Border>
+      </DockPanel>
+      <StackPanel Grid.Row="1" Margin="0,8,0,0">
+        <TextBlock Text="키 암호 (없으면 비워 두기)" Foreground="{DynamicResource Brush.TextSecondary}" />
+        <Border Style="{DynamicResource Foldy.InputBorder}" Margin="0,4,0,0">
+          <PasswordBox x:Name="PassphraseBox" BorderThickness="0" Background="Transparent" Padding="6,0" VerticalContentAlignment="Center"
+                       Foreground="{DynamicResource Brush.Text}" />
+        </Border>
+      </StackPanel>
+    </Grid>
+
+    <TextBlock Text="처음 열 원격 폴더" Foreground="{DynamicResource Brush.TextSecondary}" />
+    <Border Style="{DynamicResource Foldy.InputBorder}" Margin="0,4,0,10"><TextBox x:Name="PathBox" Text="/" /></Border>
+
+    <CheckBox x:Name="SaveBox" Content="이 연결 저장 (비밀번호는 Windows DPAPI로 암호화)" IsChecked="True"
+              Foreground="{DynamicResource Brush.Text}" />
+    <TextBlock x:Name="ErrorText" Foreground="{DynamicResource Brush.Error}" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="Collapsed" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button Content="취소" IsCancel="True" MinWidth="80" Margin="0,0,8,0" />
+      <Button x:Name="ConnectButton" Content="연결" IsDefault="True" MinWidth="80" Click="OnConnect" />
+    </StackPanel>
+  </StackPanel>
+</Window>

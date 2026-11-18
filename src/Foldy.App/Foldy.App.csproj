@@ -21,6 +21,7 @@
     <ProjectReference Include="..\Foldy.Indexer.Client\Foldy.Indexer.Client.csproj" />
     <ProjectReference Include="..\Foldy.Presentation\Foldy.Presentation.csproj" />
     <ProjectReference Include="..\Foldy.Platform\Foldy.Platform.csproj" />
+    <ProjectReference Include="..\Foldy.Providers.Sftp\Foldy.Providers.Sftp.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Serilog" />
