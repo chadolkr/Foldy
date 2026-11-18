@@ -40,6 +40,7 @@ public partial class ShellWindow : Window, IPaneHost
     private readonly string _settingsPath = Path.Combine(App.DataDir, "settings.json");
     private readonly List<PaletteCommand> _commands = [];
     private IndexerClient? _indexer;
+    private readonly FileSearchService _search;
     private AppSettings _settings;
     private HwndSource? _hwndSource;
 
@@ -65,6 +66,8 @@ public partial class ShellWindow : Window, IPaneHost
             Settings = _settings,
         };
 
+        _search = new FileSearchService(() => _indexer, () => _settings.ShowHidden);
+        Shell.Search = _search;
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
         ApplyDensity();
         ThemeManager.Attach(this);
@@ -180,7 +183,9 @@ public partial class ShellWindow : Window, IPaneHost
         CopyEngineText.Text = available ? "복사 엔진: Rust" : "복사 엔진: 기본";
         CopyEngineText.ToolTip = available ? "foldy_copy.dll 사용 가능 (M3에서 병렬 복사로 전환)" : reason;
         _indexer = await IndexerClient.TryConnectAsync(timeout: TimeSpan.FromMilliseconds(300));
-        IndexerText.Text = _indexer is null ? "색인: 없음 (일반 열거)" : $"색인: v{_indexer.Hello.ServiceVersion}";
+        await _search.RefreshStateAsync();
+        IndexerText.Text = _indexer is null ? "검색: 폴더 훑기 (색인 서비스 없음)" : _search.IsIndexed ? "검색: 색인 사용" : "검색: 색인 준비 중";
+        IndexerText.ToolTip = "색인 서비스(foldy-index)가 관리자 권한으로 실행 중이면 전체 드라이브를 즉시 검색합니다.";
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -362,6 +367,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("tab.close", "탭 닫기", () => { if (Shell.ActivePane.ActiveTab is { } t) Shell.ActivePane.CloseTab(t); }, Key.W, ModifierKeys.Control);
         Add("tab.next", "다음 탭", () => Shell.ActivePane.ActivateRelative(1), Key.Tab, ModifierKeys.Control);
         Add("tab.prev", "이전 탭", () => Shell.ActivePane.ActivateRelative(-1), Key.Tab, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("search.focus", "파일 이름 검색", () => ActiveView.FocusSearch(), Key.F, ModifierKeys.Control, inText: true);
         Add("nav.path", "경로 입력", () => ActiveView.BeginPathEdit(), Key.L, ModifierKeys.Control, inText: true);
         Add("nav.refresh", "새로 고침", () => _ = activeTab()?.RefreshAsync(), Key.R, ModifierKeys.Control);
         Add("nav.back", "뒤로", () => _ = activeTab()?.GoBackAsync(), Key.Left, ModifierKeys.Alt);

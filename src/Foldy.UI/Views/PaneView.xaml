@@ -31,6 +31,9 @@
         <DataTrigger Binding="{Binding Kind}" Value="Markdown">
           <Setter TargetName="Glyph" Property="Text" Value="&#xE8A5;" />
         </DataTrigger>
+        <DataTrigger Binding="{Binding Kind}" Value="Search">
+          <Setter TargetName="Glyph" Property="Text" Value="&#xE721;" />
+        </DataTrigger>
         <DataTrigger Binding="{Binding IsBusy}" Value="True">
           <Setter TargetName="Glyph" Property="Text" Value="&#xE895;" />
         </DataTrigger>
@@ -106,6 +109,7 @@
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" Margin="0,0,6,0">
         <Button x:Name="BackBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72B;" ToolTip="뒤로 (Alt+←)" Click="OnBack" />
@@ -113,7 +117,16 @@
         <Button x:Name="UpBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74A;" ToolTip="위로 (Alt+↑)" Click="OnUp" />
       </StackPanel>
       <fc:BreadcrumbBar x:Name="Crumbs" Grid.Column="1" />
-      <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="6,0,0,0">
+      <Border Grid.Column="2" Style="{DynamicResource Foldy.InputBorder}" Width="200" Margin="6,0,0,0">
+        <Grid>
+          <TextBlock Text="&#xE721;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="9,0,0,0" VerticalAlignment="Center"
+                     Foreground="{DynamicResource Brush.TextSecondary}" IsHitTestVisible="False" />
+          <TextBlock x:Name="SearchHint" Text="파일 이름 검색 (Ctrl+F)" Margin="28,0,0,0" VerticalAlignment="Center"
+                     Foreground="{DynamicResource Brush.TextDisabled}" IsHitTestVisible="False" />
+          <TextBox x:Name="SearchBox" Padding="24,0,6,0" KeyDown="OnSearchKey" TextChanged="OnSearchTextChanged" />
+        </Grid>
+      </Border>
+      <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="6,0,0,0">
         <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" ToolTip="새로 고침 (Ctrl+R)" Click="OnRefresh" />
         <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="폴더 트리 보이기/숨기기" Click="OnToggleTree" />
         <Rectangle Width="1" Margin="4,8" Fill="{DynamicResource Brush.Border}" />

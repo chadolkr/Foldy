@@ -27,6 +27,9 @@ public partial class PaneView : UserControl
     private IPaneHost? _host;
     private PaneViewModel? _pane;
     private FolderTabViewModel? _tab;
+    private SearchTabViewModel? _search;
+    private readonly List<FastColumn> _folderColumns = [];
+    private readonly List<FastColumn> _searchColumns = [];
     private FolderTreeViewModel? _tree;
     private string _typeAhead = "";
     private DateTime _typeAheadAt;
@@ -39,10 +42,19 @@ public partial class PaneView : UserControl
     public PaneView()
     {
         InitializeComponent();
-        List.Columns.Add(new FastColumn("이름", 320, o => ((FileItem)o).Name));
-        List.Columns.Add(new FastColumn("수정한 날짜", 130, o => ((FileItem)o).ModifiedText));
-        List.Columns.Add(new FastColumn("유형", 120, o => ((FileItem)o).TypeText));
-        List.Columns.Add(new FastColumn("크기", 90, o => ((FileItem)o).SizeText, alignRight: true));
+        _folderColumns.AddRange([
+            new FastColumn("이름", 320, o => ((FileItem)o).Name),
+            new FastColumn("수정한 날짜", 130, o => ((FileItem)o).ModifiedText),
+            new FastColumn("유형", 120, o => ((FileItem)o).TypeText),
+            new FastColumn("크기", 90, o => ((FileItem)o).SizeText, alignRight: true),
+        ]);
+        _searchColumns.AddRange([
+            new FastColumn("이름", 240, o => ((FileItem)o).Name),
+            new FastColumn("위치", 220, o => Path.GetDirectoryName(((FileItem)o).FullPath) ?? ""),
+            new FastColumn("수정한 날짜", 130, o => ((FileItem)o).ModifiedText),
+            new FastColumn("크기", 90, o => ((FileItem)o).SizeText, alignRight: true),
+        ]);
+        UseColumns(_folderColumns);
         List.SortColumn = 0;
         List.IsDimmed = o => o is FileItem { IsHidden: true };
         List.SelectionChanged += OnListSelectionChanged;
@@ -151,7 +163,13 @@ public partial class PaneView : UserControl
             _tab.ItemsReplaced -= OnItemsReplaced;
         }
 
+        if (_search is not null)
+        {
+            _search.PropertyChanged -= OnSearchChanged;
+        }
+
         _tab = tab as FolderTabViewModel;
+        _search = tab as SearchTabViewModel;
         UpdateTabVisuals();
 
         if (tab is MarkdownTabViewModel md && _host is not null && _pane is not null)
@@ -167,6 +185,20 @@ public partial class PaneView : UserControl
         DocumentLayer.Content = null;
         DocumentLayer.Visibility = Visibility.Collapsed;
         FolderLayer.Visibility = Visibility.Visible;
+        if (_search is not null)
+        {
+            UseColumns(_searchColumns);
+            List.SortColumn = -1;
+            _search.PropertyChanged += OnSearchChanged;
+            List.ItemsSource = _search.Items;
+            Crumbs.Path = _search.Scope ?? "";
+            BackBtn.IsEnabled = ForwardBtn.IsEnabled = UpBtn.IsEnabled = false;
+            ErrorBanner.Visibility = EmptyPanel.Visibility = Visibility.Collapsed;
+            UpdateSearchState();
+            return;
+        }
+
+        UseColumns(_folderColumns);
         if (_tab is null)
         {
             List.ItemsSource = null;
@@ -182,6 +214,69 @@ public partial class PaneView : UserControl
         UpdateNav();
         UpdateState();
     }
+
+    private void UseColumns(List<FastColumn> cols)
+    {
+        if (List.Columns.SequenceEqual(cols))
+        {
+            return;
+        }
+
+        List.Columns.Clear();
+        List.Columns.AddRange(cols);
+        List.InvalidateMeasure();
+    }
+
+    private void OnSearchChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SearchTabViewModel.Items))
+        {
+            List.ItemsSource = _search!.Items;
+        }
+
+        UpdateSearchState();
+    }
+
+    private void UpdateSearchState()
+    {
+        if (_search is null)
+        {
+            return;
+        }
+
+        LoadingText.Visibility = Visibility.Visible;
+        LoadingText.Text = _search.Status + (_search.IsBusy ? " · Esc 취소" : "");
+        EmptyPanel.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>지금 보이는 목록과 선택 (폴더 탭 또는 검색 탭).</summary>
+    private ItemList? CurrentItems => _tab?.Items ?? _search?.Items;
+
+    private IReadOnlyList<FileItem> CurrentSelection => _tab?.Selection ?? _search?.Selection ?? [];
+
+    public void FocusSearch()
+    {
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    private void OnSearchKey(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && _host is not null && _pane is not null)
+        {
+            _host.Shell.StartSearch(_pane, SearchBox.Text);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            SearchBox.Text = "";
+            List.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e) =>
+        SearchHint.Visibility = SearchBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     private void UpdateTabVisuals()
     {
@@ -330,12 +425,11 @@ public partial class PaneView : UserControl
 
     private void OnListSelectionChanged(object? sender, EventArgs e)
     {
-        if (_tab is null)
+        if (CurrentItems is not { } items)
         {
             return;
         }
 
-        var items = _tab.Items;
         var sel = new List<FileItem>(List.SelectedCount);
         foreach (var i in List.SelectedIndices())
         {
@@ -345,8 +439,15 @@ public partial class PaneView : UserControl
             }
         }
 
-        _tab.Selection = sel;
-        _tab.FocusName = List.FocusedIndex >= 0 && List.FocusedIndex < items.Count ? items[List.FocusedIndex].Name : null;
+        if (_search is not null)
+        {
+            _search.Selection = sel;
+        }
+        else if (_tab is not null)
+        {
+            _tab.Selection = sel;
+            _tab.FocusName = List.FocusedIndex >= 0 && List.FocusedIndex < items.Count ? items[List.FocusedIndex].Name : null;
+        }
         SelectionInfoChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -355,12 +456,12 @@ public partial class PaneView : UserControl
 
     private void OnItemActivated(object? sender, int index)
     {
-        if (_tab is null || _host is null || _pane is null || index >= _tab.Items.Count)
+        if (CurrentItems is not { } items || _host is null || _pane is null || index >= items.Count)
         {
             return;
         }
 
-        _ = _host.Shell.OpenAsync(_pane, _tab.Items[index]);
+        _ = _host.Shell.OpenAsync(_pane, items[index]);
     }
 
     private void OnHeaderClicked(object? sender, int col)
@@ -394,6 +495,30 @@ public partial class PaneView : UserControl
 
     private void OnListKeyDown(object sender, KeyEventArgs e)
     {
+        if (_search is not null && e.Key == Key.Escape)
+        {
+            _search.Cancel();
+            e.Handled = true;
+            return;
+        }
+
+        if (_search is not null && _host is not null)
+        {
+            var m = Keyboard.Modifiers;
+            if (e.Key == Key.Delete)
+            {
+                _ = _host.Shell.DeleteSelectionAsync(permanent: (m & ModifierKeys.Shift) != 0).ContinueWith(_ => Dispatcher.BeginInvoke(() => _search?.RunAsync()), TaskScheduler.Default);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.C && m == ModifierKeys.Control)
+            {
+                Clipboard_Set(move: false);
+                e.Handled = true;
+            }
+
+            return;
+        }
+
         if (_tab is null || _host is null)
         {
             return;
@@ -511,17 +636,21 @@ public partial class PaneView : UserControl
 
     private void OnContextRequested(object? sender, FileListContextEventArgs e)
     {
-        if (_tab is null || _host is null)
+        if (_host is null || (_tab is null && _search is null))
         {
             return;
         }
 
-        var paths = e.Index >= 0 ? _tab.Selection.Select(i => i.FullPath).ToArray() : [];
+        var paths = e.Index >= 0 ? CurrentSelection.Select(i => i.FullPath).ToArray() : [];
+        if (paths.Length == 0 && _tab is null)
+        {
+            return; // 검색 결과에는 배경 메뉴가 없다
+        }
         var extended = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
         // PointToScreen은 이미 장치 픽셀
         var verb = _host.ShellMenu.Show(
             _host.OwnerHandle, paths, (int)e.ScreenPoint.X, (int)e.ScreenPoint.Y, extended,
-            backgroundFolder: paths.Length == 0 ? _tab.Path : null);
+            backgroundFolder: paths.Length == 0 ? _tab!.Path : null);
         if (verb == "rename")
         {
             BeginRename();
@@ -530,6 +659,10 @@ public partial class PaneView : UserControl
         {
             // 삭제·붙여넣기·새로 만들기 등 무엇이든 바뀌었을 수 있다 (감시가 없는 드라이브 대비)
             _ = Task.Delay(400).ContinueWith(_ => Dispatcher.BeginInvoke(() => _tab?.RefreshAsync()), TaskScheduler.Default);
+            if (_search is not null && verb is "delete")
+            {
+                _ = _search.RunAsync();
+            }
         }
     }
 
@@ -537,16 +670,17 @@ public partial class PaneView : UserControl
 
     private void Clipboard_Set(bool move)
     {
-        if (_tab is null || _tab.Selection.Count == 0)
+        var selection = CurrentSelection;
+        if (selection.Count == 0)
         {
             return;
         }
 
-        var data = BuildDataObject(_tab.Selection.Select(i => i.FullPath).ToArray(), move ? DragDropEffects.Move : DragDropEffects.Copy);
+        var data = BuildDataObject(selection.Select(i => i.FullPath).ToArray(), move ? DragDropEffects.Move : DragDropEffects.Copy);
         try
         {
             Clipboard.SetDataObject(data, copy: true);
-            _host!.Shell.Status = move ? $"{_tab.Selection.Count:N0}개 잘라 둠" : $"{_tab.Selection.Count:N0}개 복사해 둠";
+            _host!.Shell.Status = move ? $"{selection.Count:N0}개 잘라 둠" : $"{selection.Count:N0}개 복사해 둠";
         }
         catch (System.Runtime.InteropServices.ExternalException ex)
         {
@@ -596,13 +730,13 @@ public partial class PaneView : UserControl
 
     private void OnDragRequested(object? sender, EventArgs e)
     {
-        if (_tab is null || _tab.Selection.Count == 0)
+        if (CurrentSelection.Count == 0)
         {
             return;
         }
 
-        var data = BuildDataObject(_tab.Selection.Select(i => i.FullPath).ToArray(), DragDropEffects.Copy);
-        _dragSourceFolder = _tab.Path;
+        var data = BuildDataObject(CurrentSelection.Select(i => i.FullPath).ToArray(), DragDropEffects.Copy);
+        _dragSourceFolder = _tab?.Path;
         try
         {
             DragDrop.DoDragDrop(List, data, DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link);
@@ -613,7 +747,7 @@ public partial class PaneView : UserControl
         }
 
         // 다른 곳으로 옮겨졌으면 목록 갱신
-        _ = _tab.RefreshAsync();
+        _ = _tab?.RefreshAsync();
     }
 
     private static string? _dragSourceFolder;

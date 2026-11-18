@@ -55,6 +55,23 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public AppSettings Settings { get; set; } = new();
 
+    /// <summary>파일 이름 검색 (색인 또는 폴더 훑기).</summary>
+    public IFileSearchService? Search { get; set; }
+
+    /// <summary>검색 결과 탭을 연다. 범위는 현재 폴더 (색인 검색이면 전체 드라이브).</summary>
+    public SearchTabViewModel? StartSearch(PaneViewModel pane, string query)
+    {
+        query = query.Trim();
+        if (Search is null || query.Length == 0)
+        {
+            return null;
+        }
+
+        var tab = new SearchTabViewModel(Search, query, pane.ActiveFolder?.Path ?? (pane.ActiveTab as SearchTabViewModel)?.Scope, _env.TypeName);
+        pane.AddTab(tab, activate: true, index: pane.ActiveTab is null ? null : pane.Tabs.IndexOf(pane.ActiveTab) + 1, assignColor: true);
+        return tab;
+    }
+
     /// <summary>세션이 바뀌면 (2초 디바운스 후) 호출된다. 앱이 파일로 저장한다.</summary>
     public event Action<SessionState>? SaveRequested;
 
@@ -97,6 +114,11 @@ public sealed partial class ShellViewModel : ObservableObject
         foreach (var t in st.Tabs)
         {
             TabBase tab;
+            if (t.Kind == TabKind.Search)
+            {
+                continue;
+            }
+
             if (t.Kind == TabKind.Markdown)
             {
                 tab = new MarkdownTabViewModel(t.Path);
@@ -133,8 +155,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private static PaneState CapturePane(PaneViewModel p) => new()
     {
-        ActiveIndex = p.ActiveTab is null ? 0 : Math.Max(0, p.Tabs.IndexOf(p.ActiveTab)),
-        Tabs = [.. p.Tabs.Select(t => t switch
+        ActiveIndex = p.ActiveTab is null || p.ActiveTab.Kind == TabKind.Search ? 0 : Math.Max(0, p.Tabs.Where(t => t.Kind != TabKind.Search).ToList().IndexOf(p.ActiveTab)),
+        Tabs = [.. p.Tabs.Where(t => t.Kind != TabKind.Search).Select(t => t switch
         {
             FolderTabViewModel f => new TabState
             {
@@ -197,6 +219,10 @@ public sealed partial class ShellViewModel : ObservableObject
             {
                 await f.NavigateAsync(item.FullPath);
             }
+            else
+            {
+                pane.NewFolderTab(item.FullPath); // 검색 결과 등에서 폴더를 열면 새 폴더 탭
+            }
 
             return;
         }
@@ -256,7 +282,7 @@ public sealed partial class ShellViewModel : ObservableObject
     // ───────────── 파일 작업 (모달 없이 작업 패널에 진행 표시) ─────────────
 
     public static IReadOnlyList<string> SelectedPaths(PaneViewModel pane) =>
-        pane.ActiveFolder?.Selection.Select(i => i.FullPath).ToArray() ?? [];
+        (pane.ActiveTab switch { FolderTabViewModel f => f.Selection, SearchTabViewModel s => s.Selection, _ => [] }).Select(i => i.FullPath).ToArray();
 
     public Task CopyToOtherAsync() => TransferAsync(move: false);
 
