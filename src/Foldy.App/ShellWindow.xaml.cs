@@ -64,6 +64,7 @@ public partial class ShellWindow : Window, IPaneHost
             Watcher = new FolderWatchService(),
             ShowHidden = () => _settings.ShowHidden,
             Git = new GitStatusService(_git),
+            FolderSizes = new IndexerFolderSizes(() => _indexer),
         };
         Shell = new ShellViewModel(_env, new ShellServices(
             new NativeCopyFileOperationService(
@@ -225,6 +226,12 @@ public partial class ShellWindow : Window, IPaneHost
         CopyEngineText.ToolTip = available ? "foldy_copy.dll 사용 가능 (M3에서 병렬 복사로 전환)" : reason;
         _indexer = await IndexerClient.TryConnectAsync(timeout: TimeSpan.FromMilliseconds(300));
         await _search.RefreshStateAsync();
+        if (_indexer is not null)
+        {
+            _ = Shell.Left.ActiveFolder?.RefreshFolderSizesAsync();
+            _ = Shell.Right.ActiveFolder?.RefreshFolderSizesAsync();
+        }
+
         IndexerText.Text = _indexer is null ? "검색: 폴더 훑기 (색인 서비스 없음)" : _search.IsIndexed ? "검색: 색인 사용" : "검색: 색인 준비 중";
         IndexerText.ToolTip = "색인 서비스(foldy-index)가 관리자 권한으로 실행 중이면 전체 드라이브를 즉시 검색합니다.";
     }

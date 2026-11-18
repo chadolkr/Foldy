@@ -24,6 +24,12 @@ public interface IGitStatusProvider
     Task<GitFolderInfo?> GetAsync(string folder, CancellationToken ct);
 }
 
+/// <summary>폴더 크기 공급자 (색인 서비스). 색인 밖이면 null.</summary>
+public interface IFolderSizeProvider
+{
+    Task<IReadOnlyDictionary<string, long>?> GetAsync(string folder, CancellationToken ct);
+}
+
 /// <summary>탭 공통 환경 (서비스 묶음). 패널의 모든 탭이 공유한다.</summary>
 public sealed class TabEnvironment(IFileSystemProvider provider, IUiDispatcher ui)
 {
@@ -34,6 +40,7 @@ public sealed class TabEnvironment(IFileSystemProvider provider, IUiDispatcher u
     public IFolderWatchService? Watcher { get; init; }
     public Func<bool> ShowHidden { get; init; } = () => false;
     public IGitStatusProvider? Git { get; init; }
+    public IFolderSizeProvider? FolderSizes { get; init; }
 }
 
 /// <summary>
@@ -264,6 +271,7 @@ public sealed partial class FolderTabViewModel : TabBase
             ItemsReplaced?.Invoke(focus ?? (refresh ? FocusName : null));
             _env.Cache.Put(target, sorted);
             _ = LoadGitAsync(target, gen);
+            _ = LoadFolderSizesAsync(target, gen);
             LastLoadTime = sw.Elapsed;
             IsLoaded = true;
             State = LoadState.Idle;
@@ -309,6 +317,49 @@ public sealed partial class FolderTabViewModel : TabBase
             }
         }
     }
+
+    /// <summary>폴더 크기 열: 색인에서 디스크 I/O 없이 (DESIGN.md "폴더를 열자마자 보이는 폴더 크기").</summary>
+    private async Task LoadFolderSizesAsync(string folder, int gen)
+    {
+        if (_env.FolderSizes is null || PathUtil.IsSftp(folder))
+        {
+            return;
+        }
+
+        try
+        {
+            var sizes = await _env.FolderSizes.GetAsync(folder, CancellationToken.None);
+            if (sizes is null || gen != _generation)
+            {
+                return;
+            }
+
+            var any = false;
+            foreach (var item in Items)
+            {
+                if (item.IsFolder && sizes.TryGetValue(item.Name, out var s))
+                {
+                    item.FolderSize = s;
+                    any = true;
+                }
+            }
+
+            if (any)
+            {
+                FolderSizesLoaded?.Invoke();
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or OperationCanceledException)
+        {
+            // 색인이 없거나 끊기면 크기 없이 둔다
+        }
+    }
+
+    /// <summary>색인 서비스가 나중에 연결됐을 때 현재 목록의 폴더 크기를 다시 채운다.</summary>
+    public Task RefreshFolderSizesAsync() => IsLoaded ? LoadFolderSizesAsync(Path, _generation) : Task.CompletedTask;
+
+    /// <summary>폴더 크기가 채워졌을 때 (뷰가 다시 그린다).</summary>
+    public event Action? FolderSizesLoaded;
 
     private async Task LoadGitAsync(string folder, int gen)
     {

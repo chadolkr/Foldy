@@ -22,7 +22,23 @@ public sealed class FileItem(FsEntry entry, Func<FsEntry, string>? typeName = nu
 
     public string Extension => IsFolder ? "" : System.IO.Path.GetExtension(Entry.Name);
 
-    public string SizeText => _size ??= Entry.Kind == FsKind.File ? FormatSize(Entry.Size) : "";
+    /// <summary>폴더의 하위 전체 크기 (색인 서비스가 있을 때만, 나중에 채워진다).</summary>
+    public long? FolderSize
+    {
+        get => _folderSize ?? Entry.SubtreeSize;
+        set
+        {
+            _folderSize = value;
+            _size = null;
+        }
+    }
+
+    private long? _folderSize;
+
+    /// <summary>정렬·표시에 쓰는 크기: 파일은 크기, 폴더는 알면 하위 전체 크기.</summary>
+    public long SortSize => IsFolder ? FolderSize ?? -1 : Entry.Size;
+
+    public string SizeText => _size ??= Entry.Kind == FsKind.File ? FormatSize(Entry.Size) : FolderSize is { } fs ? FormatBytes(fs) : "";
 
     public string ModifiedText => _modified ??=
         Entry.Modified == default ? "" : Entry.Modified.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture);

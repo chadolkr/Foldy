@@ -162,6 +162,7 @@ public partial class PaneView : UserControl
         {
             _tab.PropertyChanged -= OnTabChanged;
             _tab.ItemsReplaced -= OnItemsReplaced;
+            _tab.FolderSizesLoaded -= List.InvalidateText;
         }
 
         if (_search is not null)
@@ -213,6 +214,7 @@ public partial class PaneView : UserControl
 
         _tab.PropertyChanged += OnTabChanged;
         _tab.ItemsReplaced += OnItemsReplaced;
+        _tab.FolderSizesLoaded += List.InvalidateText;
         List.ItemsSource = _tab.Items;
         List.SortColumn = Array.IndexOf(ColumnKeys, _tab.Sort.Key);
         List.SortDescending = _tab.Sort.Descending;
