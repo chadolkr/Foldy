@@ -56,7 +56,8 @@ public partial class PaneView : UserControl
         ]);
         UseColumns(_folderColumns);
         List.SortColumn = 0;
-        List.IsDimmed = o => o is FileItem { IsHidden: true };
+        List.IsDimmed = o => o is FileItem f && (f.IsHidden || _tab?.Git?.BadgeOf(f.FullPath) == Foldy.Core.FileSystem.GitFileStatus.Ignored);
+        List.BadgeSelector = GitBadge;
         List.SelectionChanged += OnListSelectionChanged;
         List.ItemActivated += OnItemActivated;
         List.HeaderClicked += OnHeaderClicked;
@@ -187,6 +188,7 @@ public partial class PaneView : UserControl
         FolderLayer.Visibility = Visibility.Visible;
         if (_search is not null)
         {
+            GitChip.Visibility = Visibility.Collapsed;
             UseColumns(_searchColumns);
             List.SortColumn = -1;
             _search.PropertyChanged += OnSearchChanged;
@@ -212,6 +214,7 @@ public partial class PaneView : UserControl
         List.SortDescending = _tab.Sort.Descending;
         RestoreFocus(_tab.FocusName, scrollTo: _tab.ScrollOffset);
         UpdateNav();
+        UpdateGit();
         UpdateState();
     }
 
@@ -320,6 +323,9 @@ public partial class PaneView : UserControl
             case nameof(FolderTabViewModel.Path):
                 UpdateNav();
                 break;
+            case nameof(FolderTabViewModel.Git):
+                UpdateGit();
+                break;
             case nameof(FolderTabViewModel.State):
             case nameof(FolderTabViewModel.Error):
             case nameof(FolderTabViewModel.LoadedCount):
@@ -337,6 +343,33 @@ public partial class PaneView : UserControl
                 UpdateNav();
                 break;
         }
+    }
+
+    private (string Text, Brush Brush)? GitBadge(object o)
+    {
+        if (_tab?.Git is not { } g || o is not FileItem f)
+        {
+            return null;
+        }
+
+        var (text, key) = g.BadgeOf(f.FullPath) switch
+        {
+            Foldy.Core.FileSystem.GitFileStatus.Modified => ("M", "Brush.Progress"),
+            Foldy.Core.FileSystem.GitFileStatus.Added => ("A", "Brush.Done"),
+            Foldy.Core.FileSystem.GitFileStatus.Untracked => ("?", "Brush.TextSecondary"),
+            Foldy.Core.FileSystem.GitFileStatus.Conflicted => ("!", "Brush.Error"),
+            _ => (null, null),
+        };
+        return text is not null && TryFindResource(key) is Brush b ? (text, b) : null;
+    }
+
+    private void UpdateGit()
+    {
+        var g = _tab?.Git;
+        GitChip.Visibility = g is null ? Visibility.Collapsed : Visibility.Visible;
+        GitText.Text = g is null ? "" : g.Changes > 0 ? $"{g.BranchText} · 변경 {g.Changes}" : g.BranchText;
+        GitChip.ToolTip = g?.RepoRoot;
+        List.Redraw();
     }
 
     private void UpdateNav()

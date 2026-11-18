@@ -15,6 +15,15 @@ public interface IFolderWatchService
     IDisposable? Watch(string folder, Action changed);
 }
 
+/// <summary>폴더의 Git 상태 (저장소 안일 때만). 브랜치 칩 문구와 항목별 배지.</summary>
+public sealed record GitFolderInfo(string RepoRoot, string BranchText, Func<string, GitFileStatus> BadgeOf, int Changes);
+
+/// <summary>Git 상태 공급자 (git.exe 실행은 백그라운드). 저장소가 아니면 null.</summary>
+public interface IGitStatusProvider
+{
+    Task<GitFolderInfo?> GetAsync(string folder, CancellationToken ct);
+}
+
 /// <summary>탭 공통 환경 (서비스 묶음). 패널의 모든 탭이 공유한다.</summary>
 public sealed class TabEnvironment(IFileSystemProvider provider, IUiDispatcher ui)
 {
@@ -24,6 +33,7 @@ public sealed class TabEnvironment(IFileSystemProvider provider, IUiDispatcher u
     public Func<FsEntry, string>? TypeName { get; init; }
     public IFolderWatchService? Watcher { get; init; }
     public Func<bool> ShowHidden { get; init; } = () => false;
+    public IGitStatusProvider? Git { get; init; }
 }
 
 /// <summary>
@@ -59,6 +69,10 @@ public sealed partial class FolderTabViewModel : TabBase
 
     [ObservableProperty]
     private int _loadedCount;
+
+    /// <summary>Git 저장소 안이면 상태 (목록이 먼저 뜨고 0.1~0.3초 뒤에 채워진다, DESIGN.md).</summary>
+    [ObservableProperty]
+    private GitFolderInfo? _git;
 
     public FolderTabViewModel(TabEnvironment env, string? path = null)
     {
@@ -246,6 +260,7 @@ public sealed partial class FolderTabViewModel : TabBase
             Items = new ItemList(sorted);
             ItemsReplaced?.Invoke(focus ?? (refresh ? FocusName : null));
             _env.Cache.Put(target, sorted);
+            _ = LoadGitAsync(target, gen);
             LastLoadTime = sw.Elapsed;
             IsLoaded = true;
             State = LoadState.Idle;
@@ -289,6 +304,28 @@ public sealed partial class FolderTabViewModel : TabBase
             {
                 IsBusy = false;
             }
+        }
+    }
+
+    private async Task LoadGitAsync(string folder, int gen)
+    {
+        if (_env.Git is null || PathUtil.IsSftp(folder))
+        {
+            Git = null;
+            return;
+        }
+
+        try
+        {
+            var info = await _env.Git.GetAsync(folder, CancellationToken.None);
+            if (gen == _generation)
+            {
+                Git = info;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or OperationCanceledException)
+        {
+            Git = null;
         }
     }
 

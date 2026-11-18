@@ -23,3 +23,4 @@ bench-data/
 
 # 배포용 설치 폴더
 dist/
+TestResults/

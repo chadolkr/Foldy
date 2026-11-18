@@ -116,7 +116,23 @@
         <Button x:Name="ForwardBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72A;" ToolTip="앞으로 (Alt+→)" Click="OnForward" />
         <Button x:Name="UpBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74A;" ToolTip="위로 (Alt+↑)" Click="OnUp" />
       </StackPanel>
-      <fc:BreadcrumbBar x:Name="Crumbs" Grid.Column="1" />
+      <Grid Grid.Column="1">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <fc:BreadcrumbBar x:Name="Crumbs" />
+        <!-- Git 브랜치 칩: 저장소 안에서만 보인다 (DESIGN.md Git 통합) -->
+        <Border x:Name="GitChip" Grid.Column="1" Margin="6,0,0,0" Padding="8,0" CornerRadius="6" Height="32"
+                Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                Visibility="Collapsed">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE8F1;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Brush.Accent}" />
+            <TextBlock x:Name="GitText" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
+          </StackPanel>
+        </Border>
+      </Grid>
       <Border Grid.Column="2" Style="{DynamicResource Foldy.InputBorder}" Width="200" Margin="6,0,0,0">
         <Grid>
           <TextBlock Text="&#xE721;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="9,0,0,0" VerticalAlignment="Center"

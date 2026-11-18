@@ -123,6 +123,9 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     /// <summary>이름 열 앞에 그릴 아이콘 (null이면 아이콘 칸 없음).</summary>
     public Func<object, ImageSource?>? IconSelector { get; set; }
 
+    /// <summary>이름 끝에 붙일 작은 배지 (Git 상태 M/A/?/! 등). 글자와 색.</summary>
+    public Func<object, (string Text, Brush Brush)?>? BadgeSelector { get; set; }
+
     /// <summary>흐리게 그릴 항목 (숨김 파일 등).</summary>
     public Func<object, bool>? IsDimmed { get; set; }
 
@@ -387,6 +390,13 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
                     }
 
                     dc.DrawText(ft, new Point(Math.Round(tx), Math.Round(y + (rh - ft.Height) / 2)));
+                    if (c == 0 && BadgeSelector?.Invoke(item) is { } badge)
+                    {
+                        var bt = new FormattedText(badge.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Typeface, FontSize - 1.5, badge.Brush, dpi);
+                        var bx = Math.Min(tx + ft.Width + 8, x + col.Width - bt.Width - 6);
+                        dc.DrawText(bt, new Point(Math.Round(bx), Math.Round(y + (rh - bt.Height) / 2)));
+                    }
+
                     x += col.Width;
                 }
 
