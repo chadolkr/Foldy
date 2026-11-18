@@ -99,3 +99,36 @@ fn golden_search_frames() {
         ),
     );
 }
+
+#[test]
+fn golden_update_frames() {
+    check("update_status.bin", &encode(MsgType::UpdateStatus, &UpdateStatus));
+    check("check_now.bin", &encode(MsgType::CheckNow, &CheckNow));
+    check(
+        "install_when_idle.bin",
+        &encode(MsgType::InstallWhenIdle, &InstallWhenIdle { relaunch: true, session_id: 300 }),
+    );
+    check("skip_version.bin", &encode(MsgType::SkipVersion, &SkipVersion { version: "1.3.0-beta.2".into() }));
+    check("set_channel.bin", &encode(MsgType::SetChannel, &SetChannel { channel: update_channel::BETA }));
+    check("app_started.bin", &encode(MsgType::AppStarted, &AppStarted { version: "1.2.3".into() }));
+    check(
+        "update_status_reply.bin",
+        &encode(
+            MsgType::UpdateStatusReply,
+            &UpdateStatusReply {
+                state: update_state::DOWNLOADING,
+                current_version: "1.2.2".into(),
+                available_version: "1.2.3".into(),
+                channel: update_channel::STABLE,
+                progress_permille: 512,
+                downloaded: 150_000,
+                total: 300_000,
+                last_check_unix: 1_795_000_000,
+                last_error: "네트워크 오류".into(),
+                mandatory: true,
+                install_pending: false,
+                notes: "변경 내역".into(),
+            },
+        ),
+    );
+}

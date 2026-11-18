@@ -94,6 +94,36 @@ public sealed class IndexerClient : IAsyncDisposable
         return Protocol.DecodeFolderSizesReply(await RequestAsync(Protocol.EncodeFolderSizes(path), MsgType.FolderSizesReply, ct));
     }
 
+    // ── 자동 업데이트 (설계서 10.5) ──
+    // 업데이트를 모르는 이전 서비스는 Error를 보내고 연결을 끊으므로, 처음 확인은 검색과 다른 연결에서 하는 것이 좋다.
+
+    /// <summary>서비스의 업데이트 상태. 자동 업데이트가 꺼져 있으면 ErrorCode=<see cref="UpdateErrorCodes.Disabled"/>.</summary>
+    public async Task<UpdateStatusReply> UpdateStatusAsync(CancellationToken ct = default) =>
+        Protocol.DecodeUpdateStatusReply(await RequestAsync(Protocol.EncodeUpdateStatus(), MsgType.UpdateStatusReply, ct));
+
+    /// <summary>지금 확인을 요청한다. 확인은 서비스가 뒤에서 진행하고, 바로 현재 상태를 돌려준다.</summary>
+    public async Task<UpdateStatusReply> CheckForUpdateAsync(CancellationToken ct = default) =>
+        Protocol.DecodeUpdateStatusReply(await RequestAsync(Protocol.EncodeCheckNow(), MsgType.UpdateStatusReply, ct));
+
+    /// <summary>
+    /// 준비된 업데이트를 Foldy가 모두 끝난 뒤 설치하게 한다. 서비스는 자기 폴더의 검증된 MSI만 설치한다.
+    /// 준비된 것이 없으면 ErrorCode=<see cref="UpdateErrorCodes.NotReady"/>.
+    /// </summary>
+    /// <param name="relaunch">설치가 끝나면 Foldy를 다시 띄운다 ([재시작하고 업데이트]).</param>
+    /// <param name="sessionId">다시 띄울 세션 (서비스는 파이프 연결의 실제 세션을 우선한다).</param>
+    public async Task<UpdateStatusReply> InstallUpdateWhenIdleAsync(bool relaunch, uint sessionId, CancellationToken ct = default) =>
+        Protocol.DecodeUpdateStatusReply(await RequestAsync(Protocol.EncodeInstallWhenIdle(relaunch, sessionId), MsgType.UpdateStatusReply, ct));
+
+    public async Task<UpdateStatusReply> SkipUpdateVersionAsync(string version, CancellationToken ct = default) =>
+        Protocol.DecodeUpdateStatusReply(await RequestAsync(Protocol.EncodeSkipVersion(version), MsgType.UpdateStatusReply, ct));
+
+    public async Task<UpdateStatusReply> SetUpdateChannelAsync(UpdateChannel channel, CancellationToken ct = default) =>
+        Protocol.DecodeUpdateStatusReply(await RequestAsync(Protocol.EncodeSetChannel(channel), MsgType.UpdateStatusReply, ct));
+
+    /// <summary>앱이 정상 시작했음을 알린다 (업데이트 후 되돌리기 판단).</summary>
+    public async Task<UpdateStatusReply> ReportAppStartedAsync(string version, CancellationToken ct = default) =>
+        Protocol.DecodeUpdateStatusReply(await RequestAsync(Protocol.EncodeAppStarted(version), MsgType.UpdateStatusReply, ct));
+
     /// <summary>
     /// 이름 부분 문자열 검색(대소문자 무시) 결과를 배치 단위로 받는다. 마지막 배치는 Done=true.
     /// 새 검색을 시작하면 이 스트림은 Cancelled 배치로 끝난다. ct로 취소하면 서비스에 CancelSearch를 보낸다.
@@ -206,9 +236,13 @@ public sealed class IndexerClient : IAsyncDisposable
             return body;
         }
 
-        throw type == MsgType.Error
-            ? new ProtocolException(Protocol.DecodeError(body).Message)
-            : new ProtocolException($"unexpected reply {type}");
+        if (type == MsgType.Error)
+        {
+            var e = Protocol.DecodeError(body);
+            throw new ProtocolException(e.Message, e.Code);
+        }
+
+        throw new ProtocolException($"unexpected reply {type}");
     }
 
     private async Task WriteFrameAsync(byte[] frame)
