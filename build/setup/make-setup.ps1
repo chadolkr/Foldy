@@ -4,7 +4,7 @@
   그리고 zip(artifacts\Foldy-<버전>-setup.zip)으로 묶는다.
 #>
 [CmdletBinding()]
-param([switch] $SkipRust, [string] $DesktopShortcut)
+param([switch] $SkipRust, [string] $DesktopShortcut, [string] $Version, [string] $ZipDir)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -20,7 +20,7 @@ if (-not $SkipRust) {
 $out = Join-Path $root 'dist\Foldy-Setup'
 $payload = Join-Path $out 'payload'
 Remove-Item $out -Recurse -Force -ErrorAction SilentlyContinue
-dotnet publish (Join-Path $root 'src\Foldy.App\Foldy.App.csproj') -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o $payload
+dotnet publish (Join-Path $root 'src\Foldy.App\Foldy.App.csproj') -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o $payload $(if ($Version) { "-p:Version=$Version" })
 if ($LASTEXITCODE) { throw 'dotnet publish 실패' }
 foreach ($f in 'foldy-index.exe', 'foldy-update.exe') {
     $src = Join-Path $root "engine\target\release\$f"
@@ -39,7 +39,9 @@ $uncmd = $cmd.Replace('Foldy-Setup.ps1"', 'Foldy-Setup.ps1" -Uninstall').Replace
 [IO.File]::WriteAllText((Join-Path $out 'Foldy 제거.cmd'), $uncmd, [Text.Encoding]::GetEncoding(949))
 
 $ver = ((Get-Item (Join-Path $payload 'Foldy.exe')).VersionInfo.ProductVersion -replace '\+.*$', '')
-$zip = Join-Path $root "artifacts\Foldy-$ver-setup.zip"
+$zipDir = if ($ZipDir) { $ZipDir } else { Join-Path $root 'artifacts' }
+New-Item -ItemType Directory -Force $zipDir | Out-Null
+$zip = Join-Path $zipDir "Foldy-$ver-x64-setup.zip"
 Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip
 Write-Host "설치 폴더: $out"

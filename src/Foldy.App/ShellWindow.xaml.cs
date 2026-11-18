@@ -42,6 +42,7 @@ public partial class ShellWindow : Window, IPaneHost
     private IndexerClient? _indexer;
     private readonly SftpSessions _sftp;
     private readonly FileSearchService _search;
+    private readonly AppUpdater _updater;
     private AppSettings _settings;
     private HwndSource? _hwndSource;
 
@@ -68,6 +69,8 @@ public partial class ShellWindow : Window, IPaneHost
             Settings = _settings,
         };
 
+        _updater = new AppUpdater(typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
+        _updater.Changed += () => Dispatcher.BeginInvoke(UpdateUpdateButton);
         _search = new FileSearchService(() => _indexer, () => _settings.ShowHidden);
         Shell.Search = _search;
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
@@ -130,6 +133,11 @@ public partial class ShellWindow : Window, IPaneHost
     {
         ActiveView.FocusList();
         RefreshDrives();
+        if (!App.Options.IsBench && App.Options.Screenshot is null)
+        {
+            _updater.Start(TimeSpan.FromMinutes(1)); // 실행 1분 뒤 + 6시간마다 (설계서 10.5)
+        }
+
         await ProbeEnginesAsync();
         if (App.Options.Screenshot is { } shot)
         {
@@ -198,6 +206,7 @@ public partial class ShellWindow : Window, IPaneHost
             t.Close();
         }
 
+        _updater.Dispose();
         _queues.DisposeAsync().AsTask().Wait(500);
         if (_indexer is not null)
         {
@@ -390,6 +399,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("indexer.uninstall", "색인 서비스 제거 (관리자)", () => RunIndexerSetup(install: false));
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
         Add("app.about", "Foldy 정보", ShowAbout);
+        Add("app.checkUpdate", "업데이트 확인", CheckUpdateNow);
     }
 
     private static string Gesture(Key key, ModifierKeys mods)
@@ -428,6 +438,42 @@ public partial class ShellWindow : Window, IPaneHost
         if (Shell.ActivePane.ActiveFolder is { } tab && await Shell.NewFolderAsync(tab) is not null)
         {
             ActiveView.BeginRename(); // 새 폴더에 포커스가 간 뒤 바로 이름 입력
+        }
+    }
+
+    private async void CheckUpdateNow()
+    {
+        Shell.Status = "업데이트 확인 중…";
+        var found = await _updater.CheckAsync(CancellationToken.None);
+        Shell.Status = found || _updater.ReadyVersion is not null
+            ? $"Foldy {_updater.ReadyVersion} 업데이트가 준비됐습니다"
+            : _updater.LastError is { } err ? $"업데이트를 확인하지 못했습니다: {err}" : "최신 버전입니다";
+    }
+
+    private void UpdateUpdateButton()
+    {
+        if (_updater.ReadyVersion is { } v)
+        {
+            UpdateButton.Content = $"Foldy {v} · 재시작하고 업데이트";
+            UpdateButton.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void OnInstallUpdate(object sender, RoutedEventArgs e)
+    {
+        var running = Shell.Jobs.Any(j => !j.IsFinished);
+        if (running && MessageBox.Show(this, "진행 중인 작업이 있습니다. 그래도 지금 업데이트할까요?", "Foldy 업데이트", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        if (_updater.LaunchInstaller())
+        {
+            Close(); // 세션 저장 후 종료, 설치 스크립트가 끝나면 Foldy를 다시 띄운다
+        }
+        else
+        {
+            Shell.Status = "업데이트 설치가 취소됐습니다 (관리자 권한 필요)";
         }
     }
 
