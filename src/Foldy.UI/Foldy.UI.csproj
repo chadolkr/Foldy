@@ -23,5 +23,10 @@
     <Resource Include="..\..\assets\icons\png\foldy-16.png" Link="Assets\foldy-16.png" />
     <Resource Include="..\..\assets\icons\png\foldy-32.png" Link="Assets\foldy-32.png" />
     <Resource Include="..\..\assets\icons\foldy.ico" Link="Assets\foldy.ico" />
+    <!-- Pretendard (SIL OFL 1.1, 라이선스: assets/fonts/Pretendard-OFL-1.1.txt). FontFamily는 Themes/Modern.Controls.xaml 참조 -->
+    <Resource Include="..\..\assets\fonts\Pretendard-Regular.otf" Link="Fonts\Pretendard-Regular.otf" />
+    <Resource Include="..\..\assets\fonts\Pretendard-Medium.otf" Link="Fonts\Pretendard-Medium.otf" />
+    <Resource Include="..\..\assets\fonts\Pretendard-SemiBold.otf" Link="Fonts\Pretendard-SemiBold.otf" />
+    <Resource Include="..\..\assets\fonts\Pretendard-Bold.otf" Link="Fonts\Pretendard-Bold.otf" />
   </ItemGroup>
 </Project>
