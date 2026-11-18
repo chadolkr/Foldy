@@ -70,6 +70,9 @@ public sealed partial class MascotPainter
     private MascotFrame _f;
     private double _u;
     private double _t;
+    private int _cycle;
+    private PlayPlan? _plan;
+    private (int Seed, PlaySet Set) _planKey;
     private double _w;
     private double _ox;
     private Point _anchor;
@@ -77,12 +80,18 @@ public sealed partial class MascotPainter
     /// <param name="palette">색.</param>
     /// <param name="minStroke">최소 선 굵기(디자인 px). 레트로는 픽셀 한 칸 크기로 올려 선이 사라지지 않게 한다.</param>
     /// <param name="maxWorld">장면이 쓰는 최대 폭.</param>
-    public MascotPainter(MascotPalette palette, double minStroke = 0, double maxWorld = 420)
+    public MascotPainter(MascotPalette palette, double minStroke = 0, double maxWorld = MascotCourt.MaxWorld)
     {
         _p = palette;
         _minStroke = minStroke;
         _maxWorld = maxWorld;
     }
+
+    /// <summary>직전 Paint에서 그려진 아이들의 (이름, x). 테스트가 플레이 위치를 확인하는 데 쓴다.</summary>
+    internal IReadOnlyList<(string Name, double X)> Labels => _labels;
+
+    /// <summary>직전 Paint에서 실제로 쓴 월드 폭(= 가운데 정렬된 장면 폭).</summary>
+    internal double WorldWidth => _w;
 
     /// <summary>true면 이름표를 장면과 같은 패스에서 그린다. 레트로는 끄고 <see cref="PaintLabels"/>로 확대 후에 또렷하게 얹는다.</summary>
     public bool DrawLabelsInline { get; set; } = true;
@@ -92,7 +101,7 @@ public sealed partial class MascotPainter
     /// <summary>
     /// 한 장면을 그린다. u = 장면 반복 위상(0~1), t = 장면 시작 후 누적 초(속도 반영; 눈 깜빡임 등 연속 동작용).
     /// </summary>
-    public void Paint(DrawingContext dc, double width, MascotFrame frame, double u, double t)
+    public void Paint(DrawingContext dc, double width, MascotFrame frame, double u, double t, int cycle = 0)
     {
         _labels.Clear();
         if (!frame.Visible || width < 20)
@@ -101,6 +110,7 @@ public sealed partial class MascotPainter
         }
 
         _dc = dc;
+        _cycle = cycle;
         _f = frame;
         _u = Math.Clamp(u, 0, 1);
         _t = t;
@@ -436,6 +446,45 @@ public sealed partial class MascotPainter
         Line(_p.Metal, 0.8, RimX - 5, RimY + 4.5, RimX + 5, RimY + 4.5);
         Line(_p.Metal, 0.8, RimX - 4, RimY + 7.5 + (wiggle * 0.1), RimX + 4, RimY + 7.5 + (wiggle * 0.1));
         Curve(Pn(_p.Rim, 1.8), new Point(RimX - 6.8, RimY), new Point(RimX, RimY + 3.6), new Point(RimX + 6.8, RimY));
+    }
+
+    /// <summary>바닥에 그린 3점 라인: 골대 아래를 중심으로 한 타원의 왼쪽 반 (옆에서 비스듬히 본 코트 바닥).</summary>
+    private void Arc3()
+    {
+        var rx = RimX - MascotCourt.ArcX(_w);
+        var g = new StreamGeometry();
+        using (var c = g.Open())
+        {
+            const int n = 28;
+            for (var i = 0; i <= n; i++)
+            {
+                var a = i * Math.PI / 2 / n;
+                var p = new Point(RimX - (rx * Math.Cos(a)), Ground + 1.2 - (7.5 * Math.Sin(a)));
+                if (i == 0)
+                {
+                    c.BeginFigure(p, false, false);
+                }
+                else
+                {
+                    c.LineTo(p, true, true);
+                }
+            }
+        }
+
+        g.Freeze();
+        var col = Color.FromArgb(235, _p.Accent.R, _p.Accent.G, _p.Accent.B);
+        _dc.DrawGeometry(null, Pn(col, 1.7), g);
+        // 라인 시작점의 표지 (슈터는 이 왼쪽에 선다)
+        Line(col, 2, MascotCourt.ArcX(_w), Ground - 3, MascotCourt.ArcX(_w), Ground + 2.2);
+    }
+
+    /// <summary>사이드라인: 이 선 오른쪽 바닥은 코트 밖(붉은 선)이고 휴지통이 있다.</summary>
+    private void Sideline()
+    {
+        var sx = MascotCourt.SideX(_w);
+        Line(_p.Error, 2, sx, Ground + 1.2, _w - 6, Ground + 1.2);
+        Line(_p.MetalDark, 1.4, sx, Ground - 14, sx, Ground);
+        Poly(_p.Error, null, new Point(sx, Ground - 14), new Point(sx + 8, Ground - 11.5), new Point(sx, Ground - 9));
     }
 
     private void Bin(double cx, double rock, Point? inside)

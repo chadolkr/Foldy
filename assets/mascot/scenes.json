@@ -1,9 +1,10 @@
 {
   // Foldy 마스코트 장면 정의: 농구하는 두 아이 "연주"와 "우진". 모던(벡터)·레트로(픽셀) 렌더러가 함께 읽는다.
   // loopSeconds: 속도 1.0에서 한 바퀴 도는 시간. 실제 재생 시간 = loopSeconds / Speed.
-  // loop=false: 한 번 재생하고 마지막 자세로 멈춘다 (완료, 오류).
+  //   Dribble/Setup/Pass/Search는 시드로 정해진 동작 순서(PlayPlan)를 계속 이어 가므로 loopSeconds는 큰 의미가 없다.
+  // loop=false: 한 번 재생하고 마지막 자세로 멈춘다 (완료 마무리, 오류).
   // 레트로는 retroFps로 시간을 양자화해 같은 장면을 뚝뚝 끊어 그린다.
-  "version": 3,
+  "version": 4,
   "render": {
     "designHeight": 48,
     "maxWorldWidth": 640,
@@ -12,16 +13,18 @@
     "retroScale": 3
   },
   "scenes": [
-    { "id": "Pass",        "loopSeconds": 1.6, "loop": true,  "description": "달리며 패스를 주고받는 연주와 우진 (복사·이동 시작, Git pull)" },
-    { "id": "Dribble",     "loopSeconds": 2.0, "loop": true,  "description": "함께 달리며 크로스오버 드리블, 공 주고받기. 진행률만큼 코트를 전진, 속도=MB/s" },
-    { "id": "Shoot",       "loopSeconds": 1.8, "loop": true,  "description": "달려 들어가 점프 레이업 (복사·이동 마무리, Git push)" },
-    { "id": "Score",       "loopSeconds": 1.5, "loop": false, "description": "완료: 우진의 3점슛 성공, 연주와 하이파이브" },
+    { "id": "Pass",        "loopSeconds": 2.0, "loop": true,  "description": "패스 위주 연속 동작 (Git pull)" },
+    { "id": "Dribble",     "loopSeconds": 2.0, "loop": true,  "description": "복사·이동·삭제 진행 중: 다양한 동작을 이어 붙이며 진행률만큼 왼쪽에서 오른쪽으로 전진. 속도=MB/s" },
+    { "id": "Setup",       "loopSeconds": 2.0, "loop": true,  "description": "100% 근처: 마무리 위치 바깥에서 슛 없이 드리블·패스·페이크" },
+    { "id": "Shoot",       "loopSeconds": 1.8, "loop": true,  "description": "점프슛 반복 (Git push), 위치는 바퀴마다 바뀜" },
+    { "id": "Score",       "loopSeconds": 1.6, "loop": false, "description": "복사 완료: 3점 라인 밖에서 길고 높은 3점슛 성공, 하이파이브" },
+    { "id": "Dunk",        "loopSeconds": 1.7, "loop": false, "description": "이동 완료: 속공, 연주의 앨리웁 패스를 우진이 덩크, 하이파이브" },
     { "id": "HighFive",    "loopSeconds": 1.2, "loop": false, "description": "완료: 달려와 하이파이브" },
-    { "id": "TossBin",     "loopSeconds": 1.8, "loop": true,  "description": "삭제: 달리며 공을 휴지통에. 골인=성공, 빗나감=실패" },
-    { "id": "OutOfBounds", "loopSeconds": 1.8, "loop": true,  "description": "영구 삭제: 달리다 공을 코트 밖으로" },
-    { "id": "Search",      "loopSeconds": 2.0, "loop": true,  "description": "검색·대기·끊김: 둘이 조깅하며 두리번거리며 공을 찾음" },
-    { "id": "Practice",    "loopSeconds": 2.0, "loop": true,  "description": "색인·분석: 우진 콘 드리블, 연주 왕복 달리기" },
+    { "id": "TossBin",     "loopSeconds": 1.8, "loop": false, "description": "삭제 완료: 사이드라인 너머 코트 옆 휴지통에 던짐 (실패하면 빗나가 튕김)" },
+    { "id": "OutOfBounds", "loopSeconds": 1.9, "loop": false, "description": "영구 삭제 완료: 경기장 밖으로 멀리 던져 버림" },
+    { "id": "Search",      "loopSeconds": 2.0, "loop": true,  "description": "검색·대기·끊김: 둘이 코트 곳곳을 조깅하며 두리번거림" },
+    { "id": "Practice",    "loopSeconds": 2.0, "loop": true,  "description": "색인·분석: 우진 드리블 훈련, 연주 왕복 달리기 (바퀴마다 위치·종류 변화)" },
     { "id": "Hold",        "loopSeconds": 3.0, "loop": true,  "description": "일시정지·충돌: 공을 안고 대기" },
-    { "id": "Miss",        "loopSeconds": 1.8, "loop": false, "description": "오류: 달려 들어가 던진 슛이 림에 맞고 튕김" }
+    { "id": "Miss",        "loopSeconds": 1.8, "loop": false, "description": "오류: 3점 라인 밖에서 던진 슛이 림에 맞고 튕김" }
   ]
 }
