@@ -20,6 +20,12 @@
     <Project Path="tests/Foldy.Core.Tests/Foldy.Core.Tests.csproj">
       <Platform Project="x64" />
     </Project>
+    <Project Path="tests/Foldy.Imaging.Tests/Foldy.Imaging.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="tests/Foldy.ImageBench/Foldy.ImageBench.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="tests/Foldy.Interop.Tests/Foldy.Interop.Tests.csproj">
       <Platform Project="x64" />
     </Project>
