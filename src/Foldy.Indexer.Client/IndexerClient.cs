@@ -94,6 +94,20 @@ public sealed class IndexerClient : IAsyncDisposable
         return Protocol.DecodeFolderSizesReply(await RequestAsync(Protocol.EncodeFolderSizes(path), MsgType.FolderSizesReply, ct));
     }
 
+    /// <summary>분석 DB 만들기를 시작한다 (설계서 7.3). 바로 돌아오고, 진행률은 <see cref="StatusAsync"/>의 Analysis로 본다.</summary>
+    public async Task<BuildAnalysisReply> BuildAnalysisAsync(string volume, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(volume);
+        return Protocol.DecodeBuildAnalysisReply(await RequestAsync(Protocol.EncodeBuildAnalysis(volume), MsgType.BuildAnalysisReply, ct));
+    }
+
+    /// <summary>볼륨의 최신 분석 DB 경로·분석 시각과 비교용 이전 스냅샷.</summary>
+    public async Task<AnalysisInfoReply> AnalysisInfoAsync(string volume, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(volume);
+        return Protocol.DecodeAnalysisInfoReply(await RequestAsync(Protocol.EncodeAnalysisInfo(volume), MsgType.AnalysisInfoReply, ct));
+    }
+
     /// <summary>
     /// 이름 부분 문자열 검색(대소문자 무시) 결과를 배치 단위로 받는다. 마지막 배치는 Done=true.
     /// 새 검색을 시작하면 이 스트림은 Cancelled 배치로 끝난다. ct로 취소하면 서비스에 CancelSearch를 보낸다.

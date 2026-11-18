@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Foldy.Presentation.Tabs;
 
-public enum TabKind { Folder, Markdown, Search, Git }
+public enum TabKind { Folder, Markdown, Search, Git, Analysis }
 
 /// <summary>패널의 탭 하나. 폴더 탭과 문서(Markdown) 탭이 같은 탭 줄을 쓴다.</summary>
 public abstract partial class TabBase : ObservableObject

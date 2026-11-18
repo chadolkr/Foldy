@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 pub const PIPE_NAME: &str = r"\\.\pipe\Foldy.Indexer.v1";
 /// 프로토콜 버전. 다르면 클라이언트는 LocalProvider로 폴백한다.
 /// v2: Search / SearchBatch / CancelSearch / FolderSizes, StatusReply에 진행률과 볼륨별 상태 추가.
+/// v2 확장(하위 호환): BuildAnalysis / AnalysisInfo 요청, StatusReply 끝에 `analysis` 목록.
+/// 옛 클라이언트는 새 요청을 보내지 않고 StatusReply 끝에 붙은 바이트를 읽지 않으므로 버전은 그대로 둔다.
 pub const PROTOCOL_VERSION: u32 = 2;
 /// 프레임 본문 최대 크기 (입력 길이 검사, 설계서 12장).
 pub const MAX_BODY: usize = 16 * 1024 * 1024;
@@ -35,10 +37,17 @@ pub enum MsgType {
     FolderSizes = 0x0004,
     /// 응답 없음. 진행 중인 검색을 멈추고 마지막 SearchBatch(status=Cancelled)를 보내게 한다.
     CancelSearch = 0x0005,
+    /// 디스크 분석 스냅샷 DB 만들기를 시작한다 (설계서 7.3). 바로 BuildAnalysisReply가 오고,
+    /// 진행률은 StatusReply.analysis로 본다.
+    BuildAnalysis = 0x0006,
+    /// 볼륨의 최신 분석 DB 경로·분석 시각과 비교용 이전 스냅샷 목록.
+    AnalysisInfo = 0x0007,
     HelloReply = 0x8001,
     StatusReply = 0x8002,
     SearchBatch = 0x8003,
     FolderSizesReply = 0x8004,
+    BuildAnalysisReply = 0x8006,
+    AnalysisInfoReply = 0x8007,
     Error = 0x80FF,
 }
 
@@ -50,10 +59,14 @@ impl MsgType {
             0x0003 => Self::Search,
             0x0004 => Self::FolderSizes,
             0x0005 => Self::CancelSearch,
+            0x0006 => Self::BuildAnalysis,
+            0x0007 => Self::AnalysisInfo,
             0x8001 => Self::HelloReply,
             0x8002 => Self::StatusReply,
             0x8003 => Self::SearchBatch,
             0x8004 => Self::FolderSizesReply,
+            0x8006 => Self::BuildAnalysisReply,
+            0x8007 => Self::AnalysisInfoReply,
             0x80FF => Self::Error,
             _ => return None,
         })
@@ -105,6 +118,76 @@ pub struct StatusReply {
     /// 색인 중인 볼륨들의 평균 진행률 (0~1000)
     pub progress_permille: u16,
     pub volumes: Vec<VolumeStatus>,
+    /// 분석 DB를 만들었거나 만드는 중인 볼륨들 (v2 확장, 맨 끝에 붙인다)
+    pub analysis: Vec<AnalysisProgress>,
+}
+
+/// 분석 작업 상태 코드 (AnalysisProgress.state)
+pub mod analysis_state {
+    pub const IDLE: u8 = 0;
+    pub const BUILDING: u8 = 1;
+    pub const READY: u8 = 2;
+    pub const FAILED: u8 = 3;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AnalysisProgress {
+    pub volume: String,
+    pub state: u8,
+    /// 0~1000
+    pub progress_permille: u16,
+    /// 단계 설명 또는 실패 이유
+    pub message: String,
+}
+
+/// 분석 DB 만들기. `volume`은 Hello/Status의 볼륨 이름("C:") 또는 --scan-dir 폴더 경로.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BuildAnalysis {
+    pub volume: String,
+}
+
+/// BuildAnalysisReply / AnalysisInfoReply 상태 코드
+pub mod analysis_status {
+    /// BuildAnalysis: 시작함. AnalysisInfo: 스냅샷 있음.
+    pub const OK: u8 = 0;
+    /// 이미 만드는 중 (진행률은 Status로)
+    pub const ALREADY_RUNNING: u8 = 1;
+    /// 색인이 아직 준비되지 않음 → 클라이언트는 직접 열거(폴백)
+    pub const NOT_READY: u8 = 2;
+    /// 서비스가 모르는 볼륨 → 폴백
+    pub const UNKNOWN_VOLUME: u8 = 3;
+    /// AnalysisInfo: 아직 만든 스냅샷이 없음
+    pub const NOT_FOUND: u8 = 4;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BuildAnalysisReply {
+    pub status: u8,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AnalysisInfo {
+    pub volume: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AnalysisSnapshot {
+    /// SQLite 파일 전체 경로. 앱은 읽기 전용(mode=ro)으로 연다.
+    pub db_path: String,
+    /// 분석 시각 (FILETIME, UTC 100ns)
+    pub scan_time: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AnalysisInfoReply {
+    pub status: u8,
+    pub volume: String,
+    /// 최신 스냅샷 (status가 OK가 아니면 빈 경로, 0)
+    pub db_path: String,
+    pub scan_time: i64,
+    /// 비교용 이전 스냅샷, 최신순 (최대 4개)
+    pub previous: Vec<AnalysisSnapshot>,
 }
 
 /// 이름 부분 문자열 검색(대소문자 무시). 같은 연결에서 새 Search가 오면 이전 검색은 자동 취소된다.
@@ -274,6 +357,8 @@ mod tests {
             let _ = decode_body::<Search>(&junk);
             let _ = decode_body::<SearchBatch>(&junk);
             let _ = decode_body::<FolderSizesReply>(&junk);
+            let _ = decode_body::<BuildAnalysis>(&junk);
+            let _ = decode_body::<AnalysisInfoReply>(&junk);
         }
     }
 }

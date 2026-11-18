@@ -14,10 +14,18 @@ public enum MsgType : ushort
     Search = 0x0003,
     FolderSizes = 0x0004,
     CancelSearch = 0x0005,
+
+    /// <summary>분석 DB 만들기 시작 (v2 확장). 진행률은 StatusReply.Analysis.</summary>
+    BuildAnalysis = 0x0006,
+
+    /// <summary>볼륨의 최신 분석 DB 경로·시각과 이전 스냅샷 (v2 확장).</summary>
+    AnalysisInfo = 0x0007,
     HelloReply = 0x8001,
     StatusReply = 0x8002,
     SearchBatch = 0x8003,
     FolderSizesReply = 0x8004,
+    BuildAnalysisReply = 0x8006,
+    AnalysisInfoReply = 0x8007,
     Error = 0x80FF,
 }
 
@@ -54,7 +62,50 @@ public sealed record HelloReply(uint Protocol, string ServiceVersion, IReadOnlyL
 
 public sealed record VolumeStatus(string Volume, IndexState State, ulong Entries, long LastUsn, ushort ProgressPermille, string Message);
 
-public sealed record StatusReply(IndexState State, ulong IndexedEntries, long LastUsn, ushort ProgressPermille, IReadOnlyList<VolumeStatus> Volumes);
+public sealed record StatusReply(IndexState State, ulong IndexedEntries, long LastUsn, ushort ProgressPermille, IReadOnlyList<VolumeStatus> Volumes)
+{
+    /// <summary>분석 DB를 만들었거나 만드는 중인 볼륨 (v2 확장: 옛 서비스면 빈 목록).</summary>
+    public IReadOnlyList<AnalysisProgressStatus> Analysis { get; init; } = [];
+}
+
+public enum AnalysisJobState : byte
+{
+    Idle = 0,
+    Building = 1,
+    Ready = 2,
+    Failed = 3,
+}
+
+public sealed record AnalysisProgressStatus(string Volume, AnalysisJobState State, ushort ProgressPermille, string Message);
+
+public enum AnalysisStatus : byte
+{
+    /// <summary>BuildAnalysis: 시작함. AnalysisInfo: 스냅샷 있음.</summary>
+    Ok = 0,
+    AlreadyRunning = 1,
+
+    /// <summary>색인이 아직 준비되지 않음 → 폴백.</summary>
+    NotReady = 2,
+
+    /// <summary>서비스가 다루지 않는 볼륨 → 폴백.</summary>
+    UnknownVolume = 3,
+
+    /// <summary>AnalysisInfo: 아직 만든 스냅샷이 없음.</summary>
+    NotFound = 4,
+}
+
+public sealed record BuildAnalysisReply(AnalysisStatus Status, string Message);
+
+/// <param name="ScanTime">분석 시각 (FILETIME, UTC).</param>
+public sealed record AnalysisSnapshotInfo(string DbPath, long ScanTime)
+{
+    public DateTime ScanTimeUtc => ScanTime > 0 ? DateTime.FromFileTimeUtc(ScanTime) : DateTime.MinValue;
+}
+
+public sealed record AnalysisInfoReply(AnalysisStatus Status, string Volume, string DbPath, long ScanTime, IReadOnlyList<AnalysisSnapshotInfo> Previous)
+{
+    public DateTime ScanTimeUtc => ScanTime > 0 ? DateTime.FromFileTimeUtc(ScanTime) : DateTime.MinValue;
+}
 
 /// <param name="Cursor">0이면 처음부터, 아니면 이전 결과의 NextCursor.</param>
 public sealed record SearchRequest(uint SearchId, string Query, uint Limit, ulong Cursor);
@@ -150,6 +201,20 @@ public static class Protocol
         return Frame(MsgType.FolderSizes, w.ToArray());
     }
 
+    public static byte[] EncodeBuildAnalysis(string volume)
+    {
+        var w = new PostcardWriter();
+        w.WriteString(volume);
+        return Frame(MsgType.BuildAnalysis, w.ToArray());
+    }
+
+    public static byte[] EncodeAnalysisInfo(string volume)
+    {
+        var w = new PostcardWriter();
+        w.WriteString(volume);
+        return Frame(MsgType.AnalysisInfo, w.ToArray());
+    }
+
     // ── 응답 디코더 ──
 
     public static HelloReply DecodeHelloReply(ReadOnlySpan<byte> body)
@@ -181,7 +246,43 @@ public static class Protocol
             vols[i] = new VolumeStatus(r.ReadString(), (IndexState)r.ReadByte(), r.ReadVarUInt(), r.ReadVarInt(), (ushort)r.ReadVarUInt(), r.ReadString());
         }
 
-        return new StatusReply(state, entries, usn, progress, vols);
+        // v2 확장: 옛 서비스는 analysis 목록을 보내지 않는다.
+        if (r.AtEnd)
+        {
+            return new StatusReply(state, entries, usn, progress, vols);
+        }
+
+        var na = r.ReadLength();
+        var analysis = new AnalysisProgressStatus[na];
+        for (var i = 0; i < na; i++)
+        {
+            analysis[i] = new AnalysisProgressStatus(r.ReadString(), (AnalysisJobState)r.ReadByte(), (ushort)r.ReadVarUInt(), r.ReadString());
+        }
+
+        return new StatusReply(state, entries, usn, progress, vols) { Analysis = analysis };
+    }
+
+    public static BuildAnalysisReply DecodeBuildAnalysisReply(ReadOnlySpan<byte> body)
+    {
+        var r = new PostcardReader(body);
+        return new BuildAnalysisReply((AnalysisStatus)r.ReadByte(), r.ReadString());
+    }
+
+    public static AnalysisInfoReply DecodeAnalysisInfoReply(ReadOnlySpan<byte> body)
+    {
+        var r = new PostcardReader(body);
+        var status = (AnalysisStatus)r.ReadByte();
+        var volume = r.ReadString();
+        var path = r.ReadString();
+        var time = r.ReadVarInt();
+        var n = r.ReadLength();
+        var prev = new AnalysisSnapshotInfo[n];
+        for (var i = 0; i < n; i++)
+        {
+            prev[i] = new AnalysisSnapshotInfo(r.ReadString(), r.ReadVarInt());
+        }
+
+        return new AnalysisInfoReply(status, volume, path, time, prev);
     }
 
     public static SearchBatch DecodeSearchBatch(ReadOnlySpan<byte> body)
@@ -226,6 +327,8 @@ internal ref struct PostcardReader(ReadOnlySpan<byte> data)
 {
     private readonly ReadOnlySpan<byte> _data = data;
     private int _pos;
+
+    public readonly bool AtEnd => _pos >= _data.Length;
 
     public byte ReadByte() =>
         _pos < _data.Length ? _data[_pos++] : throw new ProtocolException("unexpected end of body");
