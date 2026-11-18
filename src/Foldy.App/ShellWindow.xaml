@@ -112,6 +112,9 @@
       <Button Click="OnFnPalette" ToolTip="모든 명령">
         <TextBlock><Run Text="Ctrl+Shift+P " Foreground="{DynamicResource Brush.TextSecondary}" /><Run Text="명령" /></TextBlock>
       </Button>
+      <Button Click="OnCheckUpdate" ToolTip="지금 새 버전 확인하고 설치">
+        <TextBlock><Run Text="&#xE895; " FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.TextSecondary}" /><Run Text="업데이트" /></TextBlock>
+      </Button>
       <Button Click="OnHelp" ToolTip="사용 설명서 (F1)">
         <TextBlock><Run Text="F1 " Foreground="{DynamicResource Brush.TextSecondary}" /><Run Text="? 도움말" /></TextBlock>
       </Button>
@@ -142,6 +145,7 @@
             <MenuItem Header="설정…" InputGestureText="Ctrl+," Click="OnSettings" />
             <MenuItem Header="설정 파일 열기" Click="OnOpenSettings" />
             <MenuItem Header="도움말" InputGestureText="F1" Click="OnHelp" />
+            <MenuItem Header="업데이트 확인…" Click="OnCheckUpdate" />
             <MenuItem Header="Foldy 정보" Click="OnAbout" />
           </ContextMenu>
         </Button.ContextMenu>

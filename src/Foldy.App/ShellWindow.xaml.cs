@@ -169,7 +169,7 @@ public partial class ShellWindow : Window, IPaneHost
         if (!App.Options.IsBench && App.Options.Screenshot is null)
         {
             await UseServiceUpdaterAsync();
-            _updater.Start(TimeSpan.FromMinutes(1)); // 실행 1분 뒤 + 6시간마다 (설계서 10.5)
+            _updater.Start(TimeSpan.FromSeconds(5)); // 실행 5초 뒤 + 6시간마다 (짧게 켰다 꺼도 확인되게)
         }
 
         await ProbeEnginesAsync();
@@ -664,13 +664,50 @@ public partial class ShellWindow : Window, IPaneHost
         Foldy.UI.Templates.TemplateDialogs.ShowDescriptionEditor(this, ed);
     }
 
-    private async void CheckUpdateNow()
+    private void CheckUpdateNow() => _ = CheckAndOfferUpdateAsync(interactive: true);
+
+    private void OnCheckUpdate(object sender, RoutedEventArgs e) => _ = CheckAndOfferUpdateAsync(interactive: true);
+
+    /// <summary>[업데이트] 버튼: 바로 확인하고, 새 버전이 있으면 설치를 묻고, 실패하면 이유를 보여 준다.</summary>
+    private async Task CheckAndOfferUpdateAsync(bool interactive)
     {
-        Shell.Status = "업데이트 확인 중…";
-        var found = await _updater.CheckAsync(CancellationToken.None);
-        Shell.Status = found || _updater.ReadyVersion is not null
-            ? $"Foldy {_updater.ReadyVersion} 업데이트가 준비됐습니다"
-            : _updater.LastError is { } err ? $"업데이트를 확인하지 못했습니다: {err}" : "최신 버전입니다";
+        if (_updater.ReadyVersion is null)
+        {
+            Shell.Status = "업데이트 확인 중…";
+            bool found;
+            try
+            {
+                found = await _updater.CheckAsync(CancellationToken.None);
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                Log.Warning(ex, "업데이트 확인 실패");
+                found = false;
+            }
+
+            if (!found && _updater.ReadyVersion is null)
+            {
+                var err = _updater.LastError;
+                Shell.Status = err is null ? $"최신 버전입니다 ({AppVersion})" : $"업데이트를 확인하지 못했습니다: {err}";
+                if (interactive)
+                {
+                    MessageBox.Show(this,
+                        err is null ? $"Foldy {AppVersion}은(는) 최신 버전입니다." : $"업데이트를 확인하지 못했습니다.\n\n{err}\n\n인터넷·프록시 연결을 확인한 뒤 다시 시도해 주세요.",
+                        "Foldy 업데이트", MessageBoxButton.OK, err is null ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                }
+
+                return;
+            }
+        }
+
+        UpdateUpdateButton();
+        var v = _updater.ReadyVersion;
+        Shell.Status = $"Foldy {v} 업데이트가 준비됐습니다";
+        if (interactive && MessageBox.Show(this, $"Foldy {v}이(가) 준비됐습니다 (현재 {AppVersion}).\n지금 Foldy를 닫고 설치할까요?",
+                "Foldy 업데이트", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        {
+            OnInstallUpdate(this, new RoutedEventArgs());
+        }
     }
 
     private void UpdateUpdateButton()
@@ -696,9 +733,11 @@ public partial class ShellWindow : Window, IPaneHost
         }
         else
         {
-            Shell.Status = _updater is ServiceUpdater
+            var why = _updater is ServiceUpdater
                 ? $"업데이트 설치를 시작하지 못했습니다: {_updater.LastError}"
-                : "업데이트 설치가 취소됐습니다 (관리자 권한 필요)";
+                : "업데이트 설치가 취소됐습니다. 관리자 권한 창에서 [예]를 눌러야 설치됩니다.";
+            Shell.Status = why;
+            MessageBox.Show(this, why, "Foldy 업데이트", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
