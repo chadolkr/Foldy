@@ -14,6 +14,8 @@
 //!   --no-index  볼륨을 색인하지 않음 (파이프만 시험)
 //!   --volumes   색인할 볼륨 (기본: 모든 로컬 고정 NTFS 볼륨)
 //!   --scan-dir  일반 폴더 열거로 색인 (관리자 권한 없이 검색 시험·폴백용, 여러 번 가능)
+//!   --update-*  콘솔 모드 자동 업데이트 시험 (update/mod.rs `from_console_args`, docs/auto-update.md).
+//!               `--update-api <URL>`이 있을 때만 켜진다. 서비스 모드는 항상 켜지고 이 인자를 읽지 않는다.
 
 mod acl;
 mod bench;
@@ -21,6 +23,7 @@ mod query;
 mod server;
 mod service;
 mod state;
+mod update;
 
 use state::{Indexer, VolumeSlot};
 use std::sync::Arc;
@@ -34,6 +37,8 @@ pub(crate) struct Args {
     scan_dirs: Vec<String>,
     bench: Option<String>,
     service: bool,
+    /// `--update-…` 인자 (이름, 값)
+    update: Vec<(String, String)>,
 }
 
 fn parse_args() -> Args {
@@ -52,6 +57,7 @@ fn parse_args() -> Args {
             "--scan-dir" => a.scan_dirs.extend(it.next()),
             "--bench" => a.bench = Some(it.next().unwrap_or_else(|| "C:".into())),
             "--service" => a.service = true,
+            x if x.starts_with("--update-") => a.update.push((x.to_string(), it.next().unwrap_or_default())),
             _ => eprintln!("unknown argument: {x}"),
         }
     }
@@ -99,10 +105,26 @@ fn main() {
     let indexer = start_indexer(&args);
     let pipe = args.pipe.clone().unwrap_or_else(|| foldy_proto::PIPE_NAME.to_string());
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().expect("tokio runtime");
+    match update::UpdateConfig::from_console_args(&args.update) {
+        Ok(Some((cfg, fake))) => {
+            // 시험: --update-fake-install이 있으면 msiexec 대신 기록만 한다
+            let host: Arc<dyn update::host::Host> = match fake {
+                Some(log) => Arc::new(update::host::FakeHost::new(Some(log))),
+                None => Arc::new(update::win::WinHost),
+            };
+            let svc = update::UpdateService::new(cfg, host);
+            update::set_global(svc.clone());
+            rt.spawn(svc.run());
+        }
+        Ok(None) => {}
+        Err(e) => eprintln!("업데이트 인자 오류: {e}"),
+    }
     let r = rt.block_on(server::run(&pipe, args.once, indexer.clone(), async {
         let _ = tokio::signal::ctrl_c().await;
     }));
     indexer.shutdown.store(true, std::sync::atomic::Ordering::Relaxed);
+    // 업데이트 다운로드 중인 블로킹 스레드를 오래 기다리지 않는다
+    rt.shutdown_timeout(std::time::Duration::from_secs(2));
     if let Err(e) = r {
         eprintln!("pipe server error: {e}");
         std::process::exit(1);

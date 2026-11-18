@@ -232,8 +232,10 @@ dependencies = [
 name = "foldy-index"
 version = "0.1.0"
 dependencies = [
+ "ed25519-dalek",
  "foldy-ntfs",
  "foldy-proto",
+ "foldy-update",
  "tokio",
  "windows-service",
  "windows-sys",

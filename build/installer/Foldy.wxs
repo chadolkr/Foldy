@@ -17,9 +17,17 @@
 
     <SummaryInformation Description="Foldy - dual-pane file manager" />
 
-    <!-- 새 버전이 설치되면 이전 MSI를 제거하고 교체한다. 같은 버전(프리릴리스 등)도 허용 -->
-    <MajorUpgrade DowngradeErrorMessage="A newer version of Foldy is already installed."
-                  AllowSameVersionUpgrades="yes" />
+    <!-- 새 버전이 설치되면 이전 MSI를 제거하고 교체한다. 같은 버전(프리릴리스 등)도 허용.
+         낮은 버전 설치(다운그레이드)는 자동 업데이트의 되돌리기(FOLDY_ROLLBACK=1, docs/auto-update.md)에서만 허용하고,
+         그 밖에는 아래 Launch 조건으로 막는다. AllowDowngrades가 있어야 되돌리기 때 높은 버전이 제거된다
+         (AllowDowngrades는 같은 버전 교체도 포함한다). -->
+    <MajorUpgrade AllowDowngrades="yes" />
+    <Upgrade Id="6B1E4F0A-5C3D-4E8B-9A27-F01D1D7A4C21">
+      <UpgradeVersion Minimum="$(Version)" IncludeMinimum="no" OnlyDetect="yes" Property="FOLDY_NEWER_FOUND" />
+    </Upgrade>
+    <Property Id="FOLDY_ROLLBACK" Secure="yes" />
+    <Launch Condition="Installed OR NOT FOLDY_NEWER_FOUND OR FOLDY_ROLLBACK = &quot;1&quot;"
+            Message="A newer version of Foldy is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <!-- 프로그램 추가/제거(ARP) -->
@@ -78,8 +86,10 @@
                               ThirdFailureActionType="none"
                               RestartServiceDelayInSeconds="60"
                               ResetPeriodInDays="1" />
+          <!-- Remove="both": 스크립트 설치본(Foldy-Setup.ps1)이 만든 같은 이름의 서비스가 있으면
+               설치 때 DeleteServices가 먼저 지우고 InstallServices가 새로 만든다 (기존 서비스와 충돌 방지) -->
           <ServiceControl Id="FoldyIndexerControl" Name="FoldyIndexer"
-                          Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+                          Start="install" Stop="both" Remove="both" Wait="yes" />
         </Component>
       </Directory>
     </StandardDirectory>
