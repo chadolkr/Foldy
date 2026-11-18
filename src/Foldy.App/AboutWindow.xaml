@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Foldy 정보" SizeToContent="WidthAndHeight" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        Background="{StaticResource Brush.Face}"
-        FontFamily="{StaticResource Font.UI}" FontSize="{StaticResource Font.Size}"
+        Background="{DynamicResource Brush.Window}" Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}"
         TextOptions.TextFormattingMode="Display" SnapsToDevicePixels="True" UseLayoutRounding="True">
   <StackPanel Margin="16">
     <StackPanel Orientation="Horizontal">
@@ -29,6 +29,9 @@
                    Text="이 프로그램은 GNU 일반 공중 사용 허가서 3판 이상(GPL-3.0-or-later)으로 배포되는 자유 소프트웨어입니다. 소스 코드는 위 프로젝트 주소에서 받을 수 있습니다." />
       </StackPanel>
     </StackPanel>
-    <Button Content="확인" HorizontalAlignment="Right" MinWidth="75" Margin="0,16,0,0" IsDefault="True" IsCancel="True" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button Content="버그 신고…" MinWidth="90" Margin="0,0,8,0" Click="OnReportBug" />
+      <Button Content="확인" MinWidth="75" IsDefault="True" IsCancel="True" />
+    </StackPanel>
   </StackPanel>
 </Window>

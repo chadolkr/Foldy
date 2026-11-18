@@ -28,6 +28,7 @@ public partial class App : Application
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14,
                 formatProvider: System.Globalization.CultureInfo.InvariantCulture)
+            .WriteTo.Sink(new Diagnostics.ErrorReportSink())
             .CreateLogger();
         Log.Information("Foldy {Version} 시작, 인자: {Args}", typeof(App).Assembly.GetName().Version, e.Args);
 
@@ -37,13 +38,13 @@ public partial class App : Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         TaskScheduler.UnobservedTaskException += (_, ev) =>
         {
-            Log.Error(ev.Exception, "관찰되지 않은 작업 예외");
+            Log.ForContext(Diagnostics.ErrorReportSink.ReportedProperty, true).Error(ev.Exception, "관찰되지 않은 작업 예외");
             CrashReporting.Record(ev.Exception, fatal: false);
             ev.SetObserved();
         };
         AppDomain.CurrentDomain.UnhandledException += (_, ev) =>
         {
-            Log.Fatal(ev.ExceptionObject as Exception, "처리되지 않은 예외 (종료됨: {Terminating})", ev.IsTerminating);
+            Log.ForContext(Diagnostics.ErrorReportSink.ReportedProperty, true).Fatal(ev.ExceptionObject as Exception, "처리되지 않은 예외 (종료됨: {Terminating})", ev.IsTerminating);
             CrashReporting.Record(ev.ExceptionObject as Exception, fatal: ev.IsTerminating);
         };
 
@@ -62,13 +63,13 @@ public partial class App : Application
         {
             var main = new ShellWindow();
             main.Show();
-            CrashConsentPrompt.ScheduleOnIdle(main);
+            CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
         }
     }
 
     private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        Log.Error(e.Exception, "UI 스레드 예외");
+        Log.ForContext(Diagnostics.ErrorReportSink.ReportedProperty, true).Error(e.Exception, "UI 스레드 예외");
         CrashReporting.Record(e.Exception, fatal: false);
         e.Handled = true;
     }
