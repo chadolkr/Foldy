@@ -94,14 +94,22 @@ $lnk.Save()
 Step '색인 서비스 등록 (FoldyIndexer, SYSTEM, 지연된 자동 시작)'
 $indexer = Join-Path $target 'foldy-index.exe'
 $bin = "`"$indexer`" --service"
-if (Get-Service $service -ErrorAction SilentlyContinue) {
-    sc.exe config $service binPath= $bin start= delayed-auto | Out-Null
+# Windows PowerShell 5.1은 네이티브 명령 인수 안의 따옴표를 지워 버리므로 sc.exe create 대신 New-Service / CIM을 쓴다
+$desc = 'Foldy Indexer by David CHA - 파일 이름 즉시 검색을 위한 디스크 색인'
+$existing = Get-CimInstance Win32_Service -Filter "Name='$service'" -ErrorAction SilentlyContinue
+if ($existing) {
+    $r = Invoke-CimMethod -InputObject $existing -MethodName Change -Arguments @{ PathName = $bin }
+    if ($r.ReturnValue -ne 0) { throw "서비스 경로 변경 실패 (코드 $($r.ReturnValue))" }
 } else {
-    sc.exe create $service binPath= $bin start= delayed-auto DisplayName= 'Foldy Indexer' | Out-Null
+    New-Service -Name $service -BinaryPathName $bin -DisplayName 'Foldy Indexer' -Description $desc -StartupType Automatic | Out-Null
 }
-sc.exe description $service 'Foldy Indexer by David CHA - 파일 이름 즉시 검색을 위한 디스크 색인' | Out-Null
-sc.exe failure $service reset= 86400 actions= restart/60000/restart/60000// | Out-Null
-Start-Service $service -ErrorAction SilentlyContinue
+Set-Service -Name $service -Description $desc
+$out = & sc.exe config $service start= delayed-auto
+if ($LASTEXITCODE -ne 0) { Write-Host "    (지연 시작 설정 실패: $out)" }
+$out = & sc.exe failure $service reset= 86400 actions= restart/60000/restart/60000//
+if ($LASTEXITCODE -ne 0) { Write-Host "    (실패 시 재시작 설정 실패: $out)" }
+Start-Service $service
+if ((Get-Service $service).Status -ne 'Running') { throw '색인 서비스를 시작하지 못했습니다' }
 
 Step '프로그램 추가/제거에 등록'
 $ver = (Get-Item $exe).VersionInfo.ProductVersion -replace '\+.*$', ''
