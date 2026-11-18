@@ -1,0 +1,63 @@
+<Window x:Class="Foldy.UI.Templates.DescriptionEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:Foldy.UI.Templates"
+        Title="{Binding FolderName, StringFormat='설명 편집 - {0}'}" Width="900" Height="600" MinWidth="620" MinHeight="420"
+        ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
+        Style="{DynamicResource Foldy.Window}"
+        Background="{DynamicResource Brush.Surface}" Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}"
+        t:DialogCloser.Result="{Binding DialogResult}">
+  <!-- DataContext = Foldy.Presentation.Templates.DescriptionEditorViewModel (Load() 뒤에 연다) -->
+  <Window.Resources>
+    <ResourceDictionary Source="pack://application:,,,/Foldy.UI;component/Templates/TemplateResources.xaml" />
+  </Window.Resources>
+  <Grid Margin="18,16,18,16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="260" />
+      </Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock Text="제목" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
+        <TextBox Style="{StaticResource Tpl.Input}" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Margin="12,0,0,0">
+        <TextBlock Text="태그 (쉼표로 구분)" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
+        <TextBox Style="{StaticResource Tpl.Input}" Text="{Binding TagsText, UpdateSourceTrigger=PropertyChanged}" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1" Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <TextBox Style="{StaticResource Tpl.Input}" Text="{Binding Body, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+               AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+               VerticalScrollBarVisibility="Auto" FontFamily="{DynamicResource Font.Mono}" />
+      <Border Grid.Column="2" Style="{StaticResource Tpl.Card}" Padding="8">
+        <FlowDocumentScrollViewer t:SimpleMarkdown.Text="{Binding Body}" VerticalScrollBarVisibility="Auto" IsToolBarVisible="False" />
+      </Border>
+    </Grid>
+
+    <DockPanel Grid.Row="2" Margin="0,12,0,0">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="저장" Style="{StaticResource Tpl.Primary}" IsDefault="True" Command="{Binding SaveCommand}" MinWidth="90" Margin="0,0,8,0" />
+        <Button Content="취소" IsCancel="True" Command="{Binding CancelCommand}" MinWidth="80" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Style="{StaticResource Tpl.Badge}" Margin="0,0,10,0" Visibility="{Binding IsLocalOnly, Converter={StaticResource BoolVis}}">
+          <TextBlock Text="이 PC에만 저장됨" FontSize="11" />
+        </Border>
+        <TextBlock Text="{Binding Error}" Style="{StaticResource Tpl.Error}" />
+      </StackPanel>
+    </DockPanel>
+  </Grid>
+</Window>

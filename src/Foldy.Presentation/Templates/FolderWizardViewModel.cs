@@ -461,6 +461,8 @@ public sealed partial class FolderWizardViewModel : ObservableObject
                 SavedTemplatePath = _library.SaveUserTemplate(copy);
             }
 
+            OnPropertyChanged(nameof(Result));
+            OnPropertyChanged(nameof(SavedTemplatePath));
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException)
