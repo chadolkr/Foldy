@@ -106,7 +106,16 @@ public partial class ShellWindow : Window, IPaneHost
 
     public FolderTreeViewModel CreateTree() => new(_provider, _drives.GetDrivesFast());
 
-    public FrameworkElement CreateDocumentView(MarkdownTabViewModel tab, PaneViewModel pane) => new PlainDocumentView(tab);
+    public FrameworkElement CreateDocumentView(MarkdownTabViewModel tab, PaneViewModel pane)
+    {
+        var view = new Foldy.UI.Markdown.MarkdownView { DataContext = tab };
+        view.FolderLinkRequested += (_, e) =>
+        {
+            pane.NewFolderTab(e.Path);
+            e.Handled = true;
+        };
+        return view;
+    }
 
     private PaneView ActiveView => Shell.ActivePane == Shell.Left ? LeftPane : RightPane;
 
