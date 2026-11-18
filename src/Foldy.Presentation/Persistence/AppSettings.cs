@@ -1,3 +1,5 @@
+using Foldy.Presentation.Update;
+
 namespace Foldy.Presentation.Persistence;
 
 /// <summary>settings.json (설계서 7.2). 기본값과 다른 것만 의미가 있고, schemaVersion으로 마이그레이션한다.</summary>
@@ -21,6 +23,18 @@ public sealed record AppSettings
     public TerminalSettings Terminal { get; init; } = new();
 
     public bool Animations { get; init; } = true;
+
+    /// <summary>foldy(Foldy 오렌지, 기본) / windows(Windows 강조색을 따라감). 이전 settings.json에는 없다.</summary>
+    public string Accent { get; init; } = "foldy";
+
+    /// <summary>복사 스레드 수. 0이면 자동(드라이브 조합별 튜닝), 1 이상이면 수동 고정.</summary>
+    public int CopyThreads { get; init; }
+
+    /// <summary>업데이트 방식(자동 설치/알림만/끔)과 채널(stable/beta).</summary>
+    public UpdateSettings Update { get; init; } = UpdateSettings.Default;
+
+    /// <summary>오류 보고서 보내기 동의. 기본은 보내지 않음.</summary>
+    public bool SendCrashReports { get; init; }
 
     public static AppSettings Migrate(AppSettings s) =>
         s.SchemaVersion switch
