@@ -26,5 +26,8 @@
     <Project Path="tests/Foldy.Presentation.Tests/Foldy.Presentation.Tests.csproj">
       <Platform Project="x64" />
     </Project>
+    <Project Path="tests/Foldy.Update.Tests/Foldy.Update.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
   </Folder>
 </Solution>

@@ -1,0 +1,18 @@
+{
+  "version": "1.2.3",
+  "channel": "stable",
+  "min_supported_version": "1.0.0",
+  "mandatory": false,
+  "assets": [
+    {
+      "name": "Foldy-1.2.3-x64.msi",
+      "size": 300001,
+      "sha256": "b2aa5e3af4c585ab3845f438c284ba8b277ca8c13130a06435e7deaa3c5680d4"
+    },
+    {
+      "name": "Foldy-1.2.3-x64-portable.zip",
+      "size": 1000,
+      "sha256": "008549d94fa71e7a0a483d84380d05a923a4b18e79ba1f8a8ddac923956d32ef"
+    }
+  ]
+}
