@@ -111,9 +111,18 @@ public sealed class ServiceUpdater : IUpdateSource
         }
     }
 
-    /// <summary>서비스가 스스로 확인하므로(시작 1분 뒤 + 6시간마다) 앱은 상태만 주기적으로 읽는다.</summary>
-    public void Start(TimeSpan firstDelay) =>
+    private static readonly TimeSpan CheckPeriod = TimeSpan.FromHours(1);
+    private Timer? _checkTimer;
+
+    /// <summary>
+    /// 상태는 1분마다 읽고, 앱이 켜져 있는 동안 서비스에 1시간마다(첫 번째는 바로) "지금 확인"을 요청한다.
+    /// 서비스 자체 주기(6시간)만 기다리면 새 버전이 늦게 보인다. 확인은 ETag라 GitHub 부담이 거의 없다.
+    /// </summary>
+    public void Start(TimeSpan firstDelay)
+    {
         _timer = new Timer(_ => _ = RefreshAsync(CancellationToken.None), null, firstDelay < PollPeriod ? firstDelay : PollPeriod, PollPeriod);
+        _checkTimer = new Timer(_ => _ = CallAsync(c => c.CheckForUpdateAsync(CancellationToken.None), CancellationToken.None), null, firstDelay, CheckPeriod);
+    }
 
     public Task<UpdateStatusReply?> RefreshAsync(CancellationToken ct) => CallAsync(c => c.UpdateStatusAsync(ct), ct);
 
@@ -233,6 +242,7 @@ public sealed class ServiceUpdater : IUpdateSource
 
         _disposed = true;
         _timer?.Dispose();
+        _checkTimer?.Dispose();
         _client?.DisposeAsync().AsTask().Wait(200);
         _gate.Dispose();
     }
