@@ -1,0 +1,27 @@
+{
+  // Foldy 마스코트 장면 정의: 농구하는 두 아이 "연주"와 "우진". 모던(벡터)·레트로(픽셀) 렌더러가 함께 읽는다.
+  // loopSeconds: 속도 1.0에서 한 바퀴 도는 시간. 실제 재생 시간 = loopSeconds / Speed.
+  // loop=false: 한 번 재생하고 마지막 자세로 멈춘다 (완료, 오류).
+  // 레트로는 retroFps로 시간을 양자화해 같은 장면을 뚝뚝 끊어 그린다.
+  "version": 2,
+  "render": {
+    "designHeight": 48,
+    "maxWorldWidth": 420,
+    "modernFps": 30,
+    "retroFps": 10,
+    "retroScale": 3
+  },
+  "scenes": [
+    { "id": "Pass",        "loopSeconds": 3.0, "loop": true,  "description": "연주가 우진에게 패스 (복사·이동 시작, Git pull)" },
+    { "id": "Dribble",     "loopSeconds": 4.0, "loop": true,  "description": "우진이 드리블하며 진행률만큼 코트를 가로지름. 속도=MB/s" },
+    { "id": "Shoot",       "loopSeconds": 3.0, "loop": true,  "description": "우진의 점프슛 (복사·이동 마무리, Git push)" },
+    { "id": "Score",       "loopSeconds": 1.9, "loop": false, "description": "완료: 우진의 3점슛 성공, 연주와 하이파이브" },
+    { "id": "HighFive",    "loopSeconds": 1.6, "loop": false, "description": "완료: 둘이 하이파이브" },
+    { "id": "TossBin",     "loopSeconds": 2.6, "loop": true,  "description": "삭제: 공을 휴지통에. 골인=성공, 빗나감=실패" },
+    { "id": "OutOfBounds", "loopSeconds": 2.6, "loop": true,  "description": "영구 삭제: 공이 코트 밖으로" },
+    { "id": "Search",      "loopSeconds": 3.0, "loop": true,  "description": "검색·대기·끊김: 둘이 두리번거리며 공을 찾음" },
+    { "id": "Practice",    "loopSeconds": 3.0, "loop": true,  "description": "색인·분석: 우진 드리블 연습, 연주 기록" },
+    { "id": "Hold",        "loopSeconds": 3.0, "loop": true,  "description": "일시정지·충돌: 공을 안고 대기" },
+    { "id": "Miss",        "loopSeconds": 2.4, "loop": false, "description": "오류: 슛이 림에 맞고 튕김" }
+  ]
+}
