@@ -157,9 +157,9 @@ public readonly record struct MascotFrame(
 public static class MascotViewModel
 {
     /// <summary>드리블 속도 배율 범위.</summary>
-    public const double MinSpeed = 0.5;
+    public const double MinSpeed = 0.9;
 
-    public const double MaxSpeed = 2.0;
+    public const double MaxSpeed = 1.8;
 
     /// <summary>진행률이 이 값 미만이면 패스, 이상 ShootFrom 미만이면 드리블, 그 이상이면 슛.</summary>
     public const double PassUntil = 0.15;
@@ -279,7 +279,7 @@ public static class MascotViewModel
             new(scene, spd, bubble, outcome, progress, input.Phase, showCancelHint);
     }
 
-    /// <summary>처리량 → 드리블 속도 배율. 로그 스케일: 0MB/s=0.5, 10MB/s≈1.0, 100MB/s≈1.5, 1GB/s 이상=2.0.</summary>
+    /// <summary>처리량 → 드리블 속도 배율. 로그 스케일: 0MB/s=0.9, 10MB/s≈1.3, 100MB/s≈1.7, 1GB/s 이상=1.8. 기본 장면이 이미 빠르므로 느린 쪽도 0.9 이상.</summary>
     public static double SpeedFor(double bytesPerSecond)
     {
         if (double.IsNaN(bytesPerSecond) || bytesPerSecond <= 0)
@@ -288,7 +288,7 @@ public static class MascotViewModel
         }
 
         var mbps = bytesPerSecond / (1024.0 * 1024.0);
-        return Math.Clamp(MinSpeed + (0.48 * Math.Log10(1 + mbps)), MinSpeed, MaxSpeed);
+        return Math.Clamp(MinSpeed + (0.4 * Math.Log10(1 + mbps)), MinSpeed, MaxSpeed);
     }
 }
 
