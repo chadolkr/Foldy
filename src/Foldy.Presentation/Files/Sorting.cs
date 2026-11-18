@@ -30,7 +30,7 @@ public static class FileSorter
         var c = spec.Key switch
         {
             SortKey.Modified => a.Entry.Modified.CompareTo(b.Entry.Modified),
-            SortKey.Size => a.Entry.Size.CompareTo(b.Entry.Size),
+            SortKey.Size => a.SortSize.CompareTo(b.SortSize),
             SortKey.Type => NaturalComparer.Instance.Compare(a.TypeText, b.TypeText),
             _ => 0,
         };

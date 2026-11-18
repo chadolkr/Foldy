@@ -174,6 +174,13 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         ScrollIntoView(index);
     }
 
+    /// <summary>행 텍스트가 바뀌었을 때 (폴더 크기가 늦게 채워지는 등) 캐시를 비우고 다시 그린다.</summary>
+    public void InvalidateText()
+    {
+        _textCache.Clear();
+        InvalidateVisual();
+    }
+
     /// <summary>아이콘이 늦게 도착했을 때 다시 그린다.</summary>
     public void Redraw() => InvalidateVisual();
 
