@@ -7,7 +7,7 @@
     색은 모두 DynamicResource 토큰으로 참조해 시스템 다크/라이트 전환이 즉시 반영된다.
     아이콘 글꼴은 Windows에 설치된 Segoe Fluent Icons(없으면 Segoe MDL2 Assets)를 이름으로만 참조한다.
   -->
-  <FontFamily x:Key="Font.UI">Segoe UI Variable Text, Segoe UI, Malgun Gothic</FontFamily>
+  <FontFamily x:Key="Font.UI">pack://application:,,,/Foldy.UI;component/Fonts/#Pretendard, Segoe UI Variable Text, Segoe UI, Malgun Gothic</FontFamily>
   <FontFamily x:Key="Font.Mono">Cascadia Mono, Consolas, D2Coding, Malgun Gothic</FontFamily>
   <FontFamily x:Key="Font.Icon">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
   <sys:Double x:Key="Font.Size">12.5</sys:Double>
