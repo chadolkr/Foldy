@@ -21,10 +21,14 @@ public static class ThemeManager
     private static readonly Uri RetroUri = new("pack://application:,,,/Foldy.UI;component/Themes/Retro.xaml");
 
     private static Application? _app;
+    private static Color? _appliedAccent;
     private static readonly List<ResourceDictionary> Applied = [];
     private static readonly List<WeakReference<Window>> Windows = [];
 
     public static FoldyTheme Mode { get; private set; } = FoldyTheme.System;
+
+    /// <summary>true면 Windows 강조색을 쓰고, false면 Foldy 오렌지 (설정의 Accent = "windows" / "foldy").</summary>
+    public static bool UseWindowsAccent { get; private set; }
 
     /// <summary>실제로 적용된 모양이 어두운지 (System이면 Windows 설정에 따름).</summary>
     public static bool IsDark { get; private set; }
@@ -51,6 +55,19 @@ public static class ThemeManager
         Apply();
     }
 
+    /// <summary>강조색 선택 ("windows" 또는 "foldy"). 바로 반영된다. 레트로 테마는 자체 색을 유지한다.</summary>
+    public static void SetAccent(string? accent)
+    {
+        var windows = string.Equals(accent, "windows", StringComparison.OrdinalIgnoreCase);
+        if (UseWindowsAccent == windows)
+        {
+            return;
+        }
+
+        UseWindowsAccent = windows;
+        Apply();
+    }
+
     /// <summary>창을 등록해 제목 표시줄 색을 테마에 맞춘다.</summary>
     public static void Attach(Window window)
     {
@@ -71,7 +88,8 @@ public static class ThemeManager
         {
             _app?.Dispatcher.BeginInvoke(() =>
             {
-                if (Mode == FoldyTheme.System && SystemTheme.AppsUseDarkTheme() != IsDark)
+                var accentChanged = UseWindowsAccent && AccentColor.ReadWindowsAccent() != _appliedAccent;
+                if ((Mode == FoldyTheme.System && SystemTheme.AppsUseDarkTheme() != IsDark) || accentChanged)
                 {
                     Apply();
                 }
@@ -102,6 +120,13 @@ public static class ThemeManager
         if (Mode == FoldyTheme.Retro)
         {
             dicts.Add(new ResourceDictionary { Source = RetroUri });
+        }
+
+        _appliedAccent = null;
+        if (UseWindowsAccent && Mode != FoldyTheme.Retro && AccentColor.ReadWindowsAccent() is { } accent)
+        {
+            _appliedAccent = accent;
+            dicts.Add(AccentColor.CreateOverrides(accent, dark));
         }
 
         var merged = _app.Resources.MergedDictionaries;
