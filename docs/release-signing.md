@@ -7,7 +7,7 @@
 | 자산 | 내용 |
 |---|---|
 | `Foldy-<v>-x64-portable.zip` | `Foldy.App` publish 결과 + `foldy_copy.dll` + `foldy-index.exe` |
-| `Foldy-<v>-x64.msi` | (TODO: WiX) |
+| `Foldy-<v>-x64.msi` | WiX MSI (docs/installer.md). 색인 서비스가 UAC 없이 자동 설치한다 (docs/auto-update.md) |
 | `update.json` | 버전, 채널(stable/beta), 자산별 이름·크기·SHA-256, 최소 지원 버전, 필수 여부 |
 | `update.json.sig` | `update.json` **바이트 그대로**에 대한 Ed25519 서명 (16진수 128자) |
 

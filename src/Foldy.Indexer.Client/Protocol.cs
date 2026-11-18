@@ -14,10 +14,19 @@ public enum MsgType : ushort
     Search = 0x0003,
     FolderSizes = 0x0004,
     CancelSearch = 0x0005,
+
+    // 자동 업데이트 (설계서 10.5). 이전 서비스는 이 타입을 모르고 Error 후 연결을 끊는다.
+    UpdateStatus = 0x00A1,
+    CheckNow = 0x00A2,
+    InstallWhenIdle = 0x00A3,
+    SkipVersion = 0x00A4,
+    SetChannel = 0x00A5,
+    AppStarted = 0x00A6,
     HelloReply = 0x8001,
     StatusReply = 0x8002,
     SearchBatch = 0x8003,
     FolderSizesReply = 0x8004,
+    UpdateStatusReply = 0x80A1,
     Error = 0x80FF,
 }
 
@@ -77,7 +86,70 @@ public sealed record FolderSizesReply(FolderSizesStatus Status, ulong TotalSize,
 
 public sealed record ErrorReply(uint Code, string Message);
 
-public sealed class ProtocolException(string message) : IOException(message);
+/// <summary>서비스 업데이트 상태 (UpdateStatusReply.State).</summary>
+public enum UpdateState : byte
+{
+    Idle = 0,
+    Checking = 1,
+    Downloading = 2,
+    ReadyToInstall = 3,
+    Installing = 4,
+    Failed = 5,
+}
+
+public enum UpdateChannel : byte
+{
+    Stable = 0,
+    Beta = 1,
+}
+
+/// <summary>업데이트 요청의 Error 코드 (<see cref="ProtocolException.ErrorCode"/>).</summary>
+public static class UpdateErrorCodes
+{
+    /// <summary>이 서비스 실행에서는 자동 업데이트가 꺼져 있음 → 기존 방식으로 폴백.</summary>
+    public const uint Disabled = 0xA0;
+
+    /// <summary>설치할 준비된 업데이트가 없음.</summary>
+    public const uint NotReady = 0xA1;
+
+    public const uint BadArgument = 0xA2;
+}
+
+/// <param name="LastCheckUnix">마지막으로 확인에 성공한 시각 (Unix 초, 0 = 없음).</param>
+/// <param name="InstallPending">설치 요청을 받아 Foldy 종료를 기다리는 중.</param>
+public sealed record UpdateStatusReply(
+    UpdateState State,
+    string CurrentVersion,
+    string AvailableVersion,
+    UpdateChannel Channel,
+    ushort ProgressPermille,
+    ulong Downloaded,
+    ulong Total,
+    ulong LastCheckUnix,
+    string LastError,
+    bool Mandatory,
+    bool InstallPending,
+    string Notes)
+{
+    public DateTimeOffset? LastCheck => LastCheckUnix == 0 ? null : DateTimeOffset.FromUnixTimeSeconds((long)LastCheckUnix);
+}
+
+public sealed class ProtocolException : IOException
+{
+    public ProtocolException(string message)
+        : base(message)
+    {
+    }
+
+    public ProtocolException(string message, uint errorCode)
+        : base(message)
+    {
+        ErrorCode = errorCode;
+    }
+
+    /// <summary>서비스가 Error로 답했을 때의 코드 (프레임 자체가 깨졌으면 null).</summary>
+    public uint? ErrorCode { get; }
+}
 
 public static class Protocol
 {
@@ -150,7 +222,62 @@ public static class Protocol
         return Frame(MsgType.FolderSizes, w.ToArray());
     }
 
+    // ── 자동 업데이트 요청 (본문에 경로가 없다: 설치 파일은 서비스가 정한다) ──
+
+    public static byte[] EncodeUpdateStatus() => Frame(MsgType.UpdateStatus, []);
+
+    public static byte[] EncodeCheckNow() => Frame(MsgType.CheckNow, []);
+
+    public static byte[] EncodeInstallWhenIdle(bool relaunch, uint sessionId)
+    {
+        var w = new PostcardWriter();
+        w.WriteBool(relaunch);
+        w.WriteVarUInt(sessionId);
+        return Frame(MsgType.InstallWhenIdle, w.ToArray());
+    }
+
+    public static byte[] EncodeSkipVersion(string version)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        var w = new PostcardWriter();
+        w.WriteString(version);
+        return Frame(MsgType.SkipVersion, w.ToArray());
+    }
+
+    public static byte[] EncodeSetChannel(UpdateChannel channel)
+    {
+        var w = new PostcardWriter();
+        w.WriteU8((byte)channel);
+        return Frame(MsgType.SetChannel, w.ToArray());
+    }
+
+    public static byte[] EncodeAppStarted(string version)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        var w = new PostcardWriter();
+        w.WriteString(version);
+        return Frame(MsgType.AppStarted, w.ToArray());
+    }
+
     // ── 응답 디코더 ──
+
+    public static UpdateStatusReply DecodeUpdateStatusReply(ReadOnlySpan<byte> body)
+    {
+        var r = new PostcardReader(body);
+        return new UpdateStatusReply(
+            (UpdateState)r.ReadByte(),
+            r.ReadString(),
+            r.ReadString(),
+            (UpdateChannel)r.ReadByte(),
+            (ushort)r.ReadVarUInt(),
+            r.ReadVarUInt(),
+            r.ReadVarUInt(),
+            r.ReadVarUInt(),
+            r.ReadString(),
+            r.ReadBool(),
+            r.ReadBool(),
+            r.ReadString());
+    }
 
     public static HelloReply DecodeHelloReply(ReadOnlySpan<byte> body)
     {
@@ -293,6 +420,11 @@ internal sealed class PostcardWriter
 
         WriteByte((byte)v);
     }
+
+    public void WriteBool(bool v) => WriteByte(v ? (byte)1 : (byte)0);
+
+    /// <summary>postcard의 u8은 varint가 아니라 바이트 하나.</summary>
+    public void WriteU8(byte v) => WriteByte(v);
 
     private void WriteByte(byte b)
     {
