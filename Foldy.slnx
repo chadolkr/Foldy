@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Foldy.App/Foldy.App.csproj" />
+    <Project Path="src/Foldy.Copy.Native/Foldy.Copy.Native.csproj" />
+    <Project Path="src/Foldy.Core/Foldy.Core.csproj" />
+    <Project Path="src/Foldy.Indexer.Client/Foldy.Indexer.Client.csproj" />
+    <Project Path="src/Foldy.Platform/Foldy.Platform.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Foldy.Providers.Local/Foldy.Providers.Local.csproj" />
+    <Project Path="src/Foldy.UI/Foldy.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Foldy.Benchmarks/Foldy.Benchmarks.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="tests/Foldy.Core.Tests/Foldy.Core.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="tests/Foldy.Interop.Tests/Foldy.Interop.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+</Solution>

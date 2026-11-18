@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- foldy_copy.dll (Rust) P/Invoke 래퍼. NativeMethods.g.cs는 csbindgen이 생성한다 (편집 금지). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Foldy.Copy.Native</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Foldy.Interop.Tests" />
+  </ItemGroup>
+  <!-- Rust 빌드 산출물이 있으면 출력 폴더로 복사 (없으면 C# 폴백 경로로 동작) -->
+  <ItemGroup Condition="Exists('$(FoldyEngineOut)foldy_copy.dll')">
+    <None Include="$(FoldyEngineOut)foldy_copy.dll" Link="foldy_copy.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 모델과 추상화. 어떤 Foldy 프로젝트도 참조하지 않는다 (설계서 4장). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Foldy.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Foldy.Core.Tests" />
+  </ItemGroup>
+</Project>

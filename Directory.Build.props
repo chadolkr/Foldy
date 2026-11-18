@@ -1,0 +1,27 @@
+<Project>
+  <!-- 개발자·저장소 메타데이터는 여기 한 곳에서만 관리합니다 (설계서 10.4). -->
+  <PropertyGroup>
+    <Product>Foldy</Product>
+    <Authors>David CHA</Authors>
+    <Company>David CHA</Company>
+    <Copyright>© 2026 David CHA</Copyright>
+    <RepositoryUrl>https://github.com/chadolkr/Foldy</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/chadolkr/Foldy</PackageProjectUrl>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Version>0.0.1</Version>
+
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <SelfContained>false</SelfContained>
+    <!-- 리포지토리 루트 (Rust 산출물 경로 계산용) -->
+    <FoldyRoot>$(MSBuildThisFileDirectory)</FoldyRoot>
+    <FoldyEngineOut>$(MSBuildThisFileDirectory)engine\target\release\</FoldyEngineOut>
+  </PropertyGroup>
+</Project>

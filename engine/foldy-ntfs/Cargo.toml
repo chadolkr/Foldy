@@ -1,0 +1,11 @@
+[package]
+name = "foldy-ntfs"
+description = "NTFS $MFT 파서와 USN 저널 리더 (M2에서 구현)"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true

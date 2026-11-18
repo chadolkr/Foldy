@@ -1,0 +1,31 @@
+[workspace]
+resolver = "3"
+members = ["foldy-proto", "foldy-ntfs", "foldy-index", "foldy-copy"]
+
+# 개발자·저장소 메타데이터는 여기 한 곳에서만 관리합니다 (설계서 10.4).
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+authors = ["David CHA"]
+repository = "https://github.com/chadolkr/Foldy"
+license = "GPL-3.0-or-later"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+postcard = { version = "1", default-features = false, features = ["use-std"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "sync", "time", "signal"] }
+foldy-proto = { path = "foldy-proto" }
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+# FFI 경계에서 catch_unwind로 panic을 막기 위해 unwind 유지 (설계서 5.8)
+panic = "unwind"

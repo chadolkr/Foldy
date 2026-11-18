@@ -1,0 +1,16 @@
+[package]
+name = "foldy-index"
+description = "Foldy Indexer by David CHA - 디스크 색인 서비스 (M0: 파이프 연결 시험용 콘솔 모드)"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+foldy-proto.workspace = true
+tokio.workspace = true
+windows-sys = { workspace = true }
+
+[lints]
+workspace = true

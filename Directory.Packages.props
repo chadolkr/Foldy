@@ -1,0 +1,19 @@
+<Project>
+  <!-- 패키지 버전은 이 파일에서만 올립니다 (중앙 패키지 관리). -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.15" />
+    <PackageVersion Include="Serilog" Version="4.4.0" />
+    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.371" />
+    <!-- 테스트 -->
+    <PackageVersion Include="xunit.v3" Version="4.0.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
+    <!-- FluentAssertions 8+는 상용 라이선스라 Apache-2.0 포크인 AwesomeAssertions 사용 (GPL 호환) -->
+    <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
+  </ItemGroup>
+</Project>

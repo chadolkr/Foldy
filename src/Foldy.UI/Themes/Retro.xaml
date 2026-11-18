@@ -1,0 +1,118 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+  <!--
+    레트로 테마 (선택 테마, 설계서 6.4). Modern.Controls.xaml 위에 겹쳐 적용되어 같은 키를 덮어쓴다.
+    회색 입체 베벨, 각진 모서리, 남색 선택. 특정 OS의 아이콘·폰트·사운드 파일은 복사해 쓰지 않는다.
+  -->
+  <SolidColorBrush x:Key="Brush.Window" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Surface" Color="#C0C0C0" />
+  <SolidColorBrush x:Key="Brush.SurfaceAlt" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Border" Color="#808080" />
+  <SolidColorBrush x:Key="Brush.BorderStrong" Color="#000000" />
+  <SolidColorBrush x:Key="Brush.Text" Color="#000000" />
+  <SolidColorBrush x:Key="Brush.TextSecondary" Color="#000000" />
+  <SolidColorBrush x:Key="Brush.TextDisabled" Color="#808080" />
+  <SolidColorBrush x:Key="Brush.Hover" Color="#E8E8E8" />
+  <SolidColorBrush x:Key="Brush.Pressed" Color="#A8A8A8" />
+  <SolidColorBrush x:Key="Brush.Selection" Color="#000080" />
+  <SolidColorBrush x:Key="Brush.SelectionText" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Accent" Color="#000080" />
+  <SolidColorBrush x:Key="Brush.AccentText" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Focus" Color="#000000" />
+  <SolidColorBrush x:Key="Brush.Progress" Color="#000080" />
+  <SolidColorBrush x:Key="Brush.ScrollThumb" Color="#C0C0C0" />
+  <SolidColorBrush x:Key="Brush.ScrollThumbHover" Color="#A0A0A0" />
+  <SolidColorBrush x:Key="Brush.Error" Color="#C00000" />
+  <SolidColorBrush x:Key="Brush.Done" Color="#008000" />
+  <SolidColorBrush x:Key="Brush.Highlight" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Shadow" Color="#808080" />
+  <SolidColorBrush x:Key="Brush.DarkShadow" Color="#000000" />
+
+  <FontFamily x:Key="Font.UI">Tahoma, Malgun Gothic</FontFamily>
+  <sys:Double x:Key="Font.Size">12</sys:Double>
+  <sys:Double x:Key="List.RowHeight">20</sys:Double>
+  <CornerRadius x:Key="Radius">0</CornerRadius>
+
+  <Style x:Key="Foldy.Window" TargetType="Window">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.UI}" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    <Setter Property="UseLayoutRounding" Value="True" />
+  </Style>
+
+  <!-- 볼록 베벨 버튼 -->
+  <ControlTemplate x:Key="Retro.RaisedButton" TargetType="Button">
+    <Border x:Name="Outer" BorderBrush="{DynamicResource Brush.DarkShadow}" BorderThickness="0,0,1,1" SnapsToDevicePixels="True">
+      <Border x:Name="Hi" BorderBrush="{DynamicResource Brush.Highlight}" BorderThickness="1,1,0,0">
+        <Border x:Name="Sh" BorderBrush="{DynamicResource Brush.Shadow}" BorderThickness="0,0,1,1"
+                Background="{DynamicResource Brush.Surface}" Padding="{TemplateBinding Padding}">
+          <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+        </Border>
+      </Border>
+    </Border>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter TargetName="Outer" Property="BorderBrush" Value="{DynamicResource Brush.Highlight}" />
+        <Setter TargetName="Hi" Property="BorderBrush" Value="{DynamicResource Brush.DarkShadow}" />
+        <Setter TargetName="Content" Property="RenderTransform">
+          <Setter.Value>
+            <TranslateTransform X="1" Y="1" />
+          </Setter.Value>
+        </Setter>
+      </Trigger>
+      <Trigger Property="IsKeyboardFocused" Value="True">
+        <Setter TargetName="Outer" Property="BorderThickness" Value="1,1,2,2" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextDisabled}" />
+      </Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+
+  <Style TargetType="Button">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.UI}" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size}" />
+    <Setter Property="Padding" Value="12,3" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template" Value="{StaticResource Retro.RaisedButton}" />
+  </Style>
+
+  <Style x:Key="Foldy.ToolButton" TargetType="Button">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.Icon}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Margin" Value="1,0" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template" Value="{StaticResource Retro.RaisedButton}" />
+  </Style>
+
+  <!-- 오목 입력칸 -->
+  <Style x:Key="Foldy.InputBorder" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Shadow}" />
+    <Setter Property="BorderThickness" Value="1,1,0,0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Height" Value="26" />
+  </Style>
+
+  <Style x:Key="Foldy.ListBorder" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Shadow}" />
+    <Setter Property="BorderThickness" Value="2,2,1,1" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style x:Key="Foldy.StatusText" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="Margin" Value="6,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+</ResourceDictionary>

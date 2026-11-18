@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Win32/COM 호출은 이 프로젝트에만 둔다 (설계서 4장). M1에서 CsWin32로 셸 메뉴·IFileOperation·아이콘 추가. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Foldy.Platform</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+</Project>

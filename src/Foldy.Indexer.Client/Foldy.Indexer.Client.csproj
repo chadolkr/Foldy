@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 색인 서비스(foldy-index) Named Pipe 클라이언트. 메시지 정의의 원본은 engine/foldy-proto. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Foldy.Indexer.Client</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Foldy.Interop.Tests" />
+  </ItemGroup>
+</Project>

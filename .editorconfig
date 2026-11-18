@@ -1,0 +1,19 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{json,props,targets,csproj,xml,xaml,yml,yaml,toml}]
+indent_size = 2
+
+[*.cs]
+dotnet_diagnostic.CA1515.severity = none   # WPF/테스트에서 public 타입이 필요
+dotnet_diagnostic.CA1707.severity = none   # 테스트 메서드 이름의 밑줄
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA2007.severity = none   # ConfigureAwait (UI 앱)
+dotnet_diagnostic.CA1711.severity = none   # 설계서의 이름(DriveWorkQueue) 유지

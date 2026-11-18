@@ -1,0 +1,15 @@
+[package]
+name = "foldy-proto"
+description = "Foldy 색인 서비스 IPC 메시지 정의와 프레임 형식"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+postcard.workspace = true
+
+[lints]
+workspace = true

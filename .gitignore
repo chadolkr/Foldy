@@ -1,0 +1,15 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+artifacts/
+# Rust
+engine/target/
+# IDE
+.idea/
+*.swp
+# 로컬 벤치 데이터
+bench-data/

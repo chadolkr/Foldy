@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- 모던 라이트 토큰. 키는 Modern.Dark.xaml, Retro.xaml과 같아야 한다. -->
+  <SolidColorBrush x:Key="Brush.Window" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Surface" Color="#F6F6F7" />
+  <SolidColorBrush x:Key="Brush.SurfaceAlt" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Border" Color="#E3E3E6" />
+  <SolidColorBrush x:Key="Brush.BorderStrong" Color="#CFCFD4" />
+  <SolidColorBrush x:Key="Brush.Text" Color="#1C1C1F" />
+  <SolidColorBrush x:Key="Brush.TextSecondary" Color="#6B6B73" />
+  <SolidColorBrush x:Key="Brush.TextDisabled" Color="#A8A8AF" />
+  <SolidColorBrush x:Key="Brush.Hover" Color="#F0F0F2" />
+  <SolidColorBrush x:Key="Brush.Pressed" Color="#E6E6E9" />
+  <SolidColorBrush x:Key="Brush.Selection" Color="#FFEBD3" />
+  <SolidColorBrush x:Key="Brush.SelectionText" Color="#1C1C1F" />
+  <SolidColorBrush x:Key="Brush.Accent" Color="#F28C1B" />
+  <SolidColorBrush x:Key="Brush.AccentText" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Focus" Color="#F28C1B" />
+  <SolidColorBrush x:Key="Brush.Progress" Color="#F28C1B" />
+  <SolidColorBrush x:Key="Brush.ScrollThumb" Color="#C4C4CA" />
+  <SolidColorBrush x:Key="Brush.ScrollThumbHover" Color="#9C9CA4" />
+  <SolidColorBrush x:Key="Brush.Error" Color="#C42B1C" />
+  <SolidColorBrush x:Key="Brush.Done" Color="#0F7B0F" />
+</ResourceDictionary>

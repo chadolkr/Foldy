@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- C#↔Rust 경계 시험: foldy_copy.dll (FFI), foldy-index.exe (Named Pipe), 프로토콜 골든 파일 -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Foldy.Copy.Native\Foldy.Copy.Native.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.Indexer.Client\Foldy.Indexer.Client.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\engine\foldy-proto\tests\golden\*.bin" LinkBase="golden" CopyToOutputDirectory="PreserveNewest" />
+    <None Condition="Exists('$(FoldyEngineOut)foldy-index.exe')" Include="$(FoldyEngineOut)foldy-index.exe" Link="foldy-index.exe" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # C#과 Rust를 함께 빌드·테스트한다 (설계서 10.2). 로컬과 같은 build.ps1을 호출.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            engine/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('engine/Cargo.lock') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
+
+      - name: Build and test
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Check generated bindings are committed
+        shell: pwsh
+        run: |
+          git diff --exit-code -- src/Foldy.Copy.Native/NativeMethods.g.cs engine/foldy-proto/tests/golden

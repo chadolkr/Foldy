@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- WPF exe. 조립 루트. M0에서는 기술 검증 화면(10만 개 목록 벤치, 엔진 연결 상태)을 띄운다. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Foldy</AssemblyName>
+    <RootNamespace>Foldy.App</RootNamespace>
+    <ApplicationIcon>..\..\assets\icons\foldy.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <TieredPGO>true</TieredPGO>
+    <!-- CA1001: Window/Application 필드는 Closed/OnExit에서 정리한다 -->
+    <NoWarn>$(NoWarn);CA1001</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Foldy.Core\Foldy.Core.csproj" />
+    <ProjectReference Include="..\Foldy.UI\Foldy.UI.csproj" />
+    <ProjectReference Include="..\Foldy.Providers.Local\Foldy.Providers.Local.csproj" />
+    <ProjectReference Include="..\Foldy.Copy.Native\Foldy.Copy.Native.csproj" />
+    <ProjectReference Include="..\Foldy.Indexer.Client\Foldy.Indexer.Client.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+</Project>
