@@ -45,23 +45,15 @@ jobs:
         shell: pwsh
         run: ./build.ps1
 
-      - name: Portable zip
+      - name: Setup zip (self-contained x64, 한 번에 설치)
         shell: pwsh
         run: |
           $v = '${{ steps.ver.outputs.version }}'
-          $stage = 'artifacts/stage/Foldy'
-          $out = 'artifacts/release'
-          New-Item -ItemType Directory -Force $stage, $out | Out-Null
-          dotnet publish src/Foldy.App/Foldy.App.csproj -c Release -r win-x64 --self-contained false -o $stage -p:Version=$v
-          if ($LASTEXITCODE -ne 0) { throw 'publish 실패' }
-          Copy-Item engine/target/release/foldy_copy.dll $stage -Force
-          Copy-Item engine/target/release/foldy-index.exe $stage -Force
-          Copy-Item LICENSE $stage -Force
-          Compress-Archive -Path "$stage/*" -DestinationPath "$out/Foldy-$v-x64-portable.zip" -Force
+          ./build/setup/make-setup.ps1 -SkipRust -Version $v -ZipDir artifacts/release
+          if ($LASTEXITCODE -ne 0) { throw 'setup 실패' }
 
       # TODO(설계서 10.3): WiX MSI (Foldy-<v>-x64.msi, 서비스 등록·Major Upgrade)를 여기서 만들고
-      #   SignPath(10.6) 코드 서명 후 아래 manifest 목록에 추가한다. 그 전까지 포터블 zip만 배포.
-
+      #   SignPath(10.6) 코드 서명 후 아래 manifest 목록에 추가한다. 그 전까지 setup zip을 배포.
       - name: update.json + Ed25519 signature
         shell: pwsh
         env:
