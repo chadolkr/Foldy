@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "johnny-decimal",
+  "name": "Johnny.Decimal",
+  "badge": "J.D",
+  "description": "영역(10-19) → 범주(11) → 항목(11.01) 번호로 위치를 정하는 정리법",
+  "purposes": ["personal", "work"],
+  "variables": [],
+  "tree": [
+    { "name": "00-09 시스템", "nameEn": "00-09 System", "children": [
+      { "name": "00 색인", "nameEn": "00 Index", "children": [
+        { "name": "00.00 번호 목록.md", "file": "# 번호 목록\n\n번호를 새로 만들 때마다 여기에 한 줄씩 적습니다.\n\n| 번호 | 이름 | 메모 |\n|---|---|---|\n| 11.01 | 예시 항목 | {{date:yyyy-MM-dd}} 만듦 |\n" }
+      ]}
+    ]},
+    { "name": "10-19 생활", "nameEn": "10-19 Life", "children": [
+      { "name": "11 집", "nameEn": "11 Home" },
+      { "name": "12 자동차", "nameEn": "12 Car" },
+      { "name": "13 건강", "nameEn": "13 Health" }
+    ]},
+    { "name": "20-29 돈", "nameEn": "20-29 Money", "children": [
+      { "name": "21 은행", "nameEn": "21 Banking" },
+      { "name": "22 세금", "nameEn": "22 Tax" },
+      { "name": "23 보험", "nameEn": "23 Insurance" }
+    ]},
+    { "name": "30-39 일", "nameEn": "30-39 Work", "children": [
+      { "name": "31 진행 중", "nameEn": "31 Active" },
+      { "name": "32 참고", "nameEn": "32 Reference" }
+    ]}
+  ],
+  "naming": [
+    {
+      "pattern": "번호 내용.확장자 (번호가 곧 위치)",
+      "examples": ["11.01 자동차 보험증권.pdf", "22.04 2026 연말정산.xlsx"],
+      "regex": "^\\d{2}\\.\\d{2} .+"
+    }
+  ],
+  "firstSteps": [
+    "00.00 번호 목록.md를 열어 지금 가진 자료의 영역 3~5개를 정하기",
+    "영역마다 범주를 두세 개만 먼저 만들기 (나중에 늘려도 됨)",
+    "새 자료는 번호를 하나 받고 번호 목록에 한 줄 적은 뒤 넣기"
+  ],
+  "organize": [
+    { "target": "20-29 돈\\22 세금", "keywords": ["세금", "연말정산", "원천징수", "tax"], "reason": "이름에 세금·연말정산" },
+    { "target": "20-29 돈\\23 보험", "keywords": ["보험", "insurance"], "reason": "이름에 보험" },
+    { "target": "20-29 돈\\21 은행", "keywords": ["은행", "통장", "카드", "입출금", "bank"], "reason": "이름에 은행·카드" },
+    { "target": "10-19 생활\\12 자동차", "keywords": ["자동차", "차량", "정비"], "reason": "이름에 자동차" },
+    { "target": "10-19 생활\\13 건강", "keywords": ["건강", "병원", "검진", "처방"], "reason": "이름에 건강·병원" }
+  ]
+}

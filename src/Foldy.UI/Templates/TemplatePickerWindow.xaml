@@ -1,0 +1,93 @@
+<Window x:Class="Foldy.UI.Templates.TemplatePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:Foldy.UI.Templates"
+        Title="템플릿으로 만들기" Width="1020" Height="660" MinWidth="760" MinHeight="480"
+        ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
+        Style="{DynamicResource Foldy.Window}"
+        Background="{DynamicResource Brush.Surface}" Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}"
+        t:DialogCloser.Result="{Binding DialogResult}">
+  <!-- DataContext = Foldy.Presentation.Templates.TemplateDialogViewModel -->
+  <Window.Resources>
+    <ResourceDictionary Source="pack://application:,,,/Foldy.UI;component/Templates/TemplateResources.xaml" />
+  </Window.Resources>
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="270" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- 왼쪽: 템플릿 목록 -->
+    <DockPanel Grid.Column="0" Margin="16,16,8,0">
+      <TextBlock DockPanel.Dock="Top" Text="스타일" Style="{StaticResource Tpl.Section}" Margin="2,0,0,8" />
+      <ListBox Style="{StaticResource Tpl.ListBox}" ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <Border Style="{StaticResource Tpl.Badge}" Margin="0,0,8,0">
+                  <TextBlock Text="{Binding Badge}" FontSize="10.5" FontWeight="SemiBold" />
+                </Border>
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="{Binding Description}" Style="{StaticResource Tpl.Secondary}" FontSize="11.5" Margin="0,4,0,0" />
+              <TextBlock Text="{Binding Origin}" Style="{StaticResource Tpl.Secondary}" FontSize="10.5" Margin="0,2,0,0" Opacity="0.8" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+
+    <!-- 오른쪽: 입력 + [미리보기] [사용법] -->
+    <Border Grid.Column="1" Style="{StaticResource Tpl.Card}" Margin="8,16,16,0" Padding="0">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="260" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="16,14,12,14">
+          <StackPanel>
+            <TextBlock Text="{Binding SelectedTemplate.Name}" Style="{StaticResource Tpl.Title}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding SelectedTemplate.GuideSummary}" Style="{StaticResource Tpl.Secondary}" />
+            <TextBlock Text="입력" Style="{StaticResource Tpl.Section}" />
+            <ContentControl Content="{Binding Customizer}" ContentTemplate="{StaticResource Tpl.CustomizerInputs}" Focusable="False" />
+            <TextBlock Text="만들 위치" Style="{StaticResource Tpl.Section}" />
+            <TextBox Style="{StaticResource Tpl.Input}" Text="{Binding Customizer.TargetFolder, UpdateSourceTrigger=PropertyChanged, Delay=300}" />
+            <CheckBox Margin="0,10,0,0" IsChecked="{Binding WriteDescription}">
+              <TextBlock Text="폴더 설명에 사용법 넣기" />
+            </CheckBox>
+          </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Column="1" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0" Padding="14,8,14,14">
+          <TabControl Style="{StaticResource Tpl.Tabs}" SelectedIndex="{Binding SelectedTabIndex}">
+            <TabItem Header="미리보기">
+              <ContentControl Content="{Binding Customizer}" ContentTemplate="{StaticResource Tpl.PreviewTree}" Focusable="False" />
+            </TabItem>
+            <TabItem Header="사용법">
+              <FlowDocumentScrollViewer t:SimpleMarkdown.Text="{Binding SelectedTemplate.Guide}" VerticalScrollBarVisibility="Auto"
+                                        Background="Transparent" IsToolBarVisible="False" />
+            </TabItem>
+          </TabControl>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- 아래: 문제 표시 + 버튼 -->
+    <DockPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="16,12,16,16" LastChildFill="True">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="만들기" Style="{StaticResource Tpl.Primary}" IsDefault="True" Command="{Binding CreateCommand}" MinWidth="96" Margin="0,0,8,0" />
+        <Button Content="취소" IsCancel="True" Command="{Binding CancelCommand}" MinWidth="80" />
+      </StackPanel>
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock Text="{Binding Customizer.ProblemText}" Style="{StaticResource Tpl.Error}" />
+        <TextBlock Text="{Binding Error}" Style="{StaticResource Tpl.Error}" />
+        <TextBlock Text="같은 이름이 있으면 그대로 두고 없는 것만 만듭니다. 덮어쓰지 않습니다." Style="{StaticResource Tpl.Secondary}" FontSize="11.5" />
+      </StackPanel>
+    </DockPanel>
+  </Grid>
+</Window>

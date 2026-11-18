@@ -6,5 +6,10 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Foldy.Core.Tests" />
+    <InternalsVisibleTo Include="Foldy.Templates.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 내장 폴더 템플릿·사용법·위저드 규칙 (설계서 5.10). TemplateLibrary가 "Foldy.Templates.<파일명>"으로 읽는다. -->
+    <EmbeddedResource Include="..\..\assets\templates\*.json;..\..\assets\templates\*.md" LogicalName="Foldy.Templates.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
