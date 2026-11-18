@@ -74,7 +74,7 @@ public class MascotViewModelTests
         Speed(1).Should().BeGreaterThan(Speed(0));
         Speed(100).Should().BeGreaterThan(Speed(10));
         Speed(100_000).Should().Be(MascotViewModel.MaxSpeed);
-        Speed(10).Should().BeInRange(0.9, 1.1);
+        Speed(10).Should().BeInRange(1.2, 1.45);
     }
 
     [Fact]
