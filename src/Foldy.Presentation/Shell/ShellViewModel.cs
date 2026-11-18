@@ -114,7 +114,7 @@ public sealed partial class ShellViewModel : ObservableObject
         foreach (var t in st.Tabs)
         {
             TabBase tab;
-            if (t.Kind is TabKind.Search or TabKind.Git)
+            if (t.Kind is TabKind.Search or TabKind.Git or TabKind.Analysis)
             {
                 continue;
             }
@@ -155,8 +155,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private static PaneState CapturePane(PaneViewModel p) => new()
     {
-        ActiveIndex = p.ActiveTab is null || p.ActiveTab.Kind is TabKind.Search or TabKind.Git ? 0 : Math.Max(0, p.Tabs.Where(t => t.Kind is not (TabKind.Search or TabKind.Git)).ToList().IndexOf(p.ActiveTab)),
-        Tabs = [.. p.Tabs.Where(t => t.Kind is not (TabKind.Search or TabKind.Git)).Select(t => t switch
+        ActiveIndex = p.ActiveTab is null || p.ActiveTab.Kind is TabKind.Search or TabKind.Git or TabKind.Analysis ? 0 : Math.Max(0, p.Tabs.Where(t => t.Kind is not (TabKind.Search or TabKind.Git or TabKind.Analysis)).ToList().IndexOf(p.ActiveTab)),
+        Tabs = [.. p.Tabs.Where(t => t.Kind is not (TabKind.Search or TabKind.Git or TabKind.Analysis)).Select(t => t switch
         {
             FolderTabViewModel f => new TabState
             {
@@ -311,6 +311,21 @@ public sealed partial class ShellViewModel : ObservableObject
             : await _services.FileOps.CopyAsync(src, dest, job, job.Token);
         FinishJob(job, r);
         await RefreshFoldersAsync([dest, .. src.Select(s => PathUtil.Parent(s) ?? s)]);
+    }
+
+    /// <summary>경로들을 휴지통으로 (디스크 분석의 정리 후보). 성공 여부를 돌려준다.</summary>
+    public async Task<bool> RecycleAsync(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0)
+        {
+            return false;
+        }
+
+        var job = StartJob($"{JobViewModel.Describe(paths)} 휴지통으로", Mascot.JobKind.Delete);
+        var r = await _services.FileOps.DeleteAsync(paths, recycle: true, job, job.Token);
+        FinishJob(job, r);
+        await RefreshFoldersAsync(paths.Select(s => PathUtil.Parent(s) ?? s));
+        return r.Succeeded;
     }
 
     public async Task DeleteSelectionAsync(bool permanent)

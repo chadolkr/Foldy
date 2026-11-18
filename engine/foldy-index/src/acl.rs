@@ -51,7 +51,7 @@ impl Drop for PipeSecurity {
 }
 
 /// 현재 프로세스 토큰의 사용자 SID 문자열 (S-1-5-...).
-fn current_user_sid() -> Option<String> {
+pub(crate) fn current_user_sid() -> Option<String> {
     let mut token: HANDLE = std::ptr::null_mut();
     // SAFETY: 현재 프로세스 의사 핸들로 토큰을 연다. 성공하면 아래에서 CloseHandle.
     if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 {

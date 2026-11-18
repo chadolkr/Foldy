@@ -7,4 +7,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Foldy.Interop.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- IndexerAnalysisService: 분석 DB 파이프 메시지를 Foldy.Analysis.IAnalysisSnapshotService로 -->
+    <ProjectReference Include="..\Foldy.Analysis\Foldy.Analysis.csproj" />
+  </ItemGroup>
 </Project>
