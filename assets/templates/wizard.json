@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "purposeQuestion": "이 폴더를 어디에 쓰실 건가요?",
+  "purposes": [
+    {
+      "id": "personal",
+      "label": "개인 문서 전체 정리",
+      "description": "개인 문서 전체를 몇 개의 큰 칸으로 나누기 좋습니다.",
+      "weights": { "para": 3, "johnny-decimal": 2 }
+    },
+    {
+      "id": "work",
+      "label": "업무 프로젝트·고객",
+      "description": "업무를 프로젝트 단위로 나누기 좋습니다.",
+      "weights": { "client-project": 3, "para": 2, "johnny-decimal": 1 }
+    },
+    {
+      "id": "dev",
+      "label": "개발",
+      "description": "개발 저장소의 기본 구조입니다.",
+      "weights": { "software-project": 5 }
+    },
+    {
+      "id": "media",
+      "label": "사진·영상",
+      "description": "날짜순으로 쌓이는 미디어에 맞습니다.",
+      "weights": { "photo-archive": 5 }
+    },
+    {
+      "id": "unsure",
+      "label": "잘 모르겠어요",
+      "description": "처음 정리한다면 칸이 적은 방식이 부담이 적습니다.",
+      "weights": { "para": 2, "johnny-decimal": 1 }
+    },
+    {
+      "id": "organize",
+      "label": "이미 파일이 있는 폴더 정리하기",
+      "description": "지금 폴더의 파일을 종류·날짜·스타일대로 옮깁니다 (실행 전 미리보기, 되돌리기 가능).",
+      "action": "organize"
+    }
+  ],
+  "questions": [
+    {
+      "id": "deadlines",
+      "text": "마감이 있는 일이 많나요?",
+      "hint": "보고서, 이사, 신청서처럼 끝나는 날이 있는 일",
+      "purposes": ["personal", "work", "unsure"],
+      "choices": [
+        { "id": "yes", "label": "네, 많아요", "weights": { "para": 3, "client-project": 1 }, "reason": "마감 있는 일은 Projects 칸으로 나누면 끝난 뒤 보관하기 쉽습니다." },
+        { "id": "some", "label": "가끔 있어요", "weights": { "para": 1 } },
+        { "id": "no", "label": "거의 없어요", "weights": { "johnny-decimal": 2 }, "reason": "끝이 없는 자료는 번호로 자리를 정해 두면 찾기 쉽습니다." }
+      ]
+    },
+    {
+      "id": "numbers",
+      "text": "자료를 번호로 찾는 게 편한가요?",
+      "hint": "\"22.04\"처럼 번호만 대면 위치가 정해지는 방식",
+      "purposes": ["personal", "work", "unsure"],
+      "choices": [
+        { "id": "yes", "label": "네, 번호가 좋아요", "weights": { "johnny-decimal": 4 }, "reason": "번호 체계를 좋아하면 Johnny.Decimal이 가장 빠릅니다." },
+        { "id": "no", "label": "이름으로 찾을래요", "weights": { "para": 2, "client-project": 1 }, "reason": "이름으로 찾는다면 칸이 적고 단순한 방식이 맞습니다." }
+      ]
+    },
+    {
+      "id": "clients",
+      "text": "고객이나 거래처별로 일이 나뉘나요?",
+      "purposes": ["work"],
+      "choices": [
+        { "id": "yes", "label": "네, 고객별로 나뉘어요", "weights": { "client-project": 4 }, "reason": "고객 폴더 아래 날짜_프로젝트로 두면 시작일순으로 정렬됩니다." },
+        { "id": "no", "label": "아니요, 내부 업무예요", "weights": { "para": 2 } }
+      ]
+    },
+    {
+      "id": "share",
+      "text": "다른 사람과 함께 쓰나요?",
+      "hint": "공유 드라이브, 팀 폴더",
+      "purposes": ["personal", "work", "media", "unsure"],
+      "choices": [
+        { "id": "yes", "label": "네, 공유해요", "weights": { "client-project": 1, "johnny-decimal": 1, "photo-archive": 1 }, "reason": "함께 쓰는 폴더는 규칙이 분명한 구조가 덜 헷갈립니다." },
+        { "id": "no", "label": "혼자 써요", "weights": { "para": 1 } }
+      ]
+    },
+    {
+      "id": "language",
+      "text": "개발 언어는?",
+      "purposes": ["dev"],
+      "choices": [
+        { "id": "dotnet", "label": ".NET (C#)", "weights": { "software-project": 1 }, "variables": { "language": "dotnet" } },
+        { "id": "rust", "label": "Rust", "weights": { "software-project": 1 }, "variables": { "language": "rust" } },
+        { "id": "node", "label": "Node.js / TypeScript", "weights": { "software-project": 1 }, "variables": { "language": "node" } },
+        { "id": "python", "label": "Python", "weights": { "software-project": 1 }, "variables": { "language": "python" } },
+        { "id": "other", "label": "기타", "weights": { "software-project": 1 }, "variables": { "language": "other" } }
+      ]
+    },
+    {
+      "id": "media-kind",
+      "text": "주로 무엇을 보관하나요?",
+      "purposes": ["media"],
+      "choices": [
+        { "id": "camera", "label": "카메라 원본(RAW)까지", "weights": { "photo-archive": 2 }, "reason": "원본을 RAW에 따로 두면 보정본과 섞이지 않습니다." },
+        { "id": "phone", "label": "휴대폰 사진·영상", "weights": { "photo-archive": 1 }, "reason": "날짜_행사명 폴더로 두면 이름순이 곧 시간순입니다." }
+      ]
+    },
+    {
+      "id": "volume",
+      "text": "정리할 자료가 많은 편인가요?",
+      "purposes": ["unsure"],
+      "choices": [
+        { "id": "lots", "label": "아주 많아요 (수천 개)", "weights": { "johnny-decimal": 2 }, "reason": "자료가 많으면 번호로 자리를 고정하는 편이 길을 잃지 않습니다." },
+        { "id": "few", "label": "적당해요", "weights": { "para": 2 }, "reason": "자료가 적당하면 네 칸만으로 충분합니다." }
+      ]
+    }
+  ]
+}
