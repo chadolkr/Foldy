@@ -14,8 +14,11 @@
 //!   --no-index  볼륨을 색인하지 않음 (파이프만 시험)
 //!   --volumes   색인할 볼륨 (기본: 모든 로컬 고정 NTFS 볼륨)
 //!   --scan-dir  일반 폴더 열거로 색인 (관리자 권한 없이 검색 시험·폴백용, 여러 번 가능)
+//!   --analysis-dir  분석 DB 폴더 (기본 %ProgramData%\Foldy\Analysis, 시험용. 지정하면 ACL을 건드리지 않는다)
 
 mod acl;
+mod analysis;
+mod analysis_job;
 mod bench;
 mod query;
 mod server;
@@ -34,6 +37,7 @@ pub(crate) struct Args {
     scan_dirs: Vec<String>,
     bench: Option<String>,
     service: bool,
+    analysis_dir: Option<String>,
 }
 
 fn parse_args() -> Args {
@@ -52,6 +56,7 @@ fn parse_args() -> Args {
             "--scan-dir" => a.scan_dirs.extend(it.next()),
             "--bench" => a.bench = Some(it.next().unwrap_or_else(|| "C:".into())),
             "--service" => a.service = true,
+            "--analysis-dir" => a.analysis_dir = it.next(),
             _ => eprintln!("unknown argument: {x}"),
         }
     }
@@ -60,7 +65,7 @@ fn parse_args() -> Args {
 
 /// 색인 대상 슬롯을 만들고 백그라운드 구축을 시작한다.
 pub(crate) fn start_indexer(args: &Args) -> Arc<Indexer> {
-    let mut ix = Indexer::default();
+    let mut ix = Indexer { analysis_dir: args.analysis_dir.as_ref().map(std::path::PathBuf::from), ..Default::default() };
     let mut ntfs = Vec::new();
     for d in &args.scan_dirs {
         ix.volumes.push(Arc::new(VolumeSlot::new(d.trim_end_matches(['\\', '/']))));

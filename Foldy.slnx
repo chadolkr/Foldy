@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Foldy.Analysis/Foldy.Analysis.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="src/Foldy.App/Foldy.App.csproj">
       <Platform Project="x64" />
     </Project>
@@ -35,6 +38,9 @@
     </Project>
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Foldy.Analysis.Tests/Foldy.Analysis.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="tests/Foldy.Benchmarks/Foldy.Benchmarks.csproj">
       <Platform Project="x64" />
     </Project>

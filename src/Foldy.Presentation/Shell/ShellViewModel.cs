@@ -114,7 +114,7 @@ public sealed partial class ShellViewModel : ObservableObject
         foreach (var t in st.Tabs)
         {
             TabBase tab;
-            if (t.Kind is TabKind.Search or TabKind.Git)
+            if (t.Kind is TabKind.Search or TabKind.Git or TabKind.Analysis)
             {
                 continue;
             }
@@ -155,8 +155,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private static PaneState CapturePane(PaneViewModel p) => new()
     {
-        ActiveIndex = p.ActiveTab is null || p.ActiveTab.Kind is TabKind.Search or TabKind.Git ? 0 : Math.Max(0, p.Tabs.Where(t => t.Kind is not (TabKind.Search or TabKind.Git)).ToList().IndexOf(p.ActiveTab)),
-        Tabs = [.. p.Tabs.Where(t => t.Kind is not (TabKind.Search or TabKind.Git)).Select(t => t switch
+        ActiveIndex = p.ActiveTab is null || p.ActiveTab.Kind is TabKind.Search or TabKind.Git or TabKind.Analysis ? 0 : Math.Max(0, p.Tabs.Where(t => t.Kind is not (TabKind.Search or TabKind.Git or TabKind.Analysis)).ToList().IndexOf(p.ActiveTab)),
+        Tabs = [.. p.Tabs.Where(t => t.Kind is not (TabKind.Search or TabKind.Git or TabKind.Analysis)).Select(t => t switch
         {
             FolderTabViewModel f => new TabState
             {

@@ -1,9 +1,36 @@
 //! 볼륨별 색인 상태와 백그라운드 구축·USN 갱신 스레드.
 
 use foldy_ntfs::VolumeIndex;
-use foldy_proto::{StatusReply, VolumeStatus, state};
+use foldy_proto::{AnalysisProgress, StatusReply, VolumeStatus, analysis_state, state};
 use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU8, AtomicU16, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
+
+/// 볼륨 하나의 분석 DB 작업 상태 (설계서 7.3). StatusReply.analysis로 보인다.
+#[derive(Default)]
+pub struct AnalysisJob {
+    pub state: AtomicU8,
+    pub progress: AtomicU16,
+    pub message: Mutex<String>,
+}
+
+impl AnalysisJob {
+    pub fn set(&self, state: u8, progress: u16, message: &str) {
+        self.progress.store(progress, Ordering::Relaxed);
+        if let Ok(mut g) = self.message.lock()
+            && *g != message
+        {
+            *g = message.to_string();
+        }
+        self.state.store(state, Ordering::Release);
+    }
+
+    /// 아직 만드는 중이 아니면 BUILDING으로 바꾸고 true.
+    pub fn try_start(&self) -> bool {
+        let cur = self.state.load(Ordering::Acquire);
+        cur != analysis_state::BUILDING
+            && self.state.compare_exchange(cur, analysis_state::BUILDING, Ordering::AcqRel, Ordering::Acquire).is_ok()
+    }
+}
 
 pub struct VolumeSlot {
     /// "C:" 또는 디렉터리 스캔 루트 경로
@@ -14,6 +41,7 @@ pub struct VolumeSlot {
     pub last_usn: AtomicI64,
     pub message: Mutex<String>,
     pub index: RwLock<Option<VolumeIndex>>,
+    pub analysis: AnalysisJob,
 }
 
 impl VolumeSlot {
@@ -26,6 +54,16 @@ impl VolumeSlot {
             last_usn: AtomicI64::new(0),
             message: Mutex::new(String::new()),
             index: RwLock::new(None),
+            analysis: AnalysisJob::default(),
+        }
+    }
+
+    pub fn analysis_status(&self) -> AnalysisProgress {
+        AnalysisProgress {
+            volume: self.name.clone(),
+            state: self.analysis.state.load(Ordering::Acquire),
+            progress_permille: self.analysis.progress.load(Ordering::Relaxed),
+            message: self.analysis.message.lock().map(|g| g.clone()).unwrap_or_default(),
         }
     }
 
@@ -63,9 +101,20 @@ impl VolumeSlot {
 pub struct Indexer {
     pub volumes: Vec<Arc<VolumeSlot>>,
     pub shutdown: AtomicBool,
+    /// 분석 DB 폴더. None이면 %ProgramData%\Foldy\Analysis (폴더 ACL도 설정한다).
+    pub analysis_dir: Option<std::path::PathBuf>,
 }
 
 impl Indexer {
+    /// 볼륨 이름("C:", "c:\")이나 --scan-dir 경로로 슬롯을 찾는다 (대소문자 무시).
+    pub fn find_volume(&self, volume: &str) -> Option<&Arc<VolumeSlot>> {
+        let want = foldy_ntfs::fold_name(volume.trim().trim_end_matches(['\\', '/']));
+        self.volumes.iter().find(|v| foldy_ntfs::fold_name(v.name.trim_end_matches(['\\', '/'])) == want)
+    }
+
+    pub fn analysis_dir(&self) -> std::path::PathBuf {
+        self.analysis_dir.clone().unwrap_or_else(crate::analysis::default_dir)
+    }
     pub fn status(&self) -> StatusReply {
         let vols: Vec<VolumeStatus> = self.volumes.iter().map(|v| v.status()).collect();
         let indexing: Vec<&VolumeStatus> = vols.iter().filter(|v| v.state == state::INDEXING).collect();
@@ -87,6 +136,12 @@ impl Indexer {
             last_usn: vols.iter().map(|v| v.last_usn).max().unwrap_or(0),
             progress_permille: progress,
             volumes: vols,
+            analysis: self
+                .volumes
+                .iter()
+                .filter(|v| v.analysis.state.load(Ordering::Acquire) != analysis_state::IDLE)
+                .map(|v| v.analysis_status())
+                .collect(),
         }
     }
 }

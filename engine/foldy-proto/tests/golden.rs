@@ -48,6 +48,38 @@ fn golden_frames() {
                         message: "관리자 권한 필요".into(),
                     },
                 ],
+                analysis: vec![AnalysisProgress {
+                    volume: "C:".into(),
+                    state: analysis_state::BUILDING,
+                    progress_permille: 420,
+                    message: "파일 쓰는 중".into(),
+                }],
+            },
+        ),
+    );
+}
+
+#[test]
+fn golden_analysis_frames() {
+    check("build_analysis.bin", &encode(MsgType::BuildAnalysis, &BuildAnalysis { volume: "C:".into() }));
+    check("analysis_info.bin", &encode(MsgType::AnalysisInfo, &AnalysisInfo { volume: r"D:\작업".into() }));
+    check(
+        "build_analysis_reply.bin",
+        &encode(MsgType::BuildAnalysisReply, &BuildAnalysisReply { status: analysis_status::ALREADY_RUNNING, message: "이미 분석 중".into() }),
+    );
+    check(
+        "analysis_info_reply.bin",
+        &encode(
+            MsgType::AnalysisInfoReply,
+            &AnalysisInfoReply {
+                status: analysis_status::OK,
+                volume: "C:".into(),
+                db_path: r"C:\ProgramData\Foldy\Analysis\{guid}.20261119T010203Z.db".into(),
+                scan_time: 134_080_000_000_000_000,
+                previous: vec![AnalysisSnapshot {
+                    db_path: r"C:\ProgramData\Foldy\Analysis\{guid}.20261112T010203Z.db".into(),
+                    scan_time: 134_074_000_000_000_000,
+                }],
             },
         ),
     );

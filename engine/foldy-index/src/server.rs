@@ -133,6 +133,31 @@ async fn serve(pipe: NamedPipeServer, ix: Arc<Indexer>) -> io::Result<()> {
                     break Ok(());
                 }
             }
+            MsgType::BuildAnalysis => {
+                // 분석은 백그라운드 스레드에서 돌고, 응답은 시작 여부만 바로 보낸다.
+                let reply = match decode_body::<BuildAnalysis>(&body) {
+                    Ok(req) => encode(MsgType::BuildAnalysisReply, &crate::analysis_job::start_build(&ix, &req.volume)),
+                    Err(e) => err(1, &e.to_string()),
+                };
+                if tx.send(reply).await.is_err() {
+                    break Ok(());
+                }
+            }
+            MsgType::AnalysisInfo => {
+                let reply = match decode_body::<AnalysisInfo>(&body) {
+                    Ok(req) => {
+                        let ix2 = ix.clone();
+                        match tokio::task::spawn_blocking(move || crate::analysis_job::info(&ix2, &req.volume)).await {
+                            Ok(r) => encode(MsgType::AnalysisInfoReply, &r),
+                            Err(e) => err(4, &e.to_string()),
+                        }
+                    }
+                    Err(e) => err(1, &e.to_string()),
+                };
+                if tx.send(reply).await.is_err() {
+                    break Ok(());
+                }
+            }
             other => {
                 if tx.send(handle_simple(other, &body, &ix)).await.is_err() {
                     break Ok(());
