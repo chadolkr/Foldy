@@ -96,6 +96,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     {
         Focusable = true;
         FocusVisualStyle = null;
+        System.Windows.Automation.AutomationProperties.SetLiveSetting(this, System.Windows.Automation.AutomationLiveSetting.Polite);
         ClipToBounds = true;
         SnapsToDevicePixels = true;
         TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
@@ -872,6 +873,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         _selectedCount = c;
         InvalidateVisual();
         SelectionChanged?.Invoke(this, EventArgs.Empty);
+        AnnounceFocus();
     }
 
     public void ScrollIntoView(int index)
@@ -888,6 +890,26 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new ListPeer(this);
+
+    /// <summary>
+    /// 화면 읽기 지원: 행마다 자동화 피어를 만들지 않는 대신(M0 성능 결과), 포커스 행을 목록의 이름으로 알리고
+    /// 라이브 영역 변경 이벤트를 보낸다. 내레이터 등은 "이름, 유형, 크기, 3/120, 선택됨"처럼 읽는다.
+    /// </summary>
+    private void AnnounceFocus()
+    {
+        if (ItemsSource is not { } list || _focus < 0 || _focus >= list.Count || list[_focus] is not { } item)
+        {
+            return;
+        }
+
+        var parts = Columns.Select(c => c.Text(item)).Where(t => t.Length > 0);
+        var text = $"{string.Join(", ", parts)}, {_focus + 1}/{list.Count}{(IsSelected(_focus) ? ", 선택됨" : "")}";
+        System.Windows.Automation.AutomationProperties.SetName(this, text);
+        if (UIElementAutomationPeer.FromElement(this) is { } peer)
+        {
+            peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        }
+    }
 
     private sealed class ListPeer(FastFileList owner) : FrameworkElementAutomationPeer(owner)
     {
