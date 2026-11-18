@@ -146,9 +146,24 @@
         <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" ToolTip="새로 고침 (Ctrl+R)" Click="OnRefresh" />
         <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="폴더 트리 보이기/숨기기" Click="OnToggleTree" />
         <Rectangle Width="1" Margin="4,8" Fill="{DynamicResource Brush.Border}" />
-        <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE756;" ToolTip="명령 프롬프트 (Ctrl+클릭: 관리자)" Click="OnCmd" />
-        <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE943;" ToolTip="PowerShell (Ctrl+`) · Ctrl+클릭: 관리자" Click="OnPowerShell" />
-        <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xEA18;" ToolTip="관리자 PowerShell (Ctrl+Shift+`)" Click="OnAdminShell" />
+        <!-- 탭 종류에 따라 같은 자리의 터미널 아이콘이 바뀐다 (DESIGN.md): 로컬 = CMD·PowerShell·관리자, SFTP = SSH·sudo -->
+        <Button x:Name="CmdBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE756;" ToolTip="명령 프롬프트 (Ctrl+클릭: 관리자)" Click="OnCmd" />
+        <Button x:Name="PsBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE943;" ToolTip="PowerShell (Ctrl+`) · Ctrl+클릭: 관리자" Click="OnPowerShell" />
+        <Button x:Name="AdminBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEA18;" ToolTip="관리자 PowerShell (Ctrl+Shift+`)" Click="OnAdminShell" />
+        <Button x:Name="SshBtn" Style="{DynamicResource Foldy.ToolButton}" Width="Auto" Padding="8,0" Visibility="Collapsed"
+                ToolTip="같은 서버·계정·폴더로 SSH 터미널 (Ctrl+`)" Click="OnSsh">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE756;" FontFamily="{DynamicResource Font.Icon}" VerticalAlignment="Center" />
+            <TextBlock Text=" SSH" FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button x:Name="SudoBtn" Style="{DynamicResource Foldy.ToolButton}" Width="Auto" Padding="8,0" Visibility="Collapsed"
+                ToolTip="sudo 셸로 SSH (비밀번호는 터미널에서 직접 입력, 저장하지 않음)" Click="OnSudo">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xEA18;" FontFamily="{DynamicResource Font.Icon}" VerticalAlignment="Center" />
+            <TextBlock Text=" sudo" FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
       </StackPanel>
     </Grid>
 

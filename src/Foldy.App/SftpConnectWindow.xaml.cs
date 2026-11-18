@@ -16,7 +16,17 @@ public partial class SftpConnectWindow : Window
     {
         InitializeComponent();
         _sessions = sessions;
-        ProfileBox.ItemsSource = sessions.Profiles.Load();
+        // 저장된 연결 + ~/.ssh/config 의 Host 항목 (외부 ssh와 같은 이름으로 접속)
+        var fromConfig = SshConfigFile.Load().Select(h => new SftpProfile
+        {
+            Name = $"ssh config: {h.Alias}",
+            Host = h.HostName,
+            Port = h.Port,
+            User = h.User ?? Environment.UserName,
+            Auth = h.IdentityFile is null ? SftpAuthKind.Password : SftpAuthKind.KeyFile,
+            KeyFilePath = h.IdentityFile,
+        });
+        ProfileBox.ItemsSource = sessions.Profiles.Load().Concat(fromConfig).ToList();
         Loaded += (_, _) => HostBox.Focus();
     }
 
@@ -48,6 +58,11 @@ public partial class SftpConnectWindow : Window
         }
 
         var key = KeyRadio.IsChecked == true;
+        if (key && string.IsNullOrWhiteSpace(KeyBox.Text) && SshConfigFile.DefaultIdentityFiles().FirstOrDefault() is { } def)
+        {
+            KeyBox.Text = def; // ~/.ssh/id_ed25519 등 기본 키
+        }
+
         PasswordPanel.Visibility = key ? Visibility.Collapsed : Visibility.Visible;
         KeyPanel.Visibility = key ? Visibility.Visible : Visibility.Collapsed;
     }
