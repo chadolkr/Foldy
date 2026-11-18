@@ -1,0 +1,2 @@
+# 시험 전용 공개키. 비밀키는 시드 0x07 × 32 (tests/update_flow.rs의 TEST_SEED). 제품 키가 아님.
+ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c

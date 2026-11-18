@@ -1,5 +1,7 @@
 # .NET
-bin/
+**/bin/Debug/
+**/bin/Release/
+**/bin/x64/
 obj/
 *.user
 *.suo
@@ -13,3 +15,8 @@ engine/target/
 *.swp
 # 로컬 벤치 데이터
 bench-data/
+# 업데이트 서명 비밀키 — 절대 커밋 금지 (docs/release-signing.md)
+*.signing.key
+
+# Claude Code 작업 트리 (병렬 에이전트)
+.claude/

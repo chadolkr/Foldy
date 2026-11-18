@@ -1,0 +1,94 @@
+name: Release
+
+# v1.2.3 형식 태그를 푸시하면 빌드 → 테스트 → 포터블 zip → update.json 서명 → GitHub Release (설계서 10.5).
+# 서명 비밀키는 저장소 시크릿 FOLDY_UPDATE_SIGNING_KEY에만 있다 (docs/release-signing.md).
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
+
+      - name: Version from tag
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          if ($tag -notmatch '^v(\d+)\.(\d+)\.(\d+)(-[0-9A-Za-z.-]+)?$') { throw "태그 형식이 v1.2.3이 아님: $tag" }
+          $v = $tag.Substring(1)
+          $pre = if ($v.Contains('-')) { 'true' } else { 'false' }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "prerelease=$pre" >> $env:GITHUB_OUTPUT
+          "channel=$(if ($pre -eq 'true') { 'beta' } else { 'stable' })" >> $env:GITHUB_OUTPUT
+
+      - name: Build and test
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Portable zip
+        shell: pwsh
+        run: |
+          $v = '${{ steps.ver.outputs.version }}'
+          $stage = 'artifacts/stage/Foldy'
+          $out = 'artifacts/release'
+          New-Item -ItemType Directory -Force $stage, $out | Out-Null
+          dotnet publish src/Foldy.App/Foldy.App.csproj -c Release -r win-x64 --self-contained false -o $stage -p:Version=$v
+          if ($LASTEXITCODE -ne 0) { throw 'publish 실패' }
+          Copy-Item engine/target/release/foldy_copy.dll $stage -Force
+          Copy-Item engine/target/release/foldy-index.exe $stage -Force
+          Copy-Item LICENSE $stage -Force
+          Compress-Archive -Path "$stage/*" -DestinationPath "$out/Foldy-$v-x64-portable.zip" -Force
+
+      # TODO(설계서 10.3): WiX MSI (Foldy-<v>-x64.msi, 서비스 등록·Major Upgrade)를 여기서 만들고
+      #   SignPath(10.6) 코드 서명 후 아래 manifest 목록에 추가한다. 그 전까지 포터블 zip만 배포.
+
+      - name: update.json + Ed25519 signature
+        shell: pwsh
+        env:
+          FOLDY_UPDATE_SIGNING_KEY: ${{ secrets.FOLDY_UPDATE_SIGNING_KEY }}
+        run: |
+          $v = '${{ steps.ver.outputs.version }}'
+          $out = 'artifacts/release'
+          if (-not $env:FOLDY_UPDATE_SIGNING_KEY) { throw '시크릿 FOLDY_UPDATE_SIGNING_KEY가 없습니다 (docs/release-signing.md)' }
+          $tool = 'engine/target/release/foldy-update.exe'
+          $assets = Get-ChildItem $out -File | Where-Object { $_.Name -like '*.zip' -or $_.Name -like '*.msi' } | ForEach-Object FullName
+          & $tool manifest --version $v --channel '${{ steps.ver.outputs.channel }}' --out "$out/update.json" @assets
+          if ($LASTEXITCODE -ne 0) { throw 'manifest 실패' }
+          & $tool sign "$out/update.json"
+          if ($LASTEXITCODE -ne 0) { throw 'sign 실패' }
+          # 앱에 내장된 공개키로 다시 검사: 시크릿과 커밋된 공개키가 짝이 아니면 여기서 멈춘다
+          & $tool verify "$out/update.json"
+          if ($LASTEXITCODE -ne 0) { throw '내장 공개키로 검증 실패 — keys/update-signing.pub과 시크릿이 짝인지 확인' }
+          Get-Content "$out/update.json"
+
+      - name: GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $files = Get-ChildItem artifacts/release -File | ForEach-Object FullName
+          $flags = @('--generate-notes', '--title', "Foldy $tag", '--verify-tag')
+          if ('${{ steps.ver.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
+          gh release create $tag @files @flags
+          if ($LASTEXITCODE -ne 0) { throw 'release 생성 실패' }
