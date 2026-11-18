@@ -72,14 +72,72 @@ pub fn validate_msi_path(updates_dir: &Path, msi: &Path) -> Result<PathBuf> {
     if !is_msi || file.parent() != Some(dir.as_path()) || !file.is_file() {
         return Err(deny());
     }
-    Ok(file)
+    Ok(strip_verbatim(&file))
+}
+
+/// `canonicalize`가 붙이는 `\\?\` 접두어를 뗀다 (msiexec는 확장 경로를 잘 받지 못한다).
+/// `\\?\C:\…` → `C:\…`, `\\?\UNC\서버\…` → `\\서버\…`. 그 밖의 형식은 그대로 둔다.
+pub fn strip_verbatim(p: &Path) -> PathBuf {
+    let s = p.as_os_str().to_string_lossy();
+    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{rest}"));
+    }
+    if let Some(rest) = s.strip_prefix(r"\\?\") {
+        let b = rest.as_bytes();
+        if b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && b[2] == b'\\' {
+            return PathBuf::from(rest);
+        }
+    }
+    p.to_path_buf()
+}
+
+/// 되돌리기 설치에 붙이는 MSI 속성. Foldy.wxs는 이 속성이 있을 때만 낮은 버전 설치(다운그레이드)를 허용한다.
+pub const ROLLBACK_PROPERTY: &str = "FOLDY_ROLLBACK=1";
+
+/// 설치 옵션.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct InstallOptions {
+    /// 되돌리기 설치 ([`ROLLBACK_PROPERTY`]를 붙인다).
+    pub rollback: bool,
+    /// 자세한 설치 기록 파일 (`/l*v`). 업데이트 폴더 안이어야 한다.
+    pub log: Option<PathBuf>,
+}
+
+/// `msiexec` 인자: `/i <파일> /qn /norestart [/l*v <기록>] [FOLDY_ROLLBACK=1]`.
+pub fn msiexec_args_with(msi: &Path, opts: &InstallOptions) -> Vec<OsString> {
+    let mut args = msiexec_args(msi);
+    if let Some(log) = &opts.log {
+        args.push("/l*v".into());
+        args.push(log.as_os_str().to_owned());
+    }
+    if opts.rollback {
+        args.push(ROLLBACK_PROPERTY.into());
+    }
+    args
 }
 
 /// 실행할 명령을 만든다 (실행은 호출자). Windows에서는 서비스와 분리된 프로세스로 띄운다.
 pub fn install_command(updates_dir: &Path, msi: &Path) -> Result<Command> {
+    install_command_with(updates_dir, msi, &InstallOptions::default())
+}
+
+/// [`install_command`]에 옵션을 더한 것. 기록 파일도 업데이트 폴더 바로 안으로 제한한다.
+pub fn install_command_with(updates_dir: &Path, msi: &Path, opts: &InstallOptions) -> Result<Command> {
     let file = validate_msi_path(updates_dir, msi)?;
+    if let Some(log) = &opts.log {
+        let dir = updates_dir
+            .canonicalize()
+            .map_err(|_| UpdateError::PathNotAllowed(log.display().to_string()))?;
+        let parent_ok = log
+            .parent()
+            .and_then(|p| p.canonicalize().ok())
+            .is_some_and(|p| p == dir);
+        if !parent_ok || log.file_name().is_none() {
+            return Err(UpdateError::PathNotAllowed(log.display().to_string()));
+        }
+    }
     let mut cmd = Command::new(msiexec_path());
-    cmd.args(msiexec_args(&file));
+    cmd.args(msiexec_args_with(&file, opts));
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -151,6 +209,50 @@ mod tests {
         assert!(install_command(&sub, &outside).is_ok());
         assert!(matches!(
             install_command(&dir, &outside),
+            Err(UpdateError::PathNotAllowed(_))
+        ));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn verbatim_prefix_is_removed_for_msiexec() {
+        assert_eq!(strip_verbatim(Path::new(r"\\?\C:\ProgramData\Foldy\Updates\a.msi")), PathBuf::from(r"C:\ProgramData\Foldy\Updates\a.msi"));
+        assert_eq!(strip_verbatim(Path::new(r"\\?\UNC\srv\share\a.msi")), PathBuf::from(r"\\srv\share\a.msi"));
+        assert_eq!(strip_verbatim(Path::new(r"C:\a.msi")), PathBuf::from(r"C:\a.msi"));
+        assert_eq!(strip_verbatim(Path::new(r"\\?\Volume{x}\a.msi")), PathBuf::from(r"\\?\Volume{x}\a.msi"));
+        let dir = tmp("plain");
+        let msi = dir.join("Foldy-1.0.0-x64.msi");
+        fs::write(&msi, b"msi").unwrap();
+        let p = validate_msi_path(&dir, &msi).unwrap();
+        assert!(!p.to_string_lossy().starts_with(r"\\?\"), "{}", p.display());
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn rollback_and_log_options() {
+        let dir = tmp("opts");
+        let msi = dir.join("Foldy-1.2.2-x64.msi");
+        fs::write(&msi, b"msi").unwrap();
+        let opts = InstallOptions {
+            rollback: true,
+            log: Some(dir.join("install.log")),
+        };
+        let cmd = install_command_with(&dir, &msi, &opts).unwrap();
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(&args[2..4], ["/qn", "/norestart"]);
+        assert_eq!(args[4], "/l*v");
+        assert!(args[5].ends_with("install.log"));
+        assert_eq!(args[6], ROLLBACK_PROPERTY);
+        // 기록 파일도 업데이트 폴더 밖은 거부
+        let bad = InstallOptions {
+            rollback: false,
+            log: Some(std::env::temp_dir().join("evil.log")),
+        };
+        assert!(matches!(
+            install_command_with(&dir, &msi, &bad),
             Err(UpdateError::PathNotAllowed(_))
         ));
         fs::remove_dir_all(&dir).ok();

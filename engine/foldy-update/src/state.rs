@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
+use crate::manifest::{Channel, ManifestAsset};
 use crate::version::Version;
 
 /// 몇 번 연속 시작에 실패하면 되돌릴지.
@@ -66,6 +67,56 @@ pub struct UpdateState {
     pub skipped_versions: BTreeSet<String>,
     #[serde(default)]
     pub install: Option<InstallRecord>,
+    /// 사용자가 고른 채널 (없으면 stable). 서비스가 SetChannel로 바꾼다.
+    #[serde(default)]
+    pub channel: Option<Channel>,
+    /// msiexec를 띄운 뒤 아직 결과를 확인하지 못한 설치. 서비스가 다시 시작하면 이것으로 성공·실패를 판단한다.
+    #[serde(default)]
+    pub pending: Option<PendingInstall>,
+    /// 지금 설치된 버전의 MSI (업데이트 폴더 안). 다음 업데이트 때 되돌리기용 "직전 MSI"가 된다.
+    #[serde(default)]
+    pub installed_msi: Option<PathBuf>,
+    /// `installed_msi`의 크기·SHA-256 (update.json에서 검증된 값). 되돌리기 전에 다시 확인한다.
+    #[serde(default)]
+    pub installed_asset: Option<ManifestAsset>,
+    /// 지금 설치 기록의 `previous_msi` 크기·SHA-256. 없으면 되돌리지 않는다 (검증할 수 없는 파일은 설치하지 않음).
+    #[serde(default)]
+    pub rollback_asset: Option<ManifestAsset>,
+    /// 같은 버전의 설치가 연속으로 실패한 횟수. [`MAX_FAILED_INSTALLS`]에 닿으면 그 버전을 건너뛴다.
+    #[serde(default)]
+    pub install_failure: Option<InstallFailure>,
+}
+
+/// 같은 버전 설치가 몇 번 연속 실패하면 건너뛸지.
+pub const MAX_FAILED_INSTALLS: u32 = 2;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PendingInstall {
+    /// 설치하려는 버전 (되돌리기면 되돌아갈 버전).
+    pub version: String,
+    /// 설치하는 MSI (업데이트 폴더 안).
+    pub msi: PathBuf,
+    /// 끝나면 Foldy를 다시 띄울지.
+    pub relaunch: bool,
+    /// 다시 띄울 세션 (0이면 활성 콘솔 세션).
+    pub session_id: u32,
+    /// 되돌리기 설치인지.
+    #[serde(default)]
+    pub rollback: bool,
+    /// msiexec를 띄운 시각 (Unix 초). 너무 오래된 기록은 결과를 알 수 없음으로 본다.
+    pub started_unix: u64,
+    /// 설치 전의 설치 기록 (실패하면 되돌려 놓는다).
+    #[serde(default)]
+    pub previous_record: Option<InstallRecord>,
+    /// 설치하는 MSI의 크기·SHA-256. 성공하면 `installed_asset`이 된다.
+    #[serde(default)]
+    pub asset: Option<ManifestAsset>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InstallFailure {
+    pub version: String,
+    pub count: u32,
 }
 
 impl UpdateState {
@@ -119,6 +170,22 @@ impl UpdateState {
             failed_starts: 0,
             confirmed: false,
         });
+    }
+
+    /// 설치 실패를 센다. 같은 버전이 [`MAX_FAILED_INSTALLS`]번 연속 실패하면 건너뛸 버전으로 기록하고 참을 돌려준다.
+    pub fn record_install_failure(&mut self, v: &Version) -> bool {
+        let key = v.to_string();
+        let count = match &self.install_failure {
+            Some(f) if Version::parse(&f.version).is_ok_and(|x| &x == v) => f.count + 1,
+            _ => 1,
+        };
+        self.install_failure = Some(InstallFailure { version: key, count });
+        if count >= MAX_FAILED_INSTALLS {
+            self.skip(v);
+            true
+        } else {
+            false
+        }
     }
 
     /// 시작 결과를 기록하고 되돌릴지 정한다.
@@ -295,6 +362,27 @@ mod tests {
         fs::write(&path, b"{broken").unwrap();
         assert_eq!(UpdateState::load(&path), UpdateState::default());
         fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn repeated_install_failures_skip_version() {
+        let mut s = UpdateState::default();
+        assert!(!s.record_install_failure(&v("1.3.0")));
+        // 다른 버전이 끼면 다시 센다
+        assert!(!s.record_install_failure(&v("1.3.1")));
+        assert!(!s.record_install_failure(&v("1.3.0")));
+        assert!(s.record_install_failure(&v("1.3.0")));
+        assert!(s.is_skipped(&v("1.3.0")));
+        assert!(!s.is_skipped(&v("1.3.1")));
+    }
+
+    #[test]
+    fn old_state_files_still_load() {
+        // 새 필드가 없는 예전 state.json도 읽힌다
+        let old = br#"{"etag":"\"x\"","skipped_versions":["1.0.0"]}"#;
+        let s: UpdateState = serde_json::from_slice(old).unwrap();
+        assert!(s.pending.is_none() && s.channel.is_none() && s.installed_msi.is_none());
+        assert!(s.is_skipped(&v("1.0.0")));
     }
 
     #[test]

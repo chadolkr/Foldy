@@ -59,6 +59,11 @@ pub async fn run(pipe: &str, once: bool, indexer: Arc<Indexer>, shutdown: impl s
 }
 
 async fn serve(pipe: NamedPipeServer, ix: Arc<Indexer>) -> io::Result<()> {
+    // 업데이트 후 Foldy를 다시 띄울 세션 (클라이언트가 보낸 값보다 이것을 믿는다)
+    let session = {
+        use std::os::windows::io::AsRawHandle;
+        crate::update::win::pipe_client_session(pipe.as_raw_handle())
+    };
     let (mut rd, mut wr) = tokio::io::split(pipe);
     let (tx, mut rx) = mpsc::channel::<Vec<u8>>(64);
     let writer = tokio::spawn(async move {
@@ -130,6 +135,11 @@ async fn serve(pipe: NamedPipeServer, ix: Arc<Indexer>) -> io::Result<()> {
                     Err(e) => err(1, &e.to_string()),
                 };
                 if tx.send(reply).await.is_err() {
+                    break Ok(());
+                }
+            }
+            t if crate::update::is_update_msg(t) => {
+                if tx.send(crate::update::handle_pipe(t, &body, session)).await.is_err() {
                     break Ok(());
                 }
             }

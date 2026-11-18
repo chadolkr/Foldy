@@ -197,7 +197,11 @@ pub fn is_safe_file_name(name: &str) -> bool {
 
 /// 파일 크기와 SHA-256(소문자 16진수).
 pub fn sha256_file(path: &Path) -> Result<(u64, String)> {
-    let mut f = File::open(path)?;
+    sha256_reader(&mut File::open(path)?)
+}
+
+/// 열린 파일(또는 스트림)의 크기와 SHA-256.
+pub fn sha256_reader(f: &mut dyn Read) -> Result<(u64, String)> {
     let mut h = Sha256::new();
     let mut buf = vec![0u8; 256 * 1024];
     let mut total = 0u64;
@@ -212,9 +216,29 @@ pub fn sha256_file(path: &Path) -> Result<(u64, String)> {
     Ok((total, hex::encode(&h.finalize())))
 }
 
+/// 설치 직전 검사: 다른 프로세스가 쓰지 못하게(읽기 공유만 허용) 연 뒤 크기·해시를 다시 확인하고,
+/// 그 핸들을 돌려준다. 호출자는 msiexec가 파일을 읽는 동안 핸들을 쥐고 있어 그 사이 바꿔치기를 막는다.
+pub fn verify_locked(path: &Path, asset: &ManifestAsset) -> Result<File> {
+    let mut opts = std::fs::OpenOptions::new();
+    opts.read(true);
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_SHARE_READ: u32 = 0x1;
+        // 쓰기 핸들이 이미 열려 있으면 여기서 실패한다 (공유 위반)
+        opts.share_mode(FILE_SHARE_READ);
+    }
+    let mut f = opts.open(path)?;
+    check_digest(sha256_reader(&mut f)?, asset)?;
+    Ok(f)
+}
+
 /// 내려받은 파일이 매니페스트와 같은지 (크기 → 해시 순서로 비교).
 pub fn verify_file(path: &Path, asset: &ManifestAsset) -> Result<()> {
-    let (size, sha) = sha256_file(path)?;
+    check_digest(sha256_file(path)?, asset)
+}
+
+fn check_digest((size, sha): (u64, String), asset: &ManifestAsset) -> Result<()> {
     if size != asset.size {
         return Err(UpdateError::SizeMismatch {
             expected: asset.size,

@@ -58,10 +58,21 @@ fn run_service() -> windows_service::Result<()> {
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build();
     match rt {
         Ok(rt) => {
+            // 자동 업데이트 (설계서 10.5). 내장 공개키가 없거나 설정을 만들 수 없으면 끄고 색인만 한다.
+            match crate::update::UpdateConfig::for_service() {
+                Ok(cfg) => {
+                    let svc = crate::update::UpdateService::new(cfg, Arc::new(crate::update::win::WinHost));
+                    crate::update::set_global(svc.clone());
+                    rt.spawn(svc.run());
+                }
+                Err(e) => eprintln!("자동 업데이트 꺼짐: {e}"),
+            }
             let r = rt.block_on(crate::server::run(foldy_proto::PIPE_NAME, false, indexer, async move { stop.notified().await }));
             if let Err(e) = r {
                 eprintln!("pipe server error: {e}");
             }
+            // 업데이트 다운로드 중이어도 서비스 정지(MSI 업그레이드 포함)를 오래 막지 않는다
+            rt.shutdown_timeout(Duration::from_secs(2));
         }
         Err(e) => eprintln!("tokio runtime error: {e}"),
     }

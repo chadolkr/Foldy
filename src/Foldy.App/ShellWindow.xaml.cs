@@ -45,7 +45,7 @@ public partial class ShellWindow : Window, IPaneHost
     private Foldy.Core.Templates.TemplateLibrary? _templates;
     private Foldy.Core.Descriptions.FolderDescriptionService? _descriptions;
     private readonly FileSearchService _search;
-    private readonly AppUpdater _updater;
+    private IUpdateSource _updater; // 서비스(UAC 없음)를 쓸 수 있으면 OnLoaded에서 ServiceUpdater로 바꾼다
     private AppSettings _settings;
     private HwndSource? _hwndSource;
 
@@ -75,8 +75,8 @@ public partial class ShellWindow : Window, IPaneHost
             Settings = _settings,
         };
 
-        _updater = new AppUpdater(typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
-        _updater.Changed += () => Dispatcher.BeginInvoke(UpdateUpdateButton);
+        _updater = new LegacyUpdateSource(new AppUpdater(AppVersion));
+        _updater.Changed += OnUpdaterChanged;
         _search = new FileSearchService(() => _indexer, () => _settings.ShowHidden);
         Shell.Search = _search;
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
@@ -166,6 +166,7 @@ public partial class ShellWindow : Window, IPaneHost
         RefreshDrives();
         if (!App.Options.IsBench && App.Options.Screenshot is null)
         {
+            await UseServiceUpdaterAsync();
             _updater.Start(TimeSpan.FromMinutes(1)); // 실행 1분 뒤 + 6시간마다 (설계서 10.5)
         }
 
@@ -176,6 +177,27 @@ public partial class ShellWindow : Window, IPaneHost
             SaveScreenshot(shot);
             Application.Current.Shutdown(0);
         }
+    }
+
+    private static string AppVersion => typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
+    private void OnUpdaterChanged() => Dispatcher.BeginInvoke(UpdateUpdateButton);
+
+    /// <summary>색인 서비스가 업데이트를 지원하면 그쪽(UAC 없음)으로 바꾸고 정상 시작을 알린다. 아니면 AppUpdater(UAC) 유지.</summary>
+    private async Task UseServiceUpdaterAsync()
+    {
+        var svc = await ServiceUpdater.TryCreateAsync();
+        if (svc is null)
+        {
+            return;
+        }
+
+        _updater.Changed -= OnUpdaterChanged;
+        _updater.Dispose();
+        _updater = svc;
+        _updater.Changed += OnUpdaterChanged;
+        await svc.ReportStartedAsync(AppVersion);
+        UpdateUpdateButton();
     }
 
     /// <summary>검증용 화면 캡처 (--screenshot 경로).</summary>
@@ -235,6 +257,12 @@ public partial class ShellWindow : Window, IPaneHost
         foreach (var t in Shell.Left.Tabs.Concat(Shell.Right.Tabs))
         {
             t.Close();
+        }
+
+        // 종료할 때 설치 (설계서 10.5 가): 진행 중인 작업이 없을 때만, 다시 띄우지 않음
+        if (_updater is ServiceUpdater su && !Shell.Jobs.Any(j => !j.IsFinished))
+        {
+            su.InstallAtExit();
         }
 
         _updater.Dispose();
@@ -570,7 +598,9 @@ public partial class ShellWindow : Window, IPaneHost
         }
         else
         {
-            Shell.Status = "업데이트 설치가 취소됐습니다 (관리자 권한 필요)";
+            Shell.Status = _updater is ServiceUpdater
+                ? $"업데이트 설치를 시작하지 못했습니다: {_updater.LastError}"
+                : "업데이트 설치가 취소됐습니다 (관리자 권한 필요)";
         }
     }
 

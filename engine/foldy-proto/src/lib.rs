@@ -35,10 +35,21 @@ pub enum MsgType {
     FolderSizes = 0x0004,
     /// 응답 없음. 진행 중인 검색을 멈추고 마지막 SearchBatch(status=Cancelled)를 보내게 한다.
     CancelSearch = 0x0005,
+    /// 자동 업데이트 상태 조회 (설계서 10.5). 응답 UpdateStatusReply.
+    UpdateStatus = 0x00A1,
+    /// 지금 확인. 응답 UpdateStatusReply (확인은 서비스가 뒤에서 진행).
+    CheckNow = 0x00A2,
+    /// 작업이 없을 때 설치. 경로는 받지 않는다. 응답 UpdateStatusReply 또는 Error.
+    InstallWhenIdle = 0x00A3,
+    SkipVersion = 0x00A4,
+    SetChannel = 0x00A5,
+    /// 앱이 정상 시작했음을 알린다 (되돌리기 판단). 응답 UpdateStatusReply.
+    AppStarted = 0x00A6,
     HelloReply = 0x8001,
     StatusReply = 0x8002,
     SearchBatch = 0x8003,
     FolderSizesReply = 0x8004,
+    UpdateStatusReply = 0x80A1,
     Error = 0x80FF,
 }
 
@@ -50,10 +61,17 @@ impl MsgType {
             0x0003 => Self::Search,
             0x0004 => Self::FolderSizes,
             0x0005 => Self::CancelSearch,
+            0x00A1 => Self::UpdateStatus,
+            0x00A2 => Self::CheckNow,
+            0x00A3 => Self::InstallWhenIdle,
+            0x00A4 => Self::SkipVersion,
+            0x00A5 => Self::SetChannel,
+            0x00A6 => Self::AppStarted,
             0x8001 => Self::HelloReply,
             0x8002 => Self::StatusReply,
             0x8003 => Self::SearchBatch,
             0x8004 => Self::FolderSizesReply,
+            0x80A1 => Self::UpdateStatusReply,
             0x80FF => Self::Error,
             _ => return None,
         })
@@ -186,6 +204,93 @@ pub struct FolderSizesReply {
     pub entries: Vec<FolderEntry>,
 }
 
+// ───────────── 자동 업데이트 (설계서 10.5, 타입 0x00Ax / 0x80Ax) ─────────────
+//
+// 서비스가 확인·다운로드·검증·설치를 모두 맡고, 앱은 상태를 보고 시점만 알린다.
+// 어떤 메시지도 파일 경로를 받지 않는다: 설치 파일은 서비스가 자기 업데이트 폴더에서 검증한 MSI뿐이다.
+// 업데이트를 지원하지 않는 (이전) 서비스는 이 타입을 모르므로 Error를 보내고 연결을 끊는다 →
+// 클라이언트는 별도 연결로 확인하고, 실패하면 기존 방식(UAC 설치)으로 폴백한다.
+
+/// UpdateStatusReply.state
+pub mod update_state {
+    pub const IDLE: u8 = 0;
+    pub const CHECKING: u8 = 1;
+    pub const DOWNLOADING: u8 = 2;
+    pub const READY_TO_INSTALL: u8 = 3;
+    pub const INSTALLING: u8 = 4;
+    pub const FAILED: u8 = 5;
+}
+
+/// 업데이트 채널 코드 (SetChannel.channel, UpdateStatusReply.channel)
+pub mod update_channel {
+    pub const STABLE: u8 = 0;
+    pub const BETA: u8 = 1;
+}
+
+/// 업데이트 요청의 Error 코드
+pub mod update_error {
+    /// 이 서비스 실행에서는 자동 업데이트가 꺼져 있음 (콘솔 실행 등) → 클라이언트는 폴백
+    pub const DISABLED: u32 = 0xA0;
+    /// 설치할 준비된 업데이트가 없음
+    pub const NOT_READY: u32 = 0xA1;
+    /// 잘못된 인자 (버전 형식, 채널 코드)
+    pub const BAD_ARGUMENT: u32 = 0xA2;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpdateStatus;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CheckNow;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InstallWhenIdle {
+    /// 설치가 끝나면 서비스가 Foldy를 다시 띄울지 ([재시작하고 업데이트]). 종료 시 설치면 false.
+    pub relaunch: bool,
+    /// 다시 띄울 세션. 서비스는 파이프 클라이언트의 실제 세션을 우선하고, 이 값은 그와 같을 때만 쓴다.
+    pub session_id: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SkipVersion {
+    pub version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SetChannel {
+    pub channel: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AppStarted {
+    /// 앱 자신의 버전 (예: "1.2.3")
+    pub version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpdateStatusReply {
+    pub state: u8,
+    /// 서비스가 보는 설치 버전
+    pub current_version: String,
+    /// 받았거나 받는 중인 새 버전 (없으면 빈 문자열)
+    pub available_version: String,
+    pub channel: u8,
+    /// 다운로드 진행률 0~1000
+    pub progress_permille: u16,
+    pub downloaded: u64,
+    pub total: u64,
+    /// 마지막으로 확인에 성공한 시각 (Unix 초, 0 = 없음)
+    pub last_check_unix: u64,
+    /// 마지막 오류 (없으면 빈 문자열)
+    pub last_error: String,
+    /// 건너뛸 수 없는 업데이트
+    pub mandatory: bool,
+    /// 설치 요청을 받아 Foldy 종료를 기다리는 중
+    pub install_pending: bool,
+    /// 변경 내역 (Release 본문)
+    pub notes: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ErrorReply {
     pub code: u32,
@@ -274,6 +379,8 @@ mod tests {
             let _ = decode_body::<Search>(&junk);
             let _ = decode_body::<SearchBatch>(&junk);
             let _ = decode_body::<FolderSizesReply>(&junk);
+            let _ = decode_body::<UpdateStatusReply>(&junk);
+            let _ = decode_body::<InstallWhenIdle>(&junk);
         }
     }
 }
