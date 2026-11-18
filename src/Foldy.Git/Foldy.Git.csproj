@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Git 통합 (설계서 5.7). git.exe CLI 래퍼 + 파서 + 그래프 레인 계산. WPF 의존 없음. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Foldy.Git</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Foldy.Core\Foldy.Core.csproj" />
+    <InternalsVisibleTo Include="Foldy.Git.Tests" />
+  </ItemGroup>
+</Project>
