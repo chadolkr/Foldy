@@ -1,18 +1,35 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Foldy.App/Foldy.App.csproj" />
-    <Project Path="src/Foldy.Copy.Native/Foldy.Copy.Native.csproj" />
-    <Project Path="src/Foldy.Core/Foldy.Core.csproj" />
-    <Project Path="src/Foldy.Indexer.Client/Foldy.Indexer.Client.csproj" />
+    <Project Path="src/Foldy.App/Foldy.App.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Foldy.Copy.Native/Foldy.Copy.Native.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Foldy.Core/Foldy.Core.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Foldy.Indexer.Client/Foldy.Indexer.Client.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="src/Foldy.Platform/Foldy.Platform.csproj">
       <Platform Project="x64" />
     </Project>
     <Project Path="src/Foldy.Presentation/Foldy.Presentation.csproj">
       <Platform Project="x64" />
     </Project>
-    <Project Path="src/Foldy.Providers.Local/Foldy.Providers.Local.csproj" />
-    <Project Path="src/Foldy.Providers.Sftp/Foldy.Providers.Sftp.csproj" />
-    <Project Path="src/Foldy.UI/Foldy.UI.csproj" />
+    <Project Path="src/Foldy.Providers.Local/Foldy.Providers.Local.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Foldy.Providers.Sftp/Foldy.Providers.Sftp.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Foldy.Reporting/Foldy.Reporting.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Foldy.UI/Foldy.UI.csproj">
+      <Platform Project="x64" />
+    </Project>
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Foldy.Benchmarks/Foldy.Benchmarks.csproj">
@@ -28,6 +45,9 @@
       <Platform Project="x64" />
     </Project>
     <Project Path="tests/Foldy.Presentation.Tests/Foldy.Presentation.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="tests/Foldy.Reporting.Tests/Foldy.Reporting.Tests.csproj">
       <Platform Project="x64" />
     </Project>
     <Project Path="tests/Foldy.Sftp.Tests/Foldy.Sftp.Tests.csproj">

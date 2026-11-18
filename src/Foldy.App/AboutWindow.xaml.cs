@@ -17,4 +17,6 @@ public partial class AboutWindow : Window
         Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
         e.Handled = true;
     }
+
+    private void OnReportBug(object sender, RoutedEventArgs e) => App.OpenBugReport();
 }
