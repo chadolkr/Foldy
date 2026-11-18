@@ -30,6 +30,8 @@ public sealed class MascotView : FrameworkElement
     private Window? _window;
     private WriteableBitmap? _retroBitmap;
     private bool _retroDirty = true;
+    private readonly int _autoSeed = Random.Shared.Next(1, int.MaxValue);
+    private double _shownProgress = -1;
 
     public MascotView()
     {
@@ -56,6 +58,9 @@ public sealed class MascotView : FrameworkElement
     public static readonly DependencyProperty NetworkLostProperty = Reg(nameof(NetworkLost), false);
     public static readonly DependencyProperty ItemFailedProperty = Reg(nameof(ItemFailed), false);
 
+    /// <summary>동작 순서를 정하는 시드. 0이면 뷰마다 무작위로 정해 같은 화면의 작업끼리 다르게 보이고, 값을 주면 항상 같은 순서가 된다.</summary>
+    public static readonly DependencyProperty SeedProperty = Reg(nameof(Seed), 0);
+
     /// <summary>설정에서 마스코트를 켰는가 (기본 켜짐).</summary>
     public static readonly DependencyProperty IsMascotEnabledProperty = Reg(nameof(IsMascotEnabled), true);
 
@@ -80,6 +85,8 @@ public sealed class MascotView : FrameworkElement
     public bool NetworkLost { get => (bool)GetValue(NetworkLostProperty); set => SetValue(NetworkLostProperty, value); }
 
     public bool ItemFailed { get => (bool)GetValue(ItemFailedProperty); set => SetValue(ItemFailedProperty, value); }
+
+    public int Seed { get => (int)GetValue(SeedProperty); set => SetValue(SeedProperty, value); }
 
     public bool IsMascotEnabled { get => (bool)GetValue(IsMascotEnabledProperty); set => SetValue(IsMascotEnabledProperty, value); }
 
@@ -120,8 +127,29 @@ public sealed class MascotView : FrameworkElement
         return MascotSceneCatalog.Fallback;
     }
 
+    /// <summary>화면에 쓰는 프레임: 진행률은 부드럽게 따라가게 해서(껑충 뛰지 않게) 플레이 중심이 미끄러지듯 전진한다.</summary>
+    private MascotFrame RenderFrame => _shownProgress >= 0 && _frame.Progress >= 0 ? _frame with { Progress = _shownProgress } : _frame;
+
+    private void SmoothProgress(double dt)
+    {
+        var target = _frame.Progress;
+        if (target < 0)
+        {
+            _shownProgress = -1;
+        }
+        else if (_shownProgress < 0)
+        {
+            _shownProgress = target;
+        }
+        else
+        {
+            _shownProgress += (target - _shownProgress) * (1 - Math.Exp(-dt * 2.5));
+        }
+    }
+
     private MascotInput BuildInput() => new()
     {
+        Seed = Seed != 0 ? Seed : _autoSeed,
         Kind = Kind,
         State = State,
         Elapsed = _clock.Elapsed,
@@ -202,6 +230,7 @@ public sealed class MascotView : FrameworkElement
         _lastTick = now;
         _animTime += Math.Min(dt, 0.25) * _frame.Speed;
         Refresh();
+        SmoothProgress(Math.Min(dt, 0.25));
         if (_frame.Visible)
         {
             _retroDirty = true;
@@ -316,11 +345,13 @@ public sealed class MascotView : FrameworkElement
         }
 
         var painter = GetPainter(retro);
+        var frame = RenderFrame;
+        var cycle = def.Loop ? (int)Math.Floor(cycles) : 0;
         if (retro)
         {
             if (_retroDirty || _retroBitmap is null || Math.Abs(_retroBitmap.PixelWidth - (ActualWidth / Catalog.Render.RetroScale)) > 1.5)
             {
-                _retroBitmap = MascotBitmap.RenderRetro(painter, ActualWidth, _frame, u, t, Catalog.Render.RetroScale);
+                _retroBitmap = MascotBitmap.RenderRetro(painter, ActualWidth, frame, u, t, Catalog.Render.RetroScale, cycle);
                 _retroDirty = false;
             }
 
@@ -331,18 +362,19 @@ public sealed class MascotView : FrameworkElement
         }
         else
         {
-            painter.Paint(drawingContext, ActualWidth, _frame, u, t);
+            painter.Paint(drawingContext, ActualWidth, frame, u, t, cycle);
         }
     }
 
     /// <summary>테스트·미리보기용: 현재 입력과 무관하게 주어진 프레임을 같은 방식으로 한 장 그려 비트맵으로 돌려준다.</summary>
-    public BitmapSource Snapshot(MascotFrame frame, double u, double width, bool retro)
+    public BitmapSource Snapshot(MascotFrame frame, double u, double width, bool retro, double? seconds = null)
     {
         var def = Catalog.Get(frame.Scene);
         var painter = GetPainter(retro);
+        var t = seconds ?? (u * def.LoopSeconds);
         return retro
-            ? MascotBitmap.RenderRetro(painter, width, frame, u, u * def.LoopSeconds, Catalog.Render.RetroScale)
-            : MascotBitmap.RenderVector(painter, width, frame, u, u * def.LoopSeconds);
+            ? MascotBitmap.RenderRetro(painter, width, frame, u, t, Catalog.Render.RetroScale)
+            : MascotBitmap.RenderVector(painter, width, frame, u, t);
     }
 
     /// <summary>번들된 장면 정의 (호스트·테스트가 확인용).</summary>

@@ -17,28 +17,41 @@ public class MascotRenderTests
         MascotBubble bubble = MascotBubble.None,
         TossOutcome outcome = TossOutcome.None,
         double progress = -1,
-        MascotPhase phase = MascotPhase.None) =>
-        new(scene, 1, bubble, outcome, progress, phase, false);
+        MascotPhase phase = MascotPhase.None,
+        MascotFinish finish = MascotFinish.None,
+        int seed = 4) =>
+        new(scene, 1, bubble, outcome, progress, phase, false, seed, finish);
 
     /// <summary>확인용 PNG에 쓰는 장면 목록 (이름, 프레임).</summary>
     private static (string Name, MascotFrame Frame)[] Showcase() =>
     [
-        ("copy-1-pass", F(MascotScene.Pass)),
-        ("copy-2-dribble-30pct", F(MascotScene.Dribble, progress: 0.3)),
-        ("copy-2-dribble-80pct", F(MascotScene.Dribble, progress: 0.8)),
-        ("copy-3-shoot", F(MascotScene.Shoot)),
-        ("done-copy-3pointer", F(MascotScene.Score)),
+        ("copy-progress-000", F(MascotScene.Dribble, progress: 0.0, finish: MascotFinish.ThreePointer)),
+        ("copy-progress-050", F(MascotScene.Dribble, progress: 0.5, finish: MascotFinish.ThreePointer)),
+        ("copy-progress-100-setup-outside-arc", F(MascotScene.Setup, progress: 1.0, finish: MascotFinish.ThreePointer)),
+        ("copy-unknown-progress", F(MascotScene.Dribble, finish: MascotFinish.ThreePointer)),
+        ("done-copy-3pointer", F(MascotScene.Score, finish: MascotFinish.ThreePointer, progress: 1)),
+        ("done-move-dunk", F(MascotScene.Dunk, finish: MascotFinish.Dunk, progress: 1)),
+        ("move-progress-060", F(MascotScene.Dribble, progress: 0.6, finish: MascotFinish.Dunk, seed: 9)),
+        ("delete-progress-050", F(MascotScene.Dribble, progress: 0.5, finish: MascotFinish.BinToss, seed: 6)),
+        ("done-delete-bin-hit", F(MascotScene.TossBin, outcome: TossOutcome.Hit, finish: MascotFinish.BinToss, progress: 1)),
+        ("done-delete-bin-miss", F(MascotScene.TossBin, outcome: TossOutcome.Miss, finish: MascotFinish.BinToss, progress: 1)),
+        ("done-permanent-delete-punt", F(MascotScene.OutOfBounds, finish: MascotFinish.Punt, progress: 1)),
+        ("permanent-delete-progress-070", F(MascotScene.Dribble, progress: 0.7, finish: MascotFinish.Punt, seed: 3)),
         ("done-high-five", F(MascotScene.HighFive)),
-        ("delete-toss-hit", F(MascotScene.TossBin, outcome: TossOutcome.Hit)),
-        ("delete-toss-miss", F(MascotScene.TossBin, outcome: TossOutcome.Miss)),
-        ("delete-permanent-out-of-bounds", F(MascotScene.OutOfBounds)),
+        ("git-pull-pass", F(MascotScene.Pass)),
+        ("git-push-shoot", F(MascotScene.Shoot)),
         ("search-network-wait", F(MascotScene.Search)),
         ("search-lost", F(MascotScene.Search, bubble: MascotBubble.Question)),
         ("index-practice", F(MascotScene.Practice)),
         ("state-paused", F(MascotScene.Hold)),
         ("state-conflict", F(MascotScene.Hold, bubble: MascotBubble.Question)),
-        ("state-error-miss", F(MascotScene.Miss, bubble: MascotBubble.Exclaim)),
+        ("state-error-miss", F(MascotScene.Miss, bubble: MascotBubble.Exclaim, finish: MascotFinish.ThreePointer)),
     ];
+
+    private static bool IsPlanScene(MascotScene s) => s is MascotScene.Dribble or MascotScene.Setup or MascotScene.Pass or MascotScene.Search;
+
+    /// <summary>시각 확인용: 동작 순서 장면은 여러 동작이 보이도록 시간을 넓게 잡는다.</summary>
+    private static double SampleSeconds(MascotFrame frame, double u, double loopSeconds) => IsPlanScene(frame.Scene) ? u * 16 : u * loopSeconds;
 
     private static byte[] Pixels(BitmapSource bmp)
     {
@@ -113,6 +126,65 @@ public class MascotRenderTests
 
             strip.Should().BeGreaterThan(40, "{0}: 연주/우진 이름표", name);
         }
+    });
+
+    [Fact]
+    public void Painted_play_center_follows_progress_left_to_right() => Sta.Run(() =>
+    {
+        const double width = 600;
+        var painter = new MascotPainter(MascotPalette.Default);
+        var means = new List<double>();
+        for (var p = 0.0; p <= 1.0001; p += 0.1)
+        {
+            var scene = p >= MascotViewModel.SetupFrom ? MascotScene.Setup : MascotScene.Dribble;
+            var frame = F(scene, progress: p, finish: MascotFinish.ThreePointer, seed: 21);
+            double sum = 0;
+            var n = 0;
+            for (var t = 0.0; t < 20; t += 0.5)
+            {
+                _ = MascotBitmap.RenderVector(painter, width, frame, 0.3, t);
+                sum += painter.Labels.Sum(l => l.X);
+                n += painter.Labels.Count;
+            }
+
+            means.Add(sum / n);
+        }
+
+        for (var i = 1; i < means.Count; i++)
+        {
+            means[i].Should().BeGreaterThan(means[i - 1] - 8, "progress {0}", i / 10.0); // 국소 왕복 오차 허용
+        }
+
+        // 0%는 맨 왼쪽 근처, 100%는 3점 라인 바깥이면서 골대에서 멀다 (띠 폭의 약 1/3)
+        means[0].Should().BeLessThan(110);
+        means[^1].Should().BeGreaterThan(means[0] + 200);
+        means[^1].Should().BeLessThan(MascotCourt.ArcX(width));
+    });
+
+    [Fact]
+    public void Painted_plays_stay_outside_the_arc_during_progress() => Sta.Run(() =>
+    {
+        const double width = 600;
+        var painter = new MascotPainter(MascotPalette.Default);
+        var frame = F(MascotScene.Setup, progress: 1, finish: MascotFinish.ThreePointer, seed: 8);
+        for (var t = 0.0; t < 30; t += 0.3)
+        {
+            _ = MascotBitmap.RenderVector(painter, width, frame, 0.3, t);
+            painter.Labels.Should().OnlyContain(l => l.X < MascotCourt.ArcX(width));
+        }
+    });
+
+    [Fact]
+    public void Final_shooter_stands_outside_the_arc_and_far_from_the_hoop() => Sta.Run(() =>
+    {
+        const double width = 600;
+        var painter = new MascotPainter(MascotPalette.Default);
+        // 슛이 나가는 순간(u=0.42)의 우진 위치
+        var frame = F(MascotScene.Score, finish: MascotFinish.ThreePointer, progress: 1);
+        _ = MascotBitmap.RenderVector(painter, width, frame, 0.42, 0.7);
+        var woojin = painter.Labels.Single(l => l.Name == "우진").X;
+        woojin.Should().BeLessThan(MascotCourt.ArcX(width));
+        (MascotCourt.RimX(width) - woojin).Should().BeGreaterThan(width / 3 - 5);
     });
 
     [Fact]
@@ -211,8 +283,8 @@ public class MascotRenderTests
         };
         var retroPal = new MascotPalette { Surface = Colors.White, Border = Color.FromRgb(0x80, 0x80, 0x80), Text = Colors.Black, TextSecondary = Colors.Black };
         var us = new[] { 0.08, 0.3, 0.52, 0.75, 0.95 };
-        const double scale = 2;
-        const double sceneW = 300;
+        const double scale = 1.5;
+        const double sceneW = 600;
         var cellW = sceneW * scale;
         var cellH = MascotPainter.DesignHeight * scale;
 
@@ -237,7 +309,7 @@ public class MascotRenderTests
                     {
                         var rect = new Rect((c * (cellW + 8)) + 4, (r * (cellH + 6)) + 4, cellW, cellH);
                         dc.DrawRectangle(new SolidColorBrush(cols[c].Bg), null, rect);
-                        var t = us[r] * def.LoopSeconds;
+                        var t = SampleSeconds(frame, us[r], def.LoopSeconds);
                         if (cols[c].Retro)
                         {
                             dc.DrawImage(MascotBitmap.RenderRetro(painter, sceneW, frame, us[r], t), rect);

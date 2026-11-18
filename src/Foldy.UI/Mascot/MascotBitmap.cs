@@ -12,13 +12,13 @@ namespace Foldy.UI.Mascot;
 public static class MascotBitmap
 {
     /// <summary>벡터 그대로 렌더 (배율 scale). 배경은 투명.</summary>
-    public static BitmapSource RenderVector(MascotPainter painter, double width, MascotFrame frame, double u, double t, double scale = 1)
+    public static BitmapSource RenderVector(MascotPainter painter, double width, MascotFrame frame, double u, double t, double scale = 1, int cycle = 0)
     {
         var dv = new DrawingVisual();
         using (var dc = dv.RenderOpen())
         {
             dc.PushTransform(new ScaleTransform(scale, scale));
-            painter.Paint(dc, width, frame, u, t);
+            painter.Paint(dc, width, frame, u, t, cycle);
             dc.Pop();
         }
 
@@ -37,7 +37,7 @@ public static class MascotBitmap
     /// 레트로: 1/pixel 크기로 안티앨리어싱 없이 그리고, 알파를 이진화하고 색을 6단계로 줄인 WriteableBitmap을 돌려준다.
     /// 화면에는 NearestNeighbor로 pixel배 확대해서 그린다.
     /// </summary>
-    public static WriteableBitmap RenderRetro(MascotPainter painter, double width, MascotFrame frame, double u, double t, int pixel = 3)
+    public static WriteableBitmap RenderRetro(MascotPainter painter, double width, MascotFrame frame, double u, double t, int pixel = 3, int cycle = 0)
     {
         pixel = Math.Max(1, pixel);
         var dv = new DrawingVisual();
@@ -50,7 +50,7 @@ public static class MascotBitmap
         {
             using var dc = dv.RenderOpen();
             dc.PushTransform(new ScaleTransform(1.0 / pixel, 1.0 / pixel));
-            painter.Paint(dc, width, frame, u, t);
+            painter.Paint(dc, width, frame, u, t, cycle);
             dc.Pop();
         }
         finally

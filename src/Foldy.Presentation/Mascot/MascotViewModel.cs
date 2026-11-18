@@ -26,19 +26,23 @@ public enum MascotScene
 {
     /// <summary>그리지 않는다 (5초 미만 작업, 끝난 뒤 2초 경과, 꺼짐).</summary>
     Hidden,
-    /// <summary>연주가 우진에게 체스트 패스. 복사·이동의 시작, Git pull.</summary>
+    /// <summary>패스 위주의 연속 동작 (Git pull).</summary>
     Pass,
-    /// <summary>우진이 드리블. 복사·이동 진행 중: 진행률만큼 코트를 가로지른다.</summary>
+    /// <summary>복사·이동·삭제 진행 중: 다양한 동작을 이어 붙이며 진행률만큼 왼쪽에서 오른쪽으로 전진.</summary>
     Dribble,
-    /// <summary>우진의 점프슛. 복사·이동의 마무리, Git push.</summary>
+    /// <summary>우진의 점프슛 반복 (Git push).</summary>
     Shoot,
-    /// <summary>완료(복사·이동): 우진의 3점슛 성공 → 연주와 하이파이브.</summary>
+    /// <summary>완료(복사): 3점 라인 밖에서 3점슛 성공 → 하이파이브.</summary>
     Score,
+    /// <summary>완료(이동): 속공, 연주의 앨리웁 패스를 우진이 덩크 → 하이파이브.</summary>
+    Dunk,
+    /// <summary>진행 100% 근처: 마무리 위치 바깥에서 슛 없이 준비.</summary>
+    Setup,
     /// <summary>완료(그 외): 둘이 하이파이브.</summary>
     HighFive,
-    /// <summary>삭제: 공을 휴지통에 던진다. 골인=성공, 빗나감=실패.</summary>
+    /// <summary>완료(삭제): 사이드라인 너머 코트 옆 휴지통에 던진다. 실패하면 빗나가 튕김.</summary>
     TossBin,
-    /// <summary>영구 삭제: 공이 코트 밖으로 날아간다.</summary>
+    /// <summary>완료(영구 삭제): 경기장 밖으로 멀리 던져 버린다.</summary>
     OutOfBounds,
     /// <summary>검색·네트워크 대기·끊김: 둘이 두리번거리며 공을 찾는다.</summary>
     Search,
@@ -48,6 +52,16 @@ public enum MascotScene
     Hold,
     /// <summary>오류: 슛이 림에 맞고 튕겨 나온다.</summary>
     Miss,
+}
+
+/// <summary>작업이 끝날 때의 마무리 종류 (코트 모양과 100% 위치가 달라진다).</summary>
+public enum MascotFinish
+{
+    None,
+    ThreePointer,
+    Dunk,
+    BinToss,
+    Punt,
 }
 
 /// <summary>머리 위 말풍선.</summary>
@@ -108,8 +122,11 @@ public readonly record struct MascotInput
     /// <summary>네트워크가 끊겼다.</summary>
     public bool NetworkLost { get; init; }
 
-    /// <summary>삭제 중 마지막 항목이 실패했다 → 던진 공이 빗나간다.</summary>
+    /// <summary>삭제 중 마지막 항목이 실패했다 → 마무리에서 던진 공이 빗나간다.</summary>
     public bool ItemFailed { get; init; }
+
+    /// <summary>작업마다 정하는 시드. 같은 시드면 동작 순서가 같다 (테스트·재현용).</summary>
+    public int Seed { get; init; }
 }
 
 /// <summary>표시 정책. 설정과 Windows "애니메이션 효과 끄기"에서 온다.</summary>
@@ -144,7 +161,9 @@ public readonly record struct MascotFrame(
     TossOutcome Outcome,
     double Progress,
     MascotPhase Phase,
-    bool ShowCancelHint)
+    bool ShowCancelHint,
+    int Seed = 0,
+    MascotFinish Finish = MascotFinish.None)
 {
     public static MascotFrame Hidden { get; } = new(MascotScene.Hidden, 1, MascotBubble.None, TossOutcome.None, -1, MascotPhase.None, false);
 
@@ -161,10 +180,8 @@ public static class MascotViewModel
 
     public const double MaxSpeed = 1.8;
 
-    /// <summary>진행률이 이 값 미만이면 패스, 이상 ShootFrom 미만이면 드리블, 그 이상이면 슛.</summary>
-    public const double PassUntil = 0.15;
-
-    public const double ShootFrom = 0.92;
+    /// <summary>진행률이 이 값 이상이면 마무리 위치 바깥에서 준비한다(슛은 하지 않는다).</summary>
+    public const double SetupFrom = 0.92;
 
     public static MascotFrame Evaluate(MascotInput input, MascotOptions? options = null)
     {
@@ -195,15 +212,27 @@ public static class MascotViewModel
                 return MascotFrame.Hidden;
             }
 
-            return input.Kind is JobKind.Copy or JobKind.Move or JobKind.MoveSameDrive
-                ? Make(MascotScene.Score, 1, MascotBubble.None)
-                : Make(MascotScene.HighFive, 1, MascotBubble.None);
+            // 작업마다 다른 마무리: 복사=3점슛, 이동=속공 앨리웁 덩크, 삭제=사이드라인 밖 휴지통, 영구 삭제=경기장 밖으로 멀리 던지기. 성공하면 하이파이브.
+            var finishScene = input.Kind switch
+            {
+                JobKind.Copy => MascotScene.Score,
+                JobKind.Move or JobKind.MoveSameDrive => MascotScene.Dunk,
+                JobKind.Delete => MascotScene.TossBin,
+                JobKind.DeletePermanent => MascotScene.OutOfBounds,
+                _ => MascotScene.HighFive,
+            };
+            return Make(finishScene, 1, MascotBubble.None, FinishOutcome());
         }
 
         if (state is JobState.Failed)
         {
-            return input.SinceFinished is { } since && since >= o.FailHold
-                ? MascotFrame.Hidden
+            if (input.SinceFinished is { } since2 && since2 >= o.FailHold)
+            {
+                return MascotFrame.Hidden;
+            }
+
+            return input.Kind == JobKind.Delete
+                ? Make(MascotScene.TossBin, 1, MascotBubble.Exclaim, TossOutcome.Miss)
                 : Make(MascotScene.Miss, 1, MascotBubble.Exclaim);
         }
 
@@ -229,13 +258,9 @@ public static class MascotViewModel
             case JobKind.Copy:
             case JobKind.Move:
             case JobKind.MoveSameDrive:
-                return Make(TransferScene(), speed, MascotBubble.None);
-
             case JobKind.Delete:
-                return Make(MascotScene.TossBin, 1, MascotBubble.None, input.ItemFailed ? TossOutcome.Miss : TossOutcome.Hit);
-
             case JobKind.DeletePermanent:
-                return Make(MascotScene.OutOfBounds, 1, MascotBubble.None);
+                return Make(TransferScene(), speed, MascotBubble.None, FinishOutcome());
 
             case JobKind.NetworkWait:
                 {
@@ -260,24 +285,30 @@ public static class MascotViewModel
                 return MascotFrame.Hidden;
         }
 
-        // 복사·이동: 진행률 → 패스 → 드리블 → 슛. 단계가 명시되면 그것을 우선한다.
+        // 진행 중에는 슛하지 않는다. 다양한 동작을 이어 붙이며 진행률만큼 왼쪽에서 오른쪽으로 전진하고,
+        // 100%에 가까워지면(Setup) 마무리 위치 바깥에서 준비한다. 슛·덩크·던지기는 완료(Done) 때만 나온다.
+        TossOutcome FinishOutcome() => input.Kind == JobKind.Delete ? (input.ItemFailed ? TossOutcome.Miss : TossOutcome.Hit) : TossOutcome.None;
+
         MascotScene TransferScene() => input.Phase switch
         {
-            MascotPhase.Pack or MascotPhase.Prepare => MascotScene.Pass,
-            MascotPhase.Carry or MascotPhase.Transfer => MascotScene.Dribble,
-            MascotPhase.Confirm or MascotPhase.Sweep or MascotPhase.Finish => MascotScene.Shoot,
-            _ => progress switch
-            {
-                < 0 => MascotScene.Dribble,
-                < PassUntil => MascotScene.Pass,
-                < ShootFrom => MascotScene.Dribble,
-                _ => MascotScene.Shoot,
-            },
+            MascotPhase.Confirm or MascotPhase.Sweep or MascotPhase.Finish => MascotScene.Setup,
+            MascotPhase.Pack or MascotPhase.Prepare or MascotPhase.Carry or MascotPhase.Transfer => MascotScene.Dribble,
+            _ => progress >= SetupFrom ? MascotScene.Setup : MascotScene.Dribble,
         };
 
         MascotFrame Make(MascotScene scene, double spd, MascotBubble bubble, TossOutcome outcome = TossOutcome.None, bool showCancelHint = false) =>
-            new(scene, spd, bubble, outcome, progress, input.Phase, showCancelHint);
+            new(scene, spd, bubble, outcome, progress, input.Phase, showCancelHint, input.Seed, FinishOf(input.Kind));
     }
+
+    /// <summary>완료 때 보여 줄 마무리 종류. 복사·이동·삭제·영구 삭제만 진행 막대처럼 전진한다.</summary>
+    public static MascotFinish FinishOf(JobKind kind) => kind switch
+    {
+        JobKind.Copy => MascotFinish.ThreePointer,
+        JobKind.Move or JobKind.MoveSameDrive => MascotFinish.Dunk,
+        JobKind.Delete => MascotFinish.BinToss,
+        JobKind.DeletePermanent => MascotFinish.Punt,
+        _ => MascotFinish.None,
+    };
 
     /// <summary>처리량 → 드리블 속도 배율. 로그 스케일: 0MB/s=0.9, 10MB/s≈1.3, 100MB/s≈1.7, 1GB/s 이상=1.8. 기본 장면이 이미 빠르므로 느린 쪽도 0.9 이상.</summary>
     public static double SpeedFor(double bytesPerSecond)
