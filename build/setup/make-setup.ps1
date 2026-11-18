@@ -27,7 +27,8 @@ foreach ($f in 'foldy-index.exe', 'foldy-update.exe') {
     if (Test-Path $src) { Copy-Item $src $payload }
 }
 Copy-Item (Join-Path $root 'LICENSE') $payload
-Copy-Item (Join-Path $PSScriptRoot 'Foldy-Setup.ps1') $out
+# Windows PowerShell 5.1이 한글을 바르게 읽도록 UTF-8 BOM으로 저장
+[IO.File]::WriteAllText((Join-Path $out 'Foldy-Setup.ps1'), [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Foldy-Setup.ps1')), [Text.UTF8Encoding]::new($true))
 
 $cmd = @'
 @echo off
