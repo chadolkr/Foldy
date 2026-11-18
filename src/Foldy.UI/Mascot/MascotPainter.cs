@@ -43,6 +43,9 @@ internal sealed class Pose
     public bool Bubble { get; init; }
 
     public bool Sweat { get; init; }
+
+    /// <summary>달리기 자세: 앞으로 기울고 팔다리를 크게 흔든다 (Walk 위상과 함께 쓴다).</summary>
+    public bool Run { get; init; }
 }
 
 /// <summary>
@@ -258,12 +261,13 @@ public sealed partial class MascotPainter
         var jerseyDark = girl ? _p.BodyDark : _p.Jersey2Dark;
         var hair = girl ? _p.HairGirl : _p.HairBoy;
         var walking = !double.IsNaN(p.Walk);
-        var bob = walking ? Math.Abs(Math.Sin(p.Walk * Math.PI)) * 1.3 : 0;
+        var run = p.Run && walking;
+        var bob = walking ? Math.Abs(Math.Sin(p.Walk * Math.PI)) * (run ? 2.0 : 1.3) : 0;
         var hipY = -9 + (3.2 * p.Crouch) - bob;
         var by = Ground - p.Lift;
         _labels.Add((girl ? "연주" : "우진", x));
 
-        Push(x, by, p.Tilt * p.Facing, p.Facing * KidScale, KidScale, 0, 0);
+        Push(x, by, (p.Tilt + (run ? 8 : 0)) * p.Facing, p.Facing * KidScale, KidScale, 0, 0);
         if (p.Bubble)
         {
             _anchor = new Point(x + (p.Facing * 0), by + ((hipY - 28) * KidScale));
@@ -273,8 +277,8 @@ public sealed partial class MascotPainter
         for (var i = -1; i <= 1; i += 2)
         {
             var ph = (p.Walk + (i < 0 ? 0 : 0.5)) * Math.PI * 2;
-            var swing = walking ? Math.Sin(ph) * 3.2 : 0;
-            var lift = walking ? Math.Max(0, Math.Cos(ph)) * 2.2 : 0;
+            var swing = walking ? Math.Sin(ph) * (run ? 5.0 : 3.2) : 0;
+            var lift = walking ? Math.Max(0, Math.Cos(ph)) * (run ? 4.2 : 2.2) : 0;
             var lx = (i * 2.7) + swing + (p.Crouch * i * 0.8);
             RR(_p.Skin, lx - 1.35, hipY, 2.7, -hipY - lift - 1.2, 1.2);
             RR(girl ? _p.BodyDark : _p.Jersey2Dark, lx - 2.3, -2.6 - lift, 5, 2.9, 1.3);
@@ -284,9 +288,9 @@ public sealed partial class MascotPainter
         // 몸통 이하는 hipY에 맞춰 내려앉는다
         Push(0, hipY + 9, 0);
 
-        var swingArm = walking ? Math.Sin(p.Walk * Math.PI * 2) * 2.2 : 0;
-        var back = p.BackHand ?? new Point(-7.4 - (swingArm * 0.4), -13.2);
-        var front = p.FrontHand ?? new Point(7.4 + (swingArm * 0.4), -13.2);
+        var swingArm = walking ? Math.Sin(p.Walk * Math.PI * 2) : 0;
+        var back = p.BackHand ?? (run ? new Point(-5 - (swingArm * 5), -15 + (swingArm * 3)) : new Point(-7.4 - (swingArm * 0.9), -13.2));
+        var front = p.FrontHand ?? (run ? new Point(5.5 + (swingArm * 5), -15 - (swingArm * 3)) : new Point(7.4 + (swingArm * 0.9), -13.2));
         Arm(new Point(-5, -22), back, hair, true);
 
         // 여자아이 포니테일은 머리 뒤
