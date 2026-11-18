@@ -261,6 +261,7 @@ public sealed class KeyMap
         new("sftp.connect", "SFTP 서버에 연결", "Ctrl+Shift+O"),
         new("app.palette", "모든 명령 보기", "Ctrl+Shift+P"),
         new("app.settings", "설정", "Ctrl+,"),
+        new("app.help", "도움말", "F1"),
         new("app.checkUpdate", "업데이트 확인", null),
     ];
 

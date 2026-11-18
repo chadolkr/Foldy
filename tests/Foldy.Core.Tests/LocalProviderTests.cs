@@ -64,16 +64,17 @@ public sealed class LocalProviderTests : IDisposable
         await using var reg = new DriveQueueRegistry();
         var p = new LocalProvider(reg);
         using var cts = new CancellationTokenSource();
-        var seen = 0;
+        var batches = 0;
         var act = async () =>
         {
             await foreach (var b in p.ListBatchedAsync(FsPath.Local(_dir), cts.Token))
             {
-                seen += b.Count;
+                batches++;
                 await cts.CancelAsync();
             }
         };
         await act.Should().ThrowAsync<OperationCanceledException>();
-        seen.Should().BeLessThan(2000);
+        // 빠른 디스크에서는 첫 배치에 전부 들어올 수 있다. 취소 뒤 배치를 더 받지 않는지만 본다.
+        batches.Should().Be(1);
     }
 }
