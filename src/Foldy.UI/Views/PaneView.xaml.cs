@@ -173,12 +173,14 @@ public partial class PaneView : UserControl
         _search = tab as SearchTabViewModel;
         UpdateTabVisuals();
 
-        if (tab is MarkdownTabViewModel md && _host is not null && _pane is not null)
+        if (tab is not null and not FolderTabViewModel and not SearchTabViewModel && _host is not null && _pane is not null)
         {
             FolderLayer.Visibility = Visibility.Collapsed;
+            ImageLayer.Visibility = Visibility.Collapsed;
             DocumentLayer.Visibility = Visibility.Visible;
-            DocumentLayer.Content = _host.CreateDocumentView(md, _pane);
-            Crumbs.Path = md.FilePath;
+            DocumentLayer.Content = _host.CreateTabView(tab, _pane);
+            Crumbs.Path = tab.Location ?? "";
+            GitChip.Visibility = Visibility.Collapsed;
             BackBtn.IsEnabled = ForwardBtn.IsEnabled = UpBtn.IsEnabled = false;
             return;
         }
@@ -188,6 +190,8 @@ public partial class PaneView : UserControl
         FolderLayer.Visibility = Visibility.Visible;
         if (_search is not null)
         {
+            ImageLayer.Visibility = Visibility.Collapsed;
+            Scroller.Visibility = Visibility.Visible;
             GitChip.Visibility = Visibility.Collapsed;
             UseColumns(_searchColumns);
             List.SortColumn = -1;
@@ -215,6 +219,7 @@ public partial class PaneView : UserControl
         RestoreFocus(_tab.FocusName, scrollTo: _tab.ScrollOffset);
         UpdateNav();
         UpdateGit();
+        UpdateImageLayer();
         UpdateState();
     }
 
@@ -319,6 +324,11 @@ public partial class PaneView : UserControl
             case nameof(FolderTabViewModel.Items):
                 List.ItemsSource = _tab!.Items;
                 UpdateState();
+                if (_tab.ImagesOnly)
+                {
+                    UpdateImageLayer();
+                }
+
                 break;
             case nameof(FolderTabViewModel.Path):
                 UpdateNav();
@@ -1000,6 +1010,110 @@ public partial class PaneView : UserControl
     private void OnSsh(object sender, RoutedEventArgs e) => _host?.Shell.OpenTerminal(TerminalKind.Default, elevated: false);
 
     private void OnSudo(object sender, RoutedEventArgs e) => _host?.Shell.OpenTerminal(TerminalKind.Default, elevated: true);
+
+    // ───────────── Git 뷰 ─────────────
+
+    private void OnGitChipClick(object sender, MouseButtonEventArgs e)
+    {
+        if (_tab?.Git is { } g && _host is not null && _pane is not null)
+        {
+            _host.OpenGit(_pane, g.RepoRoot);
+        }
+    }
+
+    // ───────────── 이미지만 보기 ─────────────
+
+    private Foldy.UI.Imaging.ImageGridView? _grid;
+
+    private void OnToggleImages(object sender, RoutedEventArgs e) => ToggleImages();
+
+    public void ToggleImages()
+    {
+        if (_tab is null)
+        {
+            return;
+        }
+
+        _tab.ImagesOnly = !_tab.ImagesOnly;
+        UpdateImageLayer();
+    }
+
+    private void UpdateImageLayer()
+    {
+        var on = _tab?.ImagesOnly == true;
+        ImagesBtn.Opacity = on ? 1 : 0.75;
+        if (on)
+        {
+            ImagesBtn.SetResourceReference(BackgroundProperty, "Brush.Selection");
+        }
+        else
+        {
+            ImagesBtn.ClearValue(BackgroundProperty);
+        }
+
+        if (!on || _tab is null)
+        {
+            ImageLayer.Visibility = Visibility.Collapsed;
+            Scroller.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (_grid is null)
+        {
+            _grid = new Foldy.UI.Imaging.ImageGridView();
+            _grid.ItemActivated += (_, i) => OpenImage(i);
+            _grid.QuickLookRequested += (_, i) => QuickLook(i);
+            _grid.SelectionChanged += (_, _) => SyncImageSelection();
+            ImageLayer.Content = _grid;
+        }
+
+        var images = new ItemList(_tab.Items.Where(i => !i.IsFolder && Foldy.Platform.Imaging.ImageFormats.IsImage(i.Name)));
+        _grid.AllowContentDecode = !(_tab.Path.StartsWith(@"\\", StringComparison.Ordinal) || Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path));
+        _grid.ItemsSource = images;
+        Scroller.Visibility = Visibility.Collapsed;
+        ImageLayer.Visibility = Visibility.Visible;
+        EmptyPanel.Visibility = Visibility.Collapsed;
+        LoadingText.Visibility = Visibility.Visible;
+        LoadingText.Text = $"이미지 {images.Count:N0}개 · 스페이스: 빠른 보기 · Ctrl+휠: 크기";
+    }
+
+    private ItemList? ImageItems => _grid?.ItemsSource as ItemList;
+
+    private void SyncImageSelection()
+    {
+        if (_tab is null || _grid is null || ImageItems is not { } items)
+        {
+            return;
+        }
+
+        _tab.Selection = [.. _grid.SelectedIndices().Where(i => i < items.Count).Select(i => items[i])];
+        SelectionInfoChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OpenImage(int index)
+    {
+        if (ImageItems is { } items && index >= 0 && index < items.Count && _host is not null && _pane is not null)
+        {
+            _ = _host.Shell.OpenAsync(_pane, items[index]);
+        }
+    }
+
+    private void QuickLook(int index)
+    {
+        if (ImageItems is not { } items || _grid is null)
+        {
+            return;
+        }
+
+        var ql = new Foldy.UI.Imaging.QuickLookWindow(items, index)
+        {
+            Owner = Window.GetWindow(this),
+            Loader = _grid.Loader,
+            AllowContentDecode = _grid.AllowContentDecode,
+        };
+        ql.CurrentIndexChanged += (_, i) => _grid.SelectIndex(i);
+        ql.Show();
+    }
 
     private void UpdateTerminalButtons(string? path)
     {

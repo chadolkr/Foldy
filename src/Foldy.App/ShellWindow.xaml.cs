@@ -41,6 +41,9 @@ public partial class ShellWindow : Window, IPaneHost
     private readonly List<PaletteCommand> _commands = [];
     private IndexerClient? _indexer;
     private readonly SftpSessions _sftp;
+    private readonly Foldy.Git.GitService _git = new();
+    private Foldy.Core.Templates.TemplateLibrary? _templates;
+    private Foldy.Core.Descriptions.FolderDescriptionService? _descriptions;
     private readonly FileSearchService _search;
     private readonly AppUpdater _updater;
     private AppSettings _settings;
@@ -60,10 +63,12 @@ public partial class ShellWindow : Window, IPaneHost
             TypeName = TypeNames.Get,
             Watcher = new FolderWatchService(),
             ShowHidden = () => _settings.ShowHidden,
-            Git = new GitStatusService(new Foldy.Git.GitService()),
+            Git = new GitStatusService(_git),
         };
         Shell = new ShellViewModel(_env, new ShellServices(
-            new ShellFileOperationService(() => OwnerHandle),
+            new NativeCopyFileOperationService(
+                new ShellFileOperationService(() => OwnerHandle),
+                options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync }),
             new ShellOpenFileService(),
             new TerminalService(() => _settings, (p, sudo) => _sftp.OpenTerminal(p, sudo))))
         {
@@ -115,7 +120,27 @@ public partial class ShellWindow : Window, IPaneHost
 
     public FolderTreeViewModel CreateTree() => new(_provider, _drives.GetDrivesFast());
 
-    public FrameworkElement CreateDocumentView(MarkdownTabViewModel tab, PaneViewModel pane)
+    public FrameworkElement? CreateTabView(TabBase tab, PaneViewModel pane) => tab switch
+    {
+        MarkdownTabViewModel md => CreateDocumentView(md, pane),
+        Foldy.Presentation.Git.GitTabViewModel git => new Foldy.UI.Git.GitView { DataContext = git },
+        _ => null,
+    };
+
+    public void OpenGit(PaneViewModel pane, string repoRoot)
+    {
+        var existing = pane.Tabs.OfType<Foldy.Presentation.Git.GitTabViewModel>().FirstOrDefault(t => string.Equals(t.RepoRoot, repoRoot, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            pane.ActiveTab = existing;
+            return;
+        }
+
+        var vm = new Foldy.Presentation.Git.GitTabViewModel(_git, repoRoot);
+        pane.AddTab(vm, activate: true, index: pane.ActiveTab is null ? null : pane.Tabs.IndexOf(pane.ActiveTab) + 1, assignColor: true);
+    }
+
+    private static Foldy.UI.Markdown.MarkdownView CreateDocumentView(MarkdownTabViewModel tab, PaneViewModel pane)
     {
         var view = new Foldy.UI.Markdown.MarkdownView { DataContext = tab };
         view.FolderLinkRequested += (_, e) =>
@@ -375,7 +400,12 @@ public partial class ShellWindow : Window, IPaneHost
         Add("file.copy", "반대 패널로 복사", () => _ = Shell.CopyToOtherAsync(), Key.F5);
         Add("file.move", "반대 패널로 이동", () => _ = Shell.MoveToOtherAsync(), Key.F6);
         Add("file.newFolder", "새 폴더", NewFolder, Key.F7);
-        Add("file.newFolder2", "새 폴더", NewFolder, Key.N, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("folder.fromTemplate", "템플릿으로 새 폴더…", NewFromTemplate, Key.N, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("folder.wizard", "폴더 위저드…", OpenWizard);
+        Add("folder.organize", "이 폴더 정리하기…", () => OpenOrganize(Shell.ActivePane.ActiveFolder?.Path));
+        Add("folder.description", "폴더 설명 편집…", EditDescription);
+        Add("view.images", "이미지만 보기 켜기/끄기", () => ActiveView.ToggleImages(), Key.I, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("git.open", "Git 뷰 열기", () => { if (Shell.ActivePane.ActiveFolder?.Git is { } g) OpenGit(Shell.ActivePane, g.RepoRoot); else Shell.Status = "Git 저장소가 아닙니다"; });
         Add("file.rename", "이름 바꾸기", () => ActiveView.BeginRename(), gesture: "F2");
         Add("file.delete", "휴지통으로 삭제", () => _ = Shell.DeleteSelectionAsync(false), gesture: "Del");
         Add("file.deletePermanent", "영구 삭제", () => _ = Shell.DeleteSelectionAsync(true), gesture: "Shift+Del");
@@ -445,6 +475,67 @@ public partial class ShellWindow : Window, IPaneHost
         {
             ActiveView.BeginRename(); // 새 폴더에 포커스가 간 뒤 바로 이름 입력
         }
+    }
+
+    private Foldy.Core.Templates.TemplateLibrary Templates => _templates ??= new Foldy.Core.Templates.TemplateLibrary().Reload();
+
+    private async void NewFromTemplate()
+    {
+        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsSftp(tab.Path))
+        {
+            return;
+        }
+
+        var vm = new Foldy.Presentation.Templates.TemplateDialogViewModel(Templates, tab.Path);
+        if (Foldy.UI.Templates.TemplateDialogs.ShowTemplatePicker(this, vm) == true && vm.CreatedTopFolder is { } top)
+        {
+            await tab.NavigateAsync(top);
+        }
+    }
+
+    private void OpenWizard()
+    {
+        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsSftp(tab.Path))
+        {
+            return;
+        }
+
+        var wiz = new Foldy.Presentation.Templates.FolderWizardViewModel(Foldy.Core.Templates.TemplateLibrary.LoadWizard(), Templates, tab.Path);
+        wiz.OrganizeRequested += (_, folder) => Dispatcher.BeginInvoke(() => OpenOrganize(folder));
+        Foldy.UI.Templates.TemplateDialogs.ShowFolderWizard(this, wiz);
+        if (wiz.Result?.TopFolder is { } top)
+        {
+            _ = tab.NavigateAsync(top);
+        }
+        else
+        {
+            _ = tab.RefreshAsync();
+        }
+    }
+
+    private void OpenOrganize(string? folder)
+    {
+        if (string.IsNullOrEmpty(folder) || Foldy.Presentation.Navigation.PathUtil.IsSftp(folder))
+        {
+            return;
+        }
+
+        var org = new Foldy.Presentation.Templates.OrganizeViewModel(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates);
+        Foldy.UI.Templates.TemplateDialogs.ShowOrganize(this, org);
+        _ = Shell.RefreshFoldersAsync([folder]);
+    }
+
+    private void EditDescription()
+    {
+        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsSftp(tab.Path))
+        {
+            return;
+        }
+
+        _descriptions ??= new Foldy.Core.Descriptions.FolderDescriptionService(new Foldy.Core.Descriptions.JsonFolderNoteStore(Path.Combine(App.DataDir, "folder_notes.json")));
+        var ed = new Foldy.Presentation.Templates.DescriptionEditorViewModel(_descriptions, tab.Path);
+        ed.Load();
+        Foldy.UI.Templates.TemplateDialogs.ShowDescriptionEditor(this, ed);
     }
 
     private async void CheckUpdateNow()
@@ -526,6 +617,16 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private void OnSftpConnect(object sender, RoutedEventArgs e) => ConnectSftp();
+
+    private void OnMenuTemplate(object sender, RoutedEventArgs e) => NewFromTemplate();
+
+    private void OnMenuWizard(object sender, RoutedEventArgs e) => OpenWizard();
+
+    private void OnMenuOrganize(object sender, RoutedEventArgs e) => OpenOrganize(Shell.ActivePane.ActiveFolder?.Path);
+
+    private void OnMenuDescription(object sender, RoutedEventArgs e) => EditDescription();
+
+    private void OnMenuImages(object sender, RoutedEventArgs e) => ActiveView.ToggleImages();
 
     private void OnInstallIndexer(object sender, RoutedEventArgs e) => RunIndexerSetup(install: true);
 

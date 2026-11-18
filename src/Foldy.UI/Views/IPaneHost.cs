@@ -20,6 +20,9 @@ public interface IPaneHost
 
     FolderTreeViewModel CreateTree();
 
-    /// <summary>Markdown 탭 내용을 그릴 뷰 (Markdown 모듈이 합쳐지기 전에는 간단한 텍스트 보기).</summary>
-    System.Windows.FrameworkElement CreateDocumentView(Presentation.Tabs.MarkdownTabViewModel tab, PaneViewModel pane);
+    /// <summary>폴더 목록이 아닌 탭(Markdown 문서, Git 뷰)의 내용 화면.</summary>
+    System.Windows.FrameworkElement? CreateTabView(Presentation.Tabs.TabBase tab, PaneViewModel pane);
+
+    /// <summary>Git 뷰 탭을 연다 (브랜치 칩을 눌렀을 때).</summary>
+    void OpenGit(PaneViewModel pane, string repoRoot);
 }

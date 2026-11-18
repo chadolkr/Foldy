@@ -107,5 +107,5 @@ public static class SshConfigFile
     }
 
     private static string ExpandHome(string p) =>
-        p.StartsWith('~') ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), p[1..].TrimStart('/', '\\')) : p;
+        (p.StartsWith('~') ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), p[1..].TrimStart('/', '\\')) : p).Replace('/', '\\');
 }

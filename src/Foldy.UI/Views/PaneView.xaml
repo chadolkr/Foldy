@@ -123,7 +123,8 @@
         </Grid.ColumnDefinitions>
         <fc:BreadcrumbBar x:Name="Crumbs" />
         <!-- Git 브랜치 칩: 저장소 안에서만 보인다 (DESIGN.md Git 통합) -->
-        <Border x:Name="GitChip" Grid.Column="1" Margin="6,0,0,0" Padding="8,0" CornerRadius="6" Height="32"
+        <Border x:Name="GitChip" Grid.Column="1" Margin="6,0,0,0" Padding="8,0" CornerRadius="6" Height="32" Cursor="Hand"
+                MouseLeftButtonUp="OnGitChipClick" ToolTipService.InitialShowDelay="300"
                 Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
                 Visibility="Collapsed">
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -144,7 +145,8 @@
       </Border>
       <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="6,0,0,0">
         <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" ToolTip="새로 고침 (Ctrl+R)" Click="OnRefresh" />
-        <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="폴더 트리 보이기/숨기기" Click="OnToggleTree" />
+        <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="폴더 트리 보이기/숨기기 (Ctrl+B)" Click="OnToggleTree" />
+        <Button x:Name="ImagesBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEB9F;" ToolTip="이미지만 보기 (Ctrl+Shift+I)" Click="OnToggleImages" />
         <Rectangle Width="1" Margin="4,8" Fill="{DynamicResource Brush.Border}" />
         <!-- 탭 종류에 따라 같은 자리의 터미널 아이콘이 바뀐다 (DESIGN.md): 로컬 = CMD·PowerShell·관리자, SFTP = SSH·sudo -->
         <Button x:Name="CmdBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE756;" ToolTip="명령 프롬프트 (Ctrl+클릭: 관리자)" Click="OnCmd" />
@@ -214,6 +216,10 @@
               </DockPanel>
             </Border>
           </Grid>
+
+          <!-- 이미지만 보기 (Ctrl+Shift+I, 설계서 5.12) -->
+          <ScrollViewer x:Name="ImageLayer" Visibility="Collapsed" CanContentScroll="True" Focusable="False"
+                        HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" />
 
           <!-- 문서(Markdown) 탭 -->
           <ContentControl x:Name="DocumentLayer" Visibility="Collapsed" Focusable="False" />
