@@ -17,6 +17,10 @@ postcard = { version = "1", default-features = false, features = ["use-std"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "sync", "time", "signal"] }
 foldy-proto = { path = "foldy-proto" }
 windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
+foldy-ntfs = { path = "foldy-ntfs" }
+rayon = "1"
+memchr = "2"
+windows-service = "0.8"
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

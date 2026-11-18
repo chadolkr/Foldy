@@ -1,11 +1,23 @@
 [package]
 name = "foldy-ntfs"
-description = "NTFS $MFT 파서와 USN 저널 리더 (M2에서 구현)"
+description = "NTFS $MFT 파서, 메모리 색인, 이름 검색, USN 저널 리더"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 repository.workspace = true
 license.workspace = true
+
+[dependencies]
+rayon.workspace = true
+memchr.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Ioctl",
+] }
 
 [lints]
 workspace = true

@@ -11,20 +11,34 @@ use serde::{Deserialize, Serialize};
 /// 기본 파이프 이름.
 pub const PIPE_NAME: &str = r"\\.\pipe\Foldy.Indexer.v1";
 /// 프로토콜 버전. 다르면 클라이언트는 LocalProvider로 폴백한다.
-pub const PROTOCOL_VERSION: u32 = 1;
+/// v2: Search / SearchBatch / CancelSearch / FolderSizes, StatusReply에 진행률과 볼륨별 상태 추가.
+pub const PROTOCOL_VERSION: u32 = 2;
 /// 프레임 본문 최대 크기 (입력 길이 검사, 설계서 12장).
 pub const MAX_BODY: usize = 16 * 1024 * 1024;
 /// 프레임 헤더 크기.
 pub const HEADER_LEN: usize = 6;
+/// 검색 한 번에 돌려줄 수 있는 최대 결과 수 (limit 상한).
+pub const MAX_SEARCH_LIMIT: u32 = 100_000;
+/// SearchBatch 한 프레임의 최대 결과 수.
+pub const SEARCH_BATCH_MAX: usize = 1000;
 
 /// 메시지 타입 코드. 요청은 0x00xx, 응답은 0x80xx.
+///
+/// 응답 순서: Search 이외 요청의 응답(…Reply, Error)은 요청 순서대로 온다. SearchBatch는 그 사이에
+/// 끼어 올 수 있으므로 클라이언트는 타입과 `search_id`로 나눠 받는다.
 #[repr(u16)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MsgType {
     Hello = 0x0001,
     Status = 0x0002,
+    Search = 0x0003,
+    FolderSizes = 0x0004,
+    /// 응답 없음. 진행 중인 검색을 멈추고 마지막 SearchBatch(status=Cancelled)를 보내게 한다.
+    CancelSearch = 0x0005,
     HelloReply = 0x8001,
     StatusReply = 0x8002,
+    SearchBatch = 0x8003,
+    FolderSizesReply = 0x8004,
     Error = 0x80FF,
 }
 
@@ -33,8 +47,13 @@ impl MsgType {
         Some(match v {
             0x0001 => Self::Hello,
             0x0002 => Self::Status,
+            0x0003 => Self::Search,
+            0x0004 => Self::FolderSizes,
+            0x0005 => Self::CancelSearch,
             0x8001 => Self::HelloReply,
             0x8002 => Self::StatusReply,
+            0x8003 => Self::SearchBatch,
+            0x8004 => Self::FolderSizesReply,
             0x80FF => Self::Error,
             _ => return None,
         })
@@ -57,12 +76,114 @@ pub struct HelloReply {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Status;
 
+/// 색인 상태 코드
+pub mod state {
+    pub const NOT_READY: u8 = 0;
+    pub const INDEXING: u8 = 1;
+    pub const READY: u8 = 2;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VolumeStatus {
+    /// "C:" 또는 (디렉터리 스캔 모드) 폴더 경로
+    pub volume: String,
+    pub state: u8,
+    pub entries: u64,
+    pub last_usn: i64,
+    /// 0~1000 (색인 중일 때 진행률)
+    pub progress_permille: u16,
+    /// 준비 안 됨 이유 등 (예: "관리자 권한 필요")
+    pub message: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StatusReply {
-    /// 0 = 준비 안 됨, 1 = 색인 중, 2 = 준비됨
+    /// 전체 상태: 하나라도 색인 중이면 1, 아니면 하나라도 준비됐으면 2, 아니면 0
     pub state: u8,
     pub indexed_entries: u64,
     pub last_usn: i64,
+    /// 색인 중인 볼륨들의 평균 진행률 (0~1000)
+    pub progress_permille: u16,
+    pub volumes: Vec<VolumeStatus>,
+}
+
+/// 이름 부분 문자열 검색(대소문자 무시). 같은 연결에서 새 Search가 오면 이전 검색은 자동 취소된다.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Search {
+    /// 클라이언트가 정하는 검색 번호. SearchBatch에 그대로 돌아온다.
+    pub search_id: u32,
+    pub query: String,
+    /// 최대 결과 수 (0이면 기본 1000, 상한 MAX_SEARCH_LIMIT)
+    pub limit: u32,
+    /// 0 = 처음부터, 아니면 이전 마지막 배치의 next_cursor
+    pub cursor: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SearchHit {
+    pub path: String,
+    /// 파일은 논리 크기, 폴더는 하위 전체 크기
+    pub size: u64,
+    pub alloc_size: u64,
+    /// 수정 시각 (FILETIME, UTC 100ns)
+    pub mtime: i64,
+    pub is_dir: bool,
+}
+
+/// 검색 상태 코드
+pub mod search_status {
+    pub const OK: u8 = 0;
+    pub const CANCELLED: u8 = 1;
+    /// 색인이 준비되지 않음 → 클라이언트는 폴백
+    pub const NOT_READY: u8 = 2;
+    pub const BAD_QUERY: u8 = 3;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SearchBatch {
+    pub search_id: u32,
+    pub hits: Vec<SearchHit>,
+    /// 이 검색의 마지막 배치인지
+    pub done: bool,
+    pub status: u8,
+    /// done이고 limit에 닿았을 때 이어서 검색할 커서. 0이면 더 없음.
+    pub next_cursor: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CancelSearch {
+    pub search_id: u32,
+}
+
+/// 폴더 바로 아래 항목들의 크기 (폴더는 하위 전체 크기). 크기 컬럼용.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FolderSizes {
+    pub path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FolderEntry {
+    pub name: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub alloc_size: u64,
+}
+
+/// FolderSizesReply 상태 코드
+pub mod folder_status {
+    pub const OK: u8 = 0;
+    pub const NOT_FOUND: u8 = 1;
+    /// 이 경로의 볼륨은 색인되지 않았거나 아직 준비 중
+    pub const NOT_INDEXED: u8 = 2;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FolderSizesReply {
+    pub status: u8,
+    /// 폴더 자신의 전체 크기
+    pub total_size: u64,
+    pub total_alloc: u64,
+    pub entries: Vec<FolderEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -150,6 +271,9 @@ mod tests {
             let junk: Vec<u8> = (0..n).map(|i| i.wrapping_mul(37).wrapping_add(n)).collect();
             let _ = decode_body::<HelloReply>(&junk);
             let _ = decode_body::<StatusReply>(&junk);
+            let _ = decode_body::<Search>(&junk);
+            let _ = decode_body::<SearchBatch>(&junk);
+            let _ = decode_body::<FolderSizesReply>(&junk);
         }
     }
 }
