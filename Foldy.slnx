@@ -7,6 +7,9 @@
     <Project Path="src/Foldy.Platform/Foldy.Platform.csproj">
       <Platform Project="x64" />
     </Project>
+    <Project Path="src/Foldy.Presentation/Foldy.Presentation.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="src/Foldy.Providers.Local/Foldy.Providers.Local.csproj" />
     <Project Path="src/Foldy.UI/Foldy.UI.csproj" />
   </Folder>
@@ -18,6 +21,9 @@
       <Platform Project="x64" />
     </Project>
     <Project Path="tests/Foldy.Interop.Tests/Foldy.Interop.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="tests/Foldy.Presentation.Tests/Foldy.Presentation.Tests.csproj">
       <Platform Project="x64" />
     </Project>
   </Folder>

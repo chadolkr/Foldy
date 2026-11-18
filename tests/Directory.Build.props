@@ -4,7 +4,7 @@
     <IsPackable>false</IsPackable>
     <OutputType>Exe</OutputType>
     <!-- 테스트 메서드 이름, 비동기 void 규칙 등 테스트 코드에만 완화 -->
-    <NoWarn>$(NoWarn);CA1707;CA2007;CA1515;CA1861</NoWarn>
+    <NoWarn>$(NoWarn);CA1707;CA2007;CA1515;CA1861;CA1826;xUnit1051</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit.v3" />

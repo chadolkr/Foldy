@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- ViewModel, 명령, 세션. WPF를 참조하지 않는다 (설계서 4장) → 화면 없이 단위 테스트 가능. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Foldy.Presentation</RootNamespace>
+    <!-- CA1001: ViewModel의 CancellationTokenSource는 취소로 수명을 끝낸다 (타이머 없음) -->
+    <NoWarn>$(NoWarn);CA1001</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Foldy.Core\Foldy.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Foldy.Presentation.Tests" />
+  </ItemGroup>
+</Project>
