@@ -396,6 +396,8 @@ public partial class ShellWindow : Window, IPaneHost
 
     // ───────────── 명령 ─────────────
 
+    private Foldy.Presentation.Commands.KeyMap _keyMap = Foldy.Presentation.Commands.KeyMap.Load();
+
     private sealed record PaletteCommand(string Id, string Title, string Gesture, Action Run, Key Key = Key.None, ModifierKeys Mods = ModifierKeys.None, bool AllowInText = false);
 
     private void BuildCommands()
@@ -442,9 +444,94 @@ public partial class ShellWindow : Window, IPaneHost
         Add("indexer.uninstall", "색인 서비스 제거 (관리자)", () => RunIndexerSetup(install: false));
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
         Add("app.help", "도움말 (사용 설명서)", ShowHelp, Key.F1, inText: true);
+        Add("app.settings", "설정…", ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
         Add("app.about", "Foldy 정보", ShowAbout);
         Add("app.checkUpdate", "업데이트 확인", CheckUpdateNow);
+        ApplyKeyMap();
     }
+
+    /// <summary>keymap.json의 재지정을 명령 단축키에 반영한다. KeyMap이 모르는 명령은 기본값 그대로.</summary>
+    private void ApplyKeyMap()
+    {
+        var known = _keyMap.Commands.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        for (var i = 0; i < _commands.Count; i++)
+        {
+            var c = _commands[i];
+            if (!known.Contains(c.Id) || !_keyMap.IsOverridden(c.Id))
+            {
+                continue;
+            }
+
+            var g = _keyMap.GetGesture(c.Id);
+            if (g is null)
+            {
+                _commands[i] = c with { Key = Key.None, Mods = ModifierKeys.None, Gesture = "" };
+            }
+            else if (Foldy.Presentation.Commands.KeyGesture.TryParse(g, out var kg) && ToWpfKey(kg.Key) is { } k)
+            {
+                var mods = ModifierKeys.None;
+                if (kg.Modifiers.HasFlag(Foldy.Presentation.Commands.GestureModifiers.Ctrl)) mods |= ModifierKeys.Control;
+                if (kg.Modifiers.HasFlag(Foldy.Presentation.Commands.GestureModifiers.Alt)) mods |= ModifierKeys.Alt;
+                if (kg.Modifiers.HasFlag(Foldy.Presentation.Commands.GestureModifiers.Shift)) mods |= ModifierKeys.Shift;
+                if (kg.Modifiers.HasFlag(Foldy.Presentation.Commands.GestureModifiers.Win)) mods |= ModifierKeys.Windows;
+                _commands[i] = c with { Key = k, Mods = mods, Gesture = g };
+            }
+        }
+    }
+
+    internal static Key? ToWpfKey(string name)
+    {
+        if (name.Length == 1 && char.IsAsciiLetterUpper(name[0])) return Enum.Parse<Key>(name);
+        if (name.Length == 1 && char.IsAsciiDigit(name[0])) return Enum.Parse<Key>("D" + name);
+        return name switch
+        {
+            "Enter" => Key.Return, "Escape" => Key.Escape, "Tab" => Key.Tab, "Space" => Key.Space,
+            "Backspace" => Key.Back, "Delete" => Key.Delete, "Insert" => Key.Insert, "Home" => Key.Home,
+            "End" => Key.End, "PageUp" => Key.PageUp, "PageDown" => Key.PageDown,
+            "Up" => Key.Up, "Down" => Key.Down, "Left" => Key.Left, "Right" => Key.Right,
+            "`" => Key.Oem3, "-" => Key.OemMinus, "=" => Key.OemPlus, "[" => Key.OemOpenBrackets,
+            "]" => Key.Oem6, ";" => Key.Oem1, "'" => Key.Oem7, "," => Key.OemComma, "." => Key.OemPeriod,
+            "/" => Key.Oem2, "\\" => Key.Oem5,
+            _ when name.StartsWith('F') && Enum.TryParse<Key>(name, out var f) => f,
+            _ => null,
+        };
+    }
+
+    private void ShowSettings()
+    {
+        var vm = new Foldy.Presentation.Settings.SettingsViewModel(_settings, _keyMap);
+        vm.Applied += (_, e) =>
+        {
+            _settings = e.Settings;
+            SaveSettings();
+            ThemeManager.SetMode(_settings.Theme switch
+            {
+                "light" => FoldyTheme.Light,
+                "dark" => FoldyTheme.Dark,
+                "retro" => FoldyTheme.Retro,
+                _ => FoldyTheme.System,
+            });
+            ThemeManager.SetAccent(_settings.Accent);
+            ApplyDensity();
+            _keyMap = e.KeyMap;
+            try
+            {
+                _keyMap.Save();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Log.Warning(ex, "단축키 저장 실패");
+            }
+
+            _commands.Clear();
+            BuildCommands();
+            _ = Shell.Left.ActiveFolder?.RefreshAsync();
+            _ = Shell.Right.ActiveFolder?.RefreshAsync();
+        };
+        new Foldy.UI.Settings.SettingsWindow(vm) { Owner = this }.ShowDialog();
+    }
+
+    private void OnSettings(object sender, RoutedEventArgs e) => ShowSettings();
 
     private static string Gesture(Key key, ModifierKeys mods)
     {

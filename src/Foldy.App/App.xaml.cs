@@ -51,6 +51,7 @@ public partial class App : Application
         var settings = Foldy.Presentation.Persistence.AppSettings.Migrate(Foldy.Presentation.Persistence.JsonFileStore.Load(Path.Combine(DataDir, "settings.json"), () => new Foldy.Presentation.Persistence.AppSettings()));
         var theme = Options.ThemeGiven ? Options.Theme : Enum.TryParse<Foldy.UI.Theming.FoldyTheme>(settings.Theme, ignoreCase: true, out var t) ? t : Foldy.UI.Theming.FoldyTheme.System;
         Foldy.UI.Theming.ThemeManager.Initialize(this, theme);
+        Foldy.UI.Theming.ThemeManager.SetAccent(settings.Accent);
 
         base.OnStartup(e);
         if (Options.IsBench || Options.Synthetic || Options.ListWpf)
