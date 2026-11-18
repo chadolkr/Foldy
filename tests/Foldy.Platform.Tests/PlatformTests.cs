@@ -105,6 +105,32 @@ public class TerminalTests
     }
 
     [Fact]
+    public void Drive_root_does_not_break_quotes()
+    {
+        var psi = Terminals.Build(@"C:\", ShellKind.WindowsPowerShell, elevated: true, useWindowsTerminal: false);
+        psi.Arguments.Should().Contain(@"Set-Location -LiteralPath 'C:\.'");
+        psi.Arguments.Should().NotContain(@"\'""");
+    }
+
+    [Fact]
+    public void Admin_never_goes_through_windows_terminal()
+    {
+        var psi = Terminals.Build(@"C:\Windows", ShellKind.Cmd, elevated: true, useWindowsTerminal: true);
+        Path.GetFileName(psi.FileName).Should().BeEquivalentTo("cmd.exe");
+        psi.Verb.Should().Be("runas");
+    }
+
+    [Fact]
+    public void Windows_terminal_gets_shell_by_name_and_safe_dir()
+    {
+        var psi = Terminals.Build(@"D:\", ShellKind.Cmd, elevated: false, useWindowsTerminal: true);
+        if (Path.GetFileName(psi.FileName).Equals("wt.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            psi.Arguments.Should().Be("-d \"D:\\.\" cmd.exe");
+        }
+    }
+
+    [Fact]
     public void Normal_local_uses_working_directory()
     {
         var psi = Terminals.Build(@"C:\Windows", ShellKind.Cmd, elevated: false, useWindowsTerminal: false);
