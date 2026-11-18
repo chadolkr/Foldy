@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- GitView(XAML)를 화면 없이 그려 보는 스모크 테스트가 있어 WPF 참조 -->
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Foldy.UI\Foldy.UI.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.Presentation\Foldy.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.Git\Foldy.Git.csproj" />
+  </ItemGroup>
+</Project>
