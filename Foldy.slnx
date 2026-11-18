@@ -44,6 +44,12 @@
     <Project Path="tests/Foldy.Git.Tests/Foldy.Git.Tests.csproj">
       <Platform Project="x64" />
     </Project>
+    <Project Path="tests/Foldy.ImageBench/Foldy.ImageBench.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="tests/Foldy.Imaging.Tests/Foldy.Imaging.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="tests/Foldy.Interop.Tests/Foldy.Interop.Tests.csproj">
       <Platform Project="x64" />
     </Project>

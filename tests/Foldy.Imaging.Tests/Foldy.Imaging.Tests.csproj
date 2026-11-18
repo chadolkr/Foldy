@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 이미지 보기 (설계서 5.12): EXIF 해석, 격자 배치 계산, 캐시 비우기, 클라우드 파일 보호. WPF 시험은 STA 스레드에서. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Foldy.Platform\Foldy.Platform.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.UI\Foldy.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\TestImages.cs" Link="Shared\TestImages.cs" />
+    <!-- UseWPF 프로젝트는 System.IO를 암묵적으로 가져오지 않는다 -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+</Project>
