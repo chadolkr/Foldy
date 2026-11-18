@@ -23,6 +23,79 @@ fn golden_frames() {
     );
     check(
         "status_reply.bin",
-        &encode(MsgType::StatusReply, &StatusReply { state: 2, indexed_entries: 1_234_567, last_usn: -42 }),
+        &encode(
+            MsgType::StatusReply,
+            &StatusReply {
+                state: 2,
+                indexed_entries: 1_234_567,
+                last_usn: -42,
+                progress_permille: 1000,
+                volumes: vec![
+                    VolumeStatus {
+                        volume: "C:".into(),
+                        state: 2,
+                        entries: 1_234_567,
+                        last_usn: -42,
+                        progress_permille: 1000,
+                        message: String::new(),
+                    },
+                    VolumeStatus {
+                        volume: "D:".into(),
+                        state: 0,
+                        entries: 0,
+                        last_usn: 0,
+                        progress_permille: 0,
+                        message: "관리자 권한 필요".into(),
+                    },
+                ],
+            },
+        ),
+    );
+}
+
+#[test]
+fn golden_search_frames() {
+    check(
+        "search.bin",
+        &encode(MsgType::Search, &Search { search_id: 7, query: "보고서.PDF".into(), limit: 500, cursor: 0x0100_0000_0000_1234 }),
+    );
+    check("cancel_search.bin", &encode(MsgType::CancelSearch, &CancelSearch { search_id: 300 }));
+    check(
+        "search_batch.bin",
+        &encode(
+            MsgType::SearchBatch,
+            &SearchBatch {
+                search_id: 7,
+                hits: vec![
+                    SearchHit {
+                        path: r"C:\Users\me\보고서.pdf".into(),
+                        size: 123_456,
+                        alloc_size: 126_976,
+                        mtime: 133_800_000_000_000_000,
+                        is_dir: false,
+                    },
+                    SearchHit { path: r"C:\Docs".into(), size: 1 << 40, alloc_size: 1 << 40, mtime: -1, is_dir: true },
+                ],
+                done: true,
+                status: search_status::OK,
+                next_cursor: 99,
+            },
+        ),
+    );
+    check("folder_sizes.bin", &encode(MsgType::FolderSizes, &FolderSizes { path: r"C:\Users".into() }));
+    check(
+        "folder_sizes_reply.bin",
+        &encode(
+            MsgType::FolderSizesReply,
+            &FolderSizesReply {
+                status: folder_status::OK,
+                total_size: 5100,
+                total_alloc: 12_288,
+                entries: vec![
+                    FolderEntry { name: "a.txt".into(), is_dir: false, size: 100, alloc_size: 4096 },
+                    FolderEntry { name: "하위".into(), is_dir: true, size: 5000, alloc_size: 8192 },
+                ],
+            },
+        ),
     );
 }

@@ -1,6 +1,6 @@
 [package]
 name = "foldy-index"
-description = "Foldy Indexer by David CHA - 디스크 색인 서비스 (M0: 파이프 연결 시험용 콘솔 모드)"
+description = "Foldy Indexer by David CHA - 디스크 색인 서비스 (MFT 색인, 즉시 검색, 폴더 크기)"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -9,8 +9,17 @@ license.workspace = true
 
 [dependencies]
 foldy-proto.workspace = true
+foldy-ntfs.workspace = true
 tokio.workspace = true
-windows-sys = { workspace = true }
+windows-service.workspace = true
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Threading",
+    "Win32_System_ProcessStatus",
+] }
 
 [lints]
 workspace = true

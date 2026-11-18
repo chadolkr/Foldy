@@ -1,113 +1,117 @@
-//! foldy-index: 색인 서비스.
+//! foldy-index: 디스크 색인 서비스 (설계서 5.6, "MFT/USN 기반 디스크 색인", M2).
 //!
-//! M0 범위: Named Pipe 서버로 Hello / Status 에 응답해 C# 클라이언트와의 경계를 검증한다.
-//! Windows 서비스 등록, 파이프 ACL(Interactive 사용자만), MFT 색인은 M2에서 추가한다.
+//! 시작하면 로컬 고정 NTFS 볼륨마다 $MFT를 읽어 메모리 색인을 만들고 USN 저널로 갱신하며,
+//! Named Pipe로 Hello / Status / Search / FolderSizes 에 응답한다. 볼륨을 열 권한이 없으면(관리자 아님)
+//! 로그만 남기고 상태 "not ready"로 응답해 클라이언트가 LocalProvider로 폴백하게 한다.
 //!
-//! 사용법: `foldy-index [--pipe <이름>] [--once]`
-//!   --pipe  파이프 이름 (기본 \\.\pipe\Foldy.Indexer.v1, 테스트는 임의 이름 사용)
-//!   --once  클라이언트 하나를 처리한 뒤 종료 (통합 테스트용)
+//! 사용법:
+//!   foldy-index [--pipe <이름>] [--once] [--no-index] [--volumes C:,D:] [--scan-dir <폴더>]...
+//!   foldy-index --bench C:      MFT 색인 벤치 (관리자 권한 필요)
+//!   foldy-index --service       Windows 서비스로 실행 (서비스 관리자가 띄울 때)
+//!
+//!   --pipe      파이프 이름 (기본 \\.\pipe\Foldy.Indexer.v1, 테스트는 임의 이름 사용)
+//!   --once      클라이언트 하나를 처리한 뒤 종료 (통합 테스트용)
+//!   --no-index  볼륨을 색인하지 않음 (파이프만 시험)
+//!   --volumes   색인할 볼륨 (기본: 모든 로컬 고정 NTFS 볼륨)
+//!   --scan-dir  일반 폴더 열거로 색인 (관리자 권한 없이 검색 시험·폴백용, 여러 번 가능)
 
-use foldy_proto::*;
-use std::io;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
+mod acl;
+mod bench;
+mod query;
+mod server;
+mod service;
+mod state;
 
-struct Args {
-    pipe: String,
+use state::{Indexer, VolumeSlot};
+use std::sync::Arc;
+
+#[derive(Default)]
+pub(crate) struct Args {
+    pipe: Option<String>,
     once: bool,
+    no_index: bool,
+    volumes: Option<Vec<String>>,
+    scan_dirs: Vec<String>,
+    bench: Option<String>,
+    service: bool,
 }
 
 fn parse_args() -> Args {
-    let mut a = Args { pipe: PIPE_NAME.to_string(), once: false };
+    let mut a = Args::default();
     let mut it = std::env::args().skip(1);
     while let Some(x) = it.next() {
         match x.as_str() {
             "--pipe" => {
                 if let Some(v) = it.next() {
-                    a.pipe = if v.starts_with(r"\\.\pipe\") { v } else { format!(r"\\.\pipe\{v}") };
+                    a.pipe = Some(if v.starts_with(r"\\.\pipe\") { v } else { format!(r"\\.\pipe\{v}") });
                 }
             }
             "--once" => a.once = true,
+            "--no-index" => a.no_index = true,
+            "--volumes" => a.volumes = it.next().map(|v| v.split(',').map(|s| s.trim().trim_end_matches('\\').to_uppercase()).filter(|s| !s.is_empty()).collect()),
+            "--scan-dir" => a.scan_dirs.extend(it.next()),
+            "--bench" => a.bench = Some(it.next().unwrap_or_else(|| "C:".into())),
+            "--service" => a.service = true,
             _ => eprintln!("unknown argument: {x}"),
         }
     }
     a
 }
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
-async fn main() -> io::Result<()> {
+/// 색인 대상 슬롯을 만들고 백그라운드 구축을 시작한다.
+pub(crate) fn start_indexer(args: &Args) -> Arc<Indexer> {
+    let mut ix = Indexer::default();
+    let mut ntfs = Vec::new();
+    for d in &args.scan_dirs {
+        ix.volumes.push(Arc::new(VolumeSlot::new(d.trim_end_matches(['\\', '/']))));
+    }
+    if !args.no_index {
+        let vols = args.volumes.clone().unwrap_or_else(foldy_ntfs::volume::ntfs_fixed_volumes);
+        for v in vols {
+            let slot = Arc::new(VolumeSlot::new(v));
+            ntfs.push(slot.clone());
+            ix.volumes.push(slot);
+        }
+    }
+    let ix = Arc::new(ix);
+    for slot in &ix.volumes {
+        if ntfs.iter().any(|n| Arc::ptr_eq(n, slot)) {
+            state::start_ntfs(slot.clone(), ix.clone());
+        } else {
+            state::start_dir_scan(slot.clone());
+        }
+    }
+    ix
+}
+
+fn main() {
     let args = parse_args();
-    let mut server = ServerOptions::new().first_pipe_instance(true).create(&args.pipe)?;
-    println!("READY {}", args.pipe);
-
-    loop {
-        server.connect().await?;
-        let client = server;
-        // 다음 클라이언트를 받을 인스턴스를 먼저 만든다.
-        server = ServerOptions::new().create(&args.pipe)?;
-        let handle = tokio::spawn(async move {
-            if let Err(e) = serve(client).await {
-                eprintln!("client error: {e}");
-            }
-        });
-        if args.once {
-            let _ = handle.await;
-            return Ok(());
+    if let Some(v) = &args.bench {
+        std::process::exit(bench::run(v));
+    }
+    if args.service {
+        if let Err(e) = service::run() {
+            eprintln!("서비스 관리자에 연결할 수 없음 (콘솔에서는 --service 없이 실행): {e}");
+            std::process::exit(1);
         }
+        return;
     }
-}
-
-async fn serve(mut pipe: NamedPipeServer) -> io::Result<()> {
-    let mut header = [0u8; HEADER_LEN];
-    loop {
-        match pipe.read_exact(&mut header).await {
-            Ok(_) => {}
-            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => return Ok(()),
-            Err(e) => return Err(e),
-        }
-        let reply = match decode_header(&header) {
-            Ok((len, ty)) => {
-                let mut body = vec![0u8; len];
-                pipe.read_exact(&mut body).await?;
-                handle(ty, &body)
-            }
-            Err(e) => {
-                // 헤더가 깨졌으면 스트림 동기화가 불가능하므로 오류를 보내고 연결을 끊는다.
-                let f = encode(MsgType::Error, &ErrorReply { code: 1, message: e.to_string() });
-                pipe.write_all(&f).await?;
-                return Ok(());
-            }
-        };
-        pipe.write_all(&reply).await?;
+    let indexer = start_indexer(&args);
+    let pipe = args.pipe.clone().unwrap_or_else(|| foldy_proto::PIPE_NAME.to_string());
+    let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().expect("tokio runtime");
+    let r = rt.block_on(server::run(&pipe, args.once, indexer.clone(), async {
+        let _ = tokio::signal::ctrl_c().await;
+    }));
+    indexer.shutdown.store(true, std::sync::atomic::Ordering::Relaxed);
+    if let Err(e) = r {
+        eprintln!("pipe server error: {e}");
+        std::process::exit(1);
     }
-}
-
-fn handle(ty: MsgType, body: &[u8]) -> Vec<u8> {
-    match ty {
-        MsgType::Hello => match decode_body::<Hello>(body) {
-            Ok(h) if h.protocol == PROTOCOL_VERSION => encode(
-                MsgType::HelloReply,
-                &HelloReply {
-                    protocol: PROTOCOL_VERSION,
-                    service_version: env!("CARGO_PKG_VERSION").to_string(),
-                    volumes: volumes(),
-                },
-            ),
-            Ok(h) => err(2, &format!("protocol mismatch: client {} != service {}", h.protocol, PROTOCOL_VERSION)),
-            Err(e) => err(1, &e.to_string()),
-        },
-        MsgType::Status => encode(MsgType::StatusReply, &StatusReply { state: 0, indexed_entries: 0, last_usn: 0 }),
-        other => err(3, &format!("unsupported request: {other:?}")),
-    }
-}
-
-fn err(code: u32, message: &str) -> Vec<u8> {
-    encode(MsgType::Error, &ErrorReply { code, message: message.to_string() })
 }
 
 /// 드라이브 문자 목록. GetLogicalDrives는 디스크에 접근하지 않으므로
-/// 끊긴 네트워크 드라이브가 있어도 막히지 않는다. (색인 대상 판정은 M2)
-fn volumes() -> Vec<String> {
+/// 끊긴 네트워크 드라이브가 있어도 막히지 않는다.
+pub(crate) fn volumes() -> Vec<String> {
     // SAFETY: 인자가 없고 비트마스크만 반환하는 Win32 함수.
     let mask = unsafe { windows_sys::Win32::Storage::FileSystem::GetLogicalDrives() };
     (0..26u8).filter(|i| mask & (1 << i) != 0).map(|i| format!("{}:", (b'A' + i) as char)).collect()
