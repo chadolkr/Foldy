@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -168,8 +169,8 @@ public partial class ShellWindow : Window, IPaneHost
         RefreshDrives();
         if (!App.Options.IsBench && App.Options.Screenshot is null)
         {
-            await UseServiceUpdaterAsync();
             _updater.Start(TimeSpan.FromSeconds(5)); // 실행 5초 뒤 + 6시간마다 (짧게 켰다 꺼도 확인되게)
+            _ = UseServiceUpdaterAsync(); // 서비스를 쓸 수 있으면 UAC 없는 쪽으로 바꾼다
         }
 
         await ProbeEnginesAsync();
@@ -188,19 +189,46 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>색인 서비스가 업데이트를 지원하면 그쪽(UAC 없음)으로 바꾸고 정상 시작을 알린다. 아니면 AppUpdater(UAC) 유지.</summary>
     private async Task UseServiceUpdaterAsync()
     {
-        var svc = await ServiceUpdater.TryCreateAsync();
+        // 시작 직후에는 색인 연결과 겹쳐 파이프가 바쁠 수 있다. 몇 번 다시 시도하고, 그래도 안 되면 5분마다 다시 본다.
+        ServiceUpdater? svc = null;
+        for (var i = 0; i < 4 && svc is null; i++)
+        {
+            if (i > 0)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(3));
+            }
+
+            svc = await ServiceUpdater.TryCreateAsync(timeout: TimeSpan.FromSeconds(3));
+        }
+
         if (svc is null)
         {
+            Log.Information("색인 서비스 업데이트에 연결하지 못해 직접 확인 방식(관리자 권한)으로 둔다. 5분 뒤 다시 시도");
+            _serviceRetry ??= new DispatcherTimer(TimeSpan.FromMinutes(5), DispatcherPriority.Background, async (_, _) =>
+            {
+                if (_updater is not ServiceUpdater)
+                {
+                    await UseServiceUpdaterAsync();
+                }
+            }, Dispatcher);
+            _serviceRetry.Start();
             return;
         }
+
+        _serviceRetry?.Stop();
+        Log.Information("색인 서비스 업데이트 사용 (UAC 없음)");
 
         _updater.Changed -= OnUpdaterChanged;
         _updater.Dispose();
         _updater = svc;
         _updater.Changed += OnUpdaterChanged;
         await svc.ReportStartedAsync(AppVersion);
+        _updater.Start(TimeSpan.FromSeconds(5));
+
         UpdateUpdateButton();
     }
+
+    private DispatcherTimer? _serviceRetry;
 
     /// <summary>검증용 화면 캡처 (--screenshot 경로).</summary>
     private void SaveScreenshot(string path)
@@ -476,6 +504,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
         Add("app.help", "도움말 (사용 설명서)", ShowHelp, Key.F1, inText: true);
         Add("app.settings", "설정…", ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
+        Add("app.reportBug", "버그 신고…", App.OpenBugReport);
         Add("app.about", "Foldy 정보", ShowAbout);
         Add("app.checkUpdate", "업데이트 확인", CheckUpdateNow);
         ApplyKeyMap();
@@ -986,6 +1015,19 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnFnPreview(object sender, RoutedEventArgs e) => ActiveView.TogglePreview();
 
     private void OnHelp(object sender, RoutedEventArgs e) => ShowHelp();
+
+    private void OnReportBug(object sender, RoutedEventArgs e) => App.OpenBugReport();
+
+    /// <summary>오류 보고서 자동 보내기 동의 (설정의 SendCrashReports).</summary>
+    public bool AutoSendReports
+    {
+        get => _settings.SendCrashReports;
+        set
+        {
+            _settings = _settings with { SendCrashReports = value };
+            SaveSettings();
+        }
+    }
 
     /// <summary>설명서(help\*.md)를 버전을 채워 %LOCALAPPDATA%\Foldy\help에 펼치고 Markdown 탭으로 연다.</summary>
     private void ShowHelp()
