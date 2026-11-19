@@ -60,7 +60,16 @@ public partial class ShellWindow : Window, IPaneHost
         InitializeComponent();
         _settings = AppSettings.Migrate(JsonFileStore.Load(_settingsPath, () => new AppSettings()));
         _queues = new DriveQueueRegistry(nativeIo: new NativeIoCancel(Foldy.Platform.SystemInfo.Drives.CurrentNativeThreadId, id => Foldy.Platform.SystemInfo.Drives.CancelSynchronousIo(id)));
-        _provider = new LocalProvider(_queues);
+        _provider = new LocalProvider(_queues)
+        {
+            // 네트워크 드라이브(예: 회사 보안 드라이브 K:)가 일반 API로 비어 보이면 탐색기와 같은 셸 경로로 읽는다
+            UseShellFallback = p => p.Length >= 2 && p[1] == ':' && Foldy.Platform.SystemInfo.Drives.TypeOf(p[..2] + "\\") == Foldy.Platform.SystemInfo.NativeDriveType.Remote,
+            ShellFallback = (p, ct) => Foldy.Platform.Shell.ShellListing.List(p, TimeSpan.FromSeconds(15), ct)?
+                .Select(e => new Foldy.Core.FileSystem.FsEntry(e.Name, Foldy.Core.FileSystem.FsPath.Local(e.Path),
+                    e.IsFolder ? Foldy.Core.FileSystem.FsKind.Folder : Foldy.Core.FileSystem.FsKind.File, e.Size, null, e.ModifiedUtc, e.ModifiedUtc,
+                    e.IsFolder ? FileAttributes.Directory : FileAttributes.Normal, null))
+                .ToList(),
+        };
         _drives = new DriveService(_queues);
         var ui = new WpfDispatcher(Dispatcher);
         _sftp = new SftpSessions();
