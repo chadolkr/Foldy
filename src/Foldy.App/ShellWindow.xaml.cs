@@ -125,6 +125,14 @@ public partial class ShellWindow : Window, IPaneHost
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
         ApplyDensity();
         ApplyUiScale();
+        // Windows의 텍스트 크기를 바꾸면 바로 따라간다 (직접 고른 배율이 없을 때)
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => Dispatcher.BeginInvoke(() =>
+        {
+            if (_settings.UiScale <= 0)
+            {
+                ApplyUiScale();
+            }
+        });
         ThemeManager.Attach(this);
 
         var session = JsonFileStore.Load(_sessionPath, () => new SessionState());
@@ -914,7 +922,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
         Add("view.zoomIn", "화면 크게 (글씨·버튼)", () => StepUiScale(1), Key.OemPlus, ModifierKeys.Control, "Ctrl+=");
         Add("view.zoomOut", "화면 작게", () => StepUiScale(-1), Key.OemMinus, ModifierKeys.Control, "Ctrl+-");
-        Add("view.zoomReset", "화면 크기 보통으로", () => SetUiScale(1.0), Key.D0, ModifierKeys.Control, "Ctrl+0");
+        Add("view.zoomReset", "화면 크기: Windows 설정 따르기", () => SetUiScale(0), Key.D0, ModifierKeys.Control, "Ctrl+0");
         Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.ToggleTree(), Key.B, ModifierKeys.Control);
         Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
         Add("sidebar.pin", "지금 폴더를 자주 쓰는 폴더에 고정/해제", TogglePinCurrent);
@@ -1361,28 +1369,45 @@ public partial class ShellWindow : Window, IPaneHost
         ApplyDensity();
     }
 
-    private static readonly double[] Scales = [1.0, 1.15, 1.3, 1.5];
+    private static readonly double[] Scales = [1.0, 1.15, 1.3, 1.5, 1.75, 2.0];
+
+    /// <summary>Windows 접근성의 "텍스트 크기" (100~225%). WPF는 이 값을 스스로 따르지 않아 시작할 때 읽는다.</summary>
+    private static double WindowsTextScale()
+    {
+        try
+        {
+            using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Accessibility");
+            return k?.GetValue("TextScaleFactor") is int v && v is >= 100 and <= 225 ? v / 100.0 : 1.0;
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
+        {
+            return 1.0;
+        }
+    }
+
+    private double EffectiveUiScale => _settings.UiScale > 0 ? _settings.UiScale : WindowsTextScale();
 
     /// <summary>화면 크기 (Ctrl+= 크게, Ctrl+- 작게, Ctrl+0 보통). 창 전체를 같은 배율로 키워 글씨·버튼이 함께 커진다.</summary>
+    /// <summary>0이면 Windows 설정 따르기로 돌아간다.</summary>
     private void SetUiScale(double scale)
     {
-        scale = Math.Clamp(scale, Scales[0], Scales[^1]);
+        scale = scale <= 0 ? 0 : Math.Clamp(scale, Scales[0], Scales[^1]);
         _settings = _settings with { UiScale = scale };
         SaveSettings();
         ApplyUiScale();
-        Shell.Status = $"화면 크기 {scale * 100:0}%";
+        Shell.Status = scale <= 0 ? $"화면 크기: Windows 설정 따르기 ({EffectiveUiScale * 100:0}%)" : $"화면 크기 {scale * 100:0}%";
     }
 
     private void StepUiScale(int dir)
     {
-        var i = Array.FindIndex(Scales, s => Math.Abs(s - _settings.UiScale) < 0.01);
-        i = i < 0 ? 0 : Math.Clamp(i + dir, 0, Scales.Length - 1);
-        SetUiScale(Scales[i]);
+        var now = EffectiveUiScale;
+        var next = dir > 0 ? Scales.FirstOrDefault(s => s > now + 0.01, Scales[^1]) : Scales.LastOrDefault(s => s < now - 0.01, Scales[0]);
+        SetUiScale(next);
     }
 
     private void ApplyUiScale()
     {
-        App.UiScale = _settings.UiScale;
+        App.UiScale = EffectiveUiScale;
         App.ApplyScale(this);
     }
 
