@@ -41,6 +41,10 @@
           <Setter TargetName="TabRoot" Property="Opacity" Value="0.9" />
           <Setter TargetName="CloseBtn" Property="Opacity" Value="1" />
         </Trigger>
+        <Trigger SourceName="CloseBtn" Property="IsKeyboardFocused" Value="True">
+          <Setter TargetName="TabRoot" Property="Opacity" Value="0.9" />
+          <Setter TargetName="CloseBtn" Property="Opacity" Value="1" />
+        </Trigger>
       </DataTemplate.Triggers>
     </DataTemplate>
 

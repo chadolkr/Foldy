@@ -669,6 +669,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("file.rename", "이름 바꾸기", () => ActiveView.BeginRename(), gesture: "F2");
         Add("file.delete", "휴지통으로 삭제", () => _ = Shell.DeleteSelectionAsync(false), gesture: "Del");
         Add("file.deletePermanent", "영구 삭제", () => _ = Shell.DeleteSelectionAsync(true), gesture: "Shift+Del");
+        Add("sidebar.focus", "사이드바로 포커스 이동 (Tab으로 둘러보고 Esc로 목록 복귀)", FocusSidebar, Key.E, ModifierKeys.Control | ModifierKeys.Shift);
         Add("pane.switch", "다른 패널로 이동", () => { Shell.SwitchPane(); ActiveView.FocusList(); }, Key.Tab);
         Add("tab.new", "새 탭", () => ActiveView.NewTab(), Key.T, ModifierKeys.Control);
         Add("tab.close", "탭 닫기", () => { if (Shell.ActivePane.ActiveTab is { } t) Shell.ActivePane.CloseTab(t); }, Key.W, ModifierKeys.Control);
@@ -808,11 +809,40 @@ public partial class ShellWindow : Window, IPaneHost
         return string.Join("+", parts);
     }
 
+    private void FocusSidebar()
+    {
+        // 첫 번째 사이드바 버튼(접기/펼치기)으로 포커스를 옮긴다. 거기서 Tab/Shift+Tab, Enter, Esc(목록으로 복귀).
+        if (Sidebar.Visibility == Visibility.Visible && Sidebar.MoveFocus(new TraversalRequest(FocusNavigationDirection.First)))
+        {
+            return;
+        }
+
+        Sidebar.Focus();
+    }
+
     private void OnWindowKeyDown(object sender, KeyEventArgs e)
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         var mods = Keyboard.Modifiers;
         var inText = Keyboard.FocusedElement is TextBox;
+
+        // 키보드 접근성: 사이드바·도구 줄의 버튼에 포커스가 있을 때는 Tab·Del·F2를 파일 목록 전용으로 가로채지 않는다.
+        // (Tab이 늘 "다른 패널로 이동"이면 버튼에 키보드로 들어갈 수도, 지나갈 수도 없다.)
+        if (Keyboard.FocusedElement is System.Windows.Controls.Primitives.ButtonBase)
+        {
+            if (mods == ModifierKeys.None && key == Key.Escape)
+            {
+                ActiveView.FocusList(); // Esc: 버튼에서 파일 목록으로 돌아간다
+                e.Handled = true;
+                return;
+            }
+
+            if ((key is Key.Tab or Key.Delete or Key.F2) && (mods & ModifierKeys.Control) == 0)
+            {
+                return;
+            }
+        }
+
         foreach (var c in _commands)
         {
             if (c.Key == key && c.Mods == mods && (!inText || c.AllowInText))

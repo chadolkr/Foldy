@@ -13,13 +13,19 @@ public partial class App : Application
     private Foldy.Platform.SystemInfo.SingleInstance? _instance;
 
     public static string DataDir { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Foldy");
+        Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 } over // 성능 측정이 사용자 설정·세션을 건드리지 않게 (build/perf-check.ps1)
+            ? over
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Foldy");
 
     public static AppOptions Options { get; private set; } = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
         Options = AppOptions.Parse(e.Args);
+        if (Environment.GetEnvironmentVariable("FOLDY_SOFTWARE_RENDER") == "1")
+        {
+            System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+        }
         Foldy.UI.Controls.FileListView.LightweightAutomation = !Options.FullAutomation;
 
         Log.Logger = new LoggerConfiguration()
@@ -80,7 +86,7 @@ public partial class App : Application
         Foldy.UI.Theming.ThemeManager.SetAccent(settings.Accent);
 
         base.OnStartup(e);
-        if (Options.IsBench || Options.Synthetic || Options.ListWpf)
+        if (!Options.BenchShell && (Options.IsBench || Options.Synthetic || Options.ListWpf))
         {
             new BenchWindow().Show();
         }
@@ -88,6 +94,10 @@ public partial class App : Application
         {
             var main = new ShellWindow();
             main.Show();
+            if (Options.BenchShell)
+            {
+                _ = main.RunBenchAsync(Options);
+            }
             _instance?.StartServer(args => Dispatcher.BeginInvoke(() => main.ActivateFromOtherInstance(args)));
             CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
         }

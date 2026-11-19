@@ -7,20 +7,20 @@
   <SolidColorBrush x:Key="Brush.Border" Color="#E3E3E6" />
   <SolidColorBrush x:Key="Brush.BorderStrong" Color="#CFCFD4" />
   <SolidColorBrush x:Key="Brush.Text" Color="#1C1C1F" />
-  <SolidColorBrush x:Key="Brush.TextSecondary" Color="#6B6B73" />
+  <SolidColorBrush x:Key="Brush.TextSecondary" Color="#5E5E66" />
   <SolidColorBrush x:Key="Brush.TextDisabled" Color="#A8A8AF" />
   <SolidColorBrush x:Key="Brush.Hover" Color="#F0F0F2" />
   <SolidColorBrush x:Key="Brush.Pressed" Color="#E6E6E9" />
   <SolidColorBrush x:Key="Brush.Selection" Color="#FFEBD3" />
   <SolidColorBrush x:Key="Brush.SelectionText" Color="#1C1C1F" />
   <SolidColorBrush x:Key="Brush.Accent" Color="#F28C1B" />
-  <SolidColorBrush x:Key="Brush.AccentText" Color="#FFFFFF" />
-  <SolidColorBrush x:Key="Brush.Focus" Color="#F28C1B" />
+  <SolidColorBrush x:Key="Brush.AccentText" Color="#1C1C1F" />
+  <SolidColorBrush x:Key="Brush.Focus" Color="#A65300" />
   <SolidColorBrush x:Key="Brush.Progress" Color="#F28C1B" />
   <SolidColorBrush x:Key="Brush.ScrollThumb" Color="#C4C4CA" />
   <SolidColorBrush x:Key="Brush.ScrollThumbHover" Color="#9C9CA4" />
   <SolidColorBrush x:Key="Brush.Error" Color="#C42B1C" />
-  <SolidColorBrush x:Key="Brush.Done" Color="#0F7B0F" />
+  <SolidColorBrush x:Key="Brush.Done" Color="#0B6B0B" />
   <!-- OneNote 스타일 탭 색 (탭마다 다른 색) -->
   <SolidColorBrush x:Key="Brush.Tab0" Color="#D6E6FF" />
   <SolidColorBrush x:Key="Brush.Tab1" Color="#FFE0C2" />

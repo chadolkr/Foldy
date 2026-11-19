@@ -313,7 +313,7 @@
       <!-- 트리맵 + 브레드크럼 -->
       <DockPanel Grid.Column="0" Margin="8,6,0,8">
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
-          <Button DockPanel.Dock="Left" Style="{StaticResource An.Crumb}" Command="{Binding UpCommand}" ToolTip="위로 (Backspace, 오른쪽 클릭)"
+          <Button DockPanel.Dock="Left" Style="{StaticResource An.Crumb}" Command="{Binding UpCommand}" ToolTip="위로 (Backspace, 오른쪽 클릭)" AutomationProperties.Name="위로"
                   FontFamily="{DynamicResource Font.Icon}" Content="&#xE74A;" />
           <ItemsControl ItemsSource="{Binding Breadcrumb}" VerticalAlignment="Center">
             <ItemsControl.ItemsPanel>

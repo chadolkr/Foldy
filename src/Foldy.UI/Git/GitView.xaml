@@ -566,7 +566,7 @@
     <Border Grid.Row="0" Style="{DynamicResource Foldy.CommandBar}">
       <StackPanel Orientation="Horizontal">
         <!-- 현재 브랜치: 누르면 다른 브랜치로 바꾸거나 새로 만든다 -->
-        <Button x:Name="BranchBtn" Style="{StaticResource Git.ChipBtn}" Click="OnBranchMenu" IsEnabled="{Binding IsIdle}" Padding="10,0" Margin="0,0,8,0"
+        <Button x:Name="BranchBtn" Style="{StaticResource Git.ChipBtn}" Click="OnBranchMenu" IsEnabled="{Binding IsIdle}" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="{Binding BranchName, StringFormat=브랜치 {0}}"
                 ToolTip="지금 있는 브랜치입니다. 눌러서 다른 브랜치로 바꾸거나 새 브랜치를 만듭니다.">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE8A1;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Accent}" Margin="0,1,6,0" VerticalAlignment="Center" />
@@ -579,33 +579,33 @@
         <TextBlock Text="{Binding ChangeCountText}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,6,0" />
         <Rectangle Style="{StaticResource Git.Divider}" />
 
-        <Button Style="{StaticResource Git.Btn}" Command="{Binding FetchCommand}" IsEnabled="{Binding IsIdle}"
+        <Button Style="{StaticResource Git.Btn}" AutomationProperties.Name="가져오기" Command="{Binding FetchCommand}" IsEnabled="{Binding IsIdle}"
                 ToolTip="가져오기: 원격 저장소에 새 소식이 있는지만 확인합니다. 내 파일은 바뀌지 않습니다.">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE895;" FontFamily="{DynamicResource Font.Icon}" Margin="0,0,6,0" VerticalAlignment="Center" />
             <TextBlock Text="가져오기" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
-        <Button Style="{StaticResource Git.Btn}" Command="{Binding PullMergeCommand}" IsEnabled="{Binding IsIdle}" Margin="1,0,0,0"
+        <Button Style="{StaticResource Git.Btn}" AutomationProperties.Name="받기" Command="{Binding PullMergeCommand}" IsEnabled="{Binding IsIdle}" Margin="1,0,0,0"
                 ToolTip="받기: 원격 저장소의 새 커밋을 내 브랜치로 받아 합칩니다.">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE896;" FontFamily="{DynamicResource Font.Icon}" Margin="0,0,6,0" VerticalAlignment="Center" />
             <TextBlock Text="받기" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
-        <Button x:Name="PullBtn" Style="{StaticResource Git.Btn}" Content="&#xE70D;" FontFamily="{DynamicResource Font.Icon}" FontSize="9" Padding="4,0" Margin="0,0,1,0"
+        <Button x:Name="PullBtn" AutomationProperties.Name="받는 방식 고르기" Style="{StaticResource Git.Btn}" Content="&#xE70D;" FontFamily="{DynamicResource Font.Icon}" FontSize="9" Padding="4,0" Margin="0,0,1,0"
                 Click="OnPullMenu" IsEnabled="{Binding IsIdle}" ToolTip="받는 방식 고르기 (합치기 / 리베이스)" />
-        <Button Style="{StaticResource Git.Btn}" Command="{Binding PushCommand}" IsEnabled="{Binding IsIdle}" Margin="1,0,0,0"
+        <Button Style="{StaticResource Git.Btn}" AutomationProperties.Name="올리기" Command="{Binding PushCommand}" IsEnabled="{Binding IsIdle}" Margin="1,0,0,0"
                 ToolTip="올리기: 내 커밋을 원격 저장소로 보냅니다. 다른 사람과 공유됩니다.">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE898;" FontFamily="{DynamicResource Font.Icon}" Margin="0,0,6,0" VerticalAlignment="Center" />
             <TextBlock Text="올리기" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
-        <Button x:Name="PushMoreBtn" Style="{StaticResource Git.Btn}" Content="&#xE70D;" FontFamily="{DynamicResource Font.Icon}" FontSize="9" Padding="4,0" Margin="0,0,1,0"
+        <Button x:Name="PushMoreBtn" AutomationProperties.Name="올리기 옵션" Style="{StaticResource Git.Btn}" Content="&#xE70D;" FontFamily="{DynamicResource Font.Icon}" FontSize="9" Padding="4,0" Margin="0,0,1,0"
                 Click="OnPushMenu" IsEnabled="{Binding IsIdle}" ToolTip="강제로 올리기 등 (신중하게)" />
         <Rectangle Style="{StaticResource Git.Divider}" />
-        <Button x:Name="StashBtn" Style="{StaticResource Git.Btn}" Click="OnStashMenu" IsEnabled="{Binding IsIdle}"
+        <Button x:Name="StashBtn" AutomationProperties.Name="임시 보관" Style="{StaticResource Git.Btn}" Click="OnStashMenu" IsEnabled="{Binding IsIdle}"
                 ToolTip="임시 보관: 지금 고치던 내용을 잠깐 치워 두었다가 나중에 다시 꺼냅니다.">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE7B8;" FontFamily="{DynamicResource Font.Icon}" Margin="0,0,6,0" VerticalAlignment="Center" />

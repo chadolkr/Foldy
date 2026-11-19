@@ -23,8 +23,8 @@
   <SolidColorBrush x:Key="Brush.Progress" Color="#000080" />
   <SolidColorBrush x:Key="Brush.ScrollThumb" Color="#C0C0C0" />
   <SolidColorBrush x:Key="Brush.ScrollThumbHover" Color="#A0A0A0" />
-  <SolidColorBrush x:Key="Brush.Error" Color="#C00000" />
-  <SolidColorBrush x:Key="Brush.Done" Color="#008000" />
+  <SolidColorBrush x:Key="Brush.Error" Color="#900000" />
+  <SolidColorBrush x:Key="Brush.Done" Color="#005000" />
   <SolidColorBrush x:Key="Brush.Highlight" Color="#FFFFFF" />
   <SolidColorBrush x:Key="Brush.Shadow" Color="#808080" />
   <SolidColorBrush x:Key="Brush.DarkShadow" Color="#000000" />
@@ -49,7 +49,11 @@
       <Border x:Name="Hi" BorderBrush="{DynamicResource Brush.Highlight}" BorderThickness="1,1,0,0">
         <Border x:Name="Sh" BorderBrush="{DynamicResource Brush.Shadow}" BorderThickness="0,0,1,1"
                 Background="{DynamicResource Brush.Surface}" Padding="{TemplateBinding Padding}">
-          <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+          <Grid>
+            <!-- 키보드 포커스 표시: 클래식 점선 사각형 (WCAG 2.4.7) -->
+            <Rectangle x:Name="FocusRect" Margin="-2" Stroke="{DynamicResource Brush.Focus}" StrokeDashArray="1 2" StrokeThickness="1" Visibility="Collapsed" SnapsToDevicePixels="True" />
+            <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+          </Grid>
         </Border>
       </Border>
     </Border>
@@ -82,6 +86,7 @@
   </Style>
 
   <Style x:Key="Foldy.ToolButton" TargetType="Button">
+    <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
     <Setter Property="FontFamily" Value="{DynamicResource Font.Icon}" />
     <Setter Property="FontSize" Value="13" />

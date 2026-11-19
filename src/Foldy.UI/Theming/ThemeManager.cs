@@ -33,6 +33,9 @@ public static class ThemeManager
     /// <summary>실제로 적용된 모양이 어두운지 (System이면 Windows 설정에 따름).</summary>
     public static bool IsDark { get; private set; }
 
+    /// <summary>Windows 고대비 모드가 켜져 있어 시스템 색으로 그리는 중인가 (테마 선택보다 우선).</summary>
+    public static bool IsHighContrast { get; private set; }
+
     public static event Action? Changed;
 
     public static void Initialize(Application app, FoldyTheme mode)
@@ -89,7 +92,8 @@ public static class ThemeManager
             _app?.Dispatcher.BeginInvoke(() =>
             {
                 var accentChanged = UseWindowsAccent && AccentColor.ReadWindowsAccent() != _appliedAccent;
-                if ((Mode == FoldyTheme.System && SystemTheme.AppsUseDarkTheme() != IsDark) || accentChanged)
+                if ((Mode == FoldyTheme.System && SystemTheme.AppsUseDarkTheme() != IsDark) || accentChanged || HighContrastTheme.IsActive != IsHighContrast
+                    || (IsHighContrast && e.Category == UserPreferenceCategory.Color))
                 {
                     Apply();
                 }
@@ -110,6 +114,12 @@ public static class ThemeManager
             FoldyTheme.Light or FoldyTheme.Retro => false,
             _ => SystemTheme.AppsUseDarkTheme(),
         };
+        var highContrast = HighContrastTheme.IsActive;
+        IsHighContrast = highContrast;
+        if (highContrast)
+        {
+            dark = (SystemColors.WindowColor.R + SystemColors.WindowColor.G + SystemColors.WindowColor.B) < 3 * 128; // 제목 표시줄 색 방향
+        }
         IsDark = dark;
 
         var dicts = new List<ResourceDictionary>
@@ -117,13 +127,18 @@ public static class ThemeManager
             new() { Source = dark ? DarkUri : LightUri },
             new() { Source = ControlsUri },
         };
-        if (Mode == FoldyTheme.Retro)
+        if (Mode == FoldyTheme.Retro && !highContrast)
         {
             dicts.Add(new ResourceDictionary { Source = RetroUri });
         }
 
         _appliedAccent = null;
-        if (UseWindowsAccent && Mode != FoldyTheme.Retro && AccentColor.ReadWindowsAccent() is { } accent)
+        if (highContrast)
+        {
+            // 고대비: 모든 색 토큰을 시스템 색으로 덮어쓴다 (테마·강조색 선택보다 우선, WCAG 1.4.3 / 사용자 설정 존중)
+            dicts.Add(HighContrastTheme.CreateOverrides());
+        }
+        else if (UseWindowsAccent && Mode != FoldyTheme.Retro && AccentColor.ReadWindowsAccent() is { } accent)
         {
             _appliedAccent = accent;
             dicts.Add(AccentColor.CreateOverrides(accent, dark));

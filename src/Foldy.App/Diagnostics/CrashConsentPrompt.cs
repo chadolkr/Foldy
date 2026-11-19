@@ -91,9 +91,9 @@ internal static class CrashConsentPrompt
             MaxWidth = 440,
         };
 
-        Button Make(string label, Choice c, bool isDefault = false)
+        Button Make(string label, Choice c, bool isDefault = false, bool isCancel = false)
         {
-            var b = new Button { Content = label, MinWidth = 90, Margin = new Thickness(8, 0, 0, 0), Padding = new Thickness(10, 3, 10, 3), IsDefault = isDefault };
+            var b = new Button { Content = label, MinWidth = 90, Margin = new Thickness(8, 0, 0, 0), Padding = new Thickness(10, 3, 10, 3), IsDefault = isDefault, IsCancel = isCancel };
             b.Click += (_, _) => { result = c; win.Close(); };
             return b;
         }
@@ -101,7 +101,7 @@ internal static class CrashConsentPrompt
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
         buttons.Children.Add(Make("항상 자동으로 보내기", Choice.Always, isDefault: true));
         buttons.Children.Add(Make("이번만 보내기", Choice.Once));
-        buttons.Children.Add(Make("보내지 않기", Choice.Never));
+        buttons.Children.Add(Make("보내지 않기", Choice.Never, isCancel: true)); // Esc = 보내지 않기 (가장 안전한 쪽)
         var panel = new StackPanel { Margin = new Thickness(16) };
         panel.Children.Add(text);
         panel.Children.Add(buttons);
