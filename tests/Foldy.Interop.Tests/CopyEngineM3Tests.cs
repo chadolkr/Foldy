@@ -343,6 +343,46 @@ public sealed class CopyEngineM3Tests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task Adapter_reads_thread_setting_at_each_job()
+    {
+        var engine = new CapturingEngine();
+        var threads = 0;
+        var svc = new NativeCopyFileOperationService(new FakeFileOps(), engine, new NativeCopyFileOperationOptions
+        {
+            JournalDirectory = null,
+            ThreadsProvider = () => threads,
+        });
+
+        await svc.CopyAsync([@"C:\a"], @"C:\b", null, CancellationToken.None);
+        threads = 6; // 설정 창에서 바꿈
+        await svc.CopyAsync([@"C:\a"], @"C:\b", null, CancellationToken.None);
+        threads = 500;
+        await svc.CopyAsync([@"C:\a"], @"C:\b", null, CancellationToken.None);
+        threads = -3;
+        await svc.CopyAsync([@"C:\a"], @"C:\b", null, CancellationToken.None);
+
+        engine.Specs.Select(s => s.Threads).Should().Equal(0u, 6u, 64u, 0u);
+    }
+
+    /// <summary>받은 CopySpec만 기록하고 작업은 만들지 않는다 (어댑터가 실패로 돌려준다).</summary>
+    private sealed class CapturingEngine : ICopyEngine
+    {
+        public List<CopySpec> Specs { get; } = [];
+
+        public bool IsAvailable => true;
+
+        public string? UnavailableReason => null;
+
+        public ICopyJob CreateJob(CopySpec spec)
+        {
+            Specs.Add(spec);
+            throw new NativeCopyException(-1, "시험");
+        }
+
+        public ICopyJob ResumeFromJournal(string journalPath) => throw new InvalidOperationException();
+    }
+
     private sealed class UnavailableEngine : ICopyEngine
     {
         public bool IsAvailable => false;
