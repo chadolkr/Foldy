@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "design-assets",
+  "name": "디자인·창작 자산",
+  "badge": "디자인",
+  "category": "미디어·창작",
+  "description": "원본, 작업, 내보내기, 참고로 나누는 디자인·영상·음악 작업 구조",
+  "purposes": [
+    "media"
+  ],
+  "variables": [
+    {
+      "key": "작업",
+      "label": "작업 이름 (폴더 이름)",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{작업}}",
+      "children": [
+        {
+          "name": "원본",
+          "nameEn": "source"
+        },
+        {
+          "name": "작업",
+          "nameEn": "work"
+        },
+        {
+          "name": "내보내기",
+          "nameEn": "export"
+        },
+        {
+          "name": "참고",
+          "nameEn": "reference"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "작업명_내용_v버전.확장자. 내보내기는 작업명_용도_크기",
+      "examples": [
+        "로고_메인_v3.ai",
+        "로고_웹_512.png"
+      ]
+    },
+    {
+      "folder": "{{작업}}/내보내기",
+      "pattern": "작업명_용도_크기.확장자",
+      "examples": [
+        "로고_웹_512.png"
+      ],
+      "regex": "^.+_.+_.+"
+    }
+  ],
+  "firstSteps": [
+    "받은 이미지·소재는 원본에 그대로 넣기 (고치지 않기)",
+    "작업 파일(.psd .ai .fig 등)은 작업에, 이름 끝에 v1 v2로 버전 붙이기",
+    "내보낸 결과는 내보내기에, 영감 자료는 참고에 모으기"
+  ],
+  "organize": [
+    {
+      "target": "작업",
+      "extensions": [
+        ".psd",
+        ".ai",
+        ".indd",
+        ".fig",
+        ".sketch",
+        ".xd",
+        ".afdesign",
+        ".blend",
+        ".prproj",
+        ".aep",
+        ".kra"
+      ],
+      "reason": "작업 파일 → 작업"
+    },
+    {
+      "target": "내보내기",
+      "keywords": [
+        "export",
+        "내보내기",
+        "final",
+        "최종"
+      ],
+      "reason": "이름에 내보내기·최종"
+    },
+    {
+      "target": "참고",
+      "keywords": [
+        "참고",
+        "reference",
+        "ref",
+        "무드"
+      ],
+      "reason": "이름에 참고"
+    },
+    {
+      "target": "원본",
+      "groups": [
+        "이미지",
+        "영상"
+      ],
+      "reason": "소재 → 원본"
+    }
+  ]
+}

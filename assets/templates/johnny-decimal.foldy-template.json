@@ -3,6 +3,7 @@
   "id": "johnny-decimal",
   "name": "Johnny.Decimal",
   "badge": "J.D",
+  "category": "개인·업무",
   "description": "영역(10-19) → 범주(11) → 항목(11.01) 번호로 위치를 정하는 정리법",
   "purposes": ["personal", "work"],
   "variables": [],

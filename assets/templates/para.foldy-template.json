@@ -3,6 +3,7 @@
   "id": "para",
   "name": "PARA",
   "badge": "PARA",
+  "category": "개인·업무",
   "description": "끝이 있는 일 / 계속 맡는 일 / 참고 자료 / 끝난 것, 네 칸으로 나누는 개인·업무 문서 정리",
   "purposes": ["personal", "work", "unsure"],
   "variables": [],

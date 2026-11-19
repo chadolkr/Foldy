@@ -35,15 +35,27 @@ public sealed partial class TemplateDialogViewModel : ObservableObject
                 CreateCommand.NotifyCanExecuteChanged();
             }
         };
-        foreach (var t in library.Templates)
+        foreach (var item in Grouped(library.Templates.Select(t => new TemplateItemViewModel(t))))
         {
-            Templates.Add(new TemplateItemViewModel(t));
+            Templates.Add(item);
         }
 
         SelectedTemplate = Templates.FirstOrDefault();
     }
 
     public ObservableCollection<TemplateItemViewModel> Templates { get; } = [];
+
+    /// <summary>묶음(개인·업무, 개발 ...) 순서로 안정 정렬하고, 묶음의 첫 항목에 제목을 단다.</summary>
+    private static IEnumerable<TemplateItemViewModel> Grouped(IEnumerable<TemplateItemViewModel> items)
+    {
+        string? last = null;
+        foreach (var item in items.OrderBy(i => TemplateCategories.OrderOf(i.Category)).ThenBy(i => TemplateCategories.OrderOf(i.Category) == 100 ? i.Category : "", StringComparer.CurrentCulture))
+        {
+            item.CategoryHeader = string.Equals(last, item.Category, StringComparison.Ordinal) ? null : item.Category;
+            last = item.Category;
+            yield return item;
+        }
+    }
 
     public TemplateCustomizer Customizer { get; }
 
@@ -130,7 +142,13 @@ public sealed partial class TemplateDialogViewModel : ObservableObject
         {
             var t = _library.Import(file);
             var item = new TemplateItemViewModel(t);
-            Templates.Add(item);
+            var all = Grouped(Templates.Append(item)).ToList();
+            Templates.Clear();
+            foreach (var x in all)
+            {
+                Templates.Add(x);
+            }
+
             SelectedTemplate = item;
             return t;
         }

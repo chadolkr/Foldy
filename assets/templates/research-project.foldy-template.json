@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "id": "research-project",
+  "name": "연구·학습 프로젝트",
+  "badge": "연구",
+  "category": "개인·업무",
+  "description": "문헌, 데이터(원본·정제), 분석, 원고, 발표로 나누는 연구·논문 구조",
+  "purposes": [
+    "study",
+    "work"
+  ],
+  "variables": [
+    {
+      "key": "연구",
+      "label": "연구·과제 이름 (폴더 이름)",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{연구}}",
+      "children": [
+        {
+          "name": "문헌",
+          "nameEn": "literature"
+        },
+        {
+          "name": "데이터",
+          "nameEn": "data",
+          "children": [
+            {
+              "name": "원본",
+              "nameEn": "raw"
+            },
+            {
+              "name": "정제",
+              "nameEn": "clean"
+            }
+          ]
+        },
+        {
+          "name": "분석",
+          "nameEn": "analysis"
+        },
+        {
+          "name": "원고",
+          "nameEn": "manuscript"
+        },
+        {
+          "name": "발표",
+          "nameEn": "presentation"
+        },
+        {
+          "name": "README.md",
+          "file": "# {{연구}}\n\n시작일: {{date:yyyy-MM-dd}}\n\n## 연구 질문\n\n(한 문장으로)\n\n## 진행 메모\n\n- \n"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "문헌은 저자_연도_제목, 데이터는 내용_날짜, 원고·분석은 이름_v버전",
+      "examples": [
+        "Kim_2024_딥러닝_서베이.pdf",
+        "설문_2026-11-18.csv",
+        "원고_v0.3.docx"
+      ]
+    },
+    {
+      "folder": "{{연구}}/문헌",
+      "pattern": "저자_연도_제목.pdf",
+      "examples": [
+        "Lee_2023_센서_융합.pdf"
+      ],
+      "regex": "^[^_]+_\\d{4}_.+"
+    }
+  ],
+  "firstSteps": [
+    "README.md에 연구 질문을 한 문장으로 쓰기",
+    "읽은 논문은 문헌에 저자_연도_제목으로 저장하기",
+    "받은 데이터는 데이터/원본에 그대로 두고 (고치지 않기), 가공한 것은 데이터/정제에 저장하기"
+  ],
+  "organize": [
+    {
+      "target": "문헌",
+      "extensions": [
+        ".pdf",
+        ".bib",
+        ".ris",
+        ".epub"
+      ],
+      "reason": "논문·참고문헌 → 문헌"
+    },
+    {
+      "target": "데이터/원본",
+      "extensions": [
+        ".csv",
+        ".xlsx",
+        ".xls",
+        ".sav",
+        ".json",
+        ".parquet"
+      ],
+      "reason": "데이터 → 데이터/원본"
+    },
+    {
+      "target": "분석",
+      "extensions": [
+        ".ipynb",
+        ".py",
+        ".r",
+        ".rmd",
+        ".do"
+      ],
+      "reason": "분석 코드 → 분석"
+    },
+    {
+      "target": "원고",
+      "extensions": [
+        ".docx",
+        ".tex",
+        ".hwp",
+        ".hwpx"
+      ],
+      "reason": "원고 → 원고"
+    },
+    {
+      "target": "발표",
+      "extensions": [
+        ".pptx",
+        ".key"
+      ],
+      "reason": "발표 자료 → 발표"
+    }
+  ]
+}

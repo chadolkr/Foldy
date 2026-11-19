@@ -21,6 +21,12 @@ public sealed class FolderTemplate
     /// <summary>경로바 배지에 보이는 짧은 이름 (없으면 Name).</summary>
     public string? Badge { get; set; }
 
+    /// <summary>
+    /// 목록 묶음 이름 (개인·업무, 개발, 미디어·창작, 기록·보관 ...). 선택 항목이라 schemaVersion은 그대로 1이고,
+    /// 없으면 목록 맨 끝의 "내 템플릿"(또는 "기타")에 들어간다.
+    /// </summary>
+    public string? Category { get; set; }
+
     /// <summary>위저드 추천용 용도 태그 (personal, work, dev, media ...).</summary>
     public IList<string> Purposes { get; set; } = [];
 
@@ -47,6 +53,10 @@ public sealed class FolderTemplate
     /// <summary>불러온 파일 경로 (내 템플릿만).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public string? SourcePath { get; set; }
+
+    /// <summary>목록에 보일 묶음 이름 (비어 있으면 내장은 "기타", 내 템플릿은 "내 템플릿").</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string DisplayCategory => string.IsNullOrWhiteSpace(Category) ? (IsBuiltIn ? "기타" : TemplateCategories.User) : Category!.Trim();
 
     public string DisplayBadge => string.IsNullOrWhiteSpace(Badge) ? Name : Badge!;
 }
@@ -126,4 +136,27 @@ public sealed class TemplateOrganizeRule
 
     /// <summary>마지막으로 연(접근) 날짜가 이 일수보다 오래됐으면 맞음.</summary>
     public int? NotOpenedForDays { get; set; }
+}
+
+/// <summary>템플릿 묶음의 표시 순서.</summary>
+public static class TemplateCategories
+{
+    public const string User = "내 템플릿";
+
+    public static readonly IReadOnlyList<string> Order = ["개인·업무", "개발", "미디어·창작", "기록·보관"];
+
+    /// <summary>정해진 묶음은 Order 순서, 그 밖의 묶음은 그 뒤(이름순), "내 템플릿"은 맨 끝.</summary>
+    public static int OrderOf(string category)
+    {
+        ArgumentNullException.ThrowIfNull(category);
+        for (var i = 0; i < Order.Count; i++)
+        {
+            if (string.Equals(Order[i], category, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return string.Equals(category, User, StringComparison.OrdinalIgnoreCase) ? 1000 : 100;
+    }
 }

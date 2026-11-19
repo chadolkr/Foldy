@@ -265,10 +265,14 @@ public class PlannerTests
 public class LibraryAndCaptureTests
 {
     [Fact]
-    public void Five_builtins_with_guides_load_and_validate()
+    public void All_bundled_templates_parse_validate_and_have_guides()
     {
         var all = TemplateLibrary.LoadBuiltIn();
-        all.Select(t => t.Id).Should().BeEquivalentTo(["para", "johnny-decimal", "software-project", "client-project", "photo-archive"]);
+        all.Select(t => t.Id).Should().BeEquivalentTo([
+            "para", "johnny-decimal", "software-project", "client-project", "photo-archive",
+            "java-project", "python-project", "node-project", "dotnet-project", "go-project",
+            "date-archive", "document-workflow", "research-project", "household-life", "design-assets"]);
+        all.Select(t => t.Id).Should().OnlyHaveUniqueItems();
         foreach (var t in all)
         {
             TemplateValidator.Validate(t).Should().BeEmpty(t.Id);
@@ -277,7 +281,47 @@ public class LibraryAndCaptureTests
             t.Naming.Should().NotBeEmpty(t.Id);
             t.FirstSteps.Should().HaveCount(3, t.Id);
             t.IsBuiltIn.Should().BeTrue();
+            t.Category.Should().BeOneOf(TemplateCategories.Order, t.Id);
         }
+    }
+
+    [Fact]
+    public void Bundled_templates_plan_cleanly_with_defaults()
+    {
+        using var tmp = new TempDir();
+        foreach (var t in TemplateLibrary.LoadBuiltIn())
+        {
+            var values = t.Variables.ToDictionary(v => v.Key, v => v.Default ?? "샘플", StringComparer.Ordinal);
+            var plan = TemplatePlanner.Plan(t, tmp.Path, new TemplatePlanOptions { Values = values, Now = new DateTime(2026, 11, 18) }, LocalTemplateFileSystem.Instance);
+            plan.Issues.Should().BeEmpty(t.Id);
+            plan.MissingVariables.Should().BeEmpty(t.Id);
+            plan.CanApply.Should().BeTrue(t.Id);
+        }
+    }
+
+    [Fact]
+    public void Java_template_builds_standard_maven_gradle_tree_with_package_path()
+    {
+        using var tmp = new TempDir();
+        var t = TemplateLibrary.LoadBuiltIn().Single(x => x.Id == "java-project");
+        var values = new Dictionary<string, string> { ["프로젝트"] = "shop", ["조직"] = "acme", ["앱"] = "store" };
+        var plan = TemplatePlanner.Plan(t, tmp.Path, new TemplatePlanOptions { Values = values, Now = new DateTime(2026, 11, 18) }, LocalTemplateFileSystem.Instance);
+        var paths = plan.Flatten().Select(n => n.RelativePath.Replace('\\', '/')).ToList();
+        paths.Should().Contain(p => p.EndsWith("src/main/java", StringComparison.Ordinal));
+        paths.Should().Contain(p => p.EndsWith("src/main/resources", StringComparison.Ordinal));
+        paths.Should().Contain(p => p.EndsWith("src/test/java/com/acme/store", StringComparison.Ordinal));
+        paths.Should().Contain(p => p.EndsWith("src/test/resources", StringComparison.Ordinal));
+        plan.Flatten().Single(n => n.Name == "App.java").Content.Should().Contain("package com.acme.store;");
+        plan.Flatten().Should().Contain(n => n.Name == "build.gradle.kts").And.NotContain(n => n.Name == "pom.xml", "기본은 Gradle");
+    }
+
+    [Fact]
+    public void Templates_are_grouped_by_category_in_the_picker()
+    {
+        var vm = new Foldy.Presentation.Templates.TemplateDialogViewModel(new TemplateLibrary(Path.Combine(Path.GetTempPath(), "foldy-no-such-" + Guid.NewGuid().ToString("N"))).Reload(), Path.GetTempPath());
+        var headers = vm.Templates.Where(i => i.HasCategoryHeader).Select(i => i.CategoryHeader).ToList();
+        headers.Should().Equal(TemplateCategories.Order);
+        vm.Templates.First().CategoryHeader.Should().Be("개인·업무");
     }
 
     [Fact]

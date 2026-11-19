@@ -229,6 +229,34 @@
     </Setter>
   </Style>
 
+  <!-- 묶음 제목(CategoryHeader)이 있는 목록 항목: 제목은 선택 표시 밖에 둔다 -->
+  <Style x:Key="Tpl.GroupedListItem" TargetType="ListBoxItem" BasedOn="{StaticResource Tpl.ListItem}">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+          <StackPanel>
+            <TextBlock x:Name="Header" Text="{Binding CategoryHeader}" Style="{StaticResource Tpl.Section}" Margin="2,10,0,6" Visibility="Collapsed" />
+            <Border x:Name="Bd" Background="Transparent" CornerRadius="{DynamicResource Radius}" Padding="10,8" BorderThickness="1" BorderBrush="Transparent">
+              <ContentPresenter />
+            </Border>
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <DataTrigger Binding="{Binding HasCategoryHeader}" Value="True">
+              <Setter TargetName="Header" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Selection}" />
+              <Setter Property="Foreground" Value="{DynamicResource Brush.SelectionText}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- 비교 카드 (추천 스타일) -->
   <Style x:Key="Tpl.CardItem" TargetType="ListBoxItem">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />

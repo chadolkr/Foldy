@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-project",
+  "name": ".NET 솔루션",
+  "badge": "NET",
+  "category": "개발",
+  "description": "src, tests, docs 구조 (솔루션 하나에 프로젝트 여러 개)",
+  "purposes": [
+    "dev"
+  ],
+  "variables": [
+    {
+      "key": "프로젝트",
+      "label": "프로젝트 이름 (폴더 이름)",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{프로젝트}}",
+      "children": [
+        {
+          "name": "src"
+        },
+        {
+          "name": "tests"
+        },
+        {
+          "name": "docs"
+        },
+        {
+          "name": "README.md",
+          "file": "# {{프로젝트}}\n\n한 줄 소개를 여기에 씁니다.\n\n## 실행 방법\n\n```\n(빌드·실행 명령)\n```\n\n## 폴더 구조\n\n- `src/` 앱·라이브러리 프로젝트 (프로젝트마다 폴더 하나)\n- `tests/` 테스트 프로젝트 (이름은 대상 프로젝트 + .Tests)\n- `docs/` 문서\n"
+        },
+        {
+          "name": ".gitignore",
+          "file": "bin/\nobj/\n*.user\n.vs/\nTestResults/\nartifacts/\n"
+        },
+        {
+          "name": ".editorconfig",
+          "file": "root = true\n\n[*]\ncharset = utf-8\nindent_style = space\nindent_size = 4\ninsert_final_newline = true\n"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "프로젝트·클래스·파일은 PascalCase, 테스트 프로젝트는 대상.Tests, 인터페이스는 I로 시작",
+      "examples": [
+        "MyApp.Core",
+        "MyApp.Core.Tests",
+        "FileListViewModel.cs",
+        "IFileSystem.cs"
+      ]
+    },
+    {
+      "folder": "{{프로젝트}}/tests",
+      "pattern": "대상프로젝트이름.Tests",
+      "examples": [
+        "MyApp.Core.Tests"
+      ],
+      "regex": "^[A-Za-z0-9.]+\\.Tests$"
+    }
+  ],
+  "firstSteps": [
+    "src 안에서 dotnet new classlib 등으로 첫 프로젝트 만들고, 맨 위에 dotnet new sln 으로 솔루션 만들기",
+    "tests 안에 같은 이름 + .Tests 프로젝트를 만들고 솔루션에 추가하기",
+    "README.md의 실행 방법을 dotnet build / dotnet test 로 채우고 git init 하기"
+  ],
+  "organize": [
+    {
+      "target": "docs",
+      "extensions": [
+        ".md",
+        ".pdf",
+        ".docx"
+      ],
+      "reason": "문서 → docs"
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "id": "java-project",
+  "name": "Java 프로젝트",
+  "badge": "JAVA",
+  "category": "개발",
+  "description": "Maven·Gradle 표준 구조: src/main/java, src/test/java, resources, docs (패키지 폴더까지 한 번에)",
+  "purposes": [
+    "dev"
+  ],
+  "variables": [
+    {
+      "key": "프로젝트",
+      "label": "프로젝트 이름 (폴더 이름)",
+      "required": true
+    },
+    {
+      "key": "조직",
+      "label": "패키지 조직 이름 (com/ 아래, 예: example)",
+      "default": "example"
+    },
+    {
+      "key": "앱",
+      "label": "패키지 이름 (소문자, 예: app)",
+      "default": "app"
+    },
+    {
+      "key": "build",
+      "label": "빌드 도구",
+      "default": "gradle",
+      "choices": [
+        {
+          "value": "gradle",
+          "label": "Gradle (Kotlin DSL)"
+        },
+        {
+          "value": "maven",
+          "label": "Maven"
+        }
+      ]
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{프로젝트}}",
+      "children": [
+        {
+          "name": "src/main/java/com/{{조직}}/{{앱}}"
+        },
+        {
+          "name": "src/main/java/com/{{조직}}/{{앱}}/App.java",
+          "file": "package com.{{조직}}.{{앱}};\n\npublic class App {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, {{프로젝트}}\");\n    }\n}\n"
+        },
+        {
+          "name": "src/main/resources"
+        },
+        {
+          "name": "src/test/java/com/{{조직}}/{{앱}}"
+        },
+        {
+          "name": "src/test/resources"
+        },
+        {
+          "name": "docs"
+        },
+        {
+          "name": "README.md",
+          "file": "# {{프로젝트}}\n\n한 줄 소개를 여기에 씁니다.\n\n## 실행 방법\n\n```\n(빌드·실행 명령)\n```\n\n## 폴더 구조\n\n- `src/main/java` 배포되는 코드 (패키지 com.{{조직}}.{{앱}})\n- `src/main/resources` 설정·리소스\n- `src/test/java` 테스트 (main과 같은 패키지 구조)\n- `docs` 사람이 읽는 문서\n"
+        },
+        {
+          "name": "pom.xml",
+          "when": "build=maven",
+          "file": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\">\n  <modelVersion>4.0.0</modelVersion>\n  <groupId>com.{{조직}}</groupId>\n  <artifactId>{{앱}}</artifactId>\n  <version>0.1.0-SNAPSHOT</version>\n  <properties>\n    <maven.compiler.release>21</maven.compiler.release>\n    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n  </properties>\n</project>\n"
+        },
+        {
+          "name": "settings.gradle.kts",
+          "when": "build=gradle",
+          "file": "rootProject.name = \"{{앱}}\"\n"
+        },
+        {
+          "name": "build.gradle.kts",
+          "when": "build=gradle",
+          "file": "plugins {\n    java\n    application\n}\n\ngroup = \"com.{{조직}}\"\nversion = \"0.1.0\"\n\nrepositories {\n    mavenCentral()\n}\n\ndependencies {\n    testImplementation(platform(\"org.junit:junit-bom:5.11.4\"))\n    testImplementation(\"org.junit.jupiter:junit-jupiter\")\n    testRuntimeOnly(\"org.junit.platform:junit-platform-launcher\")\n}\n\njava {\n    toolchain.languageVersion = JavaLanguageVersion.of(21)\n}\n\napplication {\n    mainClass = \"com.{{조직}}.{{앱}}.App\"\n}\n\ntasks.test {\n    useJUnitPlatform()\n}\n"
+        },
+        {
+          "name": ".gitignore",
+          "file": "target/\nbuild/\n.gradle/\nout/\n*.class\n.idea/\n*.iml\n.vscode/\n"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "클래스는 PascalCase.java(파일명 = 클래스명), 패키지는 소문자만, 상수는 UPPER_SNAKE",
+      "examples": [
+        "OrderService.java",
+        "com.example.app.order",
+        "MAX_RETRY"
+      ]
+    },
+    {
+      "folder": "{{프로젝트}}/src/test/java",
+      "pattern": "테스트 클래스는 대상클래스Test.java, main과 같은 패키지에 둔다",
+      "examples": [
+        "OrderServiceTest.java"
+      ],
+      "regex": "^[A-Z][A-Za-z0-9]*Test\\.java$"
+    }
+  ],
+  "firstSteps": [
+    "README.md의 실행 방법을 실제 빌드 명령(gradlew build 또는 mvn package)으로 채우기",
+    "패키지 폴더(com/조직/앱) 이름이 pom 또는 build 파일의 그룹과 같은지 확인하기",
+    "프로젝트 폴더에서 git init 하고 첫 커밋 만들기"
+  ],
+  "organize": [
+    {
+      "target": "docs",
+      "extensions": [
+        ".md",
+        ".pdf",
+        ".docx"
+      ],
+      "reason": "문서 → docs"
+    },
+    {
+      "target": "src/main/resources",
+      "extensions": [
+        ".properties",
+        ".yml",
+        ".yaml"
+      ],
+      "reason": "설정 → resources"
+    }
+  ]
+}

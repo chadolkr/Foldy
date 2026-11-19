@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "go-project",
+  "name": "Go 프로젝트",
+  "badge": "GO",
+  "category": "개발",
+  "description": "cmd(실행 파일), internal(비공개), pkg(공개 라이브러리) 표준 레이아웃",
+  "purposes": [
+    "dev"
+  ],
+  "variables": [
+    {
+      "key": "프로젝트",
+      "label": "프로젝트 이름 (폴더 이름)",
+      "required": true
+    },
+    {
+      "key": "앱",
+      "label": "모듈·실행 파일 이름 (소문자, 예: mytool)",
+      "default": "app"
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{프로젝트}}",
+      "children": [
+        {
+          "name": "cmd/{{앱}}"
+        },
+        {
+          "name": "cmd/{{앱}}/main.go",
+          "file": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, {{프로젝트}}\")\n}\n"
+        },
+        {
+          "name": "internal"
+        },
+        {
+          "name": "pkg",
+          "optional": true
+        },
+        {
+          "name": "docs"
+        },
+        {
+          "name": "go.mod",
+          "file": "module {{앱}}\n\ngo 1.23\n"
+        },
+        {
+          "name": "README.md",
+          "file": "# {{프로젝트}}\n\n한 줄 소개를 여기에 씁니다.\n\n## 실행 방법\n\n```\n(빌드·실행 명령)\n```\n\n## 폴더 구조\n\n- `cmd/{{앱}}` 실행 파일의 main 패키지\n- `internal/` 이 모듈 안에서만 쓰는 코드\n- `pkg/` 다른 프로젝트가 가져다 쓸 수 있는 코드 (필요할 때만)\n"
+        },
+        {
+          "name": ".gitignore",
+          "file": "bin/\ndist/\n*.exe\n*.test\n*.out\n"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "패키지는 짧은 소문자 한 단어, 파일은 snake_case.go, 테스트는 이름_test.go",
+      "examples": [
+        "scanner.go",
+        "file_walker.go",
+        "file_walker_test.go"
+      ]
+    },
+    {
+      "folder": "{{프로젝트}}/cmd",
+      "pattern": "cmd 아래 폴더 이름이 곧 실행 파일 이름",
+      "examples": [
+        "mytool"
+      ]
+    }
+  ],
+  "firstSteps": [
+    "go.mod의 module 이름을 저장소 경로(github.com/나/프로젝트)로 바꾸기",
+    "go run ./cmd/앱이름 으로 실행해 보기",
+    "pkg는 다른 프로젝트가 가져다 쓸 코드가 생길 때만 만들고, git init 하기"
+  ],
+  "organize": [
+    {
+      "target": "docs",
+      "extensions": [
+        ".md",
+        ".pdf",
+        ".docx"
+      ],
+      "reason": "문서 → docs"
+    }
+  ]
+}

@@ -3,6 +3,7 @@
   "id": "software-project",
   "name": "소프트웨어 프로젝트",
   "badge": "DEV",
+  "category": "개발",
   "description": "src, tests, docs, scripts 등 개발 저장소 기본 구조 (.NET, Rust, Node, Python 변형)",
   "purposes": ["dev"],
   "variables": [

@@ -25,7 +25,7 @@
     <!-- 왼쪽: 템플릿 목록 -->
     <DockPanel Grid.Column="0" Margin="16,16,8,0">
       <TextBlock DockPanel.Dock="Top" Text="스타일" Style="{StaticResource Tpl.Section}" Margin="2,0,0,8" />
-      <ListBox Style="{StaticResource Tpl.ListBox}" ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}">
+      <ListBox Style="{StaticResource Tpl.ListBox}" ItemContainerStyle="{StaticResource Tpl.GroupedListItem}" ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}">
         <ListBox.ItemTemplate>
           <DataTemplate>
             <StackPanel>

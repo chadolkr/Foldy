@@ -3,6 +3,7 @@
   "id": "photo-archive",
   "name": "사진·영상 보관",
   "badge": "사진",
+  "category": "미디어·창작",
   "description": "연도 → 날짜_행사명, 안쪽은 원본(RAW)·편집본·내보내기",
   "purposes": ["media"],
   "variables": [

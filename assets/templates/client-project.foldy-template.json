@@ -3,6 +3,7 @@
   "id": "client-project",
   "name": "고객·프로젝트 업무",
   "badge": "고객",
+  "category": "개인·업무",
   "description": "계약부터 산출물까지 단계별 폴더 (외주·컨설팅·영업)",
   "purposes": ["work"],
   "variables": [
