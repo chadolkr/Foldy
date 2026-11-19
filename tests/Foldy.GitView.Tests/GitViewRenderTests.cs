@@ -13,27 +13,7 @@ namespace Foldy.GitView.Tests;
 /// <summary>GitView XAML 이 테마 토큰으로 로드·배치·렌더되는지 확인하는 스모크 테스트 (STA 스레드).</summary>
 public class GitViewRenderTests
 {
-    private static void Sta(Func<Task> body)
-    {
-        Exception? error = null;
-        var t = new Thread(() =>
-        {
-            var d = Dispatcher.CurrentDispatcher;
-            var frame = new DispatcherFrame();
-            d.InvokeAsync(async () =>
-            {
-                try { await body(); }
-                catch (Exception e) { error = e; }
-                finally { frame.Continue = false; }
-            });
-            Dispatcher.PushFrame(frame);
-        });
-        t.SetApartmentState(ApartmentState.STA);
-        t.IsBackground = true;
-        t.Start();
-        if (!t.Join(TimeSpan.FromSeconds(60))) throw new TimeoutException("STA 테스트 시간 초과");
-        if (error is not null) ExceptionDispatchInfo.Throw(error);
-    }
+    private static void Sta(Func<Task> body) => StaHost.Run(body);
 
     private static List<CommitNode> Log()
     {
