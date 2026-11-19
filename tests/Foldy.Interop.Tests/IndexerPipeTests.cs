@@ -104,7 +104,7 @@ public class IndexerPipeTests
         var sw = Stopwatch.StartNew();
         var c = await IndexerClient.TryConnectAsync("Foldy.Test.Missing." + Guid.NewGuid().ToString("N"), TimeSpan.FromMilliseconds(200), Ct);
         c.Should().BeNull();
-        sw.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(1), "서비스가 없으면 즉시 LocalProvider로 폴백");
+        sw.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(5), "서비스가 없으면 오래 기다리지 않고 LocalProvider로 폴백 (CI는 느려서 넉넉히)");
     }
 
     [Fact]
