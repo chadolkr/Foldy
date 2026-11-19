@@ -148,3 +148,82 @@ public class AssociationTests
         Associations.Executable(".foldy-unknown-ext-zz").Should().BeNull();
     }
 }
+
+/// <summary>단일 인스턴스: 두 번째 Foldy는 첫 Foldy에 인자를 넘기고 끝난다.</summary>
+public sealed class SingleInstanceTests
+{
+    private static string Key() => "FoldyTest" + Guid.NewGuid().ToString("N");
+
+    [Fact]
+    public async Task Only_the_first_owns_and_args_reach_it()
+    {
+        var key = Key();
+        using var first = SingleInstance.Acquire(key);
+        first.IsFirst.Should().BeTrue();
+        using var got = new ManualResetEventSlim();
+        string[]? received = null;
+        first.StartServer(a =>
+        {
+            received = a;
+            got.Set();
+        });
+
+        // 뮤텍스는 스레드에 묶이므로 두 번째는 다른 스레드에서 잡아 본다 (실제로는 다른 프로세스)
+        var sent = await Task.Run(() =>
+        {
+            using var second = SingleInstance.Acquire(key);
+            second.IsFirst.Should().BeFalse();
+            return second.TrySendToFirst([@"C:\한글 폴더", "--x"], TimeSpan.FromSeconds(5));
+        });
+
+        sent.Should().BeTrue();
+        got.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+        received.Should().Equal(@"C:\한글 폴더", "--x");
+    }
+
+    [Fact]
+    public async Task Serves_more_than_one_request()
+    {
+        var key = Key();
+        using var first = SingleInstance.Acquire(key);
+        var count = 0;
+        first.StartServer(_ => Interlocked.Increment(ref count));
+        for (var i = 0; i < 3; i++)
+        {
+            (await Task.Run(() =>
+            {
+                using var other = SingleInstance.Acquire(key);
+                return other.TrySendToFirst([], TimeSpan.FromSeconds(5));
+            })).Should().BeTrue();
+        }
+
+        SpinWait.SpinUntil(() => Volatile.Read(ref count) == 3, TimeSpan.FromSeconds(5)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Send_fails_fast_when_nobody_listens()
+    {
+        var key = Key();
+        using var first = SingleInstance.Acquire(key); // 잡기만 하고 서버는 열지 않음 (멈춘 Foldy)
+        var ok = await Task.Run(() =>
+        {
+            using var second = SingleInstance.Acquire(key);
+            return second.TrySendToFirst(["a"], TimeSpan.FromMilliseconds(500));
+        });
+        ok.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Released_after_dispose()
+    {
+        var key = Key();
+        var first = SingleInstance.Acquire(key);
+        first.IsFirst.Should().BeTrue();
+        first.Dispose();
+        (await Task.Run(() =>
+        {
+            using var next = SingleInstance.Acquire(key);
+            return next.IsFirst;
+        })).Should().BeTrue();
+    }
+}

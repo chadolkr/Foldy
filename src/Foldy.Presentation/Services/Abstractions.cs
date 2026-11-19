@@ -67,6 +67,17 @@ public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null
     public string Letter => Root.TrimEnd('\\');
 
     public string Display => string.IsNullOrEmpty(Label) ? Letter : $"{Label} ({Letter})";
+
+    /// <summary>사용한 비율 0~1. 용량을 모르면 0 (사이드바 막대).</summary>
+    public double UsedFraction => TotalBytes is > 0 && FreeBytes is { } f ? Math.Clamp(1 - (double)f / TotalBytes.Value, 0, 1) : 0;
+
+    /// <summary>90% 넘게 찼다 (막대를 경고색으로).</summary>
+    public bool IsAlmostFull => UsedFraction >= 0.9;
+
+    public bool HasSpace => TotalBytes is > 0 && FreeBytes is not null;
+
+    /// <summary>"120 GB 남음 / 476 GB". 용량을 모르면 빈 문자열.</summary>
+    public string SpaceText => HasSpace ? $"{Files.FileItem.FormatBytes(FreeBytes!.Value)} 남음 / {Files.FileItem.FormatBytes(TotalBytes!.Value)}" : Offline ? "연결 안 됨" : "";
 }
 
 /// <summary>터미널 열기 (설계서: 현재 패널 경로에서 시작, 관리자는 UAC 경유).</summary>

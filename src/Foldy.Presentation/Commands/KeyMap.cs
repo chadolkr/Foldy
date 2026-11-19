@@ -258,6 +258,8 @@ public sealed class KeyMap
         new("analysis.open", "디스크 분석", null),
         new("view.preview", "미리보기 창 보이기/숨기기", "F3"),
         new("view.tree", "폴더 트리 보이기/숨기기", "Ctrl+B"),
+        new("view.sidebar", "사이드바 접기/펼치기", "Ctrl+Shift+B"),
+        new("sidebar.pin", "지금 폴더를 자주 쓰는 폴더에 고정/해제", null),
         new("view.images", "이미지만 보기 켜기/끄기", "Ctrl+Shift+I"),
         new("git.open", "Git 뷰 열기", null),
         new("sftp.connect", "SFTP 서버에 연결", "Ctrl+Shift+O"),

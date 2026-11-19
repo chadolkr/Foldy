@@ -18,6 +18,7 @@ using Foldy.Presentation.Panes;
 using Foldy.Presentation.Persistence;
 using Foldy.Presentation.Services;
 using Foldy.Presentation.Shell;
+using Foldy.Presentation.Sidebar;
 using Foldy.Presentation.Tabs;
 using Foldy.Presentation.Tree;
 using Foldy.Providers.Local;
@@ -49,6 +50,9 @@ public partial class ShellWindow : Window, IPaneHost
     private IUpdateSource _updater; // 서비스(UAC 없음)를 쓸 수 있으면 OnLoaded에서 ServiceUpdater로 바꾼다
     private AppSettings _settings;
     private HwndSource? _hwndSource;
+    private readonly string _quickPath = Path.Combine(App.DataDir, "quickaccess.json");
+    private readonly QuickAccess _quick;
+    private readonly DispatcherTimer _quickSave;
 
     public ShellWindow()
     {
@@ -81,6 +85,17 @@ public partial class ShellWindow : Window, IPaneHost
         _updater.Changed += OnUpdaterChanged;
         _search = new FileSearchService(() => _indexer, () => _settings.ShowHidden);
         Shell.Search = _search;
+
+        // 공통 사이드바: 자주 쓰는 폴더(고정)·최근 폴더·드라이브
+        _quick = new QuickAccess(JsonFileStore.Load(_quickPath, () => new QuickAccessState()));
+        _quickSave = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromSeconds(1) };
+        _quickSave.Tick += (_, _) => SaveQuickAccess();
+        _quick.Changed += () => { _quickSave.Stop(); _quickSave.Start(); };
+        _quick.Pinned.CollectionChanged += (_, _) => UpdatePinnedEmpty();
+        _env.Visited = p => _quick.Visit(p);
+        PinnedList.ItemsSource = _quick.Pinned;
+        RecentList.ItemsSource = _quick.Recent;
+        SideDrives.ItemsSource = Shell.Left.Drives;
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
         ApplyDensity();
         ThemeManager.Attach(this);
@@ -90,7 +105,11 @@ public partial class ShellWindow : Window, IPaneHost
         RestorePlacement(session);
         LeftPane.Attach(this, Shell.Left);
         RightPane.Attach(this, Shell.Right);
-        RightPane.TreeVisible = false; // 두 패널 모두 트리를 두면 목록이 좁아진다 (Ctrl+B로 전환)
+        // 두 패널 모두 왼쪽에 폴더 트리, 오른쪽에 파일 목록 (Ctrl+B로 숨기기, 가운데 선을 끌어 너비 조절)
+        LeftPane.TreeWidth = session.LeftTreeWidth;
+        RightPane.TreeWidth = session.RightTreeWidth;
+        SidebarExpanded = session.Window is null ? SystemParameters.PrimaryScreenWidth >= 1400 : session.SidebarExpanded;
+        UpdatePinnedEmpty();
         Shell.Restore(session, home);
         LeftPane.SelectionInfoChanged += (_, _) => UpdateSelectionText();
         RightPane.SelectionInfoChanged += (_, _) => UpdateSelectionText();
@@ -290,6 +309,8 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         SaveSession(Shell.Capture(null, double.NaN));
+        _quickSave.Stop();
+        SaveQuickAccess();
         foreach (var t in Shell.Left.Tabs.Concat(Shell.Right.Tabs))
         {
             t.Close();
@@ -318,7 +339,14 @@ public partial class ShellWindow : Window, IPaneHost
                 : new WindowPlacement(RestoreBounds.Left, RestoreBounds.Top, RestoreBounds.Width, RestoreBounds.Height, WindowState == WindowState.Maximized);
             var total = LeftColumn.ActualWidth + RightColumn.ActualWidth;
             var split = total > 0 ? LeftColumn.ActualWidth / total : 0.5;
-            JsonFileStore.Save(_sessionPath, s with { Window = placement, SplitRatio = split });
+            JsonFileStore.Save(_sessionPath, s with
+            {
+                Window = placement,
+                SplitRatio = split,
+                SidebarExpanded = SidebarExpanded,
+                LeftTreeWidth = LeftPane.TreeWidth,
+                RightTreeWidth = RightPane.TreeWidth,
+            });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -394,7 +422,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (e.PropertyName == nameof(ShellViewModel.Status))
         {
-            StatusText.Text = Shell.Status;
+            ShowStatus(Shell.Status);
         }
         else if (e.PropertyName == nameof(ShellViewModel.ActivePane))
         {
@@ -403,6 +431,33 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private void UpdateSelectionText() => SelectionText.Text = ActiveView.SelectionSummary();
+
+    /// <summary>상태 메시지: 가운데 칩에 크게 보이고, 새 메시지면 강조색이 잠깐 비쳤다가 사라진다 (애니메이션을 끄면 깜빡임 없음).</summary>
+    private void ShowStatus(string? message)
+    {
+        var text = message ?? "";
+        var changed = !string.Equals(StatusText.Text, text, StringComparison.Ordinal);
+        StatusText.Text = text;
+        StatusPill.ToolTip = text.Length > 60 ? text : null;
+        StatusPill.Visibility = text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        if (!changed || text.Length == 0)
+        {
+            return;
+        }
+
+        if (!_settings.Animations)
+        {
+            StatusFlash.BeginAnimation(OpacityProperty, null);
+            StatusFlash.Opacity = 0;
+            return;
+        }
+
+        var flash = new System.Windows.Media.Animation.DoubleAnimationUsingKeyFrames { FillBehavior = System.Windows.Media.Animation.FillBehavior.Stop };
+        flash.KeyFrames.Add(new System.Windows.Media.Animation.LinearDoubleKeyFrame(0.38, System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(90))));
+        flash.KeyFrames.Add(new System.Windows.Media.Animation.LinearDoubleKeyFrame(0.38, System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(700))));
+        flash.KeyFrames.Add(new System.Windows.Media.Animation.EasingDoubleKeyFrame(0, System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(1700)), new System.Windows.Media.Animation.QuadraticEase()));
+        StatusFlash.BeginAnimation(OpacityProperty, flash);
+    }
 
     private void OnJobsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -494,6 +549,8 @@ public partial class ShellWindow : Window, IPaneHost
         Add("analysis.open", "디스크 분석 (현재 드라이브)", OpenAnalysis);
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
         Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.TreeVisible = !ActiveView.TreeVisible, Key.B, ModifierKeys.Control);
+        Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("sidebar.pin", "지금 폴더를 자주 쓰는 폴더에 고정/해제", TogglePinCurrent);
         Add("view.themeSystem", "테마: 시스템 설정 따르기", () => SetTheme(FoldyTheme.System));
         Add("view.themeLight", "테마: 라이트", () => SetTheme(FoldyTheme.Light));
         Add("view.themeDark", "테마: 다크", () => SetTheme(FoldyTheme.Dark));
@@ -972,7 +1029,7 @@ public partial class ShellWindow : Window, IPaneHost
         DensityNormal.IsChecked = _settings.Density == "normal";
         DensityComfortable.IsChecked = _settings.Density == "comfortable";
         MoreMenu.PlacementTarget = MoreButton;
-        MoreMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+        MoreMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Right;
         MoreMenu.IsOpen = true;
     }
 
@@ -1101,5 +1158,215 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         ShellViewModel.OpenMarkdown(Shell.ActivePane, index);
+    }
+
+    // ───────────── 공통 사이드바 ─────────────
+
+    public static readonly DependencyProperty SidebarExpandedProperty = DependencyProperty.Register(
+        nameof(SidebarExpanded), typeof(bool), typeof(ShellWindow),
+        new PropertyMetadata(true, (d, _) => ((ShellWindow)d).ApplySidebar()));
+
+    /// <summary>사이드바를 펼쳤는가. 접으면 아이콘만 보이는 48px 띠가 된다.</summary>
+    public bool SidebarExpanded
+    {
+        get => (bool)GetValue(SidebarExpandedProperty);
+        set => SetValue(SidebarExpandedProperty, value);
+    }
+
+    private void ApplySidebar()
+    {
+        SidebarColumn.Width = new GridLength(SidebarExpanded ? 216 : 48);
+        UpdatePinnedEmpty();
+    }
+
+    private void UpdatePinnedEmpty()
+    {
+        if (PinnedEmpty is not null)
+        {
+            PinnedEmpty.Visibility = SidebarExpanded && _quick?.Pinned.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    private void SaveQuickAccess()
+    {
+        _quickSave.Stop();
+        try
+        {
+            JsonFileStore.Save(_quickPath, _quick.Snapshot());
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Warning(ex, "자주 쓰는 폴더 저장 실패");
+        }
+    }
+
+    private void OnToggleSidebar(object sender, RoutedEventArgs e) => SidebarExpanded = !SidebarExpanded;
+
+    private void OnPinCurrent(object sender, RoutedEventArgs e) => TogglePinCurrent();
+
+    private void TogglePinCurrent()
+    {
+        var path = Shell.ActivePane.ActiveFolder?.Path;
+        if (string.IsNullOrEmpty(path))
+        {
+            Shell.Status = "고정할 폴더가 없습니다. 폴더 탭에서 눌러 주세요.";
+            return;
+        }
+
+        var name = Foldy.Presentation.Navigation.PathUtil.DisplayName(path);
+        if (_quick.IsPinned(path))
+        {
+            _quick.Unpin(path);
+            Shell.Status = $"자주 쓰는 폴더에서 뺐습니다: {name}";
+        }
+        else if (_quick.Pin(path))
+        {
+            Shell.Status = $"자주 쓰는 폴더에 고정했습니다: {name}";
+        }
+        else
+        {
+            Shell.Status = $"더 고정할 수 없습니다 (최대 {QuickAccess.MaxPinned}개)";
+        }
+    }
+
+    private static T? TagOf<T>(object sender) where T : class => (sender as FrameworkElement)?.Tag as T;
+
+    /// <summary>사이드바에서 고른 폴더를 활성 패널에서 연다 (폴더 탭이 아니면 새 탭).</summary>
+    private void OpenInPane(PaneViewModel pane, string path, bool newTab)
+    {
+        if (!newTab && pane.ActiveFolder is { } tab)
+        {
+            _ = tab.NavigateAsync(path);
+        }
+        else
+        {
+            pane.NewFolderTab(path);
+        }
+
+        (pane == Shell.Left ? LeftPane : RightPane).FocusList();
+    }
+
+    private PaneViewModel OtherPane => Shell.ActivePane == Shell.Left ? Shell.Right : Shell.Left;
+
+    private void OnSideFolder(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<QuickFolder>(sender) is { } f)
+        {
+            OpenInPane(Shell.ActivePane, f.Path, newTab: false);
+        }
+    }
+
+    private void OnSideFolderNewTab(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<QuickFolder>(sender) is { } f)
+        {
+            OpenInPane(Shell.ActivePane, f.Path, newTab: true);
+        }
+    }
+
+    private void OnSideFolderOther(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<QuickFolder>(sender) is { } f)
+        {
+            OpenInPane(OtherPane, f.Path, newTab: false);
+        }
+    }
+
+    private void OnPinFolder(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<QuickFolder>(sender) is { } f && _quick.Pin(f.Path))
+        {
+            Shell.Status = $"자주 쓰는 폴더에 고정했습니다: {f.Name}";
+        }
+    }
+
+    private void OnUnpin(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<QuickFolder>(sender) is { } f && _quick.Unpin(f.Path))
+        {
+            Shell.Status = $"자주 쓰는 폴더에서 뺐습니다: {f.Name}";
+        }
+    }
+
+    private void OnPinUp(object sender, RoutedEventArgs e) => _quick.Move(TagOf<QuickFolder>(sender)?.Path, -1);
+
+    private void OnPinDown(object sender, RoutedEventArgs e) => _quick.Move(TagOf<QuickFolder>(sender)?.Path, 1);
+
+    private void OnClearRecent(object sender, RoutedEventArgs e) => _quick.ClearRecent();
+
+    private void OnSideDrive(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<DriveItem>(sender) is { } d)
+        {
+            OpenInPane(Shell.ActivePane, d.Root, newTab: false);
+        }
+    }
+
+    private void OnSideDriveNewTab(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<DriveItem>(sender) is { } d)
+        {
+            OpenInPane(Shell.ActivePane, d.Root, newTab: true);
+        }
+    }
+
+    private void OnSideDriveOther(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<DriveItem>(sender) is { } d)
+        {
+            OpenInPane(OtherPane, d.Root, newTab: false);
+        }
+    }
+
+    private void OnSideDriveAnalyze(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<DriveItem>(sender) is { } d && Shell.ActivePane.ActiveFolder is { } tab)
+        {
+            _ = tab.NavigateAsync(d.Root);
+        }
+
+        OpenAnalysis();
+    }
+
+    private void OnSideSearch(object sender, RoutedEventArgs e) => ActiveView.FocusSearch();
+
+    private void OnSideTerminal(object sender, RoutedEventArgs e) => Shell.OpenTerminal(TerminalKind.Default, false);
+
+    private void OnSideRecycleBin(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", "shell:RecycleBinFolder") { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            Log.Warning(ex, "휴지통 열기 실패");
+            Shell.Status = "휴지통을 열지 못했습니다";
+        }
+    }
+
+    // ───────────── 단일 인스턴스 ─────────────
+
+    /// <summary>다른 Foldy가 실행됐다: 이 창을 앞으로 가져오고, 경로 인자가 있으면 활성 패널에 새 탭으로 연다.</summary>
+    public void ActivateFromOtherInstance(string[] args)
+    {
+        var path = AppOptions.Parse(args).OpenPath;
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            Shell.ActivePane.NewFolderTab(path);
+        }
+
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Show();
+        Activate();
+        // 다른 앱이 앞에 있으면 Activate만으로는 작업 표시줄만 깜빡일 수 있다: 잠깐 맨 위로 올렸다 내린다.
+        Topmost = true;
+        Topmost = false;
+        Focus();
+        ActiveView.FocusList();
     }
 }

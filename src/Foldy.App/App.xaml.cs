@@ -10,6 +10,7 @@ namespace Foldy.App;
 public partial class App : Application
 {
     private UiStallDetector? _stallDetector;
+    private Foldy.Platform.SystemInfo.SingleInstance? _instance;
 
     public static string DataDir { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Foldy");
@@ -31,6 +32,27 @@ public partial class App : Application
             .WriteTo.Sink(new Diagnostics.ErrorReportSink())
             .CreateLogger();
         Log.Information("Foldy {Version} 시작, 인자: {Args}", typeof(App).Assembly.GetName().Version, e.Args);
+
+        // 단일 인스턴스: 이미 Foldy가 떠 있으면 그 창을 앞으로 가져오고(경로 인자는 새 탭), 이 프로세스는 끝낸다.
+        // 벤치·스크린샷 같은 시험 실행은 따로 뜬다. 앞의 Foldy가 3초 안에 답하지 않으면 그냥 새로 띄운다.
+        var normalRun = !(Options.IsBench || Options.Synthetic || Options.ListWpf || Options.Screenshot is not null);
+        if (normalRun)
+        {
+            _instance = Foldy.Platform.SystemInfo.SingleInstance.Acquire();
+            if (!_instance.IsFirst)
+            {
+                if (_instance.TrySendToFirst(ForwardArgs(e.Args), TimeSpan.FromSeconds(3)))
+                {
+                    Log.Information("이미 실행 중인 Foldy로 넘기고 끝냅니다");
+                    _instance.Dispose();
+                    _instance = null;
+                    Shutdown(0);
+                    return;
+                }
+
+                Log.Warning("실행 중인 Foldy가 응답하지 않아 새로 띄웁니다");
+            }
+        }
 
         // 전역 예외: 로그를 남기고 앱은 살린다 (탭 단위 복구는 M1).
         // 크래시 리포트는 디스크에만 남기고, 다음 실행 때 동의를 받아 보낸다 (docs/bug-reporting.md).
@@ -63,9 +85,29 @@ public partial class App : Application
         {
             var main = new ShellWindow();
             main.Show();
+            _instance?.StartServer(args => Dispatcher.BeginInvoke(() => main.ActivateFromOtherInstance(args)));
             CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
         }
     }
+
+    /// <summary>다른 프로세스로 넘길 인자: 상대 경로는 이 프로세스의 현재 폴더 기준 절대 경로로 바꾼다.</summary>
+    private static string[] ForwardArgs(string[] args) =>
+        [.. args.Select(a =>
+        {
+            if (a.StartsWith("--", StringComparison.Ordinal) || a.Contains("://", StringComparison.Ordinal))
+            {
+                return a;
+            }
+
+            try
+            {
+                return Path.GetFullPath(a);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                return a;
+            }
+        })];
 
     private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
@@ -86,6 +128,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _stallDetector?.Dispose();
+        _instance?.Dispose();
         Log.Information("Foldy 종료 ({Code})", e.ApplicationExitCode);
         Log.CloseAndFlush();
         base.OnExit(e);
