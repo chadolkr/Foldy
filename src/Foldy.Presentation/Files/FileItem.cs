@@ -43,6 +43,16 @@ public sealed class FileItem(FsEntry entry, Func<FsEntry, string>? typeName = nu
     public string ModifiedText => _modified ??=
         Entry.Modified == default ? "" : Entry.Modified.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture);
 
+    /// <summary>좁은 열용: 올해는 "11-19 08:22", 지난해 이전은 "2024-04-06".</summary>
+    public string ShortModifiedText => _shortModified ??= Entry.Modified == default ? "" : FormatShortDate(Entry.Modified.ToLocalTime(), DateTime.Now);
+
+    public static string FormatShortDate(DateTime local, DateTime now) =>
+        local.Year == now.Year
+            ? local.ToString("MM-dd HH:mm", CultureInfo.InvariantCulture)
+            : local.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private string? _shortModified;
+
     public string TypeText => _type ??= typeName?.Invoke(Entry) ?? DefaultTypeName(Entry);
 
     public static string DefaultTypeName(FsEntry e) => e.Kind switch
