@@ -46,7 +46,8 @@ public partial class App : Application
             }
         }
 
-        if (!Options.IsBench && !Options.IsCapture && Diagnostics.Deelevate.RelaunchIfElevated(e.Args))
+        // 데이터 폴더를 따로 쓰는 시험 실행(UI 자동 테스트 등)은 관리자 러너에서도 같은 프로세스로 둔다 (다시 띄우면 시험이 놓친다)
+        if (!Options.IsBench && !Options.IsCapture && Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is not { Length: > 0 } && Diagnostics.Deelevate.RelaunchIfElevated(e.Args))
         {
             Shutdown(0);
             return;
