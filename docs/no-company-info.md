@@ -1,7 +1,6 @@
 # 공개 자료에 회사 정보를 넣지 않는 규칙
 
-Foldy의 공개 저장소(`chadolkr/Foldy-releases`)와 릴리스, README, 도움말, 화면 캡처에는 회사 정보가 하나도 있으면 안 된다.
-소스 저장소(`chadolkr/Foldy`)는 비공개지만 같은 규칙을 지킨다 (나중에 공개될 수 있고, 커밋·이슈는 복사되기 쉽다).
+Foldy 저장소(`chadolkr/Foldy`, GPL 공개 소스)의 코드·커밋·이슈·릴리스, README, 도움말, 화면 캡처에는 회사 정보가 하나도 있으면 안 된다.
 
 ## 넣지 않는 것
 
@@ -19,5 +18,5 @@ Foldy의 공개 저장소(`chadolkr/Foldy-releases`)와 릴리스, README, 도�
 - 커밋 전: `git grep -n -i -E "<회사 관련 단어>"`로 확인
 - 화면 캡처: `build/doc-screenshots.ps1`의 가짜 샘플 폴더로만 찍는다. 실제 PC 화면을 그대로 올리지 않는다.
 - 오류 보고서: `ReportScrubber`가 경로·사용자·컴퓨터 이름을 가리고, 진단 로그는 UNC 서버·공유 이름을 남기지 않는다(`DiagnosticMode`).
-  자동 신고는 비공개 소스 저장소의 이슈로만 간다 (`tools/crash-relay`의 `GITHUB_REPO`).
+  자동 신고는 이 저장소의 이슈로 가므로 공개된다고 보고 쓴다 (`tools/crash-relay`의 `GITHUB_REPO`).
 - 이미 올라간 경우: 파일은 고쳐 커밋하고, 기록에서도 지워야 하면 `git filter-repo --replace-text`로 지운 뒤 강제 푸시한다 (2026-11-19 한 번 함).

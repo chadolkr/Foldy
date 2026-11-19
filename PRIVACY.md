@@ -15,4 +15,4 @@ Foldy will not transfer any information to other networked systems unless specif
 - 광고, 사용 통계, 추적 기능은 없습니다. / There are no ads, analytics or tracking.
 - 제거하면 프로그램과 서비스가 함께 지워집니다 (README의 제거 방법 참고). / Uninstalling removes the program and the service.
 
-문의 / Contact: <https://github.com/chadolkr/Foldy-releases/issues>
+문의 / Contact: <https://github.com/chadolkr/Foldy/issues>

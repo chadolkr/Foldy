@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Foldy 한 번에 설치: 프로그램(Program Files\Foldy) + 시작 메뉴 + 색인 서비스(FoldyIndexer) + 프로그램 추가/제거 등록.
   관리자 권한이 필요하며, 일반 권한으로 실행하면 UAC 창을 한 번 띄워 스스로 다시 실행한다.
@@ -43,7 +43,7 @@ function Step($text) { Write-Host "  · $text" }
 Write-Host ''
 Write-Host ($(if ($Uninstall) { 'Foldy 제거' } else { 'Foldy 설치' })) -ForegroundColor Cyan
 if (-not $Uninstall) {
-    # 개인정보 안내 (전문: payload\PRIVACY.md, https://github.com/chadolkr/Foldy-releases/blob/main/PRIVACY.md)
+    # 개인정보 안내 (전문: payload\PRIVACY.md, https://github.com/chadolkr/Foldy/blob/main/PRIVACY.md)
     Write-Host ''
     Write-Host '개인정보: Foldy는 업데이트 확인(GitHub), 동의한 경우의 오류 보고, 사용자가 연 SFTP·Git 연결 말고는'
     Write-Host '어떤 정보도 밖으로 보내지 않습니다. 업데이트 확인과 오류 보고는 설정에서 끌 수 있습니다. 전문: PRIVACY.md'
@@ -140,8 +140,8 @@ New-Item -Path $uninstallKey -Force | Out-Null
 Set-ItemProperty $uninstallKey -Name DisplayName -Value 'Foldy'
 Set-ItemProperty $uninstallKey -Name DisplayVersion -Value $ver
 Set-ItemProperty $uninstallKey -Name Publisher -Value 'David CHA'
-Set-ItemProperty $uninstallKey -Name URLInfoAbout -Value 'https://github.com/chadolkr/Foldy-releases'
-Set-ItemProperty $uninstallKey -Name HelpLink -Value 'https://github.com/chadolkr/Foldy-releases/issues'
+Set-ItemProperty $uninstallKey -Name URLInfoAbout -Value 'https://github.com/chadolkr/Foldy'
+Set-ItemProperty $uninstallKey -Name HelpLink -Value 'https://github.com/chadolkr/Foldy/issues'
 Set-ItemProperty $uninstallKey -Name DisplayIcon -Value "$exe,0"
 Set-ItemProperty $uninstallKey -Name InstallLocation -Value $target
 Set-ItemProperty $uninstallKey -Name UninstallString -Value "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$target\Foldy-Setup.ps1`" -Uninstall"

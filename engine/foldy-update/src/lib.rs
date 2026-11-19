@@ -36,7 +36,7 @@ pub use manifest::{Channel, ManifestAsset, UpdateManifest};
 pub use version::Version;
 
 /// GitHub 저장소 (설계서 10.4: 저장소 한 곳이 소스·이슈·업데이트의 기준).
-pub const DEFAULT_REPO: &str = "chadolkr/Foldy-releases"; // 릴리스 전용 공개 저장소
+pub const DEFAULT_REPO: &str = "chadolkr/Foldy";
 
 /// GitHub REST API 기준 주소. 시험에서는 로컬 서버 주소로 바꾼다.
 pub const DEFAULT_API_BASE: &str = "https://api.github.com";

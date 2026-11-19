@@ -14,7 +14,7 @@
 
 *(이 문서의 모든 화면은 가짜 샘플 폴더로 찍은 실제 Foldy 화면입니다. 개인 정보는 들어 있지 않습니다.)*
 
-**[⬇ 최신 버전 내려받기 (MSI)](https://github.com/chadolkr/Foldy-releases/releases/latest)** · Windows 10/11 x64 · 무료(프리웨어)
+**[⬇ 최신 버전 내려받기 (MSI)](https://github.com/chadolkr/Foldy/releases/latest)** · Windows 10/11 x64 · 무료 오픈소스 (GPL-3.0)
 
 ## 이런 게 좋아요
 
@@ -51,7 +51,9 @@
 - [단축키](#단축키)
 - [버그 신고와 버그 진단 모드](#버그-신고와-버그-진단-모드)
 - [자주 묻는 질문](#자주-묻는-질문)
-- [개인정보](#개인정보)
+- [소스에서 빌드](#소스에서-빌드)
+- [Code signing policy](#code-signing-policy)
+- [왜 오픈소스인가요](#왜-오픈소스인가요)
 - [라이선스](#라이선스)
 
 ## 핵심 원칙
@@ -63,21 +65,21 @@
 
 ## 설치
 
-[Releases](https://github.com/chadolkr/Foldy-releases/releases)에서 받습니다.
+[Releases](https://github.com/chadolkr/Foldy/releases)에서 받습니다.
 
 | 방법 | 파일 | 설명 |
 | --- | --- | --- |
 | **MSI (권장)** | `Foldy-<버전>-x64.msi` | 더블클릭해 설치합니다. 제거는 Windows 설정 → 앱 → 설치된 앱 → Foldy → 제거. |
 | 스크립트 설치 | `Foldy-<버전>-x64-setup.zip` | 압축을 풀고 `Foldy 설치.cmd`를 실행합니다. 제거는 같은 폴더의 `Foldy 제거.cmd`. MSI로 설치한 경우 덮어쓰지 않습니다. |
 
-설치하면 빠른 파일 검색을 위한 **색인 서비스**(FoldyIndexer, SYSTEM 권한)가 함께 설치되고, 제거할 때 함께 지워집니다.
+설치하면 빠른 파일 검색을 위한 **색인 서비스**(FoldyIndexer, SYSTEM 권한)가 함께 설치되고, 제거할 때 함께 지워집니다. 자세한 구조는 [docs/installer.md](docs/installer.md).
 
 ### 자동 업데이트
 
 - 실행 5초 뒤와 6시간마다 GitHub Releases에서 새 버전을 확인합니다. 새 버전은 **Ed25519 서명과 해시를 확인한 뒤에만** 설치합니다. 상태바 오른쪽에 "Foldy x.y.z · 재시작하고 업데이트"가 나타납니다.
 - 색인 서비스가 있으면 **관리자 확인 창 없이**(UAC 없음) 설치하고 Foldy를 다시 띄웁니다. 복사·이동 중에 누르면 작업을 끊지 않고 예약했다가 모두 끝나면 설치합니다.
 - **회사 프록시**: 서비스(SYSTEM)는 사용자별 프록시(PAC 스크립트 등)를 못 씁니다. 서비스가 확인에 실패하면 Foldy가 **사용자 권한과 Windows 사용자 프록시 설정으로** 직접 확인·다운로드합니다. 이 경우 설치할 때 관리자 확인이 한 번 필요합니다. 서명·해시 검사는 똑같습니다.
-- 사이드바 아래 **업데이트** 버튼(또는 더 보기 → 업데이트 확인)은 바로 확인하고, 실패하면 이유를 보여 줍니다.
+- 사이드바 아래 **업데이트** 버튼(또는 더 보기 → 업데이트 확인)은 바로 확인하고, 실패하면 이유를 보여 줍니다. 자세한 내용: [docs/auto-update.md](docs/auto-update.md).
 
 ## 패널과 탭
 
@@ -129,7 +131,7 @@
 - **우클릭**하면 탐색기와 똑같은 메뉴(연결 프로그램, 보내기, 압축 등)가 뜹니다. **Shift+우클릭**은 확장 메뉴.
 - **끌어 놓기**: 탐색기와 주고받을 수 있습니다. 같은 드라이브면 이동, 다른 드라이브면 복사가 기본이고 **Shift**는 이동, **Ctrl**은 복사.
 - 글자를 입력하면 그 이름으로 시작하는 파일로 바로 이동합니다(Type-ahead).
-- 복사와 이동은 **Rust 병렬 복사 엔진**이 맡습니다(상태바에 "복사 엔진: Rust"). 같은 이름이 있으면 "둘 다 유지 / 덮어쓰기 / 건너뛰기"를 묻고 나머지에도 똑같이 적용할 수 있습니다. 진행 상황은 작업 패널과 작업 표시줄에 보입니다. 
+- 복사와 이동은 **Rust 병렬 복사 엔진**이 맡습니다(상태바에 "복사 엔진: Rust"). 같은 이름이 있으면 "둘 다 유지 / 덮어쓰기 / 건너뛰기"를 묻고 나머지에도 똑같이 적용할 수 있습니다. 진행 상황은 작업 패널과 작업 표시줄에 보입니다. [docs/copy-engine.md](docs/copy-engine.md)
 
 ### 연주와 우진
 
@@ -145,7 +147,7 @@
 
 - **색인 서비스**가 설치돼 있으면 NTFS 색인(MFT·USN 저널)으로 전체 드라이브를 즉시 검색합니다. 서비스를 다시 시작해도 저장된 색인을 읽고 변경분만 따라잡습니다. 상태바에 "검색: 색인 사용".
 - 서비스가 없으면 현재 폴더 아래를 직접 훑습니다(상태바 "폴더 훑기").
-- 서비스는 사이드바 더 보기 → **색인 서비스 설치 (관리자)…** 로 설치하고, MSI·스크립트 설치에는 처음부터 들어 있습니다. 같은 서비스가 폴더 크기, 폴더 분석, 업데이트도 도와줍니다. 
+- 서비스는 사이드바 더 보기 → **색인 서비스 설치 (관리자)…** 로 설치하고, MSI·스크립트 설치에는 처음부터 들어 있습니다. 같은 서비스가 폴더 크기, 폴더 분석, 업데이트도 도와줍니다. [docs/index-persistence.md](docs/index-persistence.md)
 
 ## 미리보기
 
@@ -157,7 +159,7 @@ Markdown, 이미지, 텍스트·코드(문법 강조), PDF·Office처럼 Windows
 
 ![Markdown 미리보기](docs/images/preview-markdown.png)
 
-클라우드 전용 파일, 네트워크 드라이브, SFTP는 느려지거나 내려받기가 시작되지 않게 자동으로 읽지 않고 **[미리보기]**를 눌렀을 때만 읽습니다. 
+클라우드 전용 파일, 네트워크 드라이브, SFTP는 느려지거나 내려받기가 시작되지 않게 자동으로 읽지 않고 **[미리보기]**를 눌렀을 때만 읽습니다. [docs/preview.md](docs/preview.md)
 
 ## 이미지만 보기
 
@@ -165,7 +167,7 @@ Markdown, 이미지, 텍스트·코드(문법 강조), PDF·Office처럼 Windows
 
 ![이미지만 보기](docs/images/images-grid.png)
 
-**스페이스**: 크게 보기(← →, 휠 확대, R 회전, Esc), **Ctrl+휠**: 썸네일 크기. 네트워크·클라우드 드라이브는 내용을 읽지 않습니다. 
+**스페이스**: 크게 보기(← →, 휠 확대, R 회전, Esc), **Ctrl+휠**: 썸네일 크기. 네트워크·클라우드 드라이브는 내용을 읽지 않습니다. [docs/image-view.md](docs/image-view.md)
 
 ## Markdown 보기
 
@@ -173,7 +175,7 @@ Markdown, 이미지, 텍스트·코드(문법 강조), PDF·Office처럼 Windows
 
 ![Markdown 뷰어 탭](docs/images/markdown.png)
 
-
+[docs/markdown-viewer.md](docs/markdown-viewer.md)
 
 ## Git
 
@@ -201,7 +203,7 @@ Git 화면의 **변경 사항** 탭: 커밋할 파일의 체크박스를 켜고(
 
 ![Git 기록](docs/images/git-history.png)
 
-저장소가 아닌 폴더에서는 "여기에 Git 저장소 만들기" 버튼이 나옵니다. 강제 올리기는 `--force-with-lease`만 쓰고 경고를 거칩니다. 
+저장소가 아닌 폴더에서는 "여기에 Git 저장소 만들기" 버튼이 나옵니다. 강제 올리기는 `--force-with-lease`만 쓰고 경고를 거칩니다. [docs/git-view.md](docs/git-view.md)
 
 ## SFTP와 SSH
 
@@ -213,7 +215,7 @@ Git 화면의 **변경 사항** 탭: 커밋할 파일의 체크박스를 켜고(
 - 처음 보는 서버는 호스트 키 지문을 보여 주고 묻습니다(known_hosts는 OpenSSH와 같이 씀). 키가 바뀌었으면 경고합니다.
 - 로컬 ↔ SFTP **복사·이동·끌어 놓기·붙여넣기**가 양방향으로 됩니다. 덮어쓸 때도 임시 파일에 끝까지 쓴 뒤 바꿔 넣으므로 실패해도 기존 파일은 그대로입니다. 이동은 복사가 모두 성공한 뒤에 원본을 지웁니다.
 - SFTP에는 휴지통이 없어 삭제 전에 한 번 더 묻습니다.
-- SFTP 탭에서는 터미널 버튼이 **SSH**로 바뀌어 같은 서버·폴더로 열립니다. 
+- SFTP 탭에서는 터미널 버튼이 **SSH**로 바뀌어 같은 서버·폴더로 열립니다. [docs/sftp.md](docs/sftp.md)
 
 ## 폴더 템플릿·위저드·정리
 
@@ -254,7 +256,7 @@ Git 화면의 **변경 사항** 탭: 커밋할 파일의 체크박스를 켜고(
 
 ![프로젝트 폴더는 정리하지 않는다는 안내](docs/images/organize-project-folder.png)
 
-폴더 설명 편집(폴더에 설명 달기)도 같은 도구에 있습니다. 
+폴더 설명 편집(폴더에 설명 달기)도 같은 도구에 있습니다. [docs/templates-wizard.md](docs/templates-wizard.md)
 
 ## 폴더 분석
 
@@ -267,7 +269,7 @@ Git 화면의 **변경 사항** 탭: 커밋할 파일의 체크박스를 켜고(
 - **정리 제안**: node_modules, 빌드 결과, 임시 파일, 캐시처럼 지워도 다시 만들 수 있는 것만. 시스템 폴더는 절대 제안하지 않고, **[휴지통으로]**는 확인 뒤 휴지통으로만 옮깁니다.
 - **F5** 다시 분석, **Esc** 취소.
 
-색인 서비스가 있으면 디스크를 다시 읽지 않고 몇 초 만에 분석하고, 없으면 낮은 우선순위로 직접 훑습니다. 
+색인 서비스가 있으면 디스크를 다시 읽지 않고 몇 초 만에 분석하고, 없으면 낮은 우선순위로 직접 훑습니다. [docs/disk-analysis.md](docs/disk-analysis.md)
 
 ## 느린 드라이브
 
@@ -296,7 +298,7 @@ Git 화면의 **변경 사항** 탭: 커밋할 파일의 체크박스를 켜고(
 
 ![설정: 단축키](docs/images/settings-keys.png)
 
-설정과 기록은 `%LOCALAPPDATA%\Foldy`(settings.json, session.json, logs)에, 색인 데이터는 `%ProgramData%\Foldy`에 있습니다. 
+설정과 기록은 `%LOCALAPPDATA%\Foldy`(settings.json, session.json, logs)에, 색인 데이터는 `%ProgramData%\Foldy`에 있습니다. [docs/settings.md](docs/settings.md)
 
 ## 단축키
 
@@ -329,7 +331,7 @@ Git 화면의 **변경 사항** 탭: 커밋할 파일의 체크박스를 켜고(
 ## 버그 신고와 버그 진단 모드
 
 - 사이드바 아래 **버그 신고**(또는 Foldy 정보 창)는 앱·Windows 버전과 최근 기록을 채운 GitHub 이슈 작성 페이지를 엽니다.
-- Foldy는 오류를 자동으로 모아 두고(같은 오류는 한 번만), 처음에 보낼지 묻습니다. 보고서에는 앱·Windows 버전, 오류 내용, 최근 로그만 들어가고 **파일 경로와 사용자 이름은 지웁니다**. 설정 → 일반에서 언제든 끌 수 있습니다. , [PRIVACY.md](PRIVACY.md)
+- Foldy는 오류를 자동으로 모아 두고(같은 오류는 한 번만), 처음에 보낼지 묻습니다. 보고서에는 앱·Windows 버전, 오류 내용, 최근 로그만 들어가고 **파일 경로와 사용자 이름은 지웁니다**. 설정 → 일반에서 언제든 끌 수 있습니다. [docs/bug-reporting.md](docs/bug-reporting.md), [PRIVACY.md](PRIVACY.md)
 - **버그 진단 모드**: 특정 상황에서만 생기는 문제(예: 네트워크 드라이브가 빈 화면)는 사이드바 맨 아래 ⋯(더 보기) → **버그 진단 모드 켜기/끄기**로 자세한 기록을 남깁니다. 켜면 상태바에 "버그 진단 중"이 보이고, 문제를 다시 재현한 뒤 끄면 기록을 오류 보고서로 보낼지 묻습니다. 24시간 뒤 저절로 꺼집니다. 기록 파일은 ⋯ → **로그 폴더 열기**.
 
 ![Foldy 정보 창](docs/images/about.png)
@@ -360,10 +362,56 @@ Git 저장소·프로젝트 폴더는 일부러 정리하지 않습니다. 일�
 **삭제한 파일을 되살리고 싶어요.**
 Delete는 휴지통으로 보냅니다(사이드바 휴지통에서 열기). Shift+Delete와 SFTP 삭제는 되살릴 수 없어 확인을 한 번 더 묻습니다.
 
-## 개인정보
+## 소스에서 빌드
 
-[PRIVACY.md](PRIVACY.md). Foldy는 사용자가 켜거나 직접 실행한 기능(업데이트 확인, 동의한 오류 보고, SFTP·Git 연결 등)을 빼고는 어떤 정보도 다른 곳으로 보내지 않습니다.
+필요한 도구: .NET 10 SDK, Rust stable (MSVC), Visual Studio C++ Build Tools.
+
+```powershell
+./build.ps1            # Rust → .NET 빌드 + 전체 테스트
+./build.ps1 -Bench     # 10만 개 목록 스크롤 벤치 추가 실행
+```
+
+실행: `src/Foldy.App/bin/Release/net10.0-windows/Foldy.exe`
+
+유용한 옵션: `--theme system|light|dark|retro`, `--bench-list [--step N]`, `--bench-folder <폴더>`, `--list-wpf`(비교용 기본 ListView).
+이 문서의 화면은 `./build/doc-screenshots.ps1`(= `Foldy.exe --doc-screenshots <폴더>`)로 가짜 샘플 폴더에서 다시 만들 수 있습니다.
+
+| 경로 | 내용 |
+| --- | --- |
+| `src/Foldy.App` | WPF 실행 파일 (조립 루트) |
+| `src/Foldy.UI` | 테마(모던 라이트/다크, 레트로), FastFileList 등 컨트롤 |
+| `src/Foldy.Presentation` | 화면 상태(ViewModel)와 설정·세션 저장 |
+| `src/Foldy.Core` | 모델, Provider 추상화, 드라이브별 작업 큐, 템플릿·정리 |
+| `src/Foldy.Platform` | Win32 호출 (테마·제목 표시줄, 셸 연동) |
+| `src/Foldy.Providers.Local`, `Foldy.Providers.Sftp` | 로컬·SMB 폴더, SFTP |
+| `src/Foldy.Git`, `Foldy.Analysis`, `Foldy.Reporting` | Git, 폴더 분석, 오류 보고 |
+| `src/Foldy.Copy.Native` | Rust 복사 엔진 P/Invoke (csbindgen 생성) |
+| `src/Foldy.Indexer.Client` | 색인 서비스 Named Pipe 클라이언트 |
+| `engine/` | Rust 워크스페이스: `foldy-proto`, `foldy-index`, `foldy-copy`, `foldy-ntfs` |
+| `tests/` | xUnit v3 테스트, 벤치마크 도구 |
+
+설계와 진행 상황은 [docs/DESIGN.md](docs/DESIGN.md), [docs/PROGRESS.md](docs/PROGRESS.md).
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+Windows 실행 파일(`Foldy.exe`, `Foldy.*.dll`, `foldy-index.exe`, `foldy-update.exe`)과 MSI 설치 파일은 이 저장소의 소스에서 GitHub Actions([release.yml](.github/workflows/release.yml))로만 빌드되고, 릴리스마다 승인자가 직접 승인한 뒤에 서명됩니다.
+업데이트 정보(`update.json`)는 이와 별도로 Ed25519로 서명됩니다 ([docs/release-signing.md](docs/release-signing.md)).
+
+Team roles / 역할:
+
+- Committers and reviewers / 커미터·리뷰어: [David CHA](https://github.com/chadolkr)
+- Approvers / 승인자: [David CHA](https://github.com/chadolkr)
+
+Privacy policy / 개인정보 정책: [PRIVACY.md](PRIVACY.md). 이 프로그램은 사용자가 켜거나 직접 실행한 기능(업데이트 확인, 동의한 오류 보고, SFTP·Git 연결 등)을 빼고는 어떤 정보도 다른 네트워크 시스템으로 보내지 않습니다.
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+
+## 왜 오픈소스인가요
+
+오랫동안 오픈소스에서 많은 것을 얻기만 했어요. 이제는 저도 작은 보탬이 되고 싶어 Foldy를 GPL-3.0으로 공개합니다.
+쓰다가 불편한 점이나 아이디어가 있으면 언제든 [이슈](https://github.com/chadolkr/Foldy/issues)와 PR로 함께해 주세요.
 
 ## 라이선스
 
-무료로 쓰고 나눌 수 있는 프리웨어입니다(소스 비공개). [사용권](LICENSE) · [오픈소스 고지](THIRD-PARTY-NOTICES.md) · 개발자 David CHA · <https://github.com/chadolkr/Foldy-releases>
+[GPL-3.0-or-later](LICENSE) · [오픈소스 고지](THIRD-PARTY-NOTICES.md) · 개발자 David CHA · <https://github.com/chadolkr/Foldy>

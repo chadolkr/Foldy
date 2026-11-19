@@ -24,5 +24,5 @@ public static class ReportingConfig
     public static Uri? CrashRelayUrl =>
         Uri.TryCreate(Meta("FoldyCrashRelayUrl"), UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps ? u : null;
 
-    public static string RepositoryUrl => Meta("FoldyRepositoryUrl") is { Length: > 0 } r ? r.TrimEnd('/') : "https://github.com/chadolkr/Foldy-releases";
+    public static string RepositoryUrl => Meta("FoldyRepositoryUrl") is { Length: > 0 } r ? r.TrimEnd('/') : "https://github.com/chadolkr/Foldy";
 }
