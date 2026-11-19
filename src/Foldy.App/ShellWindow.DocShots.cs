@@ -481,8 +481,11 @@ public partial class ShellWindow
             DocFixStatus();
             var full = DocRender((FrameworkElement)Content, Background, 2);
             var origin = JobsPanel.TranslatePoint(new Point(0, 0), (FrameworkElement)Content);
+            // 화면이 작은 PC(CI 러너 등)에서도 그림 밖으로 나가지 않게 자른다
+            var cx = Math.Min(380 * 2, Math.Max(0, full.PixelWidth - 2));
+            var cy = Math.Clamp((int)(origin.Y * 2), 0, Math.Max(0, full.PixelHeight - 2));
             var crop = new CroppedBitmap(full, new Int32Rect(
-                (int)(380 * 2), (int)(origin.Y * 2), 920 * 2, (int)(JobsPanel.ActualHeight * 2)));
+                cx, cy, Math.Max(1, Math.Min(920 * 2, full.PixelWidth - cx)), Math.Max(1, Math.Min((int)(JobsPanel.ActualHeight * 2), full.PixelHeight - cy))));
             DocSave("jobs-mascot", crop, 1);
             Shell.Jobs.Remove(job);
         });
