@@ -339,6 +339,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         RefreshDrives();
+        StartContextHints();
         if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown)
         {
             _ = Dispatcher.InvokeAsync(async () =>
@@ -1676,6 +1677,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void ShowCleanupNotice(CleanupFinding f)
     {
+        _hintKey = null;
         _cleanupFinding = f;
         CleanupNoticeText.Text = f.Text;
         CleanupNoticeButton.Content = f.Tool switch { "logs" => "로그 정리", "downloads" => "다운로드 정리", "managed" => "정리할 것 보기", _ => "바탕화면 정리" };
@@ -1703,7 +1705,58 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
-    private void OnCleanupNoticeClose(object sender, RoutedEventArgs e) => CleanupNotice.Visibility = Visibility.Collapsed;
+    private void OnCleanupNoticeClose(object sender, RoutedEventArgs e)
+    {
+        CleanupNotice.Visibility = Visibility.Collapsed;
+        if (_cleanupFinding is { } f && f.Text.Length > 0 && _hintKey is { } key)
+        {
+            ContextHints.Dismiss(key); // 닫은 제안은 그 폴더에서 다시 보이지 않는다
+        }
+    }
+
+    private DispatcherTimer? _hintTimer;
+    private string? _hintPath;
+    private string? _hintKey;
+
+    /// <summary>
+    /// 맥락 제안: 지금 보는 폴더에 맞는 기능을 한 줄로 알려 준다 (한 번에 하나, 닫으면 그 폴더에서는 다시 안 보임).
+    /// 예: 다운로드 폴더에 파일이 많으면 [다운로드 정리]. 정리 알림 설정을 함께 따른다.
+    /// </summary>
+    private void StartContextHints()
+    {
+        if (_hintTimer is not null || App.Options.DocShots is not null || App.Options.IsCapture)
+        {
+            return;
+        }
+
+        _hintTimer = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.ApplicationIdle, (_, _) => CheckContextHint(), Dispatcher);
+        _hintTimer.Start();
+    }
+
+    private void CheckContextHint()
+    {
+        var tab = Shell.ActivePane.ActiveFolder;
+        var path = tab?.Path;
+        if (tab is null || path is null || string.Equals(path, _hintPath, StringComparison.OrdinalIgnoreCase) || tab.State == Foldy.Presentation.Tabs.LoadState.Loading)
+        {
+            return;
+        }
+
+        _hintPath = path;
+        if (!_settings.CleanupNotices || CleanupNotice.Visibility == Visibility.Visible || tab.IsSlowDrive)
+        {
+            return;
+        }
+
+        if (ContextHints.For(path, tab.Items) is { } hint)
+        {
+            _hintKey = hint.Key;
+            _cleanupFinding = hint.Finding;
+            CleanupNoticeText.Text = hint.Finding.Text;
+            CleanupNoticeButton.Content = hint.Button;
+            CleanupNotice.Visibility = Visibility.Visible;
+        }
+    }
 
     private void OnFnPreview(object sender, RoutedEventArgs e) => ActiveView.TogglePreview();
 
