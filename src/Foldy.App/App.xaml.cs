@@ -74,7 +74,11 @@ public partial class App : Application
         var normalRun = !(Options.IsBench || Options.Synthetic || Options.ListWpf || Options.IsCapture);
         if (normalRun)
         {
-            _instance = Foldy.Platform.SystemInfo.SingleInstance.Acquire();
+            // 데이터 폴더를 따로 쓰는 실행(UI 자동 테스트 등)은 평소 쓰는 Foldy와 섞이지 않게 따로 하나로 센다
+            var key = Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 } dd
+                ? "Foldy-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(dd.ToUpperInvariant())))[..12]
+                : "Foldy";
+            _instance = Foldy.Platform.SystemInfo.SingleInstance.Acquire(key);
             if (!_instance.IsFirst)
             {
                 if (_instance.TrySendToFirst(ForwardArgs(e.Args), TimeSpan.FromSeconds(3)))

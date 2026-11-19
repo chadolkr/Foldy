@@ -5,7 +5,7 @@ namespace Foldy.Presentation.Persistence;
 /// <summary>settings.json (설계서 7.2). 기본값과 다른 것만 의미가 있고, schemaVersion으로 마이그레이션한다.</summary>
 public sealed record AppSettings
 {
-    public const int CurrentSchema = 1;
+    public const int CurrentSchema = 2;
 
     public int SchemaVersion { get; init; } = CurrentSchema;
 
@@ -17,8 +17,8 @@ public sealed record AppSettings
 
     public bool ShowHidden { get; init; }
 
-    /// <summary>preferAssociated(등록된 앱 우선) / alwaysFoldy</summary>
-    public string MarkdownOpen { get; init; } = "preferAssociated";
+    /// <summary>alwaysFoldy(Foldy 뷰어, 기본) / preferAssociated(등록된 앱 우선)</summary>
+    public string MarkdownOpen { get; init; } = "alwaysFoldy";
 
     public TerminalSettings Terminal { get; init; } = new();
 
@@ -61,6 +61,8 @@ public sealed record AppSettings
         s.SchemaVersion switch
         {
             CurrentSchema => s,
+            // 2: Markdown은 메모장 대신 Foldy 뷰어로 여는 것이 기본 (사용자 결정 2026-11-19)
+            1 => s with { SchemaVersion = CurrentSchema, MarkdownOpen = "alwaysFoldy" },
             _ => s with { SchemaVersion = CurrentSchema },
         };
 }

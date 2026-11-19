@@ -9,18 +9,20 @@
   <DockPanel>
     <Border DockPanel.Dock="Top" Padding="12,6" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Background="{DynamicResource Brush.Surface}">
       <DockPanel LastChildFill="True">
-        <Button DockPanel.Dock="Right" Content="잠그고 닫기" Padding="12,3" Margin="6,0,0,0" Click="OnLockClose" ToolTip="저장하고 닫아요 (다시 열 때 암호가 필요해요)" />
+        <Button DockPanel.Dock="Right" x:Name="CloseButton" Content="잠그고 닫기" Padding="12,3" Margin="6,0,0,0" Click="OnLockClose" />
         <Button DockPanel.Dock="Right" x:Name="SaveButton" Content="저장 (Ctrl+S)" Padding="12,3" Margin="6,0,0,0" Click="OnSave" />
-        <ToggleButton DockPanel.Dock="Right" x:Name="PreviewToggle" Content="미리 보기" Padding="12,3" IsChecked="True" Checked="OnPreviewToggle" Unchecked="OnPreviewToggle" />
-        <TextBlock Text="&#xE72E;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" Margin="0,0,8,0" />
-        <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" TextTrimming="CharacterEllipsis"
-                   Text="잠긴 메모 · 그림은 Ctrl+V로 붙여 넣거나 끌어다 놓으세요 · 5분 동안 손대지 않으면 저장하고 잠가요" />
+        <Button DockPanel.Dock="Right" x:Name="CaptureButton" Content="화면 캡처" Padding="12,3" Margin="6,0,0,0" Click="OnCapture"
+                ToolTip="Windows 캡처 도구를 열어요. 캡처하면 바로 메모에 들어가요 (Win+Shift+S로 캡처한 뒤 Ctrl+V도 돼요)" />
+        <ToggleButton DockPanel.Dock="Right" x:Name="ViewToggle" Content="보기로" Padding="12,3" Checked="OnModeToggle" Unchecked="OnModeToggle"
+                      ToolTip="쓰기: 글과 미리 보기를 나란히 / 보기: 다 쓴 모습만" />
+        <TextBlock x:Name="LockIcon" Text="&#xE72E;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" TextTrimming="CharacterEllipsis" />
       </DockPanel>
     </Border>
     <Grid>
       <Grid.ColumnDefinitions>
+        <ColumnDefinition x:Name="EditorColumn" Width="*" />
         <ColumnDefinition Width="*" />
-        <ColumnDefinition x:Name="PreviewColumn" Width="*" />
       </Grid.ColumnDefinitions>
       <TextBox x:Name="Editor" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                BorderThickness="0" Padding="12" FontFamily="{DynamicResource Font.Mono}" AllowDrop="True" VerticalContentAlignment="Top"

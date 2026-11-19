@@ -38,6 +38,9 @@
     </Project>
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Foldy.UiTests/Foldy.UiTests.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="tests/Foldy.Analysis.Tests/Foldy.Analysis.Tests.csproj">
       <Platform Project="x64" />
     </Project>

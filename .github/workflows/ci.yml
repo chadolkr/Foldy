@@ -42,6 +42,25 @@ jobs:
         shell: pwsh
         run: ./build.ps1
 
+      # 화면 자동 점검: 모든 장면(메인, 대화 창, 메모, 작은 화면 1366x768, 큰 글씨 130%, 다크 테마, 설정, 위저드 …)을
+      # 실제로 띄워 찍어 본다. 창이 하나라도 열리지 않거나 예외가 나면 실패한다. 찍은 그림은 아티팩트로 남긴다.
+      - name: UI smoke (all scenes)
+        shell: pwsh
+        timeout-minutes: 15
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'ui-shots'
+          ./build/doc-screenshots.ps1 -Out $out -Strict
+          $n = (Get-ChildItem $out -Filter *.png).Count
+          Write-Host "장면 $n개"
+          if ($n -lt 25) { throw "장면이 너무 적음: $n" }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-shots
+          path: ${{ runner.temp }}/ui-shots/*.png
+          retention-days: 7
+
       - name: Check generated bindings are committed
         shell: pwsh
         run: |

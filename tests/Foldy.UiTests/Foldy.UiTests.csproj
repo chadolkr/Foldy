@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- UI 자동 테스트 (FlaUI, UI Automation): 빌드된 Foldy.exe를 임시 데이터 폴더로 띄워 실제 창을 누르며 확인한다.
+       Windows 데스크톱이 있어야 한다 (GitHub Actions windows-latest에서 돈다). exe가 없으면 건너뛴다. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- FlaUI 타입 이름과 겹치는 규칙 완화 -->
+    <NoWarn>$(NoWarn);CA1001;CA1063;CA1816</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FlaUI.UIA3" />
+  </ItemGroup>
+</Project>

@@ -33,6 +33,22 @@ public static class SecureFlows
     /// <summary>더블클릭·Enter·탐색기에서 연 파일이 Foldy가 다룰 잠긴 파일이면 열고 true.</summary>
     public static bool TryOpen(Window owner, string path, ShellViewModel shell)
     {
+        if (TextPack.Is(path))
+        {
+            try
+            {
+                var w = MemoWindow.OpenMarkdown(path, startInView: true); // 그림이 든 메모: 보기로 열고 [쓰기로]
+                w.Owner = owner;
+                w.Show();
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+            {
+                MessageBox.Show(owner, "메모를 열지 못했어요: " + ex.Message, "메모", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            return true;
+        }
+
         if (IsVault(path))
         {
             _ = OpenVaultAsync(owner, path, shell);

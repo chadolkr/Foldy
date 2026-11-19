@@ -59,6 +59,18 @@ public partial class ShellWindow : Window, IPaneHost
     {
         InitializeComponent();
         _settings = AppSettings.Migrate(JsonFileStore.Load(_settingsPath, () => new AppSettings()));
+        Foldy.UI.Markdown.MarkdownView.WriteInFoldy = path =>
+        {
+            if (!Foldy.Presentation.Shell.ShellViewModel.MarkdownExtensions.Contains(Path.GetExtension(path)))
+            {
+                return false;
+            }
+
+            var w = MemoWindow.OpenMarkdown(path);
+            w.Owner = this;
+            w.Show();
+            return true;
+        };
         Foldy.Core.Managed.ManagedFolders.LoadRegistry(Path.Combine(App.DataDir, "managed-folders.json"));
         Foldy.Core.Managed.ManagedFolders.Changed += () => Dispatcher.BeginInvoke(() =>
         {
@@ -877,6 +889,16 @@ public partial class ShellWindow : Window, IPaneHost
         Add("cleanup.logs", "로그 정리 (현재 드라이브)", () => OpenLogCleanup(null));
         Add("cleanup.downloads", "다운로드 정리", () => OpenDownloadsCleanup(null));
         Add("cleanup.desktop", "바탕화면 정리", OpenDesktopTidy);
+        Add("memo.new", "새 메모 (.md, 지금 폴더에)", () =>
+        {
+            if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
+            {
+                var path = Foldy.Core.Vault.SecureZip.Unique(Path.Combine(p, "새 메모.md"));
+                File.WriteAllText(path, "# 새 메모\n\n");
+                MemoWindow.OpenMarkdown(path).Show();
+                _ = Shell.RefreshFoldersAsync([p]);
+            }
+        });
         Add("secure.newMemo", "새 잠긴 메모 (지금 폴더에)", () =>
         {
             if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')

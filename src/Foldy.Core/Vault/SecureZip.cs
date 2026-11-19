@@ -500,11 +500,11 @@ public sealed class LockedNote
     }
 
     /// <summary>이미지를 넣고 본문에 쓸 이름을 돌려준다 (images/그림-1.png).</summary>
-    public string AddImage(byte[] bytes, string ext)
+    public string AddImage(byte[] bytes, string ext, string folder = SecureZip.ImagesFolder)
     {
         for (var i = Images.Count + 1; ; i++)
         {
-            var name = $"{SecureZip.ImagesFolder}그림-{i}{ext}";
+            var name = $"{folder}그림-{i}{ext}";
             if (!Images.ContainsKey(name))
             {
                 Images[name] = bytes;

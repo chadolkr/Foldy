@@ -85,7 +85,7 @@
               <TextBlock Text="목차" Margin="6,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
           </ToggleButton>
-          <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE70F;" ToolTip="편집 (연결된 편집기 또는 메모장)" Click="OnEdit" />
+          <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE70F;" ToolTip="쓰기 (Foldy 메모 창에서 고치기, 그림 붙여넣기·화면 캡처)" Click="OnEdit" />
           <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE721;" ToolTip="문서에서 찾기 (Ctrl+F)" Click="OnShowFind" />
         </StackPanel>
         <TextBlock x:Name="StatusText" Style="{DynamicResource Foldy.StatusText}" HorizontalAlignment="Right"
