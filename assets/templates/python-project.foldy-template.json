@@ -32,14 +32,16 @@
           "file": "\"\"\"{{프로젝트}}\"\"\"\n\n__version__ = \"0.1.0\"\n"
         },
         {
-          "name": "tests"
+          "name": "tests",
+          "purpose": "테스트"
         },
         {
           "name": "tests/test_smoke.py",
           "file": "import {{패키지}}\n\n\ndef test_version():\n    assert {{패키지}}.__version__\n"
         },
         {
-          "name": "docs"
+          "name": "docs",
+          "purpose": "문서"
         },
         {
           "name": "pyproject.toml",

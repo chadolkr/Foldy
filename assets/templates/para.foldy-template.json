@@ -5,18 +5,41 @@
   "badge": "PARA",
   "category": "개인·업무",
   "description": "끝이 있는 일 / 계속 맡는 일 / 참고 자료 / 끝난 것, 네 칸으로 나누는 개인·업무 문서 정리",
-  "purposes": ["personal", "work", "unsure"],
+  "purposes": [
+    "personal",
+    "work",
+    "unsure"
+  ],
   "variables": [],
   "tree": [
-    { "name": "1_Projects", "nameEn": "1_Projects" },
-    { "name": "2_Areas", "nameEn": "2_Areas" },
-    { "name": "3_Resources", "nameEn": "3_Resources" },
-    { "name": "4_Archives", "nameEn": "4_Archives" }
+    {
+      "name": "1_Projects",
+      "nameEn": "1_Projects",
+      "purpose": "지금 하는 일 (끝나는 날이 있는 일)"
+    },
+    {
+      "name": "2_Areas",
+      "nameEn": "2_Areas",
+      "purpose": "계속 관리하는 영역 (건강, 돈, 집, 팀)"
+    },
+    {
+      "name": "3_Resources",
+      "nameEn": "3_Resources",
+      "purpose": "참고 자료 (언젠가 쓸 정보)"
+    },
+    {
+      "name": "4_Archives",
+      "nameEn": "4_Archives",
+      "purpose": "끝난 것 (지우지 말고 여기로)"
+    }
   ],
   "naming": [
     {
       "pattern": "날짜_주제_내용[_v버전].확장자",
-      "examples": ["2026-11-18_이사_견적비교_v02.xlsx", "2026-03-02_건강검진_결과.pdf"],
+      "examples": [
+        "2026-11-18_이사_견적비교_v02.xlsx",
+        "2026-03-02_건강검진_결과.pdf"
+      ],
       "regex": "^\\d{4}-\\d{2}-\\d{2}_[^_]+_.+"
     }
   ],
@@ -26,8 +49,30 @@
     "다 끝난 프로젝트 폴더는 지우지 말고 4_Archives로 옮기기"
   ],
   "organize": [
-    { "target": "4_Archives", "notOpenedForDays": 365, "reason": "1년 넘게 열지 않음 → 보관 후보" },
-    { "target": "3_Resources", "groups": ["이미지", "영상", "음악"], "reason": "참고용 미디어" },
-    { "target": "3_Resources", "keywords": ["참고", "자료", "매뉴얼", "manual", "guide"], "reason": "이름에 참고·자료" }
+    {
+      "target": "4_Archives",
+      "notOpenedForDays": 365,
+      "reason": "1년 넘게 열지 않음 → 보관 후보"
+    },
+    {
+      "target": "3_Resources",
+      "groups": [
+        "이미지",
+        "영상",
+        "음악"
+      ],
+      "reason": "참고용 미디어"
+    },
+    {
+      "target": "3_Resources",
+      "keywords": [
+        "참고",
+        "자료",
+        "매뉴얼",
+        "manual",
+        "guide"
+      ],
+      "reason": "이름에 참고·자료"
+    }
   ]
 }

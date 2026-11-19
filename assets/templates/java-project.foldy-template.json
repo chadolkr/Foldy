@@ -52,16 +52,19 @@
           "file": "package com.{{조직}}.{{앱}};\n\npublic class App {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, {{프로젝트}}\");\n    }\n}\n"
         },
         {
-          "name": "src/main/resources"
+          "name": "src/main/resources",
+          "purpose": "설정 파일·리소스"
         },
         {
           "name": "src/test/java/com/{{조직}}/{{앱}}"
         },
         {
-          "name": "src/test/resources"
+          "name": "src/test/resources",
+          "purpose": "테스트용 리소스"
         },
         {
-          "name": "docs"
+          "name": "docs",
+          "purpose": "문서"
         },
         {
           "name": "README.md",

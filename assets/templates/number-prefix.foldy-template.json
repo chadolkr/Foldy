@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "number-prefix",
+  "name": "번호·날짜 붙이기",
+  "badge": "01_",
+  "category": "개인·업무",
+  "description": "폴더 앞에 번호(01_, 02_)를 붙여 순서를 고정하고, 파일은 날짜(2026-11-19_)로 시작하게 하는 가장 쉬운 정리법. 맨 위 00_받은 파일에 일단 모았다가 나중에 나눠요.",
+  "purposes": [
+    "personal",
+    "work",
+    "unsure"
+  ],
+  "variables": [],
+  "tree": [
+    {
+      "name": "00_받은 파일",
+      "nameEn": "00_Inbox",
+      "purpose": "일단 여기에 (받은 파일·아직 안 나눈 것)"
+    },
+    {
+      "name": "01_진행중",
+      "nameEn": "01_Active",
+      "purpose": "지금 하고 있는 일"
+    },
+    {
+      "name": "02_자료",
+      "nameEn": "02_Reference",
+      "purpose": "자주 보는 참고 자료"
+    },
+    {
+      "name": "03_완료",
+      "nameEn": "03_Done",
+      "purpose": "끝났지만 가끔 보는 것"
+    },
+    {
+      "name": "99_보관",
+      "nameEn": "99_Archive",
+      "purpose": "오래돼서 거의 안 보는 것"
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "날짜_내용.확장자",
+      "examples": [
+        "2026-11-19_보고서.docx",
+        "2026-11-02_견적서.pdf"
+      ],
+      "regex": "^\\d{4}-\\d{2}-\\d{2}_.+"
+    }
+  ],
+  "firstSteps": [
+    "새로 받은 파일은 고민하지 말고 00_받은 파일에 넣기",
+    "일주일에 한 번 00_받은 파일을 비우며 01~03으로 나누기",
+    "파일 이름은 날짜로 시작하면 이름순 = 날짜순"
+  ],
+  "organize": [
+    {
+      "target": "99_보관",
+      "notOpenedForDays": 365,
+      "reason": "1년 넘게 열지 않음 → 보관 후보"
+    }
+  ]
+}

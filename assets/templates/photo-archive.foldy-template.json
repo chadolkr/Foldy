@@ -5,21 +5,44 @@
   "badge": "사진",
   "category": "미디어·창작",
   "description": "연도 → 날짜_행사명, 안쪽은 원본(RAW)·편집본·내보내기",
-  "purposes": ["media"],
+  "purposes": [
+    "media"
+  ],
   "variables": [
-    { "key": "제목", "label": "행사·여행 이름", "required": true }
+    {
+      "key": "제목",
+      "label": "행사·여행 이름",
+      "required": true
+    }
   ],
   "tree": [
-    { "name": "{{date:yyyy}}/{{date:yyyy-MM-dd}}_{{제목}}", "children": [
-      { "name": "RAW" },
-      { "name": "편집본", "nameEn": "edited" },
-      { "name": "내보내기", "nameEn": "export" }
-    ]}
+    {
+      "name": "{{date:yyyy}}/{{date:yyyy-MM-dd}}_{{제목}}",
+      "children": [
+        {
+          "name": "RAW",
+          "purpose": "카메라 원본 (RAW)"
+        },
+        {
+          "name": "편집본",
+          "nameEn": "edited",
+          "purpose": "보정한 사진"
+        },
+        {
+          "name": "내보내기",
+          "nameEn": "export",
+          "purpose": "공유·인화용으로 내보낸 것"
+        }
+      ]
+    }
   ],
   "naming": [
     {
       "pattern": "날짜_시간_행사_일련번호.확장자 (촬영 시각 기준)",
-      "examples": ["2026-11-18_143205_제주여행_001.jpg", "2026-11-18_제주여행_편집본_001.jpg"],
+      "examples": [
+        "2026-11-18_143205_제주여행_001.jpg",
+        "2026-11-18_제주여행_편집본_001.jpg"
+      ],
       "regex": "^\\d{4}-\\d{2}-\\d{2}_.+"
     }
   ],
@@ -29,9 +52,49 @@
     "백업할 때는 RAW 폴더를 가장 먼저 챙기기"
   ],
   "organize": [
-    { "target": "RAW", "extensions": [".raw", ".cr2", ".cr3", ".nef", ".arw", ".dng", ".orf", ".rw2", ".raf", ".heic"], "reason": "카메라 원본" },
-    { "target": "편집본", "keywords": ["편집", "보정", "edit", "_e"], "reason": "이름에 편집·보정" },
-    { "target": "내보내기", "keywords": ["export", "공유", "내보내기", "share"], "reason": "이름에 내보내기·공유" },
-    { "target": "RAW", "groups": ["이미지", "영상"], "reason": "사진·영상 원본" }
+    {
+      "target": "RAW",
+      "extensions": [
+        ".raw",
+        ".cr2",
+        ".cr3",
+        ".nef",
+        ".arw",
+        ".dng",
+        ".orf",
+        ".rw2",
+        ".raf",
+        ".heic"
+      ],
+      "reason": "카메라 원본"
+    },
+    {
+      "target": "편집본",
+      "keywords": [
+        "편집",
+        "보정",
+        "edit",
+        "_e"
+      ],
+      "reason": "이름에 편집·보정"
+    },
+    {
+      "target": "내보내기",
+      "keywords": [
+        "export",
+        "공유",
+        "내보내기",
+        "share"
+      ],
+      "reason": "이름에 내보내기·공유"
+    },
+    {
+      "target": "RAW",
+      "groups": [
+        "이미지",
+        "영상"
+      ],
+      "reason": "사진·영상 원본"
+    }
   ]
 }

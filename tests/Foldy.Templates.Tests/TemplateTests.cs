@@ -271,7 +271,7 @@ public class LibraryAndCaptureTests
         all.Select(t => t.Id).Should().BeEquivalentTo([
             "para", "johnny-decimal", "software-project", "client-project", "photo-archive",
             "java-project", "python-project", "node-project", "dotnet-project", "go-project",
-            "date-archive", "document-workflow", "research-project", "household-life", "design-assets"]);
+            "date-archive", "document-workflow", "research-project", "household-life", "design-assets", "number-prefix"]);
         all.Select(t => t.Id).Should().OnlyHaveUniqueItems();
         foreach (var t in all)
         {

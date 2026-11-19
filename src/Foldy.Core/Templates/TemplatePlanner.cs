@@ -56,6 +56,9 @@ public sealed class PlannedNode
 
     public bool Optional { get; init; }
 
+    /// <summary>이 폴더에 무엇을 넣는지 (템플릿의 purpose).</summary>
+    public string? Purpose { get; init; }
+
     public PlannedState State { get; set; }
 
     public string? Problem { get; set; }
@@ -240,6 +243,7 @@ public static partial class TemplatePlanner
                         IsFile = isFile,
                         Content = isFile ? TemplateVariables.Substitute(node.File!, o.Values, o.Now) : null,
                         Optional = node.Optional,
+                        Purpose = isLastSeg ? node.Purpose : null,
                     };
                     Resolve(pn, excluded, fs, plan);
                     list.Add(pn);

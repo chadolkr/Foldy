@@ -95,6 +95,9 @@ public sealed partial class PreviewNodeViewModel : ObservableObject
 
     public bool IsFile => Node.IsFile;
 
+    /// <summary>이름 옆 설명 ("— 지금 하는 일"). 없으면 빈 문자열.</summary>
+    public string PurposeText => string.IsNullOrEmpty(Node.Purpose) ? "" : "— " + Node.Purpose;
+
     public PlannedState State => Node.State;
 
     /// <summary>오른쪽 작은 표시: 새로 만듦 / 이미 있음 / 만들 수 없음.</summary>

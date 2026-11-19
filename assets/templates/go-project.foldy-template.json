@@ -32,14 +32,17 @@
           "file": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, {{프로젝트}}\")\n}\n"
         },
         {
-          "name": "internal"
+          "name": "internal",
+          "purpose": "이 모듈 안에서만 쓰는 코드"
         },
         {
           "name": "pkg",
-          "optional": true
+          "optional": true,
+          "purpose": "다른 모듈도 가져다 쓰는 라이브러리"
         },
         {
-          "name": "docs"
+          "name": "docs",
+          "purpose": "문서"
         },
         {
           "name": "go.mod",

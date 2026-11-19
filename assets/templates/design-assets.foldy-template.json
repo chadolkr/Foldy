@@ -21,19 +21,23 @@
       "children": [
         {
           "name": "원본",
-          "nameEn": "source"
+          "nameEn": "source",
+          "purpose": "손대지 않은 원본 (사진, 받은 파일)"
         },
         {
           "name": "작업",
-          "nameEn": "work"
+          "nameEn": "work",
+          "purpose": "PSD·Figma 같은 작업 파일"
         },
         {
           "name": "내보내기",
-          "nameEn": "export"
+          "nameEn": "export",
+          "purpose": "내보낸 결과물 (PNG, PDF)"
         },
         {
           "name": "참고",
-          "nameEn": "reference"
+          "nameEn": "reference",
+          "purpose": "레퍼런스·무드보드"
         }
       ]
     }

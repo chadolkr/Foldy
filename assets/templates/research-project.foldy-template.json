@@ -22,7 +22,8 @@
       "children": [
         {
           "name": "문헌",
-          "nameEn": "literature"
+          "nameEn": "literature",
+          "purpose": "논문·참고 문헌"
         },
         {
           "name": "데이터",
@@ -30,25 +31,31 @@
           "children": [
             {
               "name": "원본",
-              "nameEn": "raw"
+              "nameEn": "raw",
+              "purpose": "받은 그대로의 데이터 (수정 금지)"
             },
             {
               "name": "정제",
-              "nameEn": "clean"
+              "nameEn": "clean",
+              "purpose": "정리·가공한 데이터"
             }
-          ]
+          ],
+          "purpose": "연구 데이터"
         },
         {
           "name": "분석",
-          "nameEn": "analysis"
+          "nameEn": "analysis",
+          "purpose": "분석 코드·결과"
         },
         {
           "name": "원고",
-          "nameEn": "manuscript"
+          "nameEn": "manuscript",
+          "purpose": "논문·보고서 원고"
         },
         {
           "name": "발표",
-          "nameEn": "presentation"
+          "nameEn": "presentation",
+          "purpose": "발표 자료"
         },
         {
           "name": "README.md",

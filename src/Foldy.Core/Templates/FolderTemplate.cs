@@ -93,6 +93,9 @@ public sealed class TemplateNode
     /// <summary>파일 내용. 값이 있으면 파일, 없으면 폴더 (빈 파일은 빈 문자열).</summary>
     public string? File { get; set; }
 
+    /// <summary>이 폴더에 무엇을 넣는지 한 줄 설명 (미리보기에서 이름 옆에 보인다). 예: "지금 하는 일".</summary>
+    public string? Purpose { get; set; }
+
     /// <summary>조건 (예: <c>language=dotnet</c>, 여러 값은 <c>language=node|python</c>). 맞지 않으면 만들지 않는다.</summary>
     public string? When { get; set; }
 

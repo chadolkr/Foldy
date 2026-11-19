@@ -26,13 +26,16 @@
           "children": [
             {
               "name": "세금",
-              "nameEn": "tax"
+              "nameEn": "tax",
+              "purpose": "연말정산·종합소득세"
             },
             {
               "name": "통장·카드",
-              "nameEn": "bank-card"
+              "nameEn": "bank-card",
+              "purpose": "계좌·카드 명세서"
             }
-          ]
+          ],
+          "purpose": "돈 관련 서류"
         },
         {
           "name": "건강",
@@ -40,13 +43,16 @@
           "children": [
             {
               "name": "진료·처방",
-              "nameEn": "medical"
+              "nameEn": "medical",
+              "purpose": "진료 기록·처방전"
             },
             {
               "name": "검진",
-              "nameEn": "checkup"
+              "nameEn": "checkup",
+              "purpose": "건강검진 결과"
             }
-          ]
+          ],
+          "purpose": "병원·건강 기록"
         },
         {
           "name": "집",
@@ -54,29 +60,36 @@
           "children": [
             {
               "name": "계약·등기",
-              "nameEn": "contract"
+              "nameEn": "contract",
+              "purpose": "임대차 계약서·등기부"
             },
             {
               "name": "공과금·관리비",
-              "nameEn": "utilities"
+              "nameEn": "utilities",
+              "purpose": "고지서·영수증"
             },
             {
               "name": "수리·설명서",
-              "nameEn": "manuals"
+              "nameEn": "manuals",
+              "purpose": "가전 설명서·수리 기록"
             }
-          ]
+          ],
+          "purpose": "집 관련 서류"
         },
         {
           "name": "차량",
-          "nameEn": "car"
+          "nameEn": "car",
+          "purpose": "자동차 서류"
         },
         {
           "name": "여권·신분",
-          "nameEn": "id-documents"
+          "nameEn": "id-documents",
+          "purpose": "신분증 사본·여권"
         },
         {
           "name": "보험",
-          "nameEn": "insurance"
+          "nameEn": "insurance",
+          "purpose": "보험 증권·청구 서류"
         }
       ]
     }

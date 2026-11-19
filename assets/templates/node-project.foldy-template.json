@@ -20,14 +20,16 @@
       "name": "{{프로젝트}}",
       "children": [
         {
-          "name": "src"
+          "name": "src",
+          "purpose": "소스 코드"
         },
         {
           "name": "src/index.ts",
           "file": "export function hello(name: string): string {\n  return `Hello, ${name}`;\n}\n"
         },
         {
-          "name": "test"
+          "name": "test",
+          "purpose": "테스트"
         },
         {
           "name": "test/index.test.ts",
@@ -35,11 +37,13 @@
         },
         {
           "name": "public",
-          "optional": true
+          "optional": true,
+          "purpose": "그대로 배포되는 정적 파일"
         },
         {
           "name": "docs",
-          "optional": true
+          "optional": true,
+          "purpose": "문서"
         },
         {
           "name": "package.json",

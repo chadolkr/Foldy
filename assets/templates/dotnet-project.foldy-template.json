@@ -20,13 +20,16 @@
       "name": "{{프로젝트}}",
       "children": [
         {
-          "name": "src"
+          "name": "src",
+          "purpose": "소스 코드 (프로젝트별 폴더)"
         },
         {
-          "name": "tests"
+          "name": "tests",
+          "purpose": "테스트 프로젝트"
         },
         {
-          "name": "docs"
+          "name": "docs",
+          "purpose": "문서"
         },
         {
           "name": "README.md",

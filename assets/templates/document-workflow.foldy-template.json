@@ -21,19 +21,23 @@
       "children": [
         {
           "name": "01_초안",
-          "nameEn": "01_draft"
+          "nameEn": "01_draft",
+          "purpose": "처음 쓰는 중"
         },
         {
           "name": "02_검토",
-          "nameEn": "02_review"
+          "nameEn": "02_review",
+          "purpose": "검토·피드백 받는 중"
         },
         {
           "name": "03_최종",
-          "nameEn": "03_final"
+          "nameEn": "03_final",
+          "purpose": "확정된 최종본"
         },
         {
           "name": "04_배포",
-          "nameEn": "04_release"
+          "nameEn": "04_release",
+          "purpose": "보낸 것·공유한 것"
         },
         {
           "name": "README.md",
