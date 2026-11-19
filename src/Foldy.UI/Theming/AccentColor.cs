@@ -45,7 +45,48 @@ public static class AccentColor
         Color.FromRgb((byte)abgr, (byte)(abgr >> 8), (byte)(abgr >> 16));
 
     /// <summary>accent 위에 올릴 글자색: 밝은 강조색이면 검정, 어두우면 흰색.</summary>
-    public static Color TextOn(Color accent) => Luminance(accent) > 0.6 ? Color.FromRgb(0x1C, 0x1C, 0x1F) : Colors.White;
+    public static Color TextOn(Color accent)
+    {
+        // WCAG 대비가 더 큰 쪽(흰색 / 거의 검정)을 고른다 (예전 밝기 0.6 기준은 주황 같은 중간 밝기에서 흰 글자가 2.5:1이었다).
+        var dark = Color.FromRgb(0x1C, 0x1C, 0x1F);
+        return Contrast(accent, dark) >= Contrast(accent, Colors.White) ? dark : Colors.White;
+    }
+
+    /// <summary>WCAG 2.1 상대 휘도 대비 (1~21).</summary>
+    public static double Contrast(Color a, Color b)
+    {
+        var (x, y) = (RelativeLuminance(a), RelativeLuminance(b));
+        if (x < y)
+        {
+            (x, y) = (y, x);
+        }
+
+        return (x + 0.05) / (y + 0.05);
+    }
+
+    /// <summary>fg를 bg와 min:1 이상 대비가 나올 때까지 어둡게(밝은 배경) 또는 밝게(어두운 배경) 만든다. 포커스 링(3:1)용.</summary>
+    public static Color EnsureContrast(Color fg, Color bg, double min)
+    {
+        var target = RelativeLuminance(bg) > 0.5 ? Colors.Black : Colors.White;
+        var c = fg;
+        for (var t = 0.0; t <= 1.0 && Contrast(c, bg) < min; t += 0.05)
+        {
+            c = Mix(fg, target, t);
+        }
+
+        return c;
+    }
+
+    private static double RelativeLuminance(Color c)
+    {
+        static double Lin(byte v)
+        {
+            var s = v / 255.0;
+            return s <= 0.03928 ? s / 12.92 : Math.Pow((s + 0.055) / 1.055, 2.4);
+        }
+
+        return (0.2126 * Lin(c.R)) + (0.7152 * Lin(c.G)) + (0.0722 * Lin(c.B));
+    }
 
     /// <summary>선택 배경: 강조색을 창 배경에 옅게 섞은 색.</summary>
     public static Color SelectionTint(Color accent, bool dark) =>
@@ -60,7 +101,8 @@ public static class AccentColor
         var rd = new ResourceDictionary();
         rd["Brush.Accent"] = Frozen(accent);
         rd["Brush.AccentText"] = Frozen(TextOn(accent));
-        rd["Brush.Focus"] = Frozen(accent);
+        // 포커스 링은 창 배경과 3:1 이상(WCAG 1.4.11)이 되도록 필요하면 어둡게/밝게 보정한다.
+        rd["Brush.Focus"] = Frozen(EnsureContrast(accent, dark ? Color.FromRgb(0x1C, 0x1C, 0x1E) : Colors.White, 3.0));
         rd["Brush.Progress"] = Frozen(accent);
         rd["Brush.Selection"] = Frozen(SelectionTint(accent, dark));
         return rd;
@@ -72,8 +114,6 @@ public static class AccentColor
         b.Freeze();
         return b;
     }
-
-    private static double Luminance(Color c) => ((0.2126 * c.R) + (0.7152 * c.G) + (0.0722 * c.B)) / 255.0;
 
     private static Color Mix(Color a, Color b, double t) => Color.FromRgb(
         (byte)Math.Round(a.R + ((b.R - a.R) * t)),

@@ -63,37 +63,37 @@
         <!-- 맨 아래: 앱 공통 기능 (명령·업데이트·버그 신고·설정·도움말·더 보기) -->
         <StackPanel DockPanel.Dock="Bottom" Margin="0,4,0,6">
           <Rectangle Height="1" Margin="10,0,10,4" Fill="{DynamicResource Brush.Border}" />
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnFnPalette" ToolTip="모든 명령 (Ctrl+Shift+P)">
+          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnFnPalette" ToolTip="모든 명령 (Ctrl+Shift+P)" AutomationProperties.Name="모든 명령">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource SideIcon}" Text="&#xE765;" />
               <TextBlock Style="{StaticResource SideName}" Text="모든 명령" />
             </StackPanel>
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnCheckUpdate" ToolTip="지금 새 버전 확인하고 설치">
+          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnCheckUpdate" ToolTip="지금 새 버전 확인하고 설치" AutomationProperties.Name="업데이트">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource SideIcon}" Text="&#xE895;" />
               <TextBlock Style="{StaticResource SideName}" Text="업데이트" />
             </StackPanel>
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnReportBug" ToolTip="버그 신고 (앱·Windows 버전과 최근 기록을 채운 GitHub 이슈 작성 페이지)">
+          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnReportBug" ToolTip="버그 신고 (앱·Windows 버전과 최근 기록을 채운 GitHub 이슈 작성 페이지)" AutomationProperties.Name="버그 신고">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource SideIcon}" Text="&#xEBE8;" />
               <TextBlock Style="{StaticResource SideName}" Text="버그 신고" />
             </StackPanel>
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSettings" ToolTip="설정 (Ctrl+,)">
+          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSettings" ToolTip="설정 (Ctrl+,)" AutomationProperties.Name="설정">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource SideIcon}" Text="&#xE713;" />
               <TextBlock Style="{StaticResource SideName}" Text="설정" />
             </StackPanel>
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnHelp" ToolTip="도움말 (F1)">
+          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnHelp" ToolTip="도움말 (F1)" AutomationProperties.Name="도움말">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource SideIcon}" Text="&#xE897;" />
               <TextBlock Style="{StaticResource SideName}" Text="도움말" />
             </StackPanel>
           </Button>
-          <Button x:Name="MoreButton" Style="{DynamicResource Foldy.SideItem}" Click="OnMore" ToolTip="테마, 숨김 파일, 목록 간격, 정보 등">
+          <Button x:Name="MoreButton" Style="{DynamicResource Foldy.SideItem}" Click="OnMore" ToolTip="테마, 숨김 파일, 목록 간격, 정보 등" AutomationProperties.Name="더 보기">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource SideIcon}" Text="&#xE712;" />
               <TextBlock Style="{StaticResource SideName}" Text="더 보기 (테마·정보)" />
@@ -137,7 +137,7 @@
             <!-- 자주 쓰는 폴더 (고정) -->
             <DockPanel Style="{StaticResource SideHeaderRow}">
               <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="26" Height="24" FontSize="11" Margin="0,8,8,0"
-                      Content="&#xE718;" ToolTip="지금 폴더를 자주 쓰는 폴더에 고정" Click="OnPinCurrent" />
+                      Content="&#xE718;" ToolTip="지금 폴더를 자주 쓰는 폴더에 고정" AutomationProperties.Name="지금 폴더 고정" Click="OnPinCurrent" />
               <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="자주 쓰는 폴더" />
             </DockPanel>
             <TextBlock x:Name="PinnedEmpty" Margin="14,2,10,4" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"
@@ -145,7 +145,7 @@
             <ItemsControl x:Name="PinnedList" Focusable="False">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type sb:QuickFolder}">
-                  <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideFolder" Tag="{Binding}" ToolTip="{Binding Path}">
+                  <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideFolder" Tag="{Binding}" ToolTip="{Binding Path}" AutomationProperties.Name="{Binding Name}">
                     <Button.ContextMenu>
                       <ContextMenu>
                         <MenuItem Header="새 탭에서 열기" Click="OnSideFolderNewTab" Tag="{Binding}" />
@@ -169,13 +169,13 @@
             <StackPanel x:Name="RecentSection" Style="{StaticResource SideLabel}">
               <DockPanel>
                 <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="26" Height="24" FontSize="11" Margin="0,8,8,0"
-                        Content="&#xE74D;" ToolTip="최근 폴더 지우기" Click="OnClearRecent" />
+                        Content="&#xE74D;" ToolTip="최근 폴더 지우기" AutomationProperties.Name="최근 폴더 지우기" Click="OnClearRecent" />
                 <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="최근 폴더" />
               </DockPanel>
               <ItemsControl x:Name="RecentList" Focusable="False">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate DataType="{x:Type sb:QuickFolder}">
-                    <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideFolder" Tag="{Binding}" ToolTip="{Binding Path}" MinHeight="26">
+                    <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideFolder" Tag="{Binding}" ToolTip="{Binding Path}" AutomationProperties.Name="{Binding Name}" MinHeight="26">
                       <Button.ContextMenu>
                         <ContextMenu>
                           <MenuItem Header="자주 쓰는 폴더에 고정" Click="OnPinFolder" Tag="{Binding}" />
@@ -198,7 +198,7 @@
             <ItemsControl x:Name="SideDrives" Focusable="False">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type svc:DriveItem}">
-                  <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideDrive" Tag="{Binding}" Padding="10,4">
+                  <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideDrive" Tag="{Binding}" Padding="10,4" AutomationProperties.Name="{Binding Display}">
                     <Button.ToolTip>
                       <StackPanel>
                         <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
@@ -240,61 +240,61 @@
 
             <!-- 도구 -->
             <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="도구" Visibility="{Binding SidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVis}}" />
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideSearch" ToolTip="파일 이름 검색 (Ctrl+F). 색인 서비스가 있으면 전체 드라이브를 바로 찾습니다.">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideSearch" ToolTip="파일 이름 검색 (Ctrl+F). 색인 서비스가 있으면 전체 드라이브를 바로 찾습니다." AutomationProperties.Name="파일 검색">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE721;" />
                 <TextBlock Style="{StaticResource SideName}" Text="파일 검색" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuAnalysis" ToolTip="현재 드라이브에서 무엇이 공간을 차지하는지 보기">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuAnalysis" ToolTip="현재 드라이브에서 무엇이 공간을 차지하는지 보기" AutomationProperties.Name="디스크 분석">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xEB05;" />
                 <TextBlock Style="{StaticResource SideName}" Text="디스크 분석" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSftpConnect" ToolTip="SFTP 서버에 연결 (Ctrl+Shift+O)">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSftpConnect" ToolTip="SFTP 서버에 연결 (Ctrl+Shift+O)" AutomationProperties.Name="SFTP 연결">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE968;" />
                 <TextBlock Style="{StaticResource SideName}" Text="SFTP 연결" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnGDriveConnect" ToolTip="Google 계정으로 로그인해 Google Drive를 탭에서 열기 (설치 필요 없음)">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnGDriveConnect" ToolTip="Google 계정으로 로그인해 Google Drive를 탭에서 열기 (설치 필요 없음)" AutomationProperties.Name="Google Drive">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE753;" />
                 <TextBlock Style="{StaticResource SideName}" Text="Google Drive" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuTemplate" ToolTip="템플릿으로 새 폴더 (Ctrl+Shift+N)">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuTemplate" ToolTip="템플릿으로 새 폴더 (Ctrl+Shift+N)" AutomationProperties.Name="템플릿으로 새 폴더">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8F4;" />
                 <TextBlock Style="{StaticResource SideName}" Text="템플릿으로 새 폴더" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuWizard" ToolTip="질문에 답하면 알맞은 폴더 구조를 만들어 줍니다">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuWizard" ToolTip="질문에 답하면 알맞은 폴더 구조를 만들어 줍니다" AutomationProperties.Name="폴더 위저드">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE945;" />
                 <TextBlock Style="{StaticResource SideName}" Text="폴더 위저드" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuOrganize" ToolTip="지금 폴더의 파일을 종류·날짜별로 정리">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuOrganize" ToolTip="지금 폴더의 파일을 종류·날짜별로 정리" AutomationProperties.Name="이 폴더 정리">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8CB;" />
                 <TextBlock Style="{StaticResource SideName}" Text="이 폴더 정리" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuImages" ToolTip="이미지만 보기 (Ctrl+Shift+I)">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuImages" ToolTip="이미지만 보기 (Ctrl+Shift+I)" AutomationProperties.Name="이미지만 보기">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xEB9F;" />
                 <TextBlock Style="{StaticResource SideName}" Text="이미지만 보기" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideTerminal" ToolTip="지금 폴더에서 터미널 (Ctrl+`)">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideTerminal" ToolTip="지금 폴더에서 터미널 (Ctrl+`)" AutomationProperties.Name="터미널">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE756;" />
                 <TextBlock Style="{StaticResource SideName}" Text="터미널" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideRecycleBin" ToolTip="Windows 휴지통 열기 (지운 파일 되살리기)">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideRecycleBin" ToolTip="Windows 휴지통 열기 (지운 파일 되살리기)" AutomationProperties.Name="휴지통">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE74D;" />
                 <TextBlock Style="{StaticResource SideName}" Text="휴지통" />
@@ -344,7 +344,7 @@
                   <TextBlock Grid.Column="2" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                              Foreground="{DynamicResource Brush.TextSecondary}" />
                   <Button x:Name="CancelBtn" Grid.Column="3" Style="{DynamicResource Foldy.ToolButton}" Width="24" Height="24" FontSize="9"
-                          Content="&#xE711;" ToolTip="취소" Click="OnCancelJob" Tag="{Binding}" />
+                          Content="&#xE711;" ToolTip="취소" AutomationProperties.Name="작업 취소" Click="OnCancelJob" Tag="{Binding}" />
                 </Grid>
                 <mascot:MascotView Kind="{Binding MascotKind, Mode=OneTime}" State="{Binding State}" Progress="{Binding Progress}"
                                    IsMascotEnabled="{Binding MascotEnabled, Mode=OneTime}" HorizontalAlignment="Left" Margin="0,4,0,0" />
