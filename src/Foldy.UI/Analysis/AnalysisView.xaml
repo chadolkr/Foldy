@@ -8,7 +8,7 @@
              FontSize="{DynamicResource Font.Size}"
              Focusable="True">
   <!--
-    디스크 분석 탭 (설계서 7.3). DataContext = Foldy.Presentation.Analysis.AnalysisTabViewModel.
+    폴더 분석 탭 (설계서 7.3). DataContext = Foldy.Presentation.Analysis.AnalysisTabViewModel.
     색·글꼴·반경은 모두 DynamicResource 테마 토큰이다. 트리맵 칸 색도 Brush.Tab0~7 토큰 (TreemapControl).
     [휴지통으로]는 ViewModel이 RecycleRequested 이벤트를 올릴 뿐 이 화면도 ViewModel도 아무것도 지우지 않는다.
   -->

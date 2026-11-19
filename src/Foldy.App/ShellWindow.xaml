@@ -98,7 +98,7 @@
               <MenuItem Header="이 폴더 정리하기…" Click="OnMenuOrganize" />
               <MenuItem Header="폴더 설명 편집…" Click="OnMenuDescription" />
               <MenuItem Header="이미지만 보기" InputGestureText="Ctrl+Shift+I" Click="OnMenuImages" />
-              <MenuItem Header="디스크 분석" Click="OnMenuAnalysis" />
+              <MenuItem Header="폴더 분석" Click="OnMenuAnalysis" />
               <Separator />
               <MenuItem Header="SFTP 서버에 연결…" InputGestureText="Ctrl+Shift+O" Click="OnSftpConnect" />
               <MenuItem Header="색인 서비스 설치 (관리자)…" Click="OnInstallIndexer" />
@@ -194,7 +194,7 @@
                       <ContextMenu>
                         <MenuItem Header="새 탭에서 열기" Click="OnSideDriveNewTab" Tag="{Binding}" />
                         <MenuItem Header="반대 패널에서 열기" Click="OnSideDriveOther" Tag="{Binding}" />
-                        <MenuItem Header="디스크 분석" Click="OnSideDriveAnalyze" Tag="{Binding}" />
+                        <MenuItem Header="폴더 분석" Click="OnSideDriveAnalyze" Tag="{Binding}" />
                       </ContextMenu>
                     </Button.ContextMenu>
                     <Grid>
@@ -238,10 +238,10 @@
                 <TextBlock Style="{StaticResource SideName}" Text="파일 검색" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuAnalysis" ToolTip="현재 드라이브에서 무엇이 공간을 차지하는지 보기" AutomationProperties.Name="디스크 분석">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuAnalysis" ToolTip="현재 드라이브에서 무엇이 공간을 차지하는지 보기" AutomationProperties.Name="폴더 분석">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xEB05;" />
-                <TextBlock Style="{StaticResource SideName}" Text="디스크 분석" />
+                <TextBlock Style="{StaticResource SideName}" Text="폴더 분석" />
               </StackPanel>
             </Button>
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSftpConnect" ToolTip="SFTP 서버에 연결 (Ctrl+Shift+O)" AutomationProperties.Name="SFTP 연결">

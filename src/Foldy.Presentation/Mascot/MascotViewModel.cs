@@ -46,7 +46,7 @@ public enum MascotScene
     OutOfBounds,
     /// <summary>검색·네트워크 대기·끊김: 둘이 두리번거리며 공을 찾는다.</summary>
     Search,
-    /// <summary>색인·디스크 분석: 우진은 드리블 연습, 연주는 기록.</summary>
+    /// <summary>색인·폴더 분석: 우진은 드리블 연습, 연주는 기록.</summary>
     Practice,
     /// <summary>일시정지·이름 충돌: 우진이 공을 안고 서 있다.</summary>
     Hold,

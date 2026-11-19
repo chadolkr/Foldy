@@ -767,7 +767,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("terminal.cmd", "명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, false));
         Add("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, true));
         Add("view.hidden", "숨김 파일 보기 켜기/끄기", ToggleHidden, Key.H, ModifierKeys.Control);
-        Add("analysis.open", "디스크 분석 (현재 드라이브)", OpenAnalysis);
+        Add("analysis.open", "폴더 분석 (현재 폴더)", OpenAnalysis);
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
         Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.TreeVisible = !ActiveView.TreeVisible, Key.B, ModifierKeys.Control);
         Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
@@ -1346,7 +1346,7 @@ public partial class ShellWindow : Window, IPaneHost
         var path = pane.ActiveFolder?.Path;
         if (string.IsNullOrEmpty(path) || path.Length < 2 || path[1] != ':')
         {
-            Shell.Status = "디스크 분석은 로컬 드라이브에서만 할 수 있습니다";
+            Shell.Status = "폴더 분석은 로컬 드라이브에서만 할 수 있습니다";
             return;
         }
 
