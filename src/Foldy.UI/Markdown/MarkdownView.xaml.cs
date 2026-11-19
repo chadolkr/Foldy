@@ -515,6 +515,12 @@ public partial class MarkdownView : UserControl
         }
 
         var target = MarkdownLinks.Classify(url, _vm.Folder);
+        if (target.Kind is MarkdownLinkKind.File or MarkdownLinkKind.Markdown or MarkdownLinkKind.Folder
+            && MarkdownLinks.IsNetworkPath(target.Path) && !ConfirmNetwork(target.Path))
+        {
+            return; // 허락 전에는 서버에 접속하지 않는다
+        }
+
         switch (target.Kind)
         {
             case MarkdownLinkKind.Anchor:
@@ -547,7 +553,7 @@ public partial class MarkdownView : UserControl
                 {
                     StatusText.Text = "파일이 없습니다: " + target.Path;
                 }
-                else if (!MarkdownLinks.IsExecutable(target.Path) || ConfirmExecutable(target.Path))
+                else if (!MarkdownLinks.NeedsConfirmation(target.Path) || ConfirmExecutable(target.Path))
                 {
                     ShellOpen(target.Path);
                 }
@@ -574,7 +580,14 @@ public partial class MarkdownView : UserControl
 
     private bool ConfirmExecutable(string path) =>
         MessageBox.Show(Window.GetWindow(this)!,
-            $"문서의 링크가 실행 파일을 가리킵니다.\n\n{path}\n\n실행할까요?",
+            MarkdownLinks.IsExecutable(path)
+                ? $"문서의 링크가 실행 파일을 가리킵니다.\n\n{path}\n\n실행할까요?"
+                : $"문서의 링크가 이 파일을 엽니다.\n\n{path}\n\n믿을 수 있는 문서일 때만 열어 주세요. 열까요?",
+            "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+
+    private bool ConfirmNetwork(string path) =>
+        MessageBox.Show(Window.GetWindow(this)!,
+            $"문서의 링크가 다른 컴퓨터(네트워크 위치)를 가리킵니다.\n\n{path}\n\n열면 Windows가 그 컴퓨터에 내 로그인 정보를 보냅니다. 믿을 수 있는 곳일 때만 열어 주세요. 열까요?",
             "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
 
     private void ShellOpen(string target)

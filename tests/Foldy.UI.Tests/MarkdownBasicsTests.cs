@@ -126,6 +126,37 @@ public class MarkdownLinkTests
     [InlineData("photo.png", false)]
     [InlineData("notes.md", false)]
     public void Executable_detection(string path, bool expected) => MarkdownLinks.IsExecutable(path).Should().Be(expected);
+
+    [Theory]
+    [InlineData("report.pdf", false)]
+    [InlineData("사진.JPG", false)]
+    [InlineData("notes.txt", false)]
+    [InlineData("setup.exe", true)]
+    [InlineData("disk.iso", true)]
+    [InlineData("help.chm", true)]
+    [InlineData("x.settingcontent-ms", true)]
+    [InlineData("macro.docm", true)]
+    [InlineData("noext", true)]
+    public void Only_known_safe_types_open_without_asking(string path, bool ask) => MarkdownLinks.NeedsConfirmation(path).Should().Be(ask);
+
+    [Theory]
+    [InlineData(@"\\server\share\a.docx", MarkdownLinkKind.File)]
+    [InlineData("//server/share/guide.md", MarkdownLinkKind.Markdown)]
+    [InlineData("file://server/share/a.pdf", MarkdownLinkKind.File)]
+    [InlineData(@"\\server\share\", MarkdownLinkKind.Folder)]
+    public void Network_links_are_marked_without_touching_the_server(string url, MarkdownLinkKind kind)
+    {
+        var touched = false;
+        var t = MarkdownLinks.Classify(url, Base, _ => touched = true);
+        t.Kind.Should().Be(kind);
+        MarkdownLinks.IsNetworkPath(t.Path).Should().BeTrue(t.Path);
+        touched.Should().BeFalse("폴더인지 확인만 해도 서버에 접속한다");
+    }
+
+    [Theory]
+    [InlineData(@"\\?\C:\Windows\x.exe")]
+    [InlineData(@"\\.\PhysicalDrive0")]
+    public void Device_paths_are_blocked(string url) => C(url).Kind.Should().Be(MarkdownLinkKind.Blocked);
 }
 
 public class MarkdownOutlineTests
