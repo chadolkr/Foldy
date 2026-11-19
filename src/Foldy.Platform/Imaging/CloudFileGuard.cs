@@ -18,6 +18,9 @@ public static class CloudFileGuard
     /// <summary>FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS</summary>
     public const int RecallOnDataAccess = 0x0040_0000;
 
+    /// <summary>느린 드라이브 판정 (앱 시작 때 DriveSpeedTracker를 넣는다). 느린 드라이브의 파일은 내용을 읽지 않는다.</summary>
+    public static Func<string, bool>? IsSlowDrivePath { get; set; }
+
     private const int Mask = Offline | RecallOnOpen | RecallOnDataAccess;
 
     /// <summary>이 속성의 파일은 내용을 읽으면 안 되는지.</summary>
@@ -29,7 +32,7 @@ public static class CloudFileGuard
     /// </summary>
     public static bool MustNotReadContent(string path)
     {
-        if (CloudVolumes.IsCloudPath(path))
+        if (CloudVolumes.IsCloudPath(path) || IsSlowDrivePath?.Invoke(path) == true)
         {
             return true;
         }

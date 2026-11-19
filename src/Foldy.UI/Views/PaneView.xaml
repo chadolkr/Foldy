@@ -137,17 +137,24 @@
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <fc:BreadcrumbBar x:Name="Crumbs" />
-        <!-- Git 브랜치 칩: 저장소 안에서만 보인다 (DESIGN.md Git 통합) -->
-        <Border x:Name="GitChip" Grid.Column="1" Margin="6,0,0,0" Padding="8,0" CornerRadius="6" Height="32" Cursor="Hand"
-                MouseLeftButtonUp="OnGitChipClick" ToolTipService.InitialShowDelay="300"
-                Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
-                Visibility="Collapsed">
-          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <TextBlock Text="&#xE8F1;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"
-                       Foreground="{DynamicResource Brush.Accent}" />
-            <TextBlock x:Name="GitText" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
-          </StackPanel>
-        </Border>
+        <StackPanel Grid.Column="1" Orientation="Horizontal">
+          <Border x:Name="SlowChip" Margin="6,0,0,0" Padding="8,0" CornerRadius="6" Height="32" Visibility="Collapsed"
+                  Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                  ToolTip="이 드라이브는 응답이 느려서 미리보기·썸네일·Git 감지를 줄였습니다" ToolTipService.InitialShowDelay="300">
+            <TextBlock Text="느린 드라이브" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" />
+          </Border>
+          <!-- Git 브랜치 칩: 저장소 안에서만 보인다 (DESIGN.md Git 통합) -->
+          <Border x:Name="GitChip" Margin="6,0,0,0" Padding="8,0" CornerRadius="6" Height="32" Cursor="Hand"
+                  MouseLeftButtonUp="OnGitChipClick" ToolTipService.InitialShowDelay="300"
+                  Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                  Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <TextBlock Text="&#xE8F1;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Accent}" />
+              <TextBlock x:Name="GitText" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
       </Grid>
       <Border Grid.Column="2" Style="{DynamicResource Foldy.InputBorder}" Width="200" Margin="6,0,0,0">
         <Grid>

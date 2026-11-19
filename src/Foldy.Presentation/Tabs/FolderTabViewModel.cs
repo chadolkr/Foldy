@@ -42,6 +42,9 @@ public sealed class TabEnvironment(IFileSystemProvider provider, IUiDispatcher u
     public IGitStatusProvider? Git { get; init; }
     public IFolderSizeProvider? FolderSizes { get; init; }
 
+    /// <summary>드라이브별 열기 속도 기록. 느린 드라이브는 Git 감지·미리보기·썸네일을 줄인다. 앱은 <see cref="DriveSpeedTracker.Shared"/>를 넣는다.</summary>
+    public DriveSpeedTracker Speed { get; init; } = new();
+
     /// <summary>폴더를 다 열었을 때 (새로 고침 제외). 사이드바의 최근 폴더가 쓴다.</summary>
     public Action<string>? Visited { get; set; }
 
@@ -64,6 +67,10 @@ public sealed partial class FolderTabViewModel : TabBase
 
     [ObservableProperty]
     private string _path = "";
+
+    /// <summary>이 폴더의 드라이브가 느린 드라이브로 판정됐는지 (경로 표시줄 옆 안내).</summary>
+    [ObservableProperty]
+    private bool _isSlowDrive;
 
     [ObservableProperty]
     private ItemList _items = ItemList.Empty;
@@ -211,6 +218,7 @@ public sealed partial class FolderTabViewModel : TabBase
         var all = new List<FileItem>(256);
         var showHidden = _env.ShowHidden();
         var firstBatchSeen = false;
+        string? slowNotice = null;
 
         Error = null;
         IsBusy = true;
@@ -263,6 +271,12 @@ public sealed partial class FolderTabViewModel : TabBase
                 {
                     firstBatchSeen = true;
                     FirstBatchTime = sw.Elapsed;
+                    if (_env.Speed.Record(target, FirstBatchTime))
+                    {
+                        slowNotice = $"느린 드라이브 {DriveSpeedTracker.RootOf(target)}: 미리보기·썸네일·Git 감지를 줄였습니다";
+                    }
+
+                    IsSlowDrive = _env.Speed.IsSlow(target);
                 }
 
                 if (sw.Elapsed > TimeSpan.FromSeconds(2))
@@ -292,7 +306,7 @@ public sealed partial class FolderTabViewModel : TabBase
             _env.Loaded?.Invoke(target, sw.Elapsed, all.Count, null);
             IsLoaded = true;
             State = LoadState.Idle;
-            Status = "";
+            Status = slowNotice ?? "";
             if (!refresh)
             {
                 _env.Visited?.Invoke(target);
@@ -352,7 +366,10 @@ public sealed partial class FolderTabViewModel : TabBase
 
         try
         {
-            var sizes = await _env.FolderSizes.GetAsync(folder, CancellationToken.None);
+            // 목록이 이미 그려진 뒤에, UI 스레드 밖에서, 다른 폴더로 가면 취소되게 (느린 드라이브에서도 탐색을 막지 않는다)
+            var ct = _loadCts?.Token ?? CancellationToken.None;
+            var provider = _env.FolderSizes;
+            var sizes = await Task.Run(() => provider.GetAsync(folder, ct), ct);
             if (sizes is null || gen != _generation)
             {
                 return;
@@ -387,9 +404,9 @@ public sealed partial class FolderTabViewModel : TabBase
 
     private async Task LoadGitAsync(string folder, int gen)
     {
-        if (_env.Git is null || PathUtil.IsSftp(folder))
+        if (_env.Git is null || PathUtil.IsSftp(folder) || _env.Speed.IsSlow(folder))
         {
-            Git = null;
+            Git = null; // 느린 드라이브는 git.exe를 돌리지 않는다 (Git 바가 안 보인다)
             return;
         }
 
@@ -418,6 +435,7 @@ public sealed partial class FolderTabViewModel : TabBase
 
             StopWatching();
             Path = target;
+            IsSlowDrive = _env.Speed.IsSlow(target);
             Title = PathUtil.DisplayName(target);
             Selection = [];
         }
@@ -475,7 +493,7 @@ public sealed partial class FolderTabViewModel : TabBase
             return;
         }
 
-        _watch = _env.Watcher.Watch(Path, () => _env.Ui.Post(ScheduleRefresh));
+        _watch = _env.Speed.IsSlow(Path) ? null : _env.Watcher.Watch(Path, () => _env.Ui.Post(ScheduleRefresh));
         if (_watch is null)
         {
             // 감시할 수 없는 드라이브(네트워크·SFTP)는 활성 탭만 주기적으로 새로 고친다 (DESIGN.md: 30~60초 폴링)

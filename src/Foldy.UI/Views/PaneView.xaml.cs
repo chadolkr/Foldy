@@ -224,6 +224,7 @@ public partial class PaneView : UserControl
         RestoreFocus(_tab.FocusName, scrollTo: _tab.ScrollOffset);
         UpdateNav();
         UpdateGit();
+        SlowChip.Visibility = _tab.IsSlowDrive ? Visibility.Visible : Visibility.Collapsed;
         UpdateImageLayer();
         UpdateState();
     }
@@ -340,6 +341,9 @@ public partial class PaneView : UserControl
                 break;
             case nameof(FolderTabViewModel.Git):
                 UpdateGit();
+                break;
+            case nameof(FolderTabViewModel.IsSlowDrive):
+                SlowChip.Visibility = _tab!.IsSlowDrive ? Visibility.Visible : Visibility.Collapsed;
                 break;
             case nameof(FolderTabViewModel.State):
             case nameof(FolderTabViewModel.Error):

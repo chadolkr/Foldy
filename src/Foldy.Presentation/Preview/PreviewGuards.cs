@@ -34,6 +34,12 @@ public static class PreviewGuards
             return true;
         }
 
+        // 느리다고 학습한 드라이브(회사 보안 드라이브 등)도 네트워크처럼 다룬다.
+        if (Foldy.Presentation.Services.DriveSpeedTracker.Shared.IsSlow(path))
+        {
+            return true;
+        }
+
         if (path.StartsWith(@"\\", StringComparison.Ordinal) && !path.StartsWith(@"\\?\", StringComparison.Ordinal))
         {
             return true;

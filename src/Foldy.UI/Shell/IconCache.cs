@@ -75,7 +75,7 @@ public sealed class IconCache
     }
 
     private static bool IsLocalFixed(string path) =>
-        path.Length > 2 && path[1] == ':' && Drives.TypeOf(path[..3]) == NativeDriveType.Fixed && !CloudVolumes.IsCloudPath(path);
+        path.Length > 2 && path[1] == ':' && Drives.TypeOf(path[..3]) == NativeDriveType.Fixed && !CloudVolumes.IsCloudPath(path) && !Foldy.Presentation.Services.DriveSpeedTracker.Shared.IsSlow(path);
 
     private static BitmapSource? Load(IntPtr hIcon)
     {

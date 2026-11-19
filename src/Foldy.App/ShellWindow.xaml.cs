@@ -68,6 +68,7 @@ public partial class ShellWindow : Window, IPaneHost
         {
             TypeName = TypeNames.Get,
             Watcher = new FolderWatchService(),
+            Speed = Foldy.Presentation.Services.DriveSpeedTracker.Shared,
             ShowHidden = () => _settings.ShowHidden,
             Git = new GitStatusService(_git),
             FolderSizes = new IndexerFolderSizes(() => _indexer),
