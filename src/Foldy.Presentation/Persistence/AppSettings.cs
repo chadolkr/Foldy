@@ -51,6 +51,12 @@ public sealed record AppSettings
     /// <summary>덮어쓰기 전에 이전 버전을 7일 동안 보관한다 (기본 켬).</summary>
     public bool KeepPreviousVersions { get; init; } = true;
 
+    /// <summary>
+    /// 화면 전체 크기 (글씨·버튼). 0 = Windows 설정 따르기(기본: 설정 → 접근성 → 텍스트 크기),
+    /// 그 밖에는 직접 고른 배율 (1.0, 1.15, 1.3, 1.5). 디스플레이 배율(DPI)은 이와 따로 늘 따라간다.
+    /// </summary>
+    public double UiScale { get; init; }
+
     public static AppSettings Migrate(AppSettings s) =>
         s.SchemaVersion switch
         {

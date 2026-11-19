@@ -594,9 +594,12 @@ public static class FirstRunTour
             ("🔒 지키기: 잠긴 메모, 파일 암호 걸기, 금고, 휴지통. 🔗 연결하기: SFTP 서버, Git, 터미널.", "다음"),
             ("모르는 게 있으면 F1(도움말), 모든 명령은 Ctrl+Shift+P로 이름만 쳐서 찾을 수 있어요. 이 안내는 명령 목록의 \"둘러보기\"로 다시 볼 수 있어요.", "시작하기"),
         ];
-        foreach (var (text, next) in steps)
+        w.EchoChoices = false; // 한 장씩 넘긴다: [다음] 말풍선이 쌓이지 않게
+        for (var i = 0; i < steps.Length; i++)
         {
-            if (await w.AskAsync(text, ("next", next), ("skip", "그만 보기")) != "next")
+            w.ClearMessages();
+            w.Say($"{i + 1} / {steps.Length}");
+            if (await w.AskAsync(steps[i].Text, ("next", steps[i].Next), ("skip", "그만 보기")) != "next")
             {
                 break;
             }

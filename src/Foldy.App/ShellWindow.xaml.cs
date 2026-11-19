@@ -124,6 +124,15 @@ public partial class ShellWindow : Window, IPaneHost
         SideDrives.ItemsSource = Shell.Left.Drives;
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
         ApplyDensity();
+        ApplyUiScale();
+        // Windows의 텍스트 크기를 바꾸면 바로 따라간다 (직접 고른 배율이 없을 때)
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => Dispatcher.BeginInvoke(() =>
+        {
+            if (_settings.UiScale <= 0)
+            {
+                ApplyUiScale();
+            }
+        });
         ThemeManager.Attach(this);
 
         var session = JsonFileStore.Load(_sessionPath, () => new SessionState());
@@ -208,17 +217,9 @@ public partial class ShellWindow : Window, IPaneHost
 
     public bool ShowGitBar => _settings.ShowGitBar;
 
-    private readonly HashSet<string> _autoOpenedGit = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>설정 "Git 화면 자동 열기": 저장소마다 실행 중 한 번, 폴더 탭 옆에 (탭을 바꾸지 않고) 연다.</summary>
+    /// <summary>저장소에 들어왔을 때. "Git 화면 자동 열기" 설정은 뺐다 (좋은 기본값 > 설정): Git 바에서 한 번에 연다.</summary>
     public void GitDetected(PaneViewModel pane, string repoRoot)
     {
-        if (!_settings.AutoOpenGitView || !_autoOpenedGit.Add(repoRoot))
-        {
-            return;
-        }
-
-        OpenGitTab(pane, repoRoot, activate: false);
     }
 
     private bool _gitBarBusy;
@@ -919,7 +920,10 @@ public partial class ShellWindow : Window, IPaneHost
             }
         });
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
-        Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.TreeVisible = !ActiveView.TreeVisible, Key.B, ModifierKeys.Control);
+        Add("view.zoomIn", "화면 크게 (글씨·버튼)", () => StepUiScale(1), Key.OemPlus, ModifierKeys.Control, "Ctrl+=");
+        Add("view.zoomOut", "화면 작게", () => StepUiScale(-1), Key.OemMinus, ModifierKeys.Control, "Ctrl+-");
+        Add("view.zoomReset", "화면 크기: Windows 설정 따르기", () => SetUiScale(0), Key.D0, ModifierKeys.Control, "Ctrl+0");
+        Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.ToggleTree(), Key.B, ModifierKeys.Control);
         Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
         Add("sidebar.pin", "지금 폴더를 자주 쓰는 폴더에 고정/해제", TogglePinCurrent);
         Add("view.themeSystem", "테마: 시스템 설정 따르기", () => SetTheme(FoldyTheme.System));
@@ -1202,7 +1206,9 @@ public partial class ShellWindow : Window, IPaneHost
                 if (interactive)
                 {
                     MessageBox.Show(this,
-                        err is null ? $"Foldy {AppVersion}은(는) 최신 버전입니다." : $"업데이트를 확인하지 못했습니다.\n\n{err}\n\n인터넷·프록시 연결을 확인한 뒤 다시 시도해 주세요.",
+                        err is null ? $"Foldy {AppVersion}은(는) 최신 버전입니다."
+                            : err.Contains(AppUpdater.MissingVerifier, StringComparison.Ordinal) ? $"업데이트를 확인하지 못했습니다.\n\n{err}"
+                            : $"업데이트를 확인하지 못했습니다.\n\n{err}\n\n인터넷·프록시 연결을 확인한 뒤 다시 시도해 주세요.",
                         "Foldy 업데이트", MessageBoxButton.OK, err is null ? MessageBoxImage.Information : MessageBoxImage.Warning);
                 }
 
@@ -1363,6 +1369,56 @@ public partial class ShellWindow : Window, IPaneHost
         _settings = _settings with { Theme = t.ToString().ToLowerInvariant() };
         SaveSettings();
         ApplyDensity();
+    }
+
+    private static readonly double[] Scales = [1.0, 1.15, 1.3, 1.5, 1.75, 2.0];
+
+    /// <summary>Windows 접근성의 "텍스트 크기" (100~225%). WPF는 이 값을 스스로 따르지 않아 시작할 때 읽는다.</summary>
+    private static double WindowsTextScale()
+    {
+        try
+        {
+            using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Accessibility");
+            return k?.GetValue("TextScaleFactor") is int v && v is >= 100 and <= 225 ? v / 100.0 : 1.0;
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
+        {
+            return 1.0;
+        }
+    }
+
+    private double EffectiveUiScale => _settings.UiScale > 0 ? _settings.UiScale : WindowsTextScale();
+
+    /// <summary>화면 크기 (Ctrl+= 크게, Ctrl+- 작게, Ctrl+0 보통). 창 전체를 같은 배율로 키워 글씨·버튼이 함께 커진다.</summary>
+    /// <summary>0이면 Windows 설정 따르기로 돌아간다.</summary>
+    private void SetUiScale(double scale)
+    {
+        scale = scale <= 0 ? 0 : Math.Clamp(scale, Scales[0], Scales[^1]);
+        _settings = _settings with { UiScale = scale };
+        SaveSettings();
+        ApplyUiScale();
+        Shell.Status = scale <= 0 ? $"화면 크기: Windows 설정 따르기 ({EffectiveUiScale * 100:0}%)" : $"화면 크기 {scale * 100:0}%";
+    }
+
+    private void StepUiScale(int dir)
+    {
+        var now = EffectiveUiScale;
+        var next = dir > 0 ? Scales.FirstOrDefault(s => s > now + 0.01, Scales[^1]) : Scales.LastOrDefault(s => s < now - 0.01, Scales[0]);
+        SetUiScale(next);
+    }
+
+    private void ApplyUiScale()
+    {
+        App.UiScale = EffectiveUiScale;
+        App.ApplyScale(this);
+    }
+
+    private void OnUiScale(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string t } && double.TryParse(t, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var s))
+        {
+            SetUiScale(s);
+        }
     }
 
     private void ApplyDensity()
@@ -1765,6 +1821,8 @@ public partial class ShellWindow : Window, IPaneHost
             CleanupNotice.Visibility = Visibility.Visible;
         }
     }
+
+    private void OnTour(object sender, RoutedEventArgs e) => _ = FirstRunTour.RunAsync(this);
 
     private void OnFnPreview(object sender, RoutedEventArgs e) => ActiveView.TogglePreview();
 

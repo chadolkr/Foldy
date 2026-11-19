@@ -5,7 +5,7 @@
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource Brush.Window}" Foreground="{DynamicResource Brush.Text}"
         FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}"
-        TextOptions.TextFormattingMode="Display" SnapsToDevicePixels="True" UseLayoutRounding="True">
+        TextOptions.TextFormattingMode="Ideal" SnapsToDevicePixels="True" UseLayoutRounding="True">
   <DockPanel>
     <Border DockPanel.Dock="Top" Padding="12,6" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Background="{DynamicResource Brush.Surface}">
       <DockPanel LastChildFill="True">

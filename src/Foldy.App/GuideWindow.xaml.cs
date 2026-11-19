@@ -19,6 +19,12 @@ public partial class GuideWindow : Window
     {
         InitializeComponent();
         Title = title;
+        if (App.UiScale > 1.001)
+        {
+            Width *= App.UiScale;
+            Height *= App.UiScale;
+            App.ApplyScale(this);
+        }
         Closed += (_, _) => _pending?.TrySetResult(ClosedChoice);
         PreviewKeyDown += (_, e) =>
         {
@@ -31,6 +37,12 @@ public partial class GuideWindow : Window
     }
 
     public bool IsClosed { get; private set; }
+
+    /// <summary>고른 답을 오른쪽 말풍선으로 남길지 (둘러보기처럼 [다음]만 누르는 흐름에서는 끈다).</summary>
+    public bool EchoChoices { get; set; } = true;
+
+    /// <summary>지금까지의 말을 지운다 (한 장씩 넘기는 안내).</summary>
+    public void ClearMessages() => Messages.Children.Clear();
 
     protected override void OnClosed(EventArgs e)
     {
@@ -174,7 +186,11 @@ public partial class GuideWindow : Window
             b.Click += (_, _) =>
             {
                 Choices.Children.Clear();
-                Add(new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap }, mine: true);
+                if (EchoChoices)
+                {
+                    Add(new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap }, mine: true);
+                }
+
                 tcs.TrySetResult(id);
             };
             Choices.Children.Add(b);

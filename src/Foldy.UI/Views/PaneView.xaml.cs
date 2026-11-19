@@ -876,6 +876,21 @@ public partial class PaneView : UserControl
         var narrow = ActualWidth < 760;
         SearchBorder.Width = narrow ? 120 : 200;
         SearchHint.Text = narrow ? "검색 (Ctrl+F)" : "파일 이름 검색 (Ctrl+F)";
+
+        // 아주 좁으면 파일 이름에 자리를 주려고 폴더 트리를 접는다 (Ctrl+B로 언제든 다시)
+        if (!_treeManual && IsLoaded)
+        {
+            if (ActualWidth < 620 && TreeVisible)
+            {
+                TreeVisible = false;
+                _treeAutoHidden = true;
+            }
+            else if (ActualWidth >= 720 && _treeAutoHidden)
+            {
+                TreeVisible = true;
+                _treeAutoHidden = false;
+            }
+        }
     }
 
     // ───────────── 관리 방식 (.foldy.md) ─────────────
@@ -1289,7 +1304,24 @@ public partial class PaneView : UserControl
 
     private double _treeWidth = 200;
 
-    private void OnToggleTree(object sender, RoutedEventArgs e) => TreeVisible = !TreeVisible;
+    private void OnToggleTree(object sender, RoutedEventArgs e) => ToggleTree();
+
+    /// <summary>Ctrl+B·트리 버튼: 사용자가 직접 켜고 끈다 (그 뒤로는 좁은 창 자동 접기를 하지 않는다).</summary>
+    public void ToggleTree()
+    {
+        _treeManual = true;
+        TreeVisible = !TreeVisible;
+    }
+
+    private void OnHideTree(object sender, RoutedEventArgs e)
+    {
+        _treeManual = true;
+        TreeVisible = false;
+    }
+
+    // 좁은 창에서 트리를 저절로 숨겼는지 (넓어지면 다시 보인다). 사용자가 직접 켜고 끄면 그 뒤로는 손대지 않는다.
+    private bool _treeAutoHidden;
+    private bool _treeManual;
 
     /// <summary>폴더 트리 보이기 (Ctrl+B). 숨겼다 다시 켜면 직전 너비로 돌아온다.</summary>
     public bool TreeVisible
