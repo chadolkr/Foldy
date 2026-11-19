@@ -7,8 +7,12 @@
 - 0.3.9: 사이드바 휴지통 용량·비우기, 사이드바 압축(아이콘 한 줄, 최근 5개), 느린 드라이브는 네트워크·리다이렉터만. 0.3.8 작업 표시줄 고정 유지 확인 완료.
 - 0.3.10: 템플릿 10개(Java·Python·Node·.NET·Go, 문서 흐름, 연구, 가정, 디자인, 날짜 보관) + 분류, 위저드 언어 질문.
 - main에 들어갔고 0.3.11로 낼 것: Git/프로젝트 폴더는 정리 안 함(빨간 안내만, 옵션 없음), 빈 계획 안내·현재 구조 표시·건너뜀 탭, 새 버전 첫 실행 시 아이콘 캐시 새로 고침, "디스크 분석"→"폴더 분석", 터미널 버튼 Windows 원래 아이콘(+UAC 방패), **색인 서비스 연결 재시도**(0.3초 1회 → 3초×3회 + 30초마다; "색인 서비스 없음" 오표시 수정).
-- 진행 중(작업 트리 `.claude/worktrees/agent-a7b63a6fc2749473e`): README 상세 설명서(기능별 화면 캡처, `--doc-screenshots` 모드, `docs/images/`), 도움말(F1) 현행화.
+- README 상세 설명서(기능별 화면 26장, `--doc-screenshots` 모드, `docs/images/`)와 도움말(F1) 현행화 완료.
 - **다음에 할 일**: 문서 작업 병합 → 빌드·시험 → `Directory.Build.props` 0.3.11 → 태그 → 릴리스 → 회사 PC에서 색인 연결·아이콘 확인.
+
+## 문서 화면 (README·도움말)
+
+- `build/doc-screenshots.ps1`(= `Foldy.exe --doc-screenshots <폴더>`, `ShellWindow.DocShots.cs`)가 가짜 샘플 폴더(C:\FDemo, 임시 데이터 폴더 C:\FoldyDemoData)에서 장면별 PNG를 `docs/images`에 만든다. 화면이 바뀌면 다시 실행한다. 도움말용 작은 그림은 `assets/help/images`.
 
 ## 0.3.1 ~ 0.3.8 (2026-11-19, 회사 PC 대응)
 

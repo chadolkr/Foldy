@@ -90,7 +90,8 @@ public partial class ShellWindow : Window, IPaneHost
 
         _updater = new LegacyUpdateSource(new AppUpdater(AppVersion));
         _updater.Changed += OnUpdaterChanged;
-        _search = new FileSearchService(() => _indexer, () => _settings.ShowHidden);
+        _search = new FileSearchService(() => App.Options.DocShots is null ? _indexer : null, // 문서 캡처는 색인(전체 드라이브)을 검색에 쓰지 않는다
+             () => _settings.ShowHidden);
         Shell.Search = _search;
 
         // 공통 사이드바: 자주 쓰는 폴더(고정)·최근 폴더·드라이브
@@ -313,13 +314,19 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         RefreshDrives();
-        if (!App.Options.IsBench && App.Options.Screenshot is null)
+        if (!App.Options.IsBench && !App.Options.IsCapture)
         {
             _updater.Start(TimeSpan.FromSeconds(5)); // 실행 5초 뒤 + 6시간마다 (짧게 켰다 꺼도 확인되게)
             _ = UseServiceUpdaterAsync(); // 서비스를 쓸 수 있으면 UAC 없는 쪽으로 바꾼다
         }
 
         await ProbeEnginesAsync();
+        if (App.Options.DocShots is { } docDir)
+        {
+            await RunDocShotsAsync(docDir);
+            return;
+        }
+
         if (App.Options.Screenshot is { } shot)
         {
             await Task.Delay(2500);
@@ -1521,7 +1528,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         var version = typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "?";
-        var dst = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Foldy", "help");
+        var dst = Path.Combine(App.DataDir, "help");
         try
         {
             Directory.CreateDirectory(dst);

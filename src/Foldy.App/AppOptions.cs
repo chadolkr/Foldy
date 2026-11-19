@@ -26,6 +26,15 @@ public sealed record AppOptions
     public bool Synthetic { get; init; }
     public string? Screenshot { get; init; }
 
+    /// <summary>문서용 화면 캡처 모드: 장면마다 PNG를 이 폴더에 저장하고 종료한다 (ShellWindow.DocShots.cs).</summary>
+    public string? DocShots { get; init; }
+
+    /// <summary>문서용 샘플 폴더 위치 (기본 %TEMP%\FoldyDemo). 사용자 이름이 경로에 보이지 않게 C:\FoldyDemo 같은 곳을 줄 수 있다.</summary>
+    public string? DocRoot { get; init; }
+
+    /// <summary>화면 캡처(한 장 또는 문서용 여러 장) 실행: 업데이트 확인·단일 인스턴스·재실행을 하지 않는다.</summary>
+    public bool IsCapture => Screenshot is not null || DocShots is not null;
+
     /// <summary>명령줄로 받은 폴더(또는 .md 파일): 활성 패널에서 연다 ("Foldy.exe C:\경로").</summary>
     public string? OpenPath { get; init; }
     public Foldy.UI.Theming.FoldyTheme Theme { get; init; } = Foldy.UI.Theming.FoldyTheme.System;
@@ -51,6 +60,8 @@ public sealed record AppOptions
                 "--list-wpf" => o with { ListWpf = true },
                 "--synthetic" => o with { Synthetic = true },
                 "--screenshot" => o with { Screenshot = Next() },
+                "--doc-screenshots" => o with { DocShots = Next() },
+                "--doc-root" => o with { DocRoot = Next() },
                 "--theme" => o with { Theme = Enum.Parse<Foldy.UI.Theming.FoldyTheme>(Next(), ignoreCase: true), ThemeGiven = true },
                 var a when !a.StartsWith("--", StringComparison.Ordinal) => o with { OpenPath = a },
                 _ => o,
