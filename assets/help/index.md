@@ -239,6 +239,32 @@ Git 저장소 폴더(그 폴더나 위쪽 폴더에 `.git`이 있는 곳)에 들
 - **[휴지통으로]**: 확인을 거친 뒤 휴지통으로만 옮깁니다(영구 삭제는 하지 않음).
 - **F5** 다시 분석, **Esc** 분석 취소. 목록을 두 번 누르면 그 위치를 폴더 탭으로 엽니다.
 
+**정리 제안 대상 (전부)** — 조건: 하위에서 가장 최근 수정이 그 기간보다 오래되고, 크기가 그 이상일 때만 제안합니다.
+
+| 대상 | 위치·이름 | 조건 |
+| --- | --- | --- |
+| Node.js 패키지 | `node_modules` (옆에 `package.json`) | 30일, 10MB |
+| .NET 빌드 출력 | `bin`, `obj` (옆에 `*.csproj` 등) | 14일, 10MB |
+| Rust 빌드 출력 | `target` (옆에 `Cargo.toml`) | 14일, 50MB |
+| Gradle 빌드 출력 | `build`, `.gradle` (옆에 `build.gradle` 등) | 14일, 10MB |
+| 프런트엔드 빌드 캐시 | `.next`, `.nuxt`, `.parcel-cache`, `.turbo`, `.angular`, `.svelte-kit` (옆에 `package.json`) | 14일, 10MB |
+| Python 캐시 | `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox` | 30일, 1MB |
+| Visual Studio 캐시 | `.vs` | 30일, 100MB |
+| 사용자 임시 폴더 | `%LOCALAPPDATA%\Temp` | 7일, 50MB |
+| 이름이 temp/tmp인 폴더 | `temp`, `tmp` | 30일, 100MB |
+| 브라우저 캐시 | Chrome·Edge 프로필의 `Cache`, `Code Cache` | 100MB |
+| 패키지 관리자 캐시 | `npm-cache`, `pip\cache`, `Yarn\Cache`, `%USERPROFILE%\.gradle\caches` | 30일, 500MB |
+| NuGet 패키지 캐시 | `%USERPROFILE%\.nuget\packages` | 60일, 1GB |
+| 충돌 덤프 파일 | `*.dmp`, `*.hdmp`, `*.mdmp` | 14일, 10MB |
+| 충돌 덤프 폴더 | `%LOCALAPPDATA%\CrashDumps` (Windows 오류 보고의 기본 덤프 폴더) | 14일, 10MB |
+| 오래된 설치 파일 | 다운로드 폴더의 `*.exe`, `*.msi`, `*.msix`, `*.iso` | 90일, 50MB |
+
+`.git`은 표시만 하고 제안하지 않습니다. Windows, Program Files, ProgramData 같은 시스템 폴더는 규칙과 상관없이 제안하지 않습니다.
+
+**일부러 넣지 않은 것**
+- Windows 업데이트 파일, 전송 최적화 파일, 미리 보기(썸네일) 캐시, 이전 Windows(Windows.old): 시스템이 쓰는 파일이라 Windows가 직접 지우는 게 안전합니다. 정리 제안 위의 **[Windows 정리 권장 사항 열기]**를 누르면 Windows 설정의 정리 화면이 열립니다(Windows 10은 디스크 정리).
+- V3·알약 같은 백신의 업데이트 백업·검역소(격리) 파일: 지워도 된다는 제조사 공식 안내를 찾지 못했고, 검역소는 잘못 치료한 파일을 되살리는 곳이라 넣지 않았습니다. 백신 프로그램 안의 메뉴로 정리하세요.
+
 색인 서비스가 있으면 디스크를 다시 읽지 않고 몇 초 만에 분석합니다. 없으면 낮은 우선순위로 직접 훑습니다.
 
 ## 느린 드라이브

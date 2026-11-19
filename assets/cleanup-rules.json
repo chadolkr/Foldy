@@ -144,6 +144,15 @@
       "reason": "프로그램 충돌 때 남은 덤프 파일입니다. 오류를 신고할 일이 없으면 지워도 됩니다."
     },
     {
+      "id": "crash-dumps-folder",
+      "tag": "dump",
+      "title": "충돌 덤프 폴더 (CrashDumps)",
+      "paths": ["\\Users\\*\\AppData\\Local\\CrashDumps"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "Windows 오류 보고가 프로그램 충돌 때 남기는 덤프의 기본 폴더입니다(Microsoft 문서: %LOCALAPPDATA%\\CrashDumps). 오류를 신고할 일이 없으면 지워도 됩니다."
+    },
+    {
       "id": "old-installers",
       "tag": "installer",
       "title": "오래된 설치 파일",

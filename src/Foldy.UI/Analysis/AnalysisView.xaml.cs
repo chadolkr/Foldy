@@ -23,6 +23,23 @@ public partial class AnalysisView : UserControl
 
     private AnalysisTabViewModel? Vm => DataContext as AnalysisTabViewModel;
 
+    /// <summary>시스템 파일 정리는 Windows 도구에 맡긴다 (Windows 11: 정리 권장 사항, 없으면 디스크 정리).</summary>
+    private void OnOpenWindowsCleanup(object sender, RoutedEventArgs e)
+    {
+        foreach (var target in new[] { "ms-settings:storagerecommendations", "cleanmgr.exe" })
+        {
+            try
+            {
+                using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(target) { UseShellExecute = true });
+                return;
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                // 다음 방법으로
+            }
+        }
+    }
+
     /// <summary>목록 항목 두 번 클릭 → 호스트가 패널에서 연다 (OpenRequested).</summary>
     private void OnItemDoubleClick(object sender, MouseButtonEventArgs e)
     {
