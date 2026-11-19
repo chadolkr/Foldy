@@ -22,6 +22,7 @@ using Foldy.Presentation.Sidebar;
 using Foldy.Presentation.Tabs;
 using Foldy.Presentation.Tree;
 using Foldy.Providers.Local;
+using Foldy.Providers.Sftp;
 using Foldy.UI.Shell;
 using Foldy.UI.Theming;
 using Foldy.UI.Views;
@@ -64,7 +65,7 @@ public partial class ShellWindow : Window, IPaneHost
         _drives = new DriveService(_queues);
         var ui = new WpfDispatcher(Dispatcher);
         _sftp = new SftpSessions();
-        _gdrive = new GDriveSessions();
+        _gdrive = new GDriveSessions(ConflictWindow.AskGDriveAsync);
         Foldy.Presentation.Preview.PreviewViewModel.RemoteFetch = (p, ct) => _gdrive.Provider.FetchToCacheAsync(p, null, ct);
         _env = new TabEnvironment(new ProviderRouter(_provider, _sftp.Provider, _gdrive.Provider), ui)
         {
@@ -76,14 +77,18 @@ public partial class ShellWindow : Window, IPaneHost
         };
         Shell = new ShellViewModel(_env, new ShellServices(
             new GDriveFileOperationService(
-                new NativeCopyFileOperationService(
-                    new ShellFileOperationService(() => OwnerHandle),
-                    options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync, ThreadsProvider = () => _settings.CopyThreads }),
+                new SftpAwareFileOperationService(
+                    new NativeCopyFileOperationService(
+                        new ShellFileOperationService(() => OwnerHandle),
+                        options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync, ThreadsProvider = () => _settings.CopyThreads }),
+                    _sftp.Provider,
+                    new SftpTransferOptions { ResolveConflict = ConflictWindow.AskTransferAsync }),
                 _gdrive),
             new GDriveOpenFileService(new ShellOpenFileService(), _gdrive),
             new TerminalService(() => _settings, (p, sudo) => _sftp.OpenTerminal(p, sudo))))
         {
             Settings = _settings,
+            ConfirmAsync = msg => Task.FromResult(MessageBox.Show(this, msg, "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes),
         };
 
         _updater = new LegacyUpdateSource(new AppUpdater(AppVersion));

@@ -18,7 +18,8 @@ public sealed class GDriveSessions : IDisposable
     private readonly HttpClient _http;
     private readonly ConcurrentDictionary<string, (GDriveTokenSource Tokens, IGDriveApi Api)> _apis = new(StringComparer.Ordinal);
 
-    public GDriveSessions()
+    /// <param name="resolveConflict">복사·이동 중 같은 이름 파일이 있을 때 묻는 창 (없으면 둘 다 유지).</param>
+    public GDriveSessions(Func<GDriveConflict, CancellationToken, Task<GDriveConflictDecision>>? resolveConflict = null)
     {
         _http = new HttpClient(Foldy.Reporting.CrashSender.CreateSystemProxyHandler(), disposeHandler: true)
         {
@@ -27,7 +28,7 @@ public sealed class GDriveSessions : IDisposable
         _http.DefaultRequestHeaders.UserAgent.ParseAdd($"Foldy/{typeof(GDriveSessions).Assembly.GetName().Version?.ToString(3)}");
         Store = new GDriveAccountStore(GDriveAccountStore.DefaultPath, DpapiSecretProtector.Instance);
         Provider = new GoogleDriveProvider(ApiFor);
-        Transfer = new GDriveTransfer(Provider);
+        Transfer = new GDriveTransfer(Provider, resolveConflict);
     }
 
     public GDriveAccountStore Store { get; }
