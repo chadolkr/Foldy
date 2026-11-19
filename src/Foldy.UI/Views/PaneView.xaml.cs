@@ -966,7 +966,10 @@ public partial class PaneView : UserControl
 
         // 탐색기 규칙: 같은 드라이브면 이동, 다르면 복사
         var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-        var sameDrive = files is { Length: > 0 } && !files.Any(Foldy.Presentation.Navigation.PathUtil.IsSftp) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path) && string.Equals(Path.GetPathRoot(files[0]), Path.GetPathRoot(_tab.Path), StringComparison.OrdinalIgnoreCase);
+        var sameDrive = files is { Length: > 0 } && !files.Any(Foldy.Presentation.Navigation.PathUtil.IsSftp) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path) &&
+            (Foldy.Presentation.Navigation.PathUtil.IsGDrive(files[0]) || Foldy.Presentation.Navigation.PathUtil.IsGDrive(_tab.Path)
+                ? Foldy.Presentation.Navigation.PathUtil.SameGDriveAccount(files[0], _tab.Path) // Google Drive: 같은 계정이면 이동
+                : string.Equals(Path.GetPathRoot(files[0]), Path.GetPathRoot(_tab.Path), StringComparison.OrdinalIgnoreCase));
         var want = sameDrive ? DragDropEffects.Move : DragDropEffects.Copy;
         return (want & e.AllowedEffects) != 0 ? want : DragDropEffects.Copy & e.AllowedEffects;
     }
@@ -1238,7 +1241,7 @@ public partial class PaneView : UserControl
         }
 
         var images = new ItemList(_tab.Items.Where(i => !i.IsFolder && Foldy.Platform.Imaging.ImageFormats.IsImage(i.Name)));
-        _grid.AllowContentDecode = !(_tab.Path.StartsWith(@"\\", StringComparison.Ordinal) || Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path));
+        _grid.AllowContentDecode = !(_tab.Path.StartsWith(@"\\", StringComparison.Ordinal) || Foldy.Presentation.Navigation.PathUtil.IsRemoteUri(_tab.Path));
         _grid.ItemsSource = images;
         Scroller.Visibility = Visibility.Collapsed;
         ImageLayer.Visibility = Visibility.Visible;
@@ -1288,7 +1291,8 @@ public partial class PaneView : UserControl
     private void UpdateTerminalButtons(string? path)
     {
         var sftp = Foldy.Presentation.Navigation.PathUtil.IsSftp(path);
-        CmdBtn.Visibility = PsBtn.Visibility = AdminBtn.Visibility = sftp ? Visibility.Collapsed : Visibility.Visible;
+        var remote = Foldy.Presentation.Navigation.PathUtil.IsRemoteUri(path); // Google Drive에는 터미널이 없다
+        CmdBtn.Visibility = PsBtn.Visibility = AdminBtn.Visibility = remote ? Visibility.Collapsed : Visibility.Visible;
         SshBtn.Visibility = SudoBtn.Visibility = sftp ? Visibility.Visible : Visibility.Collapsed;
     }
 

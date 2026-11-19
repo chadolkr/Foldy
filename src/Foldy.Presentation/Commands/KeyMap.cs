@@ -264,6 +264,7 @@ public sealed class KeyMap
         new("git.open", "Git 뷰 열기", null),
         new("git.blame", "Git: 이 파일 Blame", null),
         new("sftp.connect", "SFTP 서버에 연결", "Ctrl+Shift+O"),
+        new("gdrive.connect", "Google Drive 열기/연결", null),
         new("app.palette", "모든 명령 보기", "Ctrl+Shift+P"),
         new("app.settings", "설정", "Ctrl+,"),
         new("app.help", "도움말", "F1"),

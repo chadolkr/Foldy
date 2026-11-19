@@ -227,16 +227,50 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
-        if (MarkdownExtensions.Contains(item.Extension) &&
-            (Settings.MarkdownOpen == "alwaysFoldy" || await _services.Open.ShouldUseBuiltInMarkdownAsync(item.FullPath)))
+        var path = item.FullPath;
+        if (PathUtil.IsGDrive(path))
         {
-            OpenMarkdown(pane, item.FullPath);
+            // Google Drive: 열 때만 캐시에 내려받는다 (Google 문서는 브라우저로 연다).
+            var job = item.Entry.Size > 4 << 20 ? StartJob($"{item.Name} 내려받기", Mascot.JobKind.Copy) : null;
+            try
+            {
+                Status = $"{item.Name} 여는 중…";
+                var local = await _services.Open.PrepareAsync(path, job, job?.Token ?? CancellationToken.None);
+                if (job is not null)
+                {
+                    FinishJob(job, local is null ? FileOpResult.Ok() : FileOpResult.Ok(local));
+                }
+
+                Status = "";
+                if (local is null)
+                {
+                    return;
+                }
+
+                path = local;
+            }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or NotSupportedException or HttpRequestException or OperationCanceledException)
+            {
+                if (job is not null)
+                {
+                    FinishJob(job, ex is OperationCanceledException ? FileOpResult.Canceled : FileOpResult.Fail(ex.Message));
+                }
+
+                Status = ex is OperationCanceledException ? "" : $"열 수 없습니다: {ex.Message}";
+                return;
+            }
+        }
+
+        if (MarkdownExtensions.Contains(item.Extension) &&
+            (Settings.MarkdownOpen == "alwaysFoldy" || await _services.Open.ShouldUseBuiltInMarkdownAsync(path)))
+        {
+            OpenMarkdown(pane, path);
             return;
         }
 
         try
         {
-            _services.Open.OpenWithShell(item.FullPath);
+            _services.Open.OpenWithShell(path);
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or InvalidOperationException)
         {
@@ -330,6 +364,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public const string SftpDeleteConfirmMessage = "SFTP에는 휴지통이 없습니다. 영구 삭제할까요?";
 
+    public const string GDriveDeleteConfirmMessage = "Google Drive 휴지통을 거치지 않고 바로 지웁니다. 되돌릴 수 없습니다. 영구 삭제할까요?\n(Del만 누르면 Drive 휴지통으로 갑니다)";
+
     /// <summary>예/아니요 확인 창 (UI가 연결한다). SFTP 삭제처럼 되돌릴 수 없는 작업 전에 쓴다.</summary>
     public Func<string, Task<bool>>? ConfirmAsync { get; set; }
 
@@ -339,6 +375,13 @@ public sealed partial class ShellViewModel : ObservableObject
         var src = SelectedPaths(pane);
         if (src.Count == 0)
         {
+            return;
+        }
+
+        // Google Drive 영구 삭제(Shift+Del)는 Drive 휴지통을 거치지 않는다: 지우기 전에 묻는다.
+        if (permanent && src.Any(PathUtil.IsGDrive) && (ConfirmAsync is null || !await ConfirmAsync(GDriveDeleteConfirmMessage)))
+        {
+            Status = "삭제를 취소했습니다";
             return;
         }
 
