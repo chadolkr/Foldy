@@ -43,6 +43,10 @@ public static class ElevatedMsiInstall
         sb.AppendLine("$log = Join-Path $dir 'install.log'");
         sb.AppendLine("$p = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\\msiexec.exe') -Wait -PassThru -ArgumentList @('/i', ('\"' + $msi + '\"'), '/passive', '/norestart', '/l*v', ('\"' + $log + '\"'))");
         sb.AppendLine("Remove-Item -LiteralPath $msi -Force -ErrorAction SilentlyContinue");
+        // 설치한 Foldy를 다시 띄운다 (기본 설치 폴더에 있으면 그것, 없으면 업데이트를 시작한 exe).
+        // 개발 빌드나 다른 폴더에서 업데이트해도 옛 exe가 다시 뜨지 않게 한다.
+        sb.AppendLine("$installed = Join-Path $env:ProgramFiles 'Foldy\\Foldy.exe'");
+        sb.AppendLine("if (Test-Path -LiteralPath $installed) { $exe = $installed }");
         // 다시 띄우기는 탐색기를 거쳐 일반 권한으로
         sb.AppendLine("Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList ('\"' + $exe + '\"')");
         sb.AppendLine("exit $p.ExitCode");

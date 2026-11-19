@@ -32,6 +32,18 @@ public sealed class ElevatedMsiInstallTests
     }
 
     [Fact]
+    public void Relaunches_the_installed_foldy_after_install_not_the_exe_that_started_it()
+    {
+        var script = ElevatedMsiInstall.BuildScript(@"C:\u\a.msi", Sha, @"C:\dev\bin\Foldy.exe");
+        var install = script.IndexOf("msiexec.exe", StringComparison.Ordinal);
+        var pick = script.IndexOf("if (Test-Path -LiteralPath $installed) { $exe = $installed }", StringComparison.Ordinal);
+        var relaunch = script.IndexOf("explorer.exe", StringComparison.Ordinal);
+        script.Should().Contain("Join-Path $env:ProgramFiles 'Foldy\\Foldy.exe'");
+        install.Should().BeLessThan(pick, "설치가 끝난 뒤에 설치 폴더를 확인한다");
+        pick.Should().BePositive().And.BeLessThan(relaunch);
+    }
+
+    [Fact]
     public void Start_info_uses_encoded_command_and_runas()
     {
         var psi = ElevatedMsiInstall.BuildStartInfo(@"C:\u\a b.msi", Sha, @"C:\u\Foldy.exe");
