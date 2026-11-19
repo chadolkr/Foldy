@@ -2,6 +2,10 @@
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 상세 설계서(Claude Doc) https://claude.ai/artifact/BQjDCujQvfm5T3hsVHNZFe, 결정 기록: `docs/adr/`.
 
+## 문서 화면 (README·도움말)
+
+- `build/doc-screenshots.ps1`(= `Foldy.exe --doc-screenshots <폴더>`, `ShellWindow.DocShots.cs`)가 가짜 샘플 폴더(C:\FDemo, 임시 데이터 폴더 C:\FoldyDemoData)에서 장면별 PNG를 `docs/images`에 만든다. 화면이 바뀌면 다시 실행한다. 도움말용 작은 그림은 `assets/help/images`.
+
 ## 0.3.1 ~ 0.3.8 (2026-11-19, 회사 PC 대응)
 
 - 회사 PC(사내 VDI, UAC 꺼짐, PAC `회사 PAC 주소`, 인증 없음)에서 확인·해결:
