@@ -1206,7 +1206,9 @@ public partial class ShellWindow : Window, IPaneHost
                 if (interactive)
                 {
                     MessageBox.Show(this,
-                        err is null ? $"Foldy {AppVersion}은(는) 최신 버전입니다." : $"업데이트를 확인하지 못했습니다.\n\n{err}\n\n인터넷·프록시 연결을 확인한 뒤 다시 시도해 주세요.",
+                        err is null ? $"Foldy {AppVersion}은(는) 최신 버전입니다."
+                            : err.Contains(AppUpdater.MissingVerifier, StringComparison.Ordinal) ? $"업데이트를 확인하지 못했습니다.\n\n{err}"
+                            : $"업데이트를 확인하지 못했습니다.\n\n{err}\n\n인터넷·프록시 연결을 확인한 뒤 다시 시도해 주세요.",
                         "Foldy 업데이트", MessageBoxButton.OK, err is null ? MessageBoxImage.Information : MessageBoxImage.Warning);
                 }
 
