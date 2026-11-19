@@ -7,7 +7,7 @@
 param(
     [string]$Out = (Join-Path $PSScriptRoot '..\docs\images'),
     [string]$Root = 'C:\FDemo',
-    [string]$Exe = (Join-Path $PSScriptRoot '..\src\Foldy.App\bin\Release\net10.0-windows\Foldy.exe'),
+    [string]$Exe = (Join-Path $PSScriptRoot '..\src\Foldy.App\bin\x64\Release\net10.0-windows\Foldy.exe'),
     [switch]$Keep
 )
 $ErrorActionPreference = 'Stop'

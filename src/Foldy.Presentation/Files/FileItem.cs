@@ -65,10 +65,16 @@ public sealed class FileItem(FsEntry entry, Func<FsEntry, string>? typeName = nu
     };
 
     /// <summary>탐색기와 같은 KB 단위(올림) 표기.</summary>
+    /// <summary>파일 크기. 1 MB 미만은 탐색기처럼 KB(올림), 그 이상은 MB·GB로 짧게 (좁은 크기 열에 다 들어가게).</summary>
     public static string FormatSize(long bytes)
     {
-        var kb = (bytes + 1023) / 1024;
-        return kb.ToString("N0", CultureInfo.CurrentCulture) + " KB";
+        if (bytes < 1024L * 1024)
+        {
+            var kb = (bytes + 1023) / 1024;
+            return kb.ToString("N0", CultureInfo.CurrentCulture) + " KB";
+        }
+
+        return FormatBytes(bytes);
     }
 
     /// <summary>사람이 읽기 좋은 크기 (1.2 GB).</summary>
