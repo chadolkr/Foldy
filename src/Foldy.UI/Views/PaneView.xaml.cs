@@ -42,6 +42,7 @@ public partial class PaneView : UserControl
     public PaneView()
     {
         InitializeComponent();
+        ApplySystemTerminalIcons();
         _folderColumns.AddRange([
             // 좁은 패널: 유형은 이름 왼쪽 아이콘으로만 보이고, 남는 폭은 모두 이름에 준다.
             new FastColumn("이름", 320, o => ((FileItem)o).Name),
@@ -517,6 +518,28 @@ public partial class PaneView : UserControl
             ? "이 드라이브의 내용이 Foldy에서 보이지 않습니다.\n보안 프로그램이 탐색기에서만 열 수 있게 막았을 수 있습니다."
             : "빈 폴더입니다";
         EmptyExplorerButton.Visibility = restrictedRoot ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>터미널 버튼을 Windows 원래 아이콘으로 (cmd·PowerShell 실행 파일 아이콘, 관리자는 UAC 방패를 겹침). 못 얻으면 글꼴 아이콘 유지.</summary>
+    private void ApplySystemTerminalIcons()
+    {
+        var ps = Foldy.Platform.Shell.Terminals.Pwsh() is { } p && !p.Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase)
+            ? p
+            : Foldy.Platform.Shell.Terminals.WindowsPowerShell();
+        if (Foldy.UI.Shell.SystemToolIcons.Content(Foldy.Platform.Shell.Terminals.Cmd(), admin: false) is { } cmd)
+        {
+            CmdBtn.Content = cmd;
+        }
+
+        if (Foldy.UI.Shell.SystemToolIcons.Content(ps, admin: false) is { } psIcon)
+        {
+            PsBtn.Content = psIcon;
+        }
+
+        if (Foldy.UI.Shell.SystemToolIcons.Content(ps, admin: true) is { } admin)
+        {
+            AdminBtn.Content = admin;
+        }
     }
 
     private static bool IsRemoteDriveRoot(string path) =>

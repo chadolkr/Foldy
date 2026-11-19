@@ -498,7 +498,52 @@ public partial class ShellWindow : Window, IPaneHost
         var (available, reason) = await Task.Run(() => (NativeCopyEngine.IsAvailable, NativeCopyEngine.UnavailableReason));
         CopyEngineText.Text = available ? "복사 엔진: Rust" : "복사 엔진: 기본";
         CopyEngineText.ToolTip = available ? "foldy_copy.dll 사용 가능 (M3에서 병렬 복사로 전환)" : reason;
-        _indexer = await IndexerClient.TryConnectAsync(timeout: TimeSpan.FromMilliseconds(300));
+        await ConnectIndexerAsync();
+    }
+
+    private DispatcherTimer? _indexerRetry;
+
+    /// <summary>
+    /// 색인 서비스에 연결한다. 시작 직후에는 서비스가 색인을 불러오거나 업데이트 확인과 겹쳐 바쁠 수 있어,
+    /// 짧게 한 번만 시도하면 "서비스 없음"으로 잘못 보인다 (0.3.x 회귀). 넉넉히 몇 번 시도하고, 그래도 안 되면 30초마다 다시 시도한다.
+    /// </summary>
+    private async Task ConnectIndexerAsync()
+    {
+        if (_indexer is { IsFaulted: false })
+        {
+            return;
+        }
+
+        for (var i = 0; i < 3 && _indexer is null; i++)
+        {
+            if (i > 0)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2));
+            }
+
+            _indexer = await IndexerClient.TryConnectAsync(timeout: TimeSpan.FromSeconds(3));
+        }
+
+        if (_indexer is null)
+        {
+            var svc = DescribeIndexerService();
+            Log.Information("색인 서비스에 연결하지 못함 ({Service}). 30초마다 다시 시도", svc);
+            _indexerRetry ??= new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Background, async (_, _) =>
+            {
+                if (_indexer is null)
+                {
+                    await ConnectIndexerAsync();
+                }
+            }, Dispatcher);
+            _indexerRetry.Start();
+            IndexerText.Text = "검색: 폴더 훑기 (색인 서비스 없음)";
+            IndexerText.ToolTip = $"색인 서비스에 연결하지 못했습니다 ({svc}). 30초마다 다시 연결합니다. 서비스가 없으면 ⋯ → 색인 서비스 설치로 설치할 수 있습니다.";
+            await _search.RefreshStateAsync();
+            return;
+        }
+
+        _indexerRetry?.Stop();
+        Log.Information("색인 서비스 연결됨");
         await _search.RefreshStateAsync();
         if (_indexer is not null)
         {
@@ -506,8 +551,24 @@ public partial class ShellWindow : Window, IPaneHost
             _ = Shell.Right.ActiveFolder?.RefreshFolderSizesAsync();
         }
 
-        IndexerText.Text = _indexer is null ? "검색: 폴더 훑기 (색인 서비스 없음)" : _search.IsIndexed ? "검색: 색인 사용" : "검색: 색인 준비 중";
-        IndexerText.ToolTip = "색인 서비스(foldy-index)가 관리자 권한으로 실행 중이면 전체 드라이브를 즉시 검색합니다.";
+        IndexerText.Text = _search.IsIndexed ? "검색: 색인 사용" : "검색: 색인 준비 중";
+        IndexerText.ToolTip = "색인 서비스(foldy-index)로 전체 드라이브를 즉시 검색합니다.";
+    }
+
+    /// <summary>진단용: Windows 서비스 FoldyIndexer의 상태 (없음/실행 중/중지됨 …).</summary>
+    private static string DescribeIndexerService()
+    {
+        try
+        {
+            using var sc = new System.ServiceProcess.ServiceController("FoldyIndexer");
+            return "서비스 상태: " + sc.Status;
+        }
+#pragma warning disable CA1031
+        catch (Exception)
+        {
+            return "서비스가 설치되어 있지 않음";
+        }
+#pragma warning restore CA1031
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)

@@ -171,9 +171,9 @@
         <Button x:Name="ImagesBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEB9F;" ToolTip="이미지만 보기 (Ctrl+Shift+I)" Click="OnToggleImages" />
         <Rectangle Width="1" Margin="4,8" Fill="{DynamicResource Brush.Border}" />
         <!-- 탭 종류에 따라 같은 자리의 터미널 아이콘이 바뀐다 (DESIGN.md): 로컬 = CMD·PowerShell·관리자, SFTP = SSH·sudo -->
-        <Button x:Name="CmdBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE756;" ToolTip="명령 프롬프트 (Ctrl+클릭: 관리자)" Click="OnCmd" />
-        <Button x:Name="PsBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE943;" ToolTip="PowerShell (Ctrl+`) · Ctrl+클릭: 관리자" Click="OnPowerShell" />
-        <Button x:Name="AdminBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEA18;" ToolTip="관리자 PowerShell (Ctrl+Shift+`)" Click="OnAdminShell" />
+        <Button x:Name="CmdBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE756;" ToolTip="명령 프롬프트로 이 폴더 열기 (Ctrl+클릭: 관리자)" AutomationProperties.Name="명령 프롬프트" Click="OnCmd" />
+        <Button x:Name="PsBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE943;" ToolTip="PowerShell로 이 폴더 열기 (Ctrl+`) · Ctrl+클릭: 관리자" AutomationProperties.Name="PowerShell" Click="OnPowerShell" />
+        <Button x:Name="AdminBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEA18;" ToolTip="PowerShell(관리자)로 이 폴더 열기 (Ctrl+Shift+`)" AutomationProperties.Name="PowerShell 관리자" Click="OnAdminShell" />
         <Button x:Name="SshBtn" Style="{DynamicResource Foldy.ToolButton}" Width="Auto" Padding="8,0" Visibility="Collapsed"
                 ToolTip="같은 서버·계정·폴더로 SSH 터미널 (Ctrl+`)" Click="OnSsh">
           <StackPanel Orientation="Horizontal">
