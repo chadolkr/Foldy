@@ -153,7 +153,7 @@ public sealed class QuickAccess
     private static int IndexOf(ObservableCollection<QuickFolder> list, string path)
     {
         // Windows 경로는 대소문자를 가리지 않고, SFTP(유닉스) 경로는 가린다.
-        var cmp = PathUtil.IsSftp(path) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        var cmp = PathUtil.IsRemoteUri(path) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         for (var i = 0; i < list.Count; i++)
         {
             if (string.Equals(list[i].Path, path, cmp))
