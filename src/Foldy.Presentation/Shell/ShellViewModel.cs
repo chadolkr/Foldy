@@ -328,6 +328,11 @@ public sealed partial class ShellViewModel : ObservableObject
         return r.Succeeded;
     }
 
+    public const string SftpDeleteConfirmMessage = "SFTP에는 휴지통이 없습니다. 영구 삭제할까요?";
+
+    /// <summary>예/아니요 확인 창 (UI가 연결한다). SFTP 삭제처럼 되돌릴 수 없는 작업 전에 쓴다.</summary>
+    public Func<string, Task<bool>>? ConfirmAsync { get; set; }
+
     public async Task DeleteSelectionAsync(bool permanent)
     {
         var pane = ActivePane;
@@ -335,6 +340,17 @@ public sealed partial class ShellViewModel : ObservableObject
         if (src.Count == 0)
         {
             return;
+        }
+
+        // SFTP에는 휴지통이 없다: 지우기 전에 반드시 묻는다 (확인 창이 없으면 지우지 않는다).
+        if (src.Any(PathUtil.IsSftp))
+        {
+            permanent = true;
+            if (ConfirmAsync is null || !await ConfirmAsync(SftpDeleteConfirmMessage))
+            {
+                Status = "삭제를 취소했습니다";
+                return;
+            }
         }
 
         var job = StartJob($"{JobViewModel.Describe(src)} {(permanent ? "영구 삭제" : "휴지통으로")}", permanent ? Mascot.JobKind.DeletePermanent : Mascot.JobKind.Delete);
