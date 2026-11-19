@@ -146,13 +146,16 @@ public sealed class AppUpdater : IDisposable
         return string.Equals(hash, asset.Sha256, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>서명 검사 도구가 없을 때의 안내 (인터넷 문제가 아니므로 다시 설치를 권한다).</summary>
+    public const string MissingVerifier = "서명 검사 도구(foldy-update.exe)가 Foldy 폴더에 없어요. Foldy를 다시 설치하면 고쳐져요.";
+
     private static async Task VerifySignatureAsync(string manifest, string sig, CancellationToken ct)
     {
         // Ed25519 서명 (앱에 내장된 공개키, Rust 검증기)
         var tool = Path.Combine(AppContext.BaseDirectory, "foldy-update.exe");
         if (!File.Exists(tool))
         {
-            throw new IOException("foldy-update.exe가 없어 서명을 검사할 수 없습니다");
+            throw new IOException(MissingVerifier);
         }
 
         var psi = new ProcessStartInfo(tool) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
