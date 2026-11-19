@@ -617,8 +617,8 @@ public partial class PaneView : UserControl
         {
             PreviewHost.Visibility = Visibility.Collapsed;
             PreviewSplitter.Visibility = Visibility.Collapsed;
-            PreviewSplitColumn.Width = new GridLength(0);
-            PreviewColumn.Width = new GridLength(0);
+            PreviewSplitRow.Height = new GridLength(0);
+            PreviewRow.Height = new GridLength(0);
             _ = _preview?.ShowAsync((Foldy.Presentation.Preview.PreviewRequest?)null);
             return;
         }
@@ -634,8 +634,8 @@ public partial class PaneView : UserControl
 
         PreviewHost.Visibility = Visibility.Visible;
         PreviewSplitter.Visibility = Visibility.Visible;
-        PreviewSplitColumn.Width = new GridLength(6);
-        PreviewColumn.Width = new GridLength(Math.Max(260, ActualWidth * 0.38));
+        PreviewSplitRow.Height = new GridLength(6);
+        PreviewRow.Height = new GridLength(Math.Max(180, ActualHeight * 0.4));
         UpdatePreview();
     }
 

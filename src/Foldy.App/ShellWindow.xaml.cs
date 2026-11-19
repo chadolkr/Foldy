@@ -340,6 +340,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     private bool _triedUserProxyFallback;
     private string? _userProxyError;
+    private bool _userProxyUpToDate;
 
     /// <summary>사용자(현재 로그온) 프록시 설정으로 GitHub에 갈 때 실제로 쓰는 프록시 (PAC 결과 포함). 진단 기록용.</summary>
     private static string DescribeUserProxy()
@@ -390,7 +391,8 @@ public partial class ShellWindow : Window, IPaneHost
         if (!found || legacy.ReadyVersion is null)
         {
             Log.Information("사용자 프록시로도 새 버전 없음/실패: {Error} (프록시: {Proxy})", legacy.LastError, DescribeUserProxy());
-            _userProxyError = legacy.LastError ?? (found ? null : "새 버전 없음");
+            _userProxyError = legacy.LastError;
+            _userProxyUpToDate = legacy.LastError is null;
             legacy.Dispose();
             return false;
         }
@@ -1033,7 +1035,11 @@ public partial class ShellWindow : Window, IPaneHost
             if (!found && _updater.ReadyVersion is null)
             {
                 var err = _updater.LastError;
-                if (err is not null && _userProxyError is { } ue)
+                if (_userProxyUpToDate)
+                {
+                    err = null; // 서비스는 회사망에서 못 나가도, 사용자 프록시로 확인해 보니 최신 버전
+                }
+                else if (err is not null && _userProxyError is { } ue)
                 {
                     err = $"{err}\n사용자 프록시 경로: {ue}";
                 }

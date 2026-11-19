@@ -220,12 +220,17 @@
         <ColumnDefinition x:Name="TreeColumn" Width="200" MinWidth="0" MaxWidth="520" />
         <ColumnDefinition x:Name="SplitColumn" Width="6" />
         <ColumnDefinition Width="*" MinWidth="200" />
-        <ColumnDefinition x:Name="PreviewSplitColumn" Width="0" />
-        <ColumnDefinition x:Name="PreviewColumn" Width="0" MinWidth="0" />
       </Grid.ColumnDefinitions>
-      <GridSplitter x:Name="PreviewSplitter" Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False" Visibility="Collapsed" />
-      <Border x:Name="PreviewHost" Grid.Column="4" Style="{DynamicResource Foldy.ListBorder}" ClipToBounds="True" Visibility="Collapsed" />
-      <Border x:Name="TreeHost" Style="{DynamicResource Foldy.ListBorder}" Padding="2,6,2,6">
+      <!-- 미리보기(F3)는 목록 위쪽에: 목록 폭을 줄이지 않아 파일명이 잘리지 않는다 -->
+      <Grid.RowDefinitions>
+        <RowDefinition x:Name="PreviewRow" Height="0" MinHeight="0" />
+        <RowDefinition x:Name="PreviewSplitRow" Height="0" />
+        <RowDefinition Height="*" MinHeight="120" />
+      </Grid.RowDefinitions>
+      <Border x:Name="PreviewHost" Grid.Column="2" Grid.Row="0" Style="{DynamicResource Foldy.ListBorder}" ClipToBounds="True" Visibility="Collapsed" />
+      <GridSplitter x:Name="PreviewSplitter" Grid.Column="2" Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    ResizeDirection="Rows" Background="Transparent" Focusable="False" Visibility="Collapsed" />
+      <Border x:Name="TreeHost" Grid.RowSpan="3" Style="{DynamicResource Foldy.ListBorder}" Padding="2,6,2,6">
         <TreeView x:Name="Tree" BorderThickness="0" Background="Transparent" SelectedItemChanged="OnTreeSelected"
                   VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
           <TreeView.ItemContainerStyle>
@@ -236,9 +241,9 @@
           </TreeView.ItemContainerStyle>
         </TreeView>
       </Border>
-      <GridSplitter x:Name="Splitter" Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False" />
+      <GridSplitter x:Name="Splitter" Grid.Column="1" Grid.RowSpan="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False" />
 
-      <Border x:Name="ContentHost" Grid.Column="2" Style="{DynamicResource Foldy.ListBorder}" ClipToBounds="True">
+      <Border x:Name="ContentHost" Grid.Column="2" Grid.Row="2" Style="{DynamicResource Foldy.ListBorder}" ClipToBounds="True">
         <Grid>
           <!-- 폴더 탭 -->
           <Grid x:Name="FolderLayer" AllowDrop="True" DragOver="OnListDragOver" Drop="OnListDrop" DragEnter="OnListDragOver">
