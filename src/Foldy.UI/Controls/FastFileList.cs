@@ -26,6 +26,9 @@ public sealed class FastColumn(string header, double width, Func<object, string>
     public double Width { get; set; } = width;
     public Func<object, string> Text { get; } = text;
     public bool AlignRight { get; } = alignRight;
+
+    /// <summary>글자 크기 배율 (덜 중요한 열을 작게, 예: 수정한 날짜 0.85).</summary>
+    public double FontScale { get; init; } = 1;
 }
 
 /// <summary>
@@ -503,7 +506,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
                 var col = Columns[c];
                 var brush = selected ? SelectionForeground : c == 0 ? Foreground : SecondaryForeground;
                 var iconSpace = c == 0 && IconSelector is not null ? IconSize + 6 : 0;
-                slot[c] = new FormattedText(col.Text(item), CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, tf, fs, brush, dpi)
+                slot[c] = new FormattedText(col.Text(item), CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, tf, fs * col.FontScale, brush, dpi)
                 {
                     MaxTextWidth = Math.Max(1, col.Width - 2 * CellPadding - iconSpace),
                     MaxLineCount = 1,
