@@ -15,6 +15,12 @@ public sealed class NativeCopyFileOperationOptions
     /// <summary>0 = 자동 (설정 "복사 스레드: 자동(권장) / 수동 [4]").</summary>
     public uint Threads { get; init; }
 
+    /// <summary>작업을 시작할 때마다 묻는 스레드 수 (설정 창에서 바꾸면 다음 복사부터 반영). 있으면 <see cref="Threads"/>보다 우선.</summary>
+    public Func<int>? ThreadsProvider { get; init; }
+
+    /// <summary>이번 작업에 쓸 스레드 수. 음수·0은 자동, 64 넘으면 64.</summary>
+    public uint ResolveThreads() => ThreadsProvider is { } f ? (uint)Math.Clamp(f(), 0, 64) : Threads;
+
     /// <summary>작업 저널 폴더 (기본 %LOCALAPPDATA%\Foldy\jobs). null이면 저널 없음.</summary>
     public string? JournalDirectory { get; init; } = DefaultDataPath("jobs");
 
@@ -84,7 +90,7 @@ public sealed class NativeCopyFileOperationService(
             Mode = mode,
             Conflict = policy,
             Verify = _options.Verify,
-            Threads = _options.Threads,
+            Threads = _options.ResolveThreads(),
             JournalPath = journal,
             TuningPath = _options.TuningPath,
         };

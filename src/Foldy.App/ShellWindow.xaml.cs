@@ -74,7 +74,7 @@ public partial class ShellWindow : Window, IPaneHost
         Shell = new ShellViewModel(_env, new ShellServices(
             new NativeCopyFileOperationService(
                 new ShellFileOperationService(() => OwnerHandle),
-                options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync }),
+                options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync, ThreadsProvider = () => _settings.CopyThreads }),
             new ShellOpenFileService(),
             new TerminalService(() => _settings, (p, sudo) => _sftp.OpenTerminal(p, sudo))))
         {
