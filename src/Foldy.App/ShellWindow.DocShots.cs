@@ -543,6 +543,15 @@ public partial class ShellWindow
             m.Close();
         });
 
+        await DocSceneAsync("tour", async () =>
+        {
+            var g = (GuideWindow)DocOpen(new GuideWindow("Foldy 둘러보기") { Height = 480, EchoChoices = false });
+            g.Say("2 / 5");
+            _ = g.AskAsync("왼쪽 사이드바의 도구는 네 묶음이에요. 🔍 찾기: 파일 이름 검색(Ctrl+F), 무엇이 공간을 차지하는지 보는 폴더 분석.", ("next", "다음"), ("skip", "그만 보기"));
+            await DocShotDialogAsync("tour", g, 500);
+            g.Close();
+        });
+
         await DocSceneAsync("about", async () =>
         {
             var win = DocOpen(new AboutWindow());

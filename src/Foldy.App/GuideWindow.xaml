@@ -4,8 +4,8 @@
         Width="620" Height="600" MinWidth="440" MinHeight="380"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         Background="{DynamicResource Brush.Window}" Foreground="{DynamicResource Brush.Text}"
-        FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}"
-        TextOptions.TextFormattingMode="Display" SnapsToDevicePixels="True" UseLayoutRounding="True">
+        FontFamily="{DynamicResource Font.UI}" FontSize="15"
+        TextOptions.TextFormattingMode="Ideal" TextOptions.TextRenderingMode="ClearType" SnapsToDevicePixels="True" UseLayoutRounding="True">
   <DockPanel>
     <!-- 고르기: 지금 질문의 선택지 -->
     <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="16,10" Background="{DynamicResource Brush.Surface}">
