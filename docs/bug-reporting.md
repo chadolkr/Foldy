@@ -24,9 +24,14 @@ UI 의존성이 없는 작은 라이브러리다. 앱은 `App.xaml.cs`의 몇 �
 
 공개 이슈로 나가므로 보내기 전에 지운다. 릴레이도 같은 규칙으로 한 번 더 지운다.
 
-- 경로 → `<path>\파일이름.확장자` (폴더 이름은 버림). 따옴표로 감싼 경로는 공백이 있어도 통째로
+- 경로 → `<path>\<file>.확장자` (폴더 이름은 버림, 문서 이름도 버림). Foldy 소스·실행 파일(.cs .xaml .rs .dll .exe)만 `<path>\A.cs`처럼 이름을 남긴다. 따옴표로 감싼 경로는 공백이 있어도 통째로
 - 사용자 이름, `도메인\사용자` → `<user>`, 컴퓨터 이름 → `<machine>`
-- 메일 주소 → `<email>`
+- 메일 주소 → `<email>`, `user@서버` → `<account>`
+- 주소(http·https·sftp·ssh·ftp·file·smb·ldap·ws) → `<url>` (프록시·PAC 주소 포함)
+- IP 주소(IPv4·IPv6, 포트 포함) → `<ip>`. 버전 번호(`Version=10.0.0.0`, `Foldy 0.3.18.0`, `0.x.x.x`)는 남긴다
+- 사내 도메인 이름(`.local` `.lan` `.corp` `.internal` `.intranet` `.intra` `.localdomain` `.home.arpa`) → `<host>`
+- 서버 쪽 경로(`/home/…`, `/var/…`) → `<path>`
+- 로그에는 프록시 주소를 쓰지 않는다 ("시스템 프록시 사용"만). 공개 이슈에 회사 정보가 남으면 안 된다 ([no-company-info.md](no-company-info.md))
 - 스택 프레임은 줄 번호 없이 `Namespace.Type.Method`
 
 ### 프록시
