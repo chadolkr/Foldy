@@ -54,8 +54,8 @@ internal sealed class Pose
 /// </summary>
 public sealed partial class MascotPainter
 {
-    public const double DesignHeight = 48;
-    public const double Ground = 36.5;
+    public const double DesignHeight = 64;
+    public const double Ground = 51.5;
 
     private const double KidScale = 0.8;
 
@@ -63,7 +63,7 @@ public sealed partial class MascotPainter
     private readonly Dictionary<(Color, double), Pen> _pens = [];
     private readonly List<(string Name, double X)> _labels = [];
     private readonly MascotPalette _p;
-    private readonly double _minStroke;
+    private double _minStroke;
     private readonly double _maxWorld;
 
     private DrawingContext _dc = null!;
@@ -122,9 +122,9 @@ public sealed partial class MascotPainter
         dc.PushTransform(new TranslateTransform(_ox, 0));
         Line(_p.Border, 2, 6, Ground + 1.2, _w - 6, Ground + 1.2);
         DrawScene();
-        DrawBubble();
         if (DrawLabelsInline)
         {
+            DrawBubble();
             DrawLabelTexts();
         }
 
@@ -142,23 +142,60 @@ public sealed partial class MascotPainter
 
         _dc = dc;
         dc.PushTransform(new TranslateTransform(_ox, 0));
+        // 말풍선 글리프도 확대 후 또렷하게: 레트로용 최소 선 굵기를 잠시 끈다
+        var ms = _minStroke;
+        _minStroke = 0;
+        DrawBubble();
+        _minStroke = ms;
         DrawLabelTexts();
         dc.Pop();
     }
 
-    private void DrawLabelTexts()
+    private List<(string Name, double X, FormattedText Ft)> ResolveLabels()
     {
-        foreach (var (name, x) in _labels)
-        {
-            var ft = new FormattedText(
-                name,
+        // 이름표: 서로 겹치면(글자 폭보다 가까우면) 가운데를 기준으로 좌우로 밀어낸다. 정렬은 실제 x 순서.
+        var items = _labels
+            .Select(l => (l.Name, l.X, Ft: new FormattedText(
+                l.Name,
                 CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 new Typeface(new FontFamily("Malgun Gothic, Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
                 8.5,
                 B(_p.Text),
-                PixelsPerDip);
-            _dc.DrawText(ft, new Point(x - (ft.Width / 2), 43.6 - (ft.Height / 2)));
+                PixelsPerDip)))
+            .OrderBy(l => l.X)
+            .ToList();
+        var xs = items.Select(i => i.X).ToArray();
+        for (var i = 1; i < xs.Length; i++)
+        {
+            var need = ((items[i - 1].Ft.Width + items[i].Ft.Width) / 2) + 3;
+            if (xs[i] - xs[i - 1] < need)
+            {
+                var mid = (xs[i] + xs[i - 1]) / 2;
+                xs[i - 1] = mid - (need / 2);
+                xs[i] = mid + (need / 2);
+            }
+        }
+
+        var res = new List<(string, double, FormattedText)>();
+        for (var i = 0; i < items.Count; i++)
+        {
+            var w = items[i].Ft.Width;
+            res.Add((items[i].Name, Math.Clamp(xs[i], (w / 2) + 1, Math.Max((w / 2) + 1, _w - (w / 2) - 1)), items[i].Ft));
+        }
+
+        return res;
+    }
+
+    /// <summary>겹침을 푼 뒤의 이름표 위치와 폭 (테스트용).</summary>
+    internal IReadOnlyList<(string Name, double X, double Width)> ResolvedLabels() =>
+        ResolveLabels().Select(l => (l.Name, l.X, l.Ft.Width)).ToList();
+
+    private void DrawLabelTexts()
+    {
+        foreach (var (_, x, ft) in ResolveLabels())
+        {
+            _dc.DrawText(ft, new Point(x - (ft.Width / 2), Ground + 6.8 - (ft.Height / 2)));
         }
     }
 
@@ -425,13 +462,13 @@ public sealed partial class MascotPainter
 
     private double RimX => HoopX - 9;
 
-    private const double RimY = 17.5;
+    private static double RimY => Ground - 26;
 
     private void HoopBack()
     {
-        Line(_p.MetalDark, 2, HoopX + 3.4, 10, HoopX + 3.4, Ground);
-        RR(_p.Surface, HoopX - 1, 4.5, 2.8, 17, 1, Pn(_p.MetalDark, 0.9));
-        RR(_p.Rim, HoopX - 1, 14.4, 2.8, 2.2, 0.6);
+        Line(_p.MetalDark, 2, HoopX + 3.4, RimY - 8, HoopX + 3.4, Ground);
+        RR(_p.Surface, HoopX - 1, RimY - 13, 2.8, 20, 1, Pn(_p.MetalDark, 0.9));
+        RR(_p.Rim, HoopX - 1, RimY - 3.1, 2.8, 2.2, 0.6);
         Ring(_p.Rim, 1.6, RimX, RimY, 6.8, 1.6);
     }
 
@@ -567,7 +604,7 @@ public sealed partial class MascotPainter
                 {
                     var bounce = Math.Sin(_t * 6) * 0.8;
                     var cx = Math.Clamp(_anchor.X + 13, 11, _w - 11);
-                    var cy = Math.Max(_anchor.Y, 11) + bounce - 1;
+                    var cy = Math.Max(_anchor.Y - 8, 10) + bounce;
                     var isQ = _f.Bubble == MascotBubble.Question;
                     var col = isQ ? _p.Accent : _p.Error;
                     Poly(_p.Surface, null, new Point(cx - 6, cy + 4), new Point(cx - 2, cy + 6), new Point(cx - 7, cy + 9));

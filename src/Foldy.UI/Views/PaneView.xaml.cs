@@ -22,7 +22,7 @@ namespace Foldy.UI.Views;
 public partial class PaneView : UserControl
 {
     private const string TabDragFormat = "Foldy.Tab";
-    private static readonly SortKey[] ColumnKeys = [SortKey.Name, SortKey.Modified, SortKey.Type, SortKey.Size];
+    private static readonly SortKey[] ColumnKeys = [SortKey.Name, SortKey.Size, SortKey.Modified];
 
     private IPaneHost? _host;
     private PaneViewModel? _pane;
@@ -43,16 +43,16 @@ public partial class PaneView : UserControl
     {
         InitializeComponent();
         _folderColumns.AddRange([
+            // 좁은 패널: 유형은 이름 왼쪽 아이콘으로만 보이고, 남는 폭은 모두 이름에 준다.
             new FastColumn("이름", 320, o => ((FileItem)o).Name),
-            new FastColumn("수정한 날짜", 130, o => ((FileItem)o).ModifiedText),
-            new FastColumn("유형", 120, o => ((FileItem)o).TypeText),
-            new FastColumn("크기", 90, o => ((FileItem)o).SizeText, alignRight: true),
+            new FastColumn("크기", 72, o => ((FileItem)o).SizeText, alignRight: true),
+            new FastColumn("수정", 68, o => ((FileItem)o).ShortModifiedText) { FontScale = 0.85 },
         ]);
         _searchColumns.AddRange([
             new FastColumn("이름", 240, o => ((FileItem)o).Name),
             new FastColumn("위치", 220, o => Path.GetDirectoryName(((FileItem)o).FullPath) ?? ""),
-            new FastColumn("수정한 날짜", 130, o => ((FileItem)o).ModifiedText),
-            new FastColumn("크기", 90, o => ((FileItem)o).SizeText, alignRight: true),
+            new FastColumn("크기", 72, o => ((FileItem)o).SizeText, alignRight: true),
+            new FastColumn("수정", 68, o => ((FileItem)o).ShortModifiedText) { FontScale = 0.85 },
         ]);
         UseColumns(_folderColumns);
         List.SortColumn = 0;
