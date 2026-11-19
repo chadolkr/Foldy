@@ -507,6 +507,23 @@ public partial class PaneView : UserControl
         ErrorBanner.Visibility = _tab.State == LoadState.Error && _tab.Error is not null ? Visibility.Visible : Visibility.Collapsed;
         ErrorText.Text = _tab.Error ?? "";
         EmptyPanel.Visibility = !busy && _tab.State == LoadState.Idle && _tab.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        // 네트워크·리다이렉터 드라이브 루트가 비어 보이면 보안 프로그램(예: 회사 보안 드라이브 프로그램)이 탐색기에만 내용을 허용했을 수 있다.
+        var restrictedRoot = EmptyPanel.Visibility == Visibility.Visible && IsRemoteDriveRoot(_tab.Path);
+        EmptyText.Text = restrictedRoot
+            ? "이 드라이브의 내용이 Foldy에서 보이지 않습니다.\n보안 프로그램이 탐색기에서만 열 수 있게 막았을 수 있습니다."
+            : "빈 폴더입니다";
+        EmptyExplorerButton.Visibility = restrictedRoot ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static bool IsRemoteDriveRoot(string path) =>
+        path.Length is 2 or 3 && path[1] == ':' && Foldy.Platform.SystemInfo.Drives.TypeOf(path[..2] + "\\") == Foldy.Platform.SystemInfo.NativeDriveType.Remote;
+
+    private void OnOpenInExplorer(object sender, RoutedEventArgs e)
+    {
+        if (_tab?.Path is { Length: > 0 } p)
+        {
+            using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{p}\"") { UseShellExecute = true });
+        }
     }
 
     private void UpdateBusy()

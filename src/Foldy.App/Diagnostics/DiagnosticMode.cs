@@ -40,7 +40,7 @@ internal static class DiagnosticMode
             if (root is not null && path.Length <= 3 && count == 0)
             {
                 // 드라이브 루트가 비어 보이는 경우 (매핑 드라이브가 이 로그온 세션에 없을 때 등)
-                Log.Warning("드라이브 {Root}가 비어 있음 ({Ms}ms). {Drive} {Env}", root, (int)elapsed.TotalMilliseconds, DriveContext(root), ProcessContext());
+                Log.Warning("드라이브 {Root}가 비어 있음 ({Ms}ms). {Drive} {Raw} {Env}", root, (int)elapsed.TotalMilliseconds, DriveContext(root), RawEnumerate(root), ProcessContext());
             }
             else
             {
@@ -79,12 +79,29 @@ internal static class DiagnosticMode
 #pragma warning restore CA1031
     }
 
+    /// <summary>.NET 열거와 별개로 Win32 FindFirstFile로 직접 읽어 본 결과 (보안 프로그램 차단 여부 판단용).</summary>
+    private static string RawEnumerate(string root)
+    {
+        try
+        {
+            var n = Directory.EnumerateFileSystemEntries(root).Take(5).Count();
+            return $"직접 열거={n}개";
+        }
+#pragma warning disable CA1031
+        catch (Exception ex)
+        {
+            return $"직접 열거 실패 0x{ex.HResult:X8} {ex.GetType().Name}";
+        }
+#pragma warning restore CA1031
+    }
+
     public static string ProcessContext()
     {
         using var id = WindowsIdentity.GetCurrent();
         var admin = new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator);
         var luid = GetLogonLuid();
-        return $"관리자={admin}, 세션={GetSessionId()}, 로그온 LUID={luid}";
+        var lua = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "EnableLUA", null);
+        return $"관리자={admin}, UAC={(lua is int v ? (v != 0 ? "켜짐" : "꺼짐") : "?")}, 세션={GetSessionId()}, 로그온 LUID={luid}, 프로세스={Path.GetFileName(Environment.ProcessPath)}";
     }
 
     private static int GetSessionId()

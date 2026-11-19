@@ -338,6 +338,25 @@ public partial class ShellWindow : Window, IPaneHost
     });
 
     private bool _triedUserProxyFallback;
+    private string? _userProxyError;
+
+    /// <summary>사용자(현재 로그온) 프록시 설정으로 GitHub에 갈 때 실제로 쓰는 프록시 (PAC 결과 포함). 진단 기록용.</summary>
+    private static string DescribeUserProxy()
+    {
+        try
+        {
+            var target = new Uri("https://api.github.com/");
+            var proxy = System.Net.WebRequest.GetSystemWebProxy();
+            var via = proxy.GetProxy(target);
+            return via is null || via == target ? "직접 연결" : via.ToString();
+        }
+#pragma warning disable CA1031
+        catch (Exception ex)
+        {
+            return "프록시 확인 실패: " + ex.Message;
+        }
+#pragma warning restore CA1031
+    }
 
     private static bool IsNetworkError(string error) =>
         error.Contains("네트워크", StringComparison.Ordinal) || error.Contains("0x80072", StringComparison.OrdinalIgnoreCase)
@@ -355,7 +374,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         _triedUserProxyFallback = true;
-        Log.Information("서비스 업데이트 확인 실패({Error}) → 사용자 프록시로 직접 확인", err);
+        Log.Information("서비스 업데이트 확인 실패({Error}) → 사용자 프록시로 직접 확인 (프록시: {Proxy})", err, DescribeUserProxy());
         var legacy = new LegacyUpdateSource(new AppUpdater(AppVersion));
         bool found;
         try
@@ -370,7 +389,8 @@ public partial class ShellWindow : Window, IPaneHost
 
         if (!found || legacy.ReadyVersion is null)
         {
-            Log.Information("사용자 프록시로도 새 버전 없음/실패: {Error}", legacy.LastError);
+            Log.Information("사용자 프록시로도 새 버전 없음/실패: {Error} (프록시: {Proxy})", legacy.LastError, DescribeUserProxy());
+            _userProxyError = legacy.LastError ?? (found ? null : "새 버전 없음");
             legacy.Dispose();
             return false;
         }
@@ -1000,6 +1020,11 @@ public partial class ShellWindow : Window, IPaneHost
                 found = false;
             }
 
+            if (interactive)
+            {
+                _triedUserProxyFallback = false; // 수동 확인은 매번 사용자 프록시 경로도 다시 시도
+            }
+
             if (!found && _updater.ReadyVersion is null && await TryUserProxyFallbackAsync())
             {
                 found = true;
@@ -1008,6 +1033,10 @@ public partial class ShellWindow : Window, IPaneHost
             if (!found && _updater.ReadyVersion is null)
             {
                 var err = _updater.LastError;
+                if (err is not null && _userProxyError is { } ue)
+                {
+                    err = $"{err}\n사용자 프록시 경로: {ue}";
+                }
                 Shell.Status = err is null ? $"최신 버전입니다 ({AppVersion})" : $"업데이트를 확인하지 못했습니다: {err}";
                 if (interactive)
                 {
