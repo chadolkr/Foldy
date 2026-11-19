@@ -19,6 +19,12 @@ public partial class GuideWindow : Window
     {
         InitializeComponent();
         Title = title;
+        if (App.UiScale > 1.001)
+        {
+            Width *= App.UiScale;
+            Height *= App.UiScale;
+            App.ApplyScale(this);
+        }
         Closed += (_, _) => _pending?.TrySetResult(ClosedChoice);
         PreviewKeyDown += (_, e) =>
         {

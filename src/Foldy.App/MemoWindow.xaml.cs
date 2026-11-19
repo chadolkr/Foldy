@@ -28,6 +28,7 @@ public partial class MemoWindow : Window
     public MemoWindow(string path, LockedNote note, string password)
     {
         InitializeComponent();
+        App.ApplyScale(this);
         _path = path;
         _note = note;
         _password = password;

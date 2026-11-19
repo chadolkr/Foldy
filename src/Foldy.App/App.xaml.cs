@@ -12,6 +12,18 @@ public partial class App : Application
     private UiStallDetector? _stallDetector;
     private Foldy.Platform.SystemInfo.SingleInstance? _instance;
 
+    /// <summary>화면 크기 배율 (설정 UiScale). 대화 창·메모 창도 같은 배율로 그린다.</summary>
+    public static double UiScale { get; set; } = 1.0;
+
+    /// <summary>창 내용에 화면 크기 배율을 적용한다 (글씨가 큰 쪽을 좋아하는 분을 위해).</summary>
+    public static void ApplyScale(System.Windows.Window w)
+    {
+        if (w.Content is System.Windows.FrameworkElement root)
+        {
+            root.LayoutTransform = UiScale > 1.001 ? new System.Windows.Media.ScaleTransform(UiScale, UiScale) : null;
+        }
+    }
+
     public static string DataDir { get; } =
         Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 } over // 성능 측정이 사용자 설정·세션을 건드리지 않게 (build/perf-check.ps1)
             ? over

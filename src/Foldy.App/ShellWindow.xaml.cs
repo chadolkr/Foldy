@@ -124,6 +124,7 @@ public partial class ShellWindow : Window, IPaneHost
         SideDrives.ItemsSource = Shell.Left.Drives;
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
         ApplyDensity();
+        ApplyUiScale();
         ThemeManager.Attach(this);
 
         var session = JsonFileStore.Load(_sessionPath, () => new SessionState());
@@ -911,6 +912,9 @@ public partial class ShellWindow : Window, IPaneHost
             }
         });
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
+        Add("view.zoomIn", "화면 크게 (글씨·버튼)", () => StepUiScale(1), Key.OemPlus, ModifierKeys.Control, "Ctrl+=");
+        Add("view.zoomOut", "화면 작게", () => StepUiScale(-1), Key.OemMinus, ModifierKeys.Control, "Ctrl+-");
+        Add("view.zoomReset", "화면 크기 보통으로", () => SetUiScale(1.0), Key.D0, ModifierKeys.Control, "Ctrl+0");
         Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.ToggleTree(), Key.B, ModifierKeys.Control);
         Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
         Add("sidebar.pin", "지금 폴더를 자주 쓰는 폴더에 고정/해제", TogglePinCurrent);
@@ -1355,6 +1359,39 @@ public partial class ShellWindow : Window, IPaneHost
         _settings = _settings with { Theme = t.ToString().ToLowerInvariant() };
         SaveSettings();
         ApplyDensity();
+    }
+
+    private static readonly double[] Scales = [1.0, 1.15, 1.3, 1.5];
+
+    /// <summary>화면 크기 (Ctrl+= 크게, Ctrl+- 작게, Ctrl+0 보통). 창 전체를 같은 배율로 키워 글씨·버튼이 함께 커진다.</summary>
+    private void SetUiScale(double scale)
+    {
+        scale = Math.Clamp(scale, Scales[0], Scales[^1]);
+        _settings = _settings with { UiScale = scale };
+        SaveSettings();
+        ApplyUiScale();
+        Shell.Status = $"화면 크기 {scale * 100:0}%";
+    }
+
+    private void StepUiScale(int dir)
+    {
+        var i = Array.FindIndex(Scales, s => Math.Abs(s - _settings.UiScale) < 0.01);
+        i = i < 0 ? 0 : Math.Clamp(i + dir, 0, Scales.Length - 1);
+        SetUiScale(Scales[i]);
+    }
+
+    private void ApplyUiScale()
+    {
+        App.UiScale = _settings.UiScale;
+        App.ApplyScale(this);
+    }
+
+    private void OnUiScale(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string t } && double.TryParse(t, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var s))
+        {
+            SetUiScale(s);
+        }
     }
 
     private void ApplyDensity()

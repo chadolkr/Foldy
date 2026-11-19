@@ -51,6 +51,9 @@ public sealed record AppSettings
     /// <summary>덮어쓰기 전에 이전 버전을 7일 동안 보관한다 (기본 켬).</summary>
     public bool KeepPreviousVersions { get; init; } = true;
 
+    /// <summary>화면 전체 크기 (글씨·버튼). 1.0 보통, 1.15 크게, 1.3 아주 크게, 1.5 가장 크게. Ctrl+= / Ctrl+- / Ctrl+0.</summary>
+    public double UiScale { get; init; } = 1.0;
+
     public static AppSettings Migrate(AppSettings s) =>
         s.SchemaVersion switch
         {

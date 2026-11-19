@@ -216,6 +216,16 @@ public partial class ShellWindow
             (Width, Height) = (w0, h0);
         });
 
+        await DocSceneAsync("review-large", async () =>
+        {
+            App.UiScale = 1.3;
+            App.ApplyScale(this);
+            await DocShotWindowAsync("review-large", 1200);
+            App.UiScale = 1.0;
+            App.ApplyScale(this);
+            await DocSettleAsync(400);
+        });
+
         await DocSceneAsync("review-dark", async () =>
         {
             Foldy.UI.Theming.ThemeManager.SetMode(Foldy.UI.Theming.FoldyTheme.Dark);
