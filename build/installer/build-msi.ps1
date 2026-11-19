@@ -47,7 +47,9 @@ New-Item -ItemType Directory -Force $work | Out-Null
 $rtfPath = Join-Path $work 'license.rtf'
 $sb = [Text.StringBuilder]::new()
 [void]$sb.Append('{\rtf1\ansi\ansicpg1252\deff0{\fonttbl{\f0\fmodern\fcharset0 Courier New;}}\viewkind4\uc1\pard\f0\fs18' + "`r`n")
-foreach ($line in (Get-Content (Join-Path $root 'LICENSE') -Encoding UTF8)) {
+# 개인정보 정책을 라이선스 앞에 붙여 설치 중에 보여 준다 (SignPath Foundation 요건: 설치 중 개인정보 정책 표시)
+$lines = @(Get-Content (Join-Path $root 'PRIVACY.md') -Encoding UTF8) + @('', '----------------------------------------', '') + @(Get-Content (Join-Path $root 'LICENSE') -Encoding UTF8)
+foreach ($line in $lines) {
     foreach ($ch in $line.ToCharArray()) {
         $c = [int]$ch
         if ($ch -eq '\' -or $ch -eq '{' -or $ch -eq '}') { [void]$sb.Append('\').Append($ch) }
