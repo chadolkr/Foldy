@@ -1,9 +1,7 @@
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -32,7 +30,6 @@ public sealed class AppUpdater : IDisposable
     private readonly string _current;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private Timer? _timer;
-    private string? _etag;
 
     public AppUpdater(string currentVersion)
     {
@@ -48,7 +45,6 @@ public sealed class AppUpdater : IDisposable
         handler.Proxy.Credentials = CredentialCache.DefaultCredentials;
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(10) };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd($"Foldy-Updater/{currentVersion}");
-        _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
     /// <summary>설치 준비가 끝난 버전 (없으면 null).</summary>
@@ -66,6 +62,11 @@ public sealed class AppUpdater : IDisposable
     public void Start(TimeSpan firstDelay) =>
         _timer = new Timer(_ => _ = CheckAsync(CancellationToken.None), null, firstDelay, Period);
 
+    /// <summary>
+    /// 확인: GitHub API(익명 IP당 시간 60회 제한 — 회사처럼 출구 IP를 공유하면 금방 403) 대신
+    /// 릴리스 파일 주소 <c>releases/latest/download/update.json</c>을 직접 받는다 (한도 없음, 프록시 그대로).
+    /// update.json은 Ed25519 서명을 먼저 검사하고, 그 안의 버전·크기·SHA-256으로 MSI를 검증한다.
+    /// </summary>
     public async Task<bool> CheckAsync(CancellationToken ct)
     {
         if (!await _gate.WaitAsync(0, ct))
@@ -76,36 +77,52 @@ public sealed class AppUpdater : IDisposable
         try
         {
             LastError = null;
-            using var req = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Repo}/releases/latest");
-            if (_etag is not null)
-            {
-                req.Headers.IfNoneMatch.ParseAdd(_etag);
-            }
-
-            using var res = await _http.SendAsync(req, ct);
+            var check = Path.Combine(_root, "check");
+            Directory.CreateDirectory(check);
+            var manifest = await DownloadAsync($"https://github.com/{Repo}/releases/latest/download/update.json", Path.Combine(check, "update.json"), ct);
+            var sig = await DownloadAsync($"https://github.com/{Repo}/releases/latest/download/update.json.sig", Path.Combine(check, "update.json.sig"), ct);
             LastCheck = DateTime.Now;
-            if (res.StatusCode == HttpStatusCode.NotModified || res.StatusCode == HttpStatusCode.NotFound)
+            await VerifySignatureAsync(manifest, sig, ct);
+
+            var info = JsonSerializer.Deserialize<UpdateManifest>(await File.ReadAllBytesAsync(manifest, ct), Json) ?? throw new InvalidDataException("update.json");
+            var version = info.Version;
+            if (!IsNewer(version, _current))
             {
+                Log.Information("업데이트 확인: 최신 버전 (현재 {Current}, 릴리스 {Latest})", _current, version);
                 return false;
             }
 
-            res.EnsureSuccessStatusCode();
-            _etag = res.Headers.ETag?.ToString();
-            var rel = await res.Content.ReadFromJsonAsync<Release>(Json, ct) ?? throw new InvalidDataException("빈 응답");
-            var version = rel.TagName.TrimStart('v');
-            if (rel.Draft || rel.Prerelease || !IsNewer(version, _current) || ReadyVersion == version)
+            if (ReadyVersion == version)
             {
-                return false;
+                return true;
             }
 
-            await PrepareAsync(rel, version, ct);
-            return ReadyVersion == version;
+            var asset = info.Assets.FirstOrDefault(a => a.Name.EndsWith("-x64.msi", StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidDataException("update.json에 MSI가 없습니다");
+            var dir = Path.Combine(_root, version);
+            Directory.CreateDirectory(dir);
+            var msi = Path.Combine(dir, asset.Name);
+            if (!(File.Exists(msi) && await MatchesAsync(msi, asset, ct)))
+            {
+                await DownloadAsync($"https://github.com/{Repo}/releases/download/v{version}/{asset.Name}", msi, ct);
+                if (!await MatchesAsync(msi, asset, ct))
+                {
+                    File.Delete(msi);
+                    throw new CryptographicException("내려받은 MSI가 update.json과 다릅니다 (크기 또는 SHA-256)");
+                }
+            }
+
+            ReadyVersion = version;
+            ReadyFolder = dir;
+            ReadyMsi = msi;
+            Log.Information("업데이트 {Version} 설치 준비됨: {Msi}", version, msi);
+            return true;
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidDataException or JsonException or TaskCanceledException or CryptographicException or System.ComponentModel.Win32Exception)
         {
             // 네트워크·GitHub 장애는 조용히 다음 주기에 다시 (설계서 10.5 실패 대비)
-            LastError = ex.Message;
-            Log.Information("업데이트 확인 실패: {Message}", ex.Message);
+            LastError = ex is HttpRequestException { StatusCode: { } code } ? $"HTTP {(int)code} {code}: {ex.Message}" : ex.Message;
+            Log.Information("업데이트 확인 실패: {Message}", LastError);
             return false;
         }
         finally
@@ -115,14 +132,23 @@ public sealed class AppUpdater : IDisposable
         }
     }
 
-    private async Task PrepareAsync(Release rel, string version, CancellationToken ct)
-    {
-        var dir = Path.Combine(_root, version);
-        Directory.CreateDirectory(dir);
-        var manifest = await DownloadAsset(rel, "update.json", dir, ct);
-        var sig = await DownloadAsset(rel, "update.json.sig", dir, ct);
+    public string? ReadyMsi { get; private set; }
 
-        // 1) Ed25519 서명 (앱에 내장된 공개키, Rust 검증기)
+    private static async Task<bool> MatchesAsync(string path, ManifestAsset asset, CancellationToken ct)
+    {
+        if (new FileInfo(path).Length != asset.Size)
+        {
+            return false;
+        }
+
+        await using var fs = File.OpenRead(path);
+        var hash = Convert.ToHexStringLower(await SHA256.HashDataAsync(fs, ct));
+        return string.Equals(hash, asset.Sha256, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task VerifySignatureAsync(string manifest, string sig, CancellationToken ct)
+    {
+        // Ed25519 서명 (앱에 내장된 공개키, Rust 검증기)
         var tool = Path.Combine(AppContext.BaseDirectory, "foldy-update.exe");
         if (!File.Exists(tool))
         {
@@ -134,93 +160,51 @@ public sealed class AppUpdater : IDisposable
         psi.ArgumentList.Add(manifest);
         psi.ArgumentList.Add("--sig");
         psi.ArgumentList.Add(sig);
-        using (var p = Process.Start(psi)!)
+        using var p = Process.Start(psi)!;
+        await p.WaitForExitAsync(ct);
+        if (p.ExitCode != 0)
         {
-            await p.WaitForExitAsync(ct);
-            if (p.ExitCode != 0)
-            {
-                throw new CryptographicException("update.json 서명이 맞지 않습니다: " + (await p.StandardError.ReadToEndAsync(ct)).Trim());
-            }
+            throw new CryptographicException("update.json 서명이 맞지 않습니다: " + (await p.StandardError.ReadToEndAsync(ct)).Trim());
         }
-
-        var info = JsonSerializer.Deserialize<UpdateManifest>(await File.ReadAllBytesAsync(manifest, ct), Json) ?? throw new InvalidDataException("update.json");
-        if (info.Version != version)
-        {
-            throw new InvalidDataException($"버전 불일치: 태그 {version}, update.json {info.Version}");
-        }
-
-        var asset = info.Assets.FirstOrDefault(a => a.Name.EndsWith("-x64-setup.zip", StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidDataException("setup zip이 없습니다");
-
-        // 2) 크기·SHA-256
-        var zip = await DownloadAsset(rel, asset.Name, dir, ct);
-        var len = new FileInfo(zip).Length;
-        string hash;
-        await using (var fs = File.OpenRead(zip))
-        {
-            hash = Convert.ToHexStringLower(await SHA256.HashDataAsync(fs, ct));
-        }
-
-        if (len != asset.Size || !string.Equals(hash, asset.Sha256, StringComparison.OrdinalIgnoreCase))
-        {
-            File.Delete(zip);
-            throw new CryptographicException("내려받은 파일이 update.json과 다릅니다 (크기 또는 SHA-256)");
-        }
-
-        // 3) 풀어 두기 (경로 탈출 방지: ZipFile은 상대 경로 밖을 막는다)
-        var setup = Path.Combine(dir, "setup");
-        if (Directory.Exists(setup))
-        {
-            Directory.Delete(setup, true);
-        }
-
-        ZipFile.ExtractToDirectory(zip, setup);
-        if (!File.Exists(Path.Combine(setup, "Foldy-Setup.ps1")))
-        {
-            throw new InvalidDataException("설치 스크립트가 없습니다");
-        }
-
-        ReadyVersion = version;
-        ReadyFolder = setup;
-        Log.Information("업데이트 {Version} 설치 준비됨: {Folder}", version, setup);
     }
 
-    private async Task<string> DownloadAsset(Release rel, string name, string dir, CancellationToken ct)
+    private async Task<string> DownloadAsync(string url, string path, CancellationToken ct)
     {
-        var a = rel.Assets.FirstOrDefault(x => x.Name == name) ?? throw new InvalidDataException($"릴리스에 {name}이 없습니다");
-        var path = Path.Combine(dir, name);
-        if (File.Exists(path) && new FileInfo(path).Length == a.Size)
+        using var res = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        res.EnsureSuccessStatusCode();
+        await using (var fs = File.Create(path + ".part"))
         {
-            return path;
+            await res.Content.CopyToAsync(fs, ct);
         }
 
-        using var res = await _http.GetAsync(a.BrowserDownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-        res.EnsureSuccessStatusCode();
-        await using var fs = File.Create(path + ".part");
-        await res.Content.CopyToAsync(fs, ct);
-        await fs.DisposeAsync();
         File.Move(path + ".part", path, overwrite: true);
         return path;
     }
 
-    /// <summary>관리자 권한으로 설치 스크립트를 실행한다. 호출자는 바로 앱을 종료해야 한다. UAC를 취소하면 false.</summary>
+    /// <summary>
+    /// 관리자 권한(UAC 한 번)으로 MSI를 설치하고, 끝나면 탐색기를 통해(일반 권한) Foldy를 다시 띄운다.
+    /// 호출자는 바로 앱을 종료해야 한다. UAC를 취소하면 false.
+    /// </summary>
     public bool LaunchInstaller()
     {
-        if (ReadyFolder is null)
+        if (ReadyMsi is null)
         {
             return false;
         }
 
         try
         {
+            var exe = Environment.ProcessPath!;
+            var log = Path.Combine(_root, $"install-{ReadyVersion}.log");
+            var script = $"Start-Sleep -Seconds 2; $p = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/i \"{ReadyMsi}\" /passive /norestart /l*v \"{log}\"'; " +
+                         $"Start-Process explorer.exe -ArgumentList '\"{exe}\"'";
             var psi = new ProcessStartInfo("powershell.exe")
             {
                 UseShellExecute = true,
                 Verb = "runas",
-                WorkingDirectory = ReadyFolder,
                 WindowStyle = ProcessWindowStyle.Hidden,
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"", StringComparison.Ordinal)}\"",
             };
-            psi.Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{Path.Combine(ReadyFolder, "Foldy-Setup.ps1")}\"";
             using var _ = Process.Start(psi);
             return true;
         }
@@ -247,17 +231,6 @@ public sealed class AppUpdater : IDisposable
     }
 
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
-
-    private sealed record Release(
-        [property: JsonPropertyName("tag_name")] string TagName,
-        bool Draft,
-        bool Prerelease,
-        IReadOnlyList<ReleaseAsset> Assets);
-
-    private sealed record ReleaseAsset(
-        string Name,
-        long Size,
-        [property: JsonPropertyName("browser_download_url")] string BrowserDownloadUrl);
 
     private sealed record UpdateManifest(string Version, IReadOnlyList<ManifestAsset> Assets);
 

@@ -227,24 +227,3 @@ public sealed class SingleInstanceTests
         })).Should().BeTrue();
     }
 }
-
-public class ShellListingTests
-{
-    [Fact]
-    public void Lists_a_folder_through_the_shell_namespace()
-    {
-        var items = Foldy.Platform.Shell.ShellListing.List(Environment.GetFolderPath(Environment.SpecialFolder.Windows), TimeSpan.FromSeconds(20), CancellationToken.None);
-        items.Should().NotBeNull();
-        var sys32 = items!.FirstOrDefault(i => string.Equals(i.Name, "System32", StringComparison.OrdinalIgnoreCase));
-        sys32.Should().NotBeNull();
-        sys32!.IsFolder.Should().BeTrue();
-        sys32.Path.Should().EndWithEquivalentOf(@"\System32");
-        items.Should().Contain(i => !i.IsFolder && i.Size > 0, "파일 크기도 셸 속성으로 읽는다");
-    }
-
-    [Fact]
-    public void Unknown_path_returns_null()
-    {
-        Foldy.Platform.Shell.ShellListing.List(@"Q:\does\not\exist\" + Guid.NewGuid(), TimeSpan.FromSeconds(10), CancellationToken.None).Should().BeNull();
-    }
-}

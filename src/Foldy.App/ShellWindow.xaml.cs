@@ -60,16 +60,7 @@ public partial class ShellWindow : Window, IPaneHost
         InitializeComponent();
         _settings = AppSettings.Migrate(JsonFileStore.Load(_settingsPath, () => new AppSettings()));
         _queues = new DriveQueueRegistry(nativeIo: new NativeIoCancel(Foldy.Platform.SystemInfo.Drives.CurrentNativeThreadId, id => Foldy.Platform.SystemInfo.Drives.CancelSynchronousIo(id)));
-        _provider = new LocalProvider(_queues)
-        {
-            // 네트워크 드라이브(예: 회사 보안 드라이브 K:)가 일반 API로 비어 보이면 탐색기와 같은 셸 경로로 읽는다
-            UseShellFallback = p => p.Length >= 2 && p[1] == ':' && Foldy.Platform.SystemInfo.Drives.TypeOf(p[..2] + "\\") == Foldy.Platform.SystemInfo.NativeDriveType.Remote,
-            ShellFallback = (p, ct) => Foldy.Platform.Shell.ShellListing.List(p, TimeSpan.FromSeconds(15), ct)?
-                .Select(e => new Foldy.Core.FileSystem.FsEntry(e.Name, Foldy.Core.FileSystem.FsPath.Local(e.Path),
-                    e.IsFolder ? Foldy.Core.FileSystem.FsKind.Folder : Foldy.Core.FileSystem.FsKind.File, e.Size, null, e.ModifiedUtc, e.ModifiedUtc,
-                    e.IsFolder ? FileAttributes.Directory : FileAttributes.Normal, null))
-                .ToList(),
-        };
+        _provider = new LocalProvider(_queues);
         _drives = new DriveService(_queues);
         var ui = new WpfDispatcher(Dispatcher);
         _sftp = new SftpSessions();
@@ -367,9 +358,8 @@ public partial class ShellWindow : Window, IPaneHost
 #pragma warning restore CA1031
     }
 
-    private static bool IsNetworkError(string error) =>
-        error.Contains("네트워크", StringComparison.Ordinal) || error.Contains("0x80072", StringComparison.OrdinalIgnoreCase)
-        || error.Contains("시간 초과", StringComparison.Ordinal) || error.Contains("proxy", StringComparison.OrdinalIgnoreCase);
+    // 서비스 확인이 어떤 이유로든 실패하면(사내 PAC 미사용, GitHub API 한도 403 등) 앱이 사용자 프록시로 직접 확인한다
+    private static bool IsNetworkError(string error) => error.Length > 0;
 
     /// <summary>
     /// 서비스가 네트워크 오류로 확인하지 못하면 사용자 권한(사용자의 PAC·프록시·로그온 자격 증명)으로 직접 확인·다운로드한다.

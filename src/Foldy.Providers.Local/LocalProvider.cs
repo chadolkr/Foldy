@@ -18,15 +18,6 @@ namespace Foldy.Providers.Local;
 /// </summary>
 public sealed class LocalProvider(DriveQueueRegistry queues) : IFileSystemProvider
 {
-    /// <summary>
-    /// 일반 파일 API로 비어 보이거나 열리지 않을 때 셸 네임스페이스로 읽는 대체 경로 (예: 회사 보안 드라이브 같은 리다이렉터 드라이브).
-    /// 경로가 대체 대상인지는 <see cref="UseShellFallback"/>가 정한다. null이면 대체하지 않는다.
-    /// </summary>
-    public Func<string, CancellationToken, IReadOnlyList<FsEntry>?>? ShellFallback { get; init; }
-
-    /// <summary>대체 경로를 쓸 경로인가 (보통 네트워크 드라이브 문자 경로).</summary>
-    public Func<string, bool>? UseShellFallback { get; init; }
-
     public const int BatchSize = 200;
     public static readonly TimeSpan BatchInterval = TimeSpan.FromMilliseconds(100);
 
@@ -48,7 +39,7 @@ public sealed class LocalProvider(DriveQueueRegistry queues) : IFileSystemProvid
             new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
         var queue = queues.ForPath(path.Value);
 
-        var work = queue.Enqueue(c => EnumerateWithFallback(path, channel.Writer, c), WorkPriority.ActiveTab, ct);
+        var work = queue.Enqueue(c => Enumerate(path, channel.Writer, c), WorkPriority.ActiveTab, ct);
         _ = work.ContinueWith(
             static (t, s) => ((ChannelWriter<IReadOnlyList<FsEntry>>)s!).TryComplete(
                 t.IsFaulted ? t.Exception!.InnerException : t.IsCanceled ? new OperationCanceledException() : null),
@@ -65,44 +56,9 @@ public sealed class LocalProvider(DriveQueueRegistry queues) : IFileSystemProvid
         }
     }
 
-    /// <summary>일반 열거가 비었거나 폴더를 못 찾으면, 대상 경로일 때만 셸로 다시 읽는다.</summary>
-    private bool EnumerateWithFallback(FsPath dir, ChannelWriter<IReadOnlyList<FsEntry>> writer, CancellationToken ct)
-    {
-        var fallback = ShellFallback is not null && UseShellFallback?.Invoke(dir.Value) == true;
-        if (!fallback)
-        {
-            return Enumerate(dir, writer, ct, out _);
-        }
-
-        int count;
-        try
-        {
-            Enumerate(dir, writer, ct, out count);
-        }
-        catch (Exception ex) when (ex is DirectoryNotFoundException or IOException or UnauthorizedAccessException)
-        {
-            count = -1;
-            if (ShellFallback!(dir.Value, ct) is { Count: > 0 } shellItems)
-            {
-                writer.TryWrite(shellItems);
-                return true;
-            }
-
-            throw;
-        }
-
-        if (count == 0 && ShellFallback!(dir.Value, ct) is { Count: > 0 } items)
-        {
-            writer.TryWrite(items);
-        }
-
-        return true;
-    }
-
     /// <summary>드라이브 큐 스레드에서 실행된다.</summary>
-    private static bool Enumerate(FsPath dir, ChannelWriter<IReadOnlyList<FsEntry>> writer, CancellationToken ct, out int count)
+    private static bool Enumerate(FsPath dir, ChannelWriter<IReadOnlyList<FsEntry>> writer, CancellationToken ct)
     {
-        count = 0;
         var provider = dir.Provider;
         var e = new FileSystemEnumerable<FsEntry>(
             dir.Value,
@@ -113,7 +69,6 @@ public sealed class LocalProvider(DriveQueueRegistry queues) : IFileSystemProvid
         var sw = Stopwatch.StartNew();
         foreach (var item in e)
         {
-            count++;
             batch.Add(item);
             if (batch.Count >= BatchSize || sw.Elapsed >= BatchInterval)
             {
