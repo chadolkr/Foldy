@@ -846,6 +846,17 @@ public partial class ShellWindow : Window, IPaneHost
         Add("cleanup.logs", "로그 정리 (현재 드라이브)", () => OpenLogCleanup(null));
         Add("cleanup.downloads", "다운로드 정리", () => OpenDownloadsCleanup(null));
         Add("cleanup.desktop", "바탕화면 정리", OpenDesktopTidy);
+        Add("folder.manage", "이 폴더 관리 방식 정하기…", () =>
+        {
+            if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
+            {
+                ManageFolder(p);
+            }
+            else
+            {
+                Shell.Status = "관리 방식은 내 PC의 폴더에서 정할 수 있어요";
+            }
+        });
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
         Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.TreeVisible = !ActiveView.TreeVisible, Key.B, ModifierKeys.Control);
         Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
@@ -1466,6 +1477,25 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     // ───────────── 정리 도구 (로그·다운로드·바탕화면) ─────────────
+
+    /// <summary>사이드바 묶음 메뉴 항목: Tag의 명령 id를 실행한다.</summary>
+    private void OnGroupMenuItem(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string id })
+        {
+            return;
+        }
+
+        if (id == "side.recycleBin")
+        {
+            OnSideRecycleBin(sender, e);
+            return;
+        }
+
+        _commands.FirstOrDefault(c => c.Id == id)?.Run();
+    }
+
+    private void OnSideGroup(object sender, RoutedEventArgs e) => OnSideCleanupTools(sender, e);
 
     private void OnSideCleanupTools(object sender, RoutedEventArgs e)
     {

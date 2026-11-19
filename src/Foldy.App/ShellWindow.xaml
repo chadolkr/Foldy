@@ -231,67 +231,63 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- 도구 -->
+            <!-- 도구: 네 묶음. 누르면 그 묶음의 기능 메뉴가 열린다 (사이드바가 한 화면에 들어가도록) -->
             <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="도구" Visibility="{Binding SidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVis}}" />
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideSearch" ToolTip="파일 이름 검색 (Ctrl+F). 색인 서비스가 있으면 전체 드라이브를 바로 찾습니다." AutomationProperties.Name="파일 검색">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE721;" />
-                <TextBlock Style="{StaticResource SideName}" Text="파일 검색" />
-              </StackPanel>
-            </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuAnalysis" ToolTip="현재 드라이브에서 무엇이 공간을 차지하는지 보기" AutomationProperties.Name="폴더 분석">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xEB05;" />
-                <TextBlock Style="{StaticResource SideName}" Text="폴더 분석" />
-              </StackPanel>
-            </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideCleanupTools" ToolTip="로그 정리, 다운로드 정리, 바탕화면 정리" AutomationProperties.Name="정리 도구">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="파일 검색, 폴더 분석, 이미지만 보기" AutomationProperties.Name="찾기">
               <Button.ContextMenu>
                 <ContextMenu>
-                  <MenuItem Header="로그 정리 (오래된 *.log를 월별 zip으로)" Click="OnSideLogCleanup" />
-                  <MenuItem Header="다운로드 정리 (설치 파일·중복·이미 푼 압축·오래된 파일)" Click="OnSideDownloadsCleanup" />
-                  <MenuItem Header="바탕화면 정리 (종류별로 보관, 되돌리기 가능)" Click="OnSideDesktopTidy" />
+                  <MenuItem Header="파일 이름 검색" Tag="search.focus" Click="OnGroupMenuItem" InputGestureText="Ctrl+F" />
+                  <MenuItem Header="폴더 분석 (무엇이 공간을 차지하나)" Tag="analysis.open" Click="OnGroupMenuItem" />
+                  <MenuItem Header="이미지만 보기" Tag="view.images" Click="OnGroupMenuItem" InputGestureText="Ctrl+Shift+I" />
                 </ContextMenu>
               </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE74C;" />
-                <TextBlock Style="{StaticResource SideName}" Text="정리 도구" />
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE721;" />
+                <TextBlock Style="{StaticResource SideName}" Text="찾기" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSftpConnect" ToolTip="SFTP 서버에 연결 (Ctrl+Shift+O)" AutomationProperties.Name="SFTP 연결">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE968;" />
-                <TextBlock Style="{StaticResource SideName}" Text="SFTP 연결" />
-              </StackPanel>
-            </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuTemplate" ToolTip="템플릿으로 새 폴더 (Ctrl+Shift+N)" AutomationProperties.Name="템플릿으로 새 폴더">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8F4;" />
-                <TextBlock Style="{StaticResource SideName}" Text="템플릿으로 새 폴더" />
-              </StackPanel>
-            </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuWizard" ToolTip="질문에 답하면 알맞은 폴더 구조를 만들어 줍니다" AutomationProperties.Name="폴더 위저드">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE945;" />
-                <TextBlock Style="{StaticResource SideName}" Text="폴더 위저드" />
-              </StackPanel>
-            </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuOrganize" ToolTip="지금 폴더의 파일을 종류·날짜별로 정리" AutomationProperties.Name="이 폴더 정리">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="이 폴더 정리, 템플릿, 관리 방식, 바탕화면·다운로드·로그 정리" AutomationProperties.Name="정리하기">
+              <Button.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="이 폴더 정리하기…" Tag="folder.organize" Click="OnGroupMenuItem" />
+                  <MenuItem Header="템플릿으로 새 폴더…" Tag="folder.fromTemplate" Click="OnGroupMenuItem" InputGestureText="Ctrl+Shift+N" />
+                  <MenuItem Header="폴더 위저드…" Tag="folder.wizard" Click="OnGroupMenuItem" />
+                  <MenuItem Header="이 폴더 관리 방식 정하기…" Tag="folder.manage" Click="OnGroupMenuItem" />
+                  <Separator />
+                  <MenuItem Header="바탕화면 정리" Tag="cleanup.desktop" Click="OnGroupMenuItem" />
+                  <MenuItem Header="다운로드 정리" Tag="cleanup.downloads" Click="OnGroupMenuItem" />
+                  <MenuItem Header="로그 정리" Tag="cleanup.logs" Click="OnGroupMenuItem" />
+                </ContextMenu>
+              </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8CB;" />
-                <TextBlock Style="{StaticResource SideName}" Text="이 폴더 정리" />
+                <TextBlock Style="{StaticResource SideName}" Text="정리하기" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuImages" ToolTip="이미지만 보기 (Ctrl+Shift+I)" AutomationProperties.Name="이미지만 보기">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="휴지통 (백업·금고·잠긴 메모는 곧 들어와요)" AutomationProperties.Name="지키기">
+              <Button.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="휴지통 열기" Tag="side.recycleBin" Click="OnGroupMenuItem" />
+                  <MenuItem Header="휴지통 비우기…" Tag="app.emptyRecycleBin" Click="OnGroupMenuItem" />
+                </ContextMenu>
+              </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xEB9F;" />
-                <TextBlock Style="{StaticResource SideName}" Text="이미지만 보기" />
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE72E;" />
+                <TextBlock Style="{StaticResource SideName}" Text="지키기" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideTerminal" ToolTip="지금 폴더에서 터미널 (Ctrl+`)" AutomationProperties.Name="터미널">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="SFTP·SSH, Git, 터미널" AutomationProperties.Name="연결하기">
+              <Button.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="SFTP 서버에 연결…" Tag="sftp.connect" Click="OnGroupMenuItem" InputGestureText="Ctrl+Shift+O" />
+                  <MenuItem Header="Git 화면 열기" Tag="git.open" Click="OnGroupMenuItem" />
+                  <MenuItem Header="터미널" Tag="terminal.open" Click="OnGroupMenuItem" InputGestureText="Ctrl+`" />
+                  <MenuItem Header="명령 프롬프트" Tag="terminal.cmd" Click="OnGroupMenuItem" />
+                </ContextMenu>
+              </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE756;" />
-                <TextBlock Style="{StaticResource SideName}" Text="터미널" />
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE71B;" />
+                <TextBlock Style="{StaticResource SideName}" Text="연결하기" />
               </StackPanel>
             </Button>
             <Grid>
