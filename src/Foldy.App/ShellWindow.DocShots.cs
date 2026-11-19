@@ -317,8 +317,11 @@ public partial class ShellWindow
             DocFolderTab(left);
             DocFolderTab(right);
             DocWide(leftOnly: false);
+            SidebarExpanded = false;
+            LeftPane.TreeVisible = false;
+            RightPane.TreeVisible = false;
             var coordinator = new Foldy.Analysis.AnalysisCoordinator(null, localDirectory: Path.Combine(App.DataDir, "analysis"));
-            var analysis = new Foldy.Presentation.Analysis.AnalysisTabViewModel(coordinator, r);
+            var analysis = new Foldy.Presentation.Analysis.AnalysisTabViewModel(coordinator, DocShotsSandbox.Space(r));
             left.AddTab(analysis, activate: true, assignColor: true);
             await DocSettleAsync(600);
             await analysis.AnalyzeAsync();
@@ -333,6 +336,9 @@ public partial class ShellWindow
             await DocShotWindowAsync("hero", 2500);
             right.CloseTab(git);
             left.CloseTab(analysis);
+            SidebarExpanded = true;
+            LeftPane.TreeVisible = true;
+            RightPane.TreeVisible = true;
         });
 
         await DocSceneAsync("settings", async () =>

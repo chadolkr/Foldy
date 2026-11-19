@@ -32,6 +32,33 @@ internal static class DocShotsSandbox
 
     public static string Archive(string root) => Path.Combine(root, "Archive");
 
+    /// <summary>대표 화면용: 크기가 다양한 폴더 여러 개 (폴더 분석 트리맵이 여러 색으로 보이게).</summary>
+    public static string Space(string root)
+    {
+        var dir = Path.Combine(root, "공간");
+        (string Folder, int[] SizesMb)[] plan =
+        [
+            ("영상", [60, 25, 12]), ("사진", [9, 8, 7, 6, 5, 4]), ("설치 파일", [38, 14]), ("백업", [30, 10]),
+            ("음악", [6, 5, 4, 3]), ("문서", [3, 2, 2, 1, 1]), ("프로젝트", [12, 6, 3]), ("게임", [22]),
+        ];
+        foreach (var (folder, sizes) in plan)
+        {
+            var d = Path.Combine(dir, folder);
+            Directory.CreateDirectory(d);
+            for (var i = 0; i < sizes.Length; i++)
+            {
+                var f = Path.Combine(d, $"{folder}_{i + 1}.bin");
+                if (!File.Exists(f))
+                {
+                    using var fs = File.Create(f);
+                    fs.SetLength(sizes[i] * 1024L * 1024);
+                }
+            }
+        }
+
+        return dir;
+    }
+
     /// <summary>샘플 폴더와 임시 데이터 폴더의 설정 파일을 만든다. 실패하면 false.</summary>
     public static bool Prepare(AppOptions o, string dataDir)
     {
