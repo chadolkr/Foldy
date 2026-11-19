@@ -61,7 +61,8 @@ public sealed partial class FolderNode : ObservableObject
         var folders = new List<FsEntry>();
         try
         {
-            await foreach (var batch in _provider.ListBatchedAsync(FsPath.Local(Path), cts.Token))
+            var at = Navigation.PathUtil.IsSftp(Path) ? new FsPath(ProviderId.Sftp, Path) : FsPath.Local(Path);
+            await foreach (var batch in _provider.ListBatchedAsync(at, cts.Token))
             {
                 folders.AddRange(batch.Where(e =>
                     (e.Kind == FsKind.Folder || (e.Kind == FsKind.Link && (e.Attributes & FileAttributes.Directory) != 0)) &&
@@ -72,7 +73,7 @@ public sealed partial class FolderNode : ObservableObject
             Children.Clear();
             foreach (var f in folders)
             {
-                Children.Add(new FolderNode(_provider, f.Name, f.Path.Value));
+                Children.Add(new FolderNode(_provider, f.Name, Navigation.PathUtil.IsSftp(Path) ? JoinSftp(Path, f.Name) : f.Path.Value));
             }
 
             _loaded = true;
@@ -86,9 +87,14 @@ public sealed partial class FolderNode : ObservableObject
             IsLoading = false;
         }
     }
+
+    private static string JoinSftp(string parent, string name) => parent.TrimEnd('/') + "/" + name;
 }
 
-/// <summary>트리 뿌리: 즐겨찾기(바탕 화면·문서·다운로드·사진) + 드라이브.</summary>
+/// <summary>
+/// 트리 뿌리: 즐겨찾기(바탕 화면·문서·다운로드·사진) + 드라이브.
+/// 패널의 현재 탭이 SFTP면 <see cref="ShowFor"/>가 그 서버의 트리(처음 연 폴더 + /)로 바꾸고, 로컬 탭이면 되돌린다.
+/// </summary>
 public sealed class FolderTreeViewModel
 {
     private readonly IFileSystemProvider _provider;
@@ -120,17 +126,65 @@ public sealed class FolderTreeViewModel
         SetDrives(drives);
     }
 
+    private readonly List<FolderNode> _local = [];
+    private readonly Dictionary<string, string> _sftpStart = new(StringComparer.OrdinalIgnoreCase);
+
     public ObservableCollection<FolderNode> Roots { get; } = [];
+
+    /// <summary>지금 보여 주는 SFTP 서버 뿌리(sftp://user@host:port/). 로컬 트리면 null.</summary>
+    public string? SftpRoot { get; private set; }
+
+    /// <summary>패널의 현재 위치에 맞춰 트리를 고른다. 같은 서버 안에서 옮겨 다닐 때는 그대로 둔다.</summary>
+    public void ShowFor(string? location)
+    {
+        var root = Navigation.PathUtil.SftpRoot(location);
+        if (root is null)
+        {
+            if (SftpRoot is not null)
+            {
+                SftpRoot = null;
+                Replace(_local);
+            }
+
+            return;
+        }
+
+        _sftpStart.TryAdd(root, location!);
+        if (string.Equals(root, SftpRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        SftpRoot = root;
+        var server = root[Navigation.PathUtil.SftpScheme.Length..].TrimEnd('/');
+        var nodes = new List<FolderNode>();
+        var start = _sftpStart[root];
+        if (!string.Equals(start.TrimEnd('/'), root.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            nodes.Add(new FolderNode(_provider, Navigation.PathUtil.DisplayName(start), start, glyph: "\uE80F"));
+        }
+
+        nodes.Add(new FolderNode(_provider, server + " (/)", root, glyph: "\uE968"));
+        Replace(nodes);
+    }
+
+    private void Replace(IEnumerable<FolderNode> nodes)
+    {
+        Roots.Clear();
+        foreach (var n in nodes)
+        {
+            Roots.Add(n);
+        }
+    }
 
     public void SetDrives(IEnumerable<DriveItem> drives)
     {
-        for (var i = Roots.Count - 1; i >= 0; i--)
+        if (_local.Count == 0)
         {
-            if (Roots[i].Path.Length == 3 && Roots[i].Path[1] == ':')
-            {
-                Roots.RemoveAt(i);
-            }
+            _local.AddRange(Roots); // 즐겨찾기 (생성자에서 넣은 것)
         }
+
+        _local.RemoveAll(n => n.Path.Length == 3 && n.Path[1] == ':');
 
         foreach (var d in drives)
         {
@@ -141,7 +195,12 @@ public sealed class FolderTreeViewModel
                 DriveKind.CdRom => "",
                 _ => "",
             };
-            Roots.Add(new FolderNode(_provider, d.Display, d.Root, glyph: glyph));
+            _local.Add(new FolderNode(_provider, d.Display, d.Root, glyph: glyph));
+        }
+
+        if (SftpRoot is null)
+        {
+            Replace(_local);
         }
     }
 }

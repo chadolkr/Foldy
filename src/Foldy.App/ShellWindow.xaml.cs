@@ -161,7 +161,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     public IconCache Icons { get; } = new();
 
-    public FolderTreeViewModel CreateTree() => new(_provider, _drives.GetDrivesFast());
+    public FolderTreeViewModel CreateTree() => new(_env.Provider, _drives.GetDrivesFast());
 
     public FrameworkElement? CreateTabView(TabBase tab, PaneViewModel pane) => tab switch
     {

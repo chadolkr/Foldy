@@ -177,6 +177,7 @@ public partial class PaneView : UserControl
         _tab = tab as FolderTabViewModel;
         _search = tab as SearchTabViewModel;
         UpdateTabVisuals();
+        _tree?.ShowFor(_tab?.Path); // SFTP 탭이면 그 서버의 폴더 트리
 
         if (tab is not null and not FolderTabViewModel and not SearchTabViewModel && _host is not null && _pane is not null)
         {
@@ -339,6 +340,7 @@ public partial class PaneView : UserControl
                 break;
             case nameof(FolderTabViewModel.Path):
                 UpdateNav();
+                _tree?.ShowFor(_tab!.Path);
                 break;
             case nameof(FolderTabViewModel.Git):
                 UpdateGit();

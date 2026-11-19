@@ -86,6 +86,9 @@ public static class PathUtil
         return (SftpScheme + authority + "/", parts);
     }
 
+    /// <summary>sftp://user@host:port/a/b → sftp://user@host:port/ (SFTP 경로가 아니면 null).</summary>
+    public static string? SftpRoot(string? path) => IsSftp(path) ? SplitSftp(path!).Root : null;
+
     public static string? Parent(string path)
     {
         if (IsSftp(path))

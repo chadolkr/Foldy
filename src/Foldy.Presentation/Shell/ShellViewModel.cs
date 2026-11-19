@@ -328,7 +328,18 @@ public sealed partial class ShellViewModel : ObservableObject
         return r.Succeeded;
     }
 
-    public const string SftpDeleteConfirmMessage = "SFTP에는 휴지통이 없습니다. 영구 삭제할까요?";
+    /// <summary>
+    /// SFTP 삭제 확인 문구: 몇 개를 지우는지와 이름(최대 5개)을 보여 주고, 되돌릴 수 없다는 걸 친근하게 알린다.
+    /// 이 확인은 설정으로 끌 수 없다.
+    /// </summary>
+    public static string SftpDeleteConfirmMessage(IReadOnlyList<string> paths)
+    {
+        const int Shown = 5;
+        var names = paths.Take(Shown).Select(p => "  · " + PathUtil.DisplayName(p));
+        var more = paths.Count > Shown ? $"\n  … 외 {paths.Count - Shown:N0}개" : "";
+        return "잠깐만요! 서버에는 휴지통이 없어요. 🙂\n지우면 되살릴 수 없으니 한 번만 더 확인해 주세요.\n\n"
+            + $"지울 항목 {paths.Count:N0}개:\n{string.Join("\n", names)}{more}\n\n정말 지울까요?";
+    }
 
     /// <summary>예/아니요 확인 창 (UI가 연결한다). SFTP 삭제처럼 되돌릴 수 없는 작업 전에 쓴다.</summary>
     public Func<string, Task<bool>>? ConfirmAsync { get; set; }
@@ -346,7 +357,7 @@ public sealed partial class ShellViewModel : ObservableObject
         if (src.Any(PathUtil.IsSftp))
         {
             permanent = true;
-            if (ConfirmAsync is null || !await ConfirmAsync(SftpDeleteConfirmMessage))
+            if (ConfirmAsync is null || !await ConfirmAsync(SftpDeleteConfirmMessage(src)))
             {
                 Status = "삭제를 취소했습니다";
                 return;
