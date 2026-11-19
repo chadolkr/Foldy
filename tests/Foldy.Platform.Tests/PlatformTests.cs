@@ -168,7 +168,7 @@ public sealed class SingleInstanceTests
             got.Set();
         });
 
-        // 뮤텍스는 스레드에 묶이므로 두 번째는 다른 스레드에서 잡아 본다 (실제로는 다른 프로세스)
+        // 두 번째 Foldy (실제로는 다른 프로세스)
         var sent = await Task.Run(() =>
         {
             using var second = SingleInstance.Acquire(key);

@@ -21,7 +21,7 @@
 - **공통 사이드바**(창 맨 왼쪽, 216px, 접으면 48px 아이콘 띠, Ctrl+Shift+B): 자주 쓰는 폴더(핀 고정·순서·해제), 최근 폴더 8개(`Foldy.Presentation/Sidebar/QuickAccess.cs`, `%LOCALAPPDATA%\Foldy\quickaccess.json`), 드라이브 용량 막대(90% 이상 빨강), 도구(검색·디스크 분석·SFTP·템플릿·위저드·정리·이미지·터미널·휴지통), 맨 아래 모든 명령·업데이트·버그 신고·설정·도움말·더 보기(기존 ⋯ 메뉴).
 - **아래 버튼 줄**: 앱 기능 버튼을 사이드바로 옮기고 파일 작업 6개만 남김 (사용자 요청 2026-11-19, 예전 "오른쪽 끝" 사양을 바꿈).
 - **패널별 폴더 트리**: 두 패널 모두 트리 | 목록. 트리 너비·숨김을 session.json(`LeftTreeWidth`/`RightTreeWidth`, `SidebarExpanded`)에 저장.
-- **단일 인스턴스**(알려진 이슈 1): `Foldy.Platform/System/SingleInstance.cs` (Local 뮤텍스 + 현재 사용자 전용 파이프). 두 번째 실행은 인자를 넘기고 끝나며, 첫 창이 앞으로 오고 경로는 새 탭. 첫 Foldy가 3초 안에 답하지 않으면 그냥 새로 뜬다. 벤치·스크린샷 실행은 예외.
+- **단일 인스턴스**(알려진 이슈 1): `Foldy.Platform/System/SingleInstance.cs` (Local 이름 이벤트 + 현재 사용자 전용 파이프). 두 번째 실행은 인자를 넘기고 끝나며, 첫 창이 앞으로 오고 경로는 새 탭. 첫 Foldy가 3초 안에 답하지 않으면 그냥 새로 뜬다. 벤치·스크린샷 실행은 예외.
 - 시험 추가: `QuickAccessTests`, `DriveSpaceTests`(Presentation), `SingleInstanceTests`(Platform). 도움말 `assets/help/index.md`에 "공통 사이드바" 절 추가.
 - 화면 시안: 프로젝트 파일 `mockups/foldy-sidebar-{dark,light,retro}.png` (HTML 시안, 실제 화면 아님).
 - **아직 안 한 것**: Windows에서 시험 실행, 실제 화면 확인, 릴리스(0.2.7). 클라우드 세션에 GitHub 권한이 없어 push 못 함 → 패치 Claude 프로젝트 파일 `patches/`에 있음.
