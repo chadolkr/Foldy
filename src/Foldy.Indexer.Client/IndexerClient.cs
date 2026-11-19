@@ -57,6 +57,13 @@ public sealed class IndexerClient : IAsyncDisposable
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(timeout ?? TimeSpan.FromMilliseconds(500));
             await pipe.ConnectAsync(cts.Token);
+            if (pipeName == Protocol.DefaultPipeName && !PipeServerCheck.IsTrusted(pipe.SafePipeHandle))
+            {
+                // 설치된 서비스(SYSTEM)도, 나 자신도 아닌 프로세스가 파이프 이름을 먼저 차지했다
+                await pipe.DisposeAsync();
+                return null;
+            }
+
 
             var (type, body) = await HandshakeAsync(
                 pipe, Protocol.Encode(new Hello(Protocol.Version, $"Foldy {typeof(IndexerClient).Assembly.GetName().Version}")), cts.Token);
