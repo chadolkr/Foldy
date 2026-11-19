@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Foldy MSI를 만든다: artifacts\Foldy-<버전>-x64.msi (WiX 6, 사전 설치: dotnet tool install --global wix --version 6.0.2).
   페이로드는 build/setup/make-setup.ps1(-SkipRust)로 만든 self-contained 게시 폴더를 쓴다.
@@ -46,14 +46,15 @@ $work = Join-Path $root 'dist\installer'
 New-Item -ItemType Directory -Force $work | Out-Null
 $rtfPath = Join-Path $work 'license.rtf'
 $sb = [Text.StringBuilder]::new()
-[void]$sb.Append('{\rtf1\ansi\ansicpg1252\deff0{\fonttbl{\f0\fmodern\fcharset0 Courier New;}}\viewkind4\uc1\pard\f0\fs18' + "`r`n")
+[void]$sb.Append('{\rtf1\ansi\ansicpg1252\deff0{\fonttbl{\f0\fnil\fcharset129 Malgun Gothic;}}\viewkind4\uc1\pard\f0\fs18' + "`r`n")
 # 개인정보 정책을 라이선스 앞에 붙여 설치 중에 보여 준다 (SignPath Foundation 요건: 설치 중 개인정보 정책 표시)
 $lines = @(Get-Content (Join-Path $root 'PRIVACY.md') -Encoding UTF8) + @('', '----------------------------------------', '') + @(Get-Content (Join-Path $root 'LICENSE') -Encoding UTF8)
 foreach ($line in $lines) {
     foreach ($ch in $line.ToCharArray()) {
         $c = [int]$ch
         if ($ch -eq '\' -or $ch -eq '{' -or $ch -eq '}') { [void]$sb.Append('\').Append($ch) }
-        elseif ($c -gt 126) { [void]$sb.Append("\u$([int16]$c)?") }
+        # RTF \uN은 부호 있는 16비트: 32767보다 큰 코드(한글 등)는 65536을 뺀다
+        elseif ($c -gt 126) { $n = if ($c -gt 32767) { $c - 65536 } else { $c }; [void]$sb.Append("\u$n?") }
         else { [void]$sb.Append($ch) }
     }
     [void]$sb.Append("\par`r`n")
