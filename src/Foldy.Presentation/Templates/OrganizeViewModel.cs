@@ -206,6 +206,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
     private ObservableCollection<OrganizeTreeNode> _afterTree = [];
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RootIsProject))]
     private string _rootPath;
 
     [ObservableProperty]
@@ -271,6 +272,15 @@ public sealed partial class OrganizeViewModel : ObservableObject
 
     partial void OnIncludeSubfoldersChanged(bool value) => Invalidate();
 
+    /// <summary>프로젝트 폴더(.git 등)라도 맨 위 파일만 정리한다 (하위 폴더는 그대로). 기본 꺼짐.</summary>
+    [ObservableProperty]
+    private bool _organizeProjectAnyway;
+
+    partial void OnOrganizeProjectAnywayChanged(bool value) => Invalidate();
+
+    /// <summary>지금 폴더가 프로젝트 폴더인가 (옵션 표시용).</summary>
+    public bool RootIsProject => !string.IsNullOrWhiteSpace(RootPath) && Directory.Exists(RootPath) && OrganizeScanner.IsProjectFolder(RootPath);
+
     partial void OnDetectDuplicatesChanged(bool value) => Invalidate();
 
     partial void OnPrefixDateChanged(bool value) => Invalidate();
@@ -313,7 +323,8 @@ public sealed partial class OrganizeViewModel : ObservableObject
         var ct = _cts.Token;
         var root = RootPath;
         var opts = BuildOptions();
-        var deep = IncludeSubfolders;
+        var allowProject = OrganizeProjectAnyway;
+        var deep = IncludeSubfolders && !(allowProject && RootIsProject); // 프로젝트 폴더는 맨 위 파일만
         State = OrganizeState.Planning;
         Status = "폴더를 살펴보는 중…";
         try
@@ -321,7 +332,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
             var plan = await Task.Run(
                 () =>
                 {
-                    var blocked = OrganizeScanner.CheckRoot(root);
+                    var blocked = OrganizeScanner.CheckRoot(root, allowProject);
                     if (blocked is not null)
                     {
                         return new OrganizePlan { Root = root, Blocked = blocked };

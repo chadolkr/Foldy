@@ -53,7 +53,9 @@
       <WrapPanel>
         <CheckBox Content="하위 폴더 안까지 정리" IsChecked="{Binding IncludeSubfolders}" Margin="0,0,18,0" />
         <CheckBox Content="같은 파일은 _중복 후보로 모으기" IsChecked="{Binding DetectDuplicates}" Margin="0,0,18,0" />
-        <CheckBox Content="이름 앞에 수정 날짜 붙이기 (yyyy-MM-dd_)" IsChecked="{Binding PrefixDate}" />
+        <CheckBox Content="이름 앞에 수정 날짜 붙이기 (yyyy-MM-dd_)" IsChecked="{Binding PrefixDate}" Margin="0,0,18,0" />
+        <CheckBox Content="프로젝트 폴더라도 맨 위 파일만 정리 (하위 폴더는 그대로)" IsChecked="{Binding OrganizeProjectAnyway}"
+                  Visibility="{Binding RootIsProject, Converter={StaticResource BoolVis}}" />
       </WrapPanel>
       <Border Style="{StaticResource Tpl.Card}" Margin="0,10,0,0" Padding="12,10" Visibility="{Binding IsCustomMode, Converter={StaticResource BoolVis}}">
         <StackPanel>
@@ -173,7 +175,19 @@
       </StackPanel>
       <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
         <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" />
-        <TextBlock Text="{Binding Status}" Style="{StaticResource Tpl.Secondary}" />
+        <!-- 정리할 수 없거나 옮길 것이 없을 때 이유가 잘 보이게 (오류면 굵은 빨간 글씨) -->
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" MaxWidth="600">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock" BasedOn="{StaticResource Tpl.Secondary}">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding State}" Value="Error">
+                  <Setter Property="Foreground" Value="{DynamicResource Brush.Error}" />
+                  <Setter Property="FontWeight" Value="SemiBold" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
         <ProgressBar Value="{Binding Progress, Mode=OneWay}" Maximum="1" Margin="0,6,0,0" Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}" />
       </StackPanel>
     </DockPanel>

@@ -44,8 +44,10 @@ public static class OrganizeScanner
         return false;
     }
 
-    /// <summary>정리하면 안 되는 폴더면 이유, 아니면 null.</summary>
-    public static string? CheckRoot(string root)
+    public const string ProjectRootReason = "이 폴더는 프로젝트 폴더(.git, .sln, package.json 등이 있음)라서 기본으로는 정리하지 않습니다. 그래도 정리하려면 위의 \"프로젝트 폴더라도 맨 위 파일만 정리\"를 켜세요.";
+
+    /// <summary>정리하면 안 되는 폴더면 이유, 아니면 null. <paramref name="allowProject"/>면 프로젝트 폴더도 허용한다.</summary>
+    public static string? CheckRoot(string root, bool allowProject = false)
     {
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         if (!Directory.Exists(full))
@@ -58,9 +60,9 @@ public static class OrganizeScanner
             return "Windows·프로그램 설치 폴더는 정리하지 않습니다.";
         }
 
-        if (IsProjectFolder(full))
+        if (!allowProject && IsProjectFolder(full))
         {
-            return "프로젝트 폴더(.git, .sln, package.json 등이 있음)는 쪼개지 않습니다.";
+            return ProjectRootReason;
         }
 
         var attrs = File.GetAttributes(full);
