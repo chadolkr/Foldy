@@ -76,6 +76,8 @@ public sealed class SftpProviderTests
 
         public void Rename(string from, string to) { }
 
+        public void Replace(string source, string target) { }
+
         public void Dispose() => Connected = false;
     }
 
@@ -241,6 +243,7 @@ public sealed class SftpProviderTests
             public void DeleteFile(string path) { }
             public void DeleteDirectory(string path) { }
             public void Rename(string source, string target) { }
+            public void Replace(string source, string target) { }
             public void Dispose() => _c = false;
         }
     }

@@ -146,7 +146,7 @@ public sealed class SftpTransferTests : IDisposable
         File.WriteAllText(a, "a");
         File.WriteAllText(b, "b");
         _remote.AddDir("/d");
-        _remote.FailUploadOf = "/d/b.txt";
+        _remote.FailUploadOf = "/d/.b.txt.foldy-part";
         await using var p = NewProvider();
         var svc = new SftpAwareFileOperationService(new InnerRecorder(), p);
 
@@ -155,7 +155,8 @@ public sealed class SftpTransferTests : IDisposable
         r.Succeeded.Should().BeFalse();
         File.Exists(a).Should().BeTrue("모두 성공하기 전에는 원본을 지우지 않는다");
         File.Exists(b).Should().BeTrue();
-        _remote.Exists("/d/b.txt").Should().BeFalse("반쯤 쓴 파일은 지운다");
+        _remote.Exists("/d/b.txt").Should().BeFalse();
+        _remote.Exists("/d/.b.txt.foldy-part").Should().BeFalse("반쯤 쓴 임시 파일은 지운다");
     }
 
     [Fact]
@@ -208,7 +209,7 @@ public sealed class SftpTransferTests : IDisposable
         r.Succeeded.Should().BeTrue(r.Error);
         _remote.Data("/b/f.txt").Should().Equal(1, 2, 3, 4);
         _remote.Exists("/a/f.txt").Should().BeTrue();
-        _remote.Ops.Should().ContainInOrder("download:/a/f.txt", "upload:/b/f.txt");
+        _remote.Ops.Should().ContainInOrder("download:/a/f.txt", "upload:/b/.f.txt.foldy-part", "replace:/b/.f.txt.foldy-part>/b/f.txt");
         reports[^1].Done.Should().Be(reports[^1].Total);
     }
 
@@ -342,6 +343,95 @@ public sealed class SftpTransferTests : IDisposable
 
         r.Aborted.Should().BeTrue();
         _remote.Exists("/d/big.bin").Should().BeFalse();
+        _remote.Exists("/d/.big.bin.foldy-part").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Cancel_during_overwrite_upload_keeps_the_old_remote_content()
+    {
+        var f = Path.Combine(_tmp, "o.bin");
+        File.WriteAllBytes(f, new byte[500]);
+        _remote.AddFile("/d/o.bin", [7, 7, 7]);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        _remote.OnUploadStarted = cts.Cancel;
+        await using var p = NewProvider();
+        var svc = new SftpAwareFileOperationService(new InnerRecorder(), p,
+            new SftpTransferOptions { ResolveConflict = (_, _) => Task.FromResult(new TransferConflictDecision(TransferConflictAction.Overwrite)) });
+
+        var r = await svc.CopyAsync([f], Root + "d", null, cts.Token);
+
+        r.Aborted.Should().BeTrue();
+        _remote.Data("/d/o.bin").Should().Equal(7, 7, 7);
+        _remote.Exists("/d/.o.bin.foldy-part").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Failed_overwrite_upload_keeps_the_old_remote_content()
+    {
+        var f = Path.Combine(_tmp, "o2.bin");
+        File.WriteAllBytes(f, new byte[500]);
+        _remote.AddFile("/d/o2.bin", [7]);
+        _remote.FailUploadOf = "/d/.o2.bin.foldy-part";
+        await using var p = NewProvider();
+        var svc = new SftpAwareFileOperationService(new InnerRecorder(), p,
+            new SftpTransferOptions { ResolveConflict = (_, _) => Task.FromResult(new TransferConflictDecision(TransferConflictAction.Overwrite)) });
+
+        var r = await svc.CopyAsync([f], Root + "d", null, Ct);
+
+        r.Succeeded.Should().BeFalse();
+        _remote.Data("/d/o2.bin").Should().Equal(7);
+        _remote.Exists("/d/.o2.bin.foldy-part").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Cancel_during_overwrite_download_keeps_the_old_local_file()
+    {
+        _remote.AddFile("/s/k.bin", new byte[500]);
+        File.WriteAllBytes(Path.Combine(_tmp, "k.bin"), [1, 2, 3]);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        _remote.OnDownloadStarted = cts.Cancel;
+        await using var p = NewProvider();
+        var svc = new SftpAwareFileOperationService(new InnerRecorder(), p,
+            new SftpTransferOptions { ResolveConflict = (_, _) => Task.FromResult(new TransferConflictDecision(TransferConflictAction.Overwrite)) });
+
+        var r = await svc.CopyAsync([Root + "s/k.bin"], _tmp, null, cts.Token);
+
+        r.Aborted.Should().BeTrue();
+        File.ReadAllBytes(Path.Combine(_tmp, "k.bin")).Should().Equal(1, 2, 3);
+        File.Exists(Path.Combine(_tmp, ".k.bin.foldy-part")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Overwrite_replaces_the_old_content_once_the_copy_is_complete()
+    {
+        _remote.AddFile("/s/n.bin", [9, 9]);
+        File.WriteAllBytes(Path.Combine(_tmp, "n.bin"), [1]);
+        await using var p = NewProvider();
+        var svc = new SftpAwareFileOperationService(new InnerRecorder(), p,
+            new SftpTransferOptions { ResolveConflict = (_, _) => Task.FromResult(new TransferConflictDecision(TransferConflictAction.Overwrite)) });
+
+        var r = await svc.CopyAsync([Root + "s/n.bin"], _tmp, null, Ct);
+
+        r.Succeeded.Should().BeTrue(r.Error);
+        File.ReadAllBytes(Path.Combine(_tmp, "n.bin")).Should().Equal(9, 9);
+        Directory.GetFiles(_tmp, "*.foldy-part").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Skipped_symlinks_are_reported_and_keep_the_source_on_move()
+    {
+        _remote.AddFile("/s/dir/real.txt", [1]);
+        _remote.AddLink("/s/dir/link");
+        _remote.AddLink("/s/dir/link2");
+        await using var p = NewProvider();
+        var svc = new SftpAwareFileOperationService(new InnerRecorder(), p);
+
+        var r = await svc.MoveAsync([Root + "s/dir"], _tmp, null, Ct);
+
+        r.Succeeded.Should().BeTrue();
+        r.Error.Should().Be("심볼릭 링크 2개는 건너뛰었습니다");
+        File.Exists(Path.Combine(_tmp, "dir", "real.txt")).Should().BeTrue();
+        _remote.Exists("/s/dir/link").Should().BeTrue("링크가 든 원본은 지우지 않는다");
     }
 
     [Fact]
@@ -464,6 +554,17 @@ public sealed class SftpTransferTests : IDisposable
             }
         }
 
+        private readonly HashSet<string> _links = [];
+
+        public void AddLink(string path)
+        {
+            AddFile(path, [0]);
+            lock (_lock)
+            {
+                _links.Add(path);
+            }
+        }
+
         public void AddFile(string path, byte[] data)
         {
             AddDir(path[..path.LastIndexOf('/')]);
@@ -506,7 +607,7 @@ public sealed class SftpTransferTests : IDisposable
                 var prefix = path == "/" ? "/" : path + "/";
                 return [.. _nodes
                     .Where(kv => kv.Key.Length > prefix.Length && kv.Key.StartsWith(prefix, StringComparison.Ordinal) && !kv.Key[prefix.Length..].Contains('/', StringComparison.Ordinal))
-                    .Select(kv => new SftpEntryInfo(kv.Key[prefix.Length..], kv.Value is null, false, kv.Value?.Length ?? 0, DateTime.UtcNow))];
+                    .Select(kv => new SftpEntryInfo(kv.Key[prefix.Length..], kv.Value is null, _links.Contains(kv.Key), kv.Value?.Length ?? 0, DateTime.UtcNow))];
             }
         }
 
@@ -652,6 +753,21 @@ public sealed class SftpTransferTests : IDisposable
             }
 
             r.Move(from, to);
+        }
+
+        public void Replace(string source, string target)
+        {
+            lock (r.Ops)
+            {
+                r.Ops.Add($"replace:{source}>{target}");
+            }
+
+            if (r.Exists(target))
+            {
+                r.Remove(target, dir: false);
+            }
+
+            r.Move(source, target);
         }
 
         public void Dispose() => _connected = false;

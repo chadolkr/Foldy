@@ -172,6 +172,19 @@ public sealed class SftpProvider : IFileSystemProvider, IAsyncDisposable
         return RunOnQueueAsync(a, (client, _) => { client.Rename(a.Path, b.Path); return 0; }, ct);
     }
 
+    /// <summary>임시 파일을 목적지로 바꿔 넣는다(목적지가 있으면 교체). 같은 연결이어야 한다.</summary>
+    public Task ReplaceFileAsync(FsPath temp, FsPath target, CancellationToken ct)
+    {
+        var a = ParsePath(temp);
+        var b = ParsePath(target);
+        if (a.ConnectionKey != b.ConnectionKey)
+        {
+            throw new ArgumentException("서로 다른 SFTP 연결 사이에서는 바꿔 넣을 수 없습니다.");
+        }
+
+        return RunOnQueueAsync(a, (client, _) => { client.Replace(a.Path, b.Path); return 0; }, ct);
+    }
+
     /// <summary>폴더 내용을 모두 모아 돌려준다("."/".." 제외).</summary>
     public async Task<IReadOnlyList<FsEntry>> ListAsync(FsPath path, CancellationToken ct)
     {
