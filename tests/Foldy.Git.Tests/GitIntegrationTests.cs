@@ -144,8 +144,9 @@ public sealed class GitIntegrationTests : IDisposable
             init.Success.Should().BeTrue();
             (await RunGit("remote", "add", "origin", bare)).Success.Should().BeTrue();
 
-            var seen = new List<GitProgress>();
-            (await _svc.PushAsync(_dir, setUpstream: true, forceWithLease: false, new Progress<GitProgress>(seen.Add))).Success.Should().BeTrue();
+            // Progress<T>는 스레드 풀에서 동시에 콜백할 수 있다 (List는 스레드 안전하지 않음)
+            var seen = new System.Collections.Concurrent.ConcurrentQueue<GitProgress>();
+            (await _svc.PushAsync(_dir, setUpstream: true, forceWithLease: false, new Progress<GitProgress>(seen.Enqueue))).Success.Should().BeTrue();
             (await _svc.FetchAsync(_dir)).Success.Should().BeTrue();
             (await _svc.PullAsync(_dir, PullMode.Merge)).Success.Should().BeTrue();
             (await _svc.PullAsync(_dir, PullMode.Rebase)).Success.Should().BeTrue();
