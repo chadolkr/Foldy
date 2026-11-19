@@ -80,7 +80,7 @@
 | **MSI (권장)** | `Foldy-<버전>-x64.msi` | 더블클릭해 설치합니다. 제거는 Windows 설정 → 앱 → 설치된 앱 → Foldy → 제거. |
 | 스크립트 설치 | `Foldy-<버전>-x64-setup.zip` | 압축을 풀고 `Foldy 설치.cmd`를 실행합니다. 제거는 같은 폴더의 `Foldy 제거.cmd`. MSI로 설치한 경우 덮어쓰지 않습니다. |
 
-설치하면 빠른 파일 검색을 위한 **색인 서비스**(FoldyIndexer, SYSTEM 권한)가 함께 설치되고, 제거할 때 함께 지워집니다. 자세한 구조는 [docs/installer.md](docs/installer.md).
+설치하면 빠른 파일 검색을 위한 **색인 서비스**(FoldyIndexer, SYSTEM 권한)가 함께 설치되고, 제거할 때 함께 지워집니다. 자세한 구조는 [docs/installer.md](docs/installer.md). 서비스는 PC 전체를 색인하지만, 검색 결과에는 검색한 사람의 폴더와 공용 폴더만 나옵니다. 다른 사용자의 프로필·휴지통과 `System Volume Information`은 보이지 않습니다.
 
 ### 자동 업데이트
 

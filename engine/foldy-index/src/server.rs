@@ -59,6 +59,11 @@ async fn serve(pipe: NamedPipeServer, ix: Arc<Indexer>) -> io::Result<()> {
         use std::os::windows::io::AsRawHandle;
         crate::update::win::pipe_client_session(pipe.as_raw_handle())
     };
+    // 검색 결과는 연결한 사용자 기준으로 거른다 (다른 사용자 프로필은 보이지 않게)
+    let vis = {
+        use std::os::windows::io::AsRawHandle;
+        Arc::new(crate::visibility::for_pipe_client(pipe.as_raw_handle()))
+    };
     let (mut rd, mut wr) = tokio::io::split(pipe);
     let (tx, mut rx) = mpsc::channel::<Vec<u8>>(64);
     let writer = tokio::spawn(async move {
@@ -99,9 +104,9 @@ async fn serve(pipe: NamedPipeServer, ix: Arc<Indexer>) -> io::Result<()> {
                     }
                     let flag = Arc::new(AtomicBool::new(false));
                     current = Some((req.search_id, flag.clone()));
-                    let (ix2, tx2) = (ix.clone(), tx.clone());
+                    let (ix2, tx2, vis2) = (ix.clone(), tx.clone(), vis.clone());
                     tokio::task::spawn_blocking(move || {
-                        query::search(&ix2, &req, &flag, |b| tx2.blocking_send(encode(MsgType::SearchBatch, &b)).is_ok());
+                        query::search(&ix2, &req, &vis2, &flag, |b| tx2.blocking_send(encode(MsgType::SearchBatch, &b)).is_ok());
                     });
                 }
                 Err(e) => {
@@ -121,8 +126,8 @@ async fn serve(pipe: NamedPipeServer, ix: Arc<Indexer>) -> io::Result<()> {
             MsgType::FolderSizes => {
                 let reply = match decode_body::<FolderSizes>(&body) {
                     Ok(req) => {
-                        let ix2 = ix.clone();
-                        match tokio::task::spawn_blocking(move || query::folder_sizes(&ix2, &req.path)).await {
+                        let (ix2, vis2) = (ix.clone(), vis.clone());
+                        match tokio::task::spawn_blocking(move || query::folder_sizes(&ix2, &req.path, &vis2)).await {
                             Ok(r) => encode(MsgType::FolderSizesReply, &r),
                             Err(e) => err(4, &e.to_string()),
                         }
