@@ -227,16 +227,50 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
-        if (MarkdownExtensions.Contains(item.Extension) &&
-            (Settings.MarkdownOpen == "alwaysFoldy" || await _services.Open.ShouldUseBuiltInMarkdownAsync(item.FullPath)))
+        var path = item.FullPath;
+        if (PathUtil.IsGDrive(path))
         {
-            OpenMarkdown(pane, item.FullPath);
+            // Google Drive: 열 때만 캐시에 내려받는다 (Google 문서는 브라우저로 연다).
+            var job = item.Entry.Size > 4 << 20 ? StartJob($"{item.Name} 내려받기", Mascot.JobKind.Copy) : null;
+            try
+            {
+                Status = $"{item.Name} 여는 중…";
+                var local = await _services.Open.PrepareAsync(path, job, job?.Token ?? CancellationToken.None);
+                if (job is not null)
+                {
+                    FinishJob(job, local is null ? FileOpResult.Ok() : FileOpResult.Ok(local));
+                }
+
+                Status = "";
+                if (local is null)
+                {
+                    return;
+                }
+
+                path = local;
+            }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or NotSupportedException or HttpRequestException or OperationCanceledException)
+            {
+                if (job is not null)
+                {
+                    FinishJob(job, ex is OperationCanceledException ? FileOpResult.Canceled : FileOpResult.Fail(ex.Message));
+                }
+
+                Status = ex is OperationCanceledException ? "" : $"열 수 없습니다: {ex.Message}";
+                return;
+            }
+        }
+
+        if (MarkdownExtensions.Contains(item.Extension) &&
+            (Settings.MarkdownOpen == "alwaysFoldy" || await _services.Open.ShouldUseBuiltInMarkdownAsync(path)))
+        {
+            OpenMarkdown(pane, path);
             return;
         }
 
         try
         {
-            _services.Open.OpenWithShell(item.FullPath);
+            _services.Open.OpenWithShell(path);
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or InvalidOperationException)
         {
