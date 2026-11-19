@@ -130,6 +130,60 @@ public sealed class SftpProvider : IFileSystemProvider, IAsyncDisposable
         await Task.Run(() => client.Upload(source, loc.Path, n => progress?.Report(n), ct), ct).ConfigureAwait(false);
     }
 
+    /// <summary>경로의 정보(없으면 null). 큐에서 실행한다.</summary>
+    public Task<SftpEntryInfo?> StatAsync(FsPath path, CancellationToken ct)
+    {
+        var loc = ParsePath(path);
+        return RunOnQueueAsync(loc, (client, _) => client.Stat(loc.Path), ct);
+    }
+
+    public async Task<bool> ExistsAsync(FsPath path, CancellationToken ct) => await StatAsync(path, ct).ConfigureAwait(false) is not null;
+
+    /// <summary>폴더를 만든다(부모는 있어야 한다).</summary>
+    public Task CreateDirectoryAsync(FsPath path, CancellationToken ct)
+    {
+        var loc = ParsePath(path);
+        return RunOnQueueAsync(loc, (client, _) => { client.CreateDirectory(loc.Path); return 0; }, ct);
+    }
+
+    public Task DeleteFileAsync(FsPath path, CancellationToken ct)
+    {
+        var loc = ParsePath(path);
+        return RunOnQueueAsync(loc, (client, _) => { client.DeleteFile(loc.Path); return 0; }, ct);
+    }
+
+    /// <summary>빈 폴더를 지운다.</summary>
+    public Task DeleteDirectoryAsync(FsPath path, CancellationToken ct)
+    {
+        var loc = ParsePath(path);
+        return RunOnQueueAsync(loc, (client, _) => { client.DeleteDirectory(loc.Path); return 0; }, ct);
+    }
+
+    /// <summary>같은 연결 안에서 이동·이름 바꾸기. 연결이 다르면 <see cref="ArgumentException"/>.</summary>
+    public Task RenameAsync(FsPath from, FsPath to, CancellationToken ct)
+    {
+        var a = ParsePath(from);
+        var b = ParsePath(to);
+        if (a.ConnectionKey != b.ConnectionKey)
+        {
+            throw new ArgumentException("서로 다른 SFTP 연결 사이에서는 이름을 바꿀 수 없습니다.");
+        }
+
+        return RunOnQueueAsync(a, (client, _) => { client.Rename(a.Path, b.Path); return 0; }, ct);
+    }
+
+    /// <summary>폴더 내용을 모두 모아 돌려준다("."/".." 제외).</summary>
+    public async Task<IReadOnlyList<FsEntry>> ListAsync(FsPath path, CancellationToken ct)
+    {
+        var all = new List<FsEntry>();
+        await foreach (var b in ListBatchedAsync(path, ct).ConfigureAwait(false))
+        {
+            all.AddRange(b);
+        }
+
+        return all;
+    }
+
     /// <summary>연결을 닫는다. 다음 호출 때 다시 맺는다.</summary>
     public void Disconnect(SftpLocation location)
     {
