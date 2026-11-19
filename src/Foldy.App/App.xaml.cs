@@ -22,6 +22,12 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         Options = AppOptions.Parse(e.Args);
+        if (!Options.IsBench && Options.Screenshot is null && Diagnostics.Deelevate.RelaunchIfElevated(e.Args))
+        {
+            Shutdown(0);
+            return;
+        }
+
         if (Environment.GetEnvironmentVariable("FOLDY_SOFTWARE_RENDER") == "1")
         {
             System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;

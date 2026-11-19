@@ -326,7 +326,63 @@ public partial class ShellWindow : Window, IPaneHost
 
     private static string AppVersion => typeof(ShellWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
-    private void OnUpdaterChanged() => Dispatcher.BeginInvoke(UpdateUpdateButton);
+    private void OnUpdaterChanged() => Dispatcher.BeginInvoke(() =>
+    {
+        UpdateUpdateButton();
+        // 서비스(SYSTEM)는 사용자별 프록시(PAC 스크립트·인증 프록시)를 쓰지 못해 회사망에서 확인이 실패할 수 있다.
+        // 그러면 한 번은 앱(사용자 권한, 사용자 프록시 설정)이 직접 확인한다.
+        if (!_triedUserProxyFallback && _updater is ServiceUpdater { ReadyVersion: null, LastError: { } e } && IsNetworkError(e))
+        {
+            _ = TryUserProxyFallbackAsync();
+        }
+    });
+
+    private bool _triedUserProxyFallback;
+
+    private static bool IsNetworkError(string error) =>
+        error.Contains("네트워크", StringComparison.Ordinal) || error.Contains("0x80072", StringComparison.OrdinalIgnoreCase)
+        || error.Contains("시간 초과", StringComparison.Ordinal) || error.Contains("proxy", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 서비스가 네트워크 오류로 확인하지 못하면 사용자 권한(사용자의 PAC·프록시·로그온 자격 증명)으로 직접 확인·다운로드한다.
+    /// 찾으면 이번 실행 동안 기존 방식(설치할 때 관리자 확인 한 번)으로 바꾼다. 서명·해시 확인은 같다.
+    /// </summary>
+    private async Task<bool> TryUserProxyFallbackAsync()
+    {
+        if (_triedUserProxyFallback || _updater is not ServiceUpdater { LastError: { } err } || !IsNetworkError(err))
+        {
+            return false;
+        }
+
+        _triedUserProxyFallback = true;
+        Log.Information("서비스 업데이트 확인 실패({Error}) → 사용자 프록시로 직접 확인", err);
+        var legacy = new LegacyUpdateSource(new AppUpdater(AppVersion));
+        bool found;
+        try
+        {
+            found = await legacy.CheckAsync(CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Log.Warning(ex, "사용자 프록시로 업데이트 확인 실패");
+            found = false;
+        }
+
+        if (!found || legacy.ReadyVersion is null)
+        {
+            Log.Information("사용자 프록시로도 새 버전 없음/실패: {Error}", legacy.LastError);
+            legacy.Dispose();
+            return false;
+        }
+
+        _updater.Changed -= OnUpdaterChanged;
+        _updater.Dispose();
+        _updater = legacy;
+        _updater.Changed += OnUpdaterChanged;
+        UpdateUpdateButton();
+        Shell.Status = $"Foldy {legacy.ReadyVersion} 업데이트가 준비됐습니다 (회사 프록시 경로, 설치할 때 관리자 확인이 한 번 필요합니다)";
+        return true;
+    }
 
     /// <summary>색인 서비스가 업데이트를 지원하면 그쪽(UAC 없음)으로 바꾸고 정상 시작을 알린다. 아니면 AppUpdater(UAC) 유지.</summary>
     private async Task UseServiceUpdaterAsync()
@@ -942,6 +998,11 @@ public partial class ShellWindow : Window, IPaneHost
             {
                 Log.Warning(ex, "업데이트 확인 실패");
                 found = false;
+            }
+
+            if (!found && _updater.ReadyVersion is null && await TryUserProxyFallbackAsync())
+            {
+                found = true;
             }
 
             if (!found && _updater.ReadyVersion is null)
