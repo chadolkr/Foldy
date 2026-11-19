@@ -232,6 +232,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsDirty))]
     private bool _autoOpenGitView;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private bool _cleanupNotices = true;
+
     public bool CopyThreadsManualEnabled => !CopyThreadsAuto;
 
     public IRelayCommand ApplyCommand { get; }
@@ -267,6 +271,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         SendCrashReports = SendCrashReports,
         ShowGitBar = ShowGitBar,
         AutoOpenGitView = AutoOpenGitView,
+        CleanupNotices = CleanupNotices,
     };
 
     /// <summary>편집한 단축키 (재지정만 저장하려면 Save를 호출).</summary>
@@ -333,6 +338,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         UpdateChannelChoice = s.Update.Channel == Foldy.Presentation.Update.UpdateChannel.Beta ? "beta" : "stable";
         SendCrashReports = s.SendCrashReports;
         ShowGitBar = s.ShowGitBar;
+        CleanupNotices = s.CleanupNotices;
         AutoOpenGitView = s.AutoOpenGitView;
         _loading = false;
         RefreshKeys();

@@ -551,6 +551,7 @@ public partial class ShellWindow : Window, IPaneHost
 
         _indexerRetry?.Stop();
         Log.Information("색인 서비스 연결됨");
+        StartCleanupChecks();
         await _search.RefreshStateAsync();
         if (_indexer is not null)
         {
@@ -836,6 +837,9 @@ public partial class ShellWindow : Window, IPaneHost
         Add("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, true));
         Add("view.hidden", "숨김 파일 보기 켜기/끄기", ToggleHidden, Key.H, ModifierKeys.Control);
         Add("analysis.open", "폴더 분석 (현재 폴더)", OpenAnalysis);
+        Add("cleanup.logs", "로그 정리 (현재 드라이브)", () => OpenLogCleanup(null));
+        Add("cleanup.downloads", "다운로드 정리", () => OpenDownloadsCleanup(null));
+        Add("cleanup.desktop", "바탕화면 정리", OpenDesktopTidy);
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
         Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.TreeVisible = !ActiveView.TreeVisible, Key.B, ModifierKeys.Control);
         Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
@@ -1430,6 +1434,17 @@ public partial class ShellWindow : Window, IPaneHost
                 tab.MarkRecycled(item, ok);
             }
         };
+        tab.ToolRequested += (_, tool) =>
+        {
+            if (tool == "logs")
+            {
+                OpenLogCleanup(Path.GetPathRoot(path));
+            }
+            else if (tool == "downloads")
+            {
+                OpenDownloadsCleanup(null);
+            }
+        };
         tab.OpenRequested += (_, e) =>
         {
             if (e.IsFolder)
@@ -1443,6 +1458,110 @@ public partial class ShellWindow : Window, IPaneHost
         };
         pane.AddTab(tab, activate: true, assignColor: true);
     }
+
+    // ───────────── 정리 도구 (로그·다운로드·바탕화면) ─────────────
+
+    private void OnSideCleanupTools(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { ContextMenu: { } menu } b)
+        {
+            menu.PlacementTarget = b;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Right;
+            menu.IsOpen = true;
+        }
+    }
+
+    private void OnSideLogCleanup(object sender, RoutedEventArgs e) => OpenLogCleanup(null);
+
+    private void OnSideDownloadsCleanup(object sender, RoutedEventArgs e) => OpenDownloadsCleanup(null);
+
+    private void OnSideDesktopTidy(object sender, RoutedEventArgs e) => OpenDesktopTidy();
+
+    /// <summary>로그 정리 창. 드라이브를 주지 않으면 지금 폴더의 드라이브 (로컬 드라이브가 아니면 C:).</summary>
+    private void OpenLogCleanup(string? drive)
+    {
+        var p = drive ?? Shell.ActivePane.ActiveFolder?.Path;
+        var root = p is { Length: >= 2 } && p[1] == ':' ? Path.GetPathRoot(p) : null;
+        root ??= Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
+        new LogCleanupWindow(root, Shell) { Owner = this }.Show();
+    }
+
+    private void OpenDownloadsCleanup(string? folder)
+    {
+        folder ??= DownloadsCleanupWindow.DefaultFolder();
+        if (folder is null)
+        {
+            Shell.Status = "다운로드 폴더를 찾지 못했습니다";
+            return;
+        }
+
+        new DownloadsCleanupWindow(folder, Shell) { Owner = this }.Show();
+    }
+
+    private void OpenDesktopTidy() => new DesktopTidyWindow { Owner = this }.Show();
+
+    private DispatcherTimer? _cleanupTimer;
+    private CleanupFinding? _cleanupFinding;
+
+    /// <summary>백그라운드 정리 확인을 시작한다: 시작 3분 뒤 한 번, 그 뒤 6시간마다. 알림은 일주일에 한 번까지.</summary>
+    private void StartCleanupChecks()
+    {
+        if (_cleanupTimer is not null || App.Options.DocShots is not null)
+        {
+            return;
+        }
+
+        _cleanupTimer = new DispatcherTimer(TimeSpan.FromMinutes(3), DispatcherPriority.ApplicationIdle, async (_, _) =>
+        {
+            _cleanupTimer!.Interval = TimeSpan.FromHours(6);
+            if (!_settings.CleanupNotices || CleanupNotifier.ShownRecently() || CleanupNotice.Visibility == Visibility.Visible)
+            {
+                return;
+            }
+
+            try
+            {
+                var f = await CleanupNotifier.CheckAsync(CancellationToken.None);
+                if (f is not null && _settings.CleanupNotices)
+                {
+                    ShowCleanupNotice(f);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                Log.Debug(ex, "정리 확인 실패");
+            }
+        }, Dispatcher);
+        _cleanupTimer.Start();
+    }
+
+    private void ShowCleanupNotice(CleanupFinding f)
+    {
+        _cleanupFinding = f;
+        CleanupNoticeText.Text = f.Text;
+        CleanupNoticeButton.Content = f.Tool switch { "logs" => "로그 정리", "downloads" => "다운로드 정리", _ => "바탕화면 정리" };
+        CleanupNotice.Visibility = Visibility.Visible;
+        CleanupNotifier.MarkShown();
+    }
+
+    private void OnCleanupNoticeOpen(object sender, RoutedEventArgs e)
+    {
+        CleanupNotice.Visibility = Visibility.Collapsed;
+        switch (_cleanupFinding?.Tool)
+        {
+            case "logs":
+                OpenLogCleanup(_cleanupFinding.Target);
+                break;
+            case "downloads":
+                OpenDownloadsCleanup(_cleanupFinding.Target);
+                break;
+            default:
+                OpenDesktopTidy();
+                break;
+        }
+    }
+
+    private void OnCleanupNoticeClose(object sender, RoutedEventArgs e) => CleanupNotice.Visibility = Visibility.Collapsed;
 
     private void OnFnPreview(object sender, RoutedEventArgs e) => ActiveView.TogglePreview();
 

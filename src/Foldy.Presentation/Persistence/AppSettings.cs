@@ -45,6 +45,9 @@ public sealed record AppSettings
     /// <summary>Git 저장소 폴더에 들어가면 Git 화면 탭을 옆에 자동으로 연다 (저장소마다 세션당 한 번, 기본 끔).</summary>
     public bool AutoOpenGitView { get; init; }
 
+    /// <summary>로그·다운로드가 많이 쌓이면 알려 준다 (색인으로 몰래 확인, 주 1회까지, 기본 켬).</summary>
+    public bool CleanupNotices { get; init; } = true;
+
     public static AppSettings Migrate(AppSettings s) =>
         s.SchemaVersion switch
         {

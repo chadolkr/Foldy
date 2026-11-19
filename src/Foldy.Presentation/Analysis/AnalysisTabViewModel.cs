@@ -48,6 +48,12 @@ public sealed partial class AnalysisTabViewModel : TabBase
     /// <summary>목록 항목을 두 번 눌렀을 때 (호스트가 패널에서 연다).</summary>
     public event EventHandler<OpenPathEventArgs>? OpenRequested;
 
+    /// <summary>[로그 정리]·[다운로드 정리]를 눌렀을 때 ("logs" / "downloads"). 호스트가 정리 창을 연다.</summary>
+    public event EventHandler<string>? ToolRequested;
+
+    [RelayCommand]
+    private void OpenTool(string? tool) => ToolRequested?.Invoke(this, tool ?? "");
+
     // ───────────── 상태 ─────────────
 
     [ObservableProperty]

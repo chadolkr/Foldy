@@ -42,6 +42,7 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
     <Grid.ColumnDefinitions>
       <ColumnDefinition x:Name="SidebarColumn" Width="216" />
@@ -49,7 +50,7 @@
     </Grid.ColumnDefinitions>
 
     <!-- 공통 사이드바: 자주 쓰는 폴더·최근 폴더·드라이브·도구·설정 (접으면 아이콘만) -->
-    <Border x:Name="Sidebar" Grid.RowSpan="3" Style="{DynamicResource Foldy.Sidebar}">
+    <Border x:Name="Sidebar" Grid.RowSpan="4" Style="{DynamicResource Foldy.Sidebar}">
       <DockPanel>
         <!-- 맨 위: 접기/펼치기 -->
         <Button DockPanel.Dock="Top" Style="{DynamicResource Foldy.SideItem}" Margin="4,6,4,2" Click="OnToggleSidebar"
@@ -244,6 +245,19 @@
                 <TextBlock Style="{StaticResource SideName}" Text="폴더 분석" />
               </StackPanel>
             </Button>
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideCleanupTools" ToolTip="로그 정리, 다운로드 정리, 바탕화면 정리" AutomationProperties.Name="정리 도구">
+              <Button.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="로그 정리 (오래된 *.log를 월별 zip으로)" Click="OnSideLogCleanup" />
+                  <MenuItem Header="다운로드 정리 (설치 파일·중복·이미 푼 압축·오래된 파일)" Click="OnSideDownloadsCleanup" />
+                  <MenuItem Header="바탕화면 정리 (종류별로 보관, 되돌리기 가능)" Click="OnSideDesktopTidy" />
+                </ContextMenu>
+              </Button.ContextMenu>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE74C;" />
+                <TextBlock Style="{StaticResource SideName}" Text="정리 도구" />
+              </StackPanel>
+            </Button>
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSftpConnect" ToolTip="SFTP 서버에 연결 (Ctrl+Shift+O)" AutomationProperties.Name="SFTP 연결">
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE968;" />
@@ -312,7 +326,17 @@
     </Grid>
 
     <!-- 작업 패널: 모달 없이 진행 표시 (설계서 2장 작업 패널·진행 표시) -->
-    <Border x:Name="JobsPanel" Grid.Row="1" Grid.Column="1" Margin="8,0,8,6" Style="{DynamicResource Foldy.ListBorder}" Padding="10,6" Visibility="Collapsed">
+    <!-- 정리 알림: 로그·다운로드가 많이 쌓였을 때 한 줄 (주 1회까지) -->
+    <Border x:Name="CleanupNotice" Grid.Row="1" Grid.Column="1" Margin="8,0,8,6" Style="{DynamicResource Foldy.ListBorder}" Padding="10,5" Visibility="Collapsed">
+      <DockPanel LastChildFill="True">
+        <Button DockPanel.Dock="Right" Content="닫기" Padding="8,2" Margin="6,0,0,0" Click="OnCleanupNoticeClose" />
+        <Button DockPanel.Dock="Right" x:Name="CleanupNoticeButton" Padding="10,2" Margin="12,0,0,0" Click="OnCleanupNoticeOpen" />
+        <TextBlock Text="&#xE946;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <TextBlock x:Name="CleanupNoticeText" VerticalAlignment="Center" TextWrapping="Wrap" />
+      </DockPanel>
+    </Border>
+
+    <Border x:Name="JobsPanel" Grid.Row="2" Grid.Column="1" Margin="8,0,8,6" Style="{DynamicResource Foldy.ListBorder}" Padding="10,6" Visibility="Collapsed">
       <DockPanel>
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
           <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.CrumbButton}" Padding="8,2" Click="OnClearJobs">
@@ -364,7 +388,7 @@
     </Border>
 
     <!-- 기능키 줄 -->
-    <DockPanel Grid.Row="2" Grid.Column="1" Margin="8,0,8,4" x:Name="FnBar" LastChildFill="True">
+    <DockPanel Grid.Row="3" Grid.Column="1" Margin="8,0,8,4" x:Name="FnBar" LastChildFill="True">
       <DockPanel.Resources>
         <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
           <Setter Property="Margin" Value="0,0,6,0" />
@@ -403,7 +427,7 @@
     </DockPanel>
 
     <!-- 상태바: 메시지는 가운데에 크게, 새 메시지는 잠깐 강조색으로 깜빡인다 -->
-    <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{DynamicResource Foldy.StatusBar}">
+    <Border Grid.Row="4" Grid.ColumnSpan="2" Style="{DynamicResource Foldy.StatusBar}">
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />

@@ -249,6 +249,9 @@
           <TextBlock Text="애니메이션" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="애니메이션 사용 (농구하는 아이들 포함)" IsChecked="{Binding Animations, Mode=TwoWay}" />
           <TextBlock Text="끄면 작업 패널의 농구 애니메이션과 화면 움직임이 사라집니다. Windows의 '애니메이션 효과 줄이기'도 따릅니다." Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="정리 알림" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="로그·다운로드가 많이 쌓이면 알려 주기" IsChecked="{Binding CleanupNotices, Mode=TwoWay}" />
+          <TextBlock Text="색인으로 가볍게 확인하고, 정리할 게 많을 때만 한 줄로 알려 줍니다 (일주일에 한 번까지). 저절로 지우지는 않습니다." Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="Git" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="Git 바 보이기" IsChecked="{Binding ShowGitBar, Mode=TwoWay}" />
           <TextBlock Text="Git 저장소 폴더에서 파일 목록 위에 브랜치·변경 개수와 받기/올리기 버튼을 보입니다." Style="{StaticResource Settings.Hint}" />
