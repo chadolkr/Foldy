@@ -156,7 +156,7 @@
           </Border>
         </StackPanel>
       </Grid>
-      <Border Grid.Column="2" Style="{DynamicResource Foldy.InputBorder}" Width="200" Margin="6,0,0,0">
+      <Border x:Name="SearchBorder" Grid.Column="2" Style="{DynamicResource Foldy.InputBorder}" Width="200" Margin="6,0,0,0">
         <Grid>
           <TextBlock Text="&#xE721;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="9,0,0,0" VerticalAlignment="Center"
                      Foreground="{DynamicResource Brush.TextSecondary}" IsHitTestVisible="False" />

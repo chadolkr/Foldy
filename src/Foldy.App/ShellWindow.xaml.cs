@@ -328,6 +328,15 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         RefreshDrives();
+        if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown)
+        {
+            _ = Dispatcher.InvokeAsync(async () =>
+            {
+                await Task.Delay(1500);
+                await FirstRunTour.RunAsync(this);
+            }, DispatcherPriority.ApplicationIdle);
+        }
+
         if (!App.Options.IsBench && !App.Options.IsCapture)
         {
             _updater.Start(TimeSpan.FromSeconds(5)); // 실행 5초 뒤 + 6시간마다 (짧게 켰다 꺼도 확인되게)
@@ -909,6 +918,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("indexer.uninstall", "색인 서비스 제거 (관리자)", () => RunIndexerSetup(install: false));
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
         Add("app.help", "도움말 (사용 설명서)", ShowHelp, Key.F1, inText: true);
+        Add("app.tour", "둘러보기 (처음 안내 다시 보기)", () => _ = FirstRunTour.RunAsync(this));
         Add("app.settings", "설정…", ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
         Add("app.reportBug", "버그 신고…", App.OpenBugReport);
         Add("app.emptyRecycleBin", "휴지통 비우기…", () => OnEmptyRecycleBin(this, new RoutedEventArgs()));
@@ -1516,6 +1526,33 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     // ───────────── 정리 도구 (로그·다운로드·바탕화면) ─────────────
+
+    private double _recentHeight;
+
+    /// <summary>
+    /// 사이드바는 한 화면에 다 보여야 한다: 작은 화면(예: 1366×768)에서 넘치면 "최근 폴더"를 먼저 접고,
+    /// 다시 자리가 생기면 펼친다 (도구 버튼이 스크롤 밖으로 밀리지 않게).
+    /// </summary>
+    private void OnSidebarScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
+    {
+        if (e.ExtentHeightChange == 0 && e.ViewportHeightChange == 0)
+        {
+            return;
+        }
+
+        var over = SidebarScroll.ExtentHeight - SidebarScroll.ViewportHeight;
+        if (over > 1 && RecentSection.Visibility == Visibility.Visible)
+        {
+            _recentHeight = RecentSection.ActualHeight;
+            RecentSection.Visibility = Visibility.Collapsed;
+            RecentSection.Tag = "auto";
+        }
+        else if (RecentSection.Visibility == Visibility.Collapsed && Equals(RecentSection.Tag, "auto") && -over >= _recentHeight + 4)
+        {
+            RecentSection.Visibility = Visibility.Visible;
+            RecentSection.Tag = null;
+        }
+    }
 
     /// <summary>사이드바 묶음 메뉴 항목: Tag의 명령 id를 실행한다.</summary>
     private void OnGroupMenuItem(object sender, RoutedEventArgs e)

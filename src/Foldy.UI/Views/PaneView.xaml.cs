@@ -43,6 +43,7 @@ public partial class PaneView : UserControl
     {
         InitializeComponent();
         ApplySystemTerminalIcons();
+        SizeChanged += (_, _) => FitToolbar();
         _folderColumns.AddRange([
             // 좁은 패널: 유형은 이름 왼쪽 아이콘으로만 보이고, 남는 폭은 모두 이름에 준다.
             new FastColumn("이름", 320, o => ((FileItem)o).Name),
@@ -420,6 +421,8 @@ public partial class PaneView : UserControl
     {
         var g = _tab?.Git;
         var show = g is not null && _host?.ShowGitBar == true;
+        // Git 바가 보이면 경로 옆 Git 칩은 같은 내용이라 숨긴다 (좁은 화면에서 경로가 잘리지 않게)
+        GitChip.Visibility = g is not null && !show ? Visibility.Visible : Visibility.Collapsed;
         if (show)
         {
             GitBarBranch.Text = g!.BranchText;
@@ -865,6 +868,14 @@ public partial class PaneView : UserControl
             Overlay.Children.Remove(_renameBox);
             _renameBox = null;
         }
+    }
+
+    /// <summary>좁은 패널(작은 노트북 화면)에서는 검색 칸을 줄여 경로가 보이게 한다.</summary>
+    private void FitToolbar()
+    {
+        var narrow = ActualWidth < 760;
+        SearchBorder.Width = narrow ? 120 : 200;
+        SearchHint.Text = narrow ? "검색 (Ctrl+F)" : "파일 이름 검색 (Ctrl+F)";
     }
 
     // ───────────── 관리 방식 (.foldy.md) ─────────────

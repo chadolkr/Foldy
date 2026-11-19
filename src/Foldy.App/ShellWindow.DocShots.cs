@@ -206,6 +206,24 @@ public partial class ShellWindow
             await DocShotWindowAsync("main", 1500);
         });
 
+        // UX 점검용: 작은 노트북 화면(1366×768)과 다크 테마
+        await DocSceneAsync("review-small", async () =>
+        {
+            var (w0, h0) = (Width, Height);
+            Width = 1366;
+            Height = 728;
+            await DocShotWindowAsync("review-small", 1200);
+            (Width, Height) = (w0, h0);
+        });
+
+        await DocSceneAsync("review-dark", async () =>
+        {
+            Foldy.UI.Theming.ThemeManager.SetMode(Foldy.UI.Theming.FoldyTheme.Dark);
+            await DocShotWindowAsync("review-dark", 1200);
+            Foldy.UI.Theming.ThemeManager.SetMode(Foldy.UI.Theming.FoldyTheme.Light);
+            await DocSettleAsync(400);
+        });
+
         await DocSceneAsync("preview-image", async () =>
         {
             DocFolderTab(left);

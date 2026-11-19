@@ -118,7 +118,7 @@
           </WrapPanel>
         </StackPanel>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+        <ScrollViewer x:Name="SidebarScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" ScrollChanged="OnSidebarScrollChanged">
           <StackPanel>
             <!-- 자주 쓰는 폴더 (고정) -->
             <DockPanel Style="{StaticResource SideHeaderRow}">

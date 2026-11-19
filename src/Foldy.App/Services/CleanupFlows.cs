@@ -559,3 +559,52 @@ public static class CleanupFlows
         w.Close();
     }
 }
+
+/// <summary>처음 실행 때 30초 둘러보기: 두 창과 네 묶음(찾기·정리하기·지키기·연결하기)을 한 단계씩 소개한다.</summary>
+public static class FirstRunTour
+{
+    private static string Stamp => Path.Combine(App.DataDir, "tour-shown.txt");
+
+    public static bool Shown => File.Exists(Stamp);
+
+    public static async Task RunAsync(Window owner)
+    {
+        try
+        {
+            File.WriteAllText(Stamp, DateTime.UtcNow.ToString("O"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+
+        var w = new GuideWindow("Foldy 둘러보기") { Owner = owner, Height = 480 };
+        w.Show();
+        var c = await w.AskAsync("안녕하세요! Foldy예요 👋 30초만 같이 둘러볼까요?", ("go", "둘러보기"), ("skip", "건너뛰기"));
+        if (c != "go")
+        {
+            w.Close();
+            return;
+        }
+
+        (string Text, string Next)[] steps =
+        [
+            ("가운데에는 폴더 창이 두 개 있어요. 왼쪽에서 오른쪽으로 끌어 놓거나 F5를 누르면 복사, F6이면 이동이에요. Tab 키로 두 창을 오가요.", "다음"),
+            ("왼쪽 사이드바의 도구는 네 묶음이에요. 🔍 찾기: 파일 이름 검색(Ctrl+F), 무엇이 공간을 차지하는지 보는 폴더 분석.", "다음"),
+            ("🧹 정리하기: 바탕화면·다운로드·로그 정리, 폴더 구조 템플릿, 폴더마다 정리 방법 정해 두기. 저절로 버리지 않고, 먼저 보여 드리고, 되돌릴 수 있어요.", "다음"),
+            ("🔒 지키기: 잠긴 메모, 파일 암호 걸기, 금고, 휴지통. 🔗 연결하기: SFTP 서버, Git, 터미널.", "다음"),
+            ("모르는 게 있으면 F1(도움말), 모든 명령은 Ctrl+Shift+P로 이름만 쳐서 찾을 수 있어요. 이 안내는 명령 목록의 \"둘러보기\"로 다시 볼 수 있어요.", "시작하기"),
+        ];
+        foreach (var (text, next) in steps)
+        {
+            if (await w.AskAsync(text, ("next", next), ("skip", "그만 보기")) != "next")
+            {
+                break;
+            }
+        }
+
+        if (!w.IsClosed)
+        {
+            w.Close();
+        }
+    }
+}
