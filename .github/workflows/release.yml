@@ -8,6 +8,14 @@ on:
 
 permissions:
   contents: write
+  actions: read   # SignPath가 업로드된 아티팩트를 내려받을 때 필요
+
+# SignPath 코드 서명 (docs/code-signing.md). 저장소 변수 SIGNPATH_ORGANIZATION_ID와
+# 시크릿 SIGNPATH_API_TOKEN이 둘 다 있을 때만 서명한다. 없으면 서명 단계는 건너뛰고 지금처럼 릴리스한다.
+env:
+  SIGNPATH_ENABLED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' && secrets.SIGNPATH_API_TOKEN != '' }}
+  SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG || 'Foldy' }}
+  SIGNPATH_POLICY_SLUG: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -16,7 +24,7 @@ concurrency:
 jobs:
   release:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 150   # 서명 승인 대기(최대 1시간 × 2) 포함
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +60,44 @@ jobs:
           ./build/setup/make-setup.ps1 -SkipRust -Version $v -ZipDir artifacts/release
           if ($LASTEXITCODE -ne 0) { throw 'setup 실패' }
 
+      # ── 코드 서명 1: payload의 exe·dll (MSI와 zip이 서명된 파일을 담도록 MSI보다 먼저) ──
+      - name: Upload payload for signing
+        id: up-payload
+        if: env.SIGNPATH_ENABLED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: payload-unsigned
+          path: dist/Foldy-Setup/payload
+          if-no-files-found: error
+
+      - name: SignPath sign payload
+        if: env.SIGNPATH_ENABLED == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: payload
+          github-artifact-id: ${{ steps.up-payload.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600   # 릴리스마다 승인자가 SignPath에서 직접 승인
+          output-artifact-directory: dist/payload-signed
+
+      - name: Replace payload with signed files and rebuild setup zip
+        if: env.SIGNPATH_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          $payload = 'dist/Foldy-Setup/payload'
+          Copy-Item dist/payload-signed/* $payload -Recurse -Force
+          foreach ($f in 'Foldy.exe', 'foldy-index.exe', 'foldy-update.exe') {
+            $sig = Get-AuthenticodeSignature (Join-Path $payload $f)
+            if ($sig.Status -ne 'Valid') { throw "$f 서명 상태: $($sig.Status)" }
+          }
+          $zip = Get-ChildItem artifacts/release -Filter '*-setup.zip' | Select-Object -First 1
+          Remove-Item $zip.FullName
+          Compress-Archive -Path dist/Foldy-Setup/* -DestinationPath $zip.FullName
+
       # WiX 6 MSI (Foldy-<v>-x64.msi): 위 단계가 만든 페이로드를 재사용한다 (docs/installer.md).
       # WiX 7은 OSMF EULA 동의가 필요하므로 6.x로 고정한다.
       - name: MSI (WiX 6)
@@ -64,7 +110,41 @@ jobs:
           ./build/installer/build-msi.ps1 -SkipPayload -Version $v -OutDir artifacts/release
           if ($LASTEXITCODE -ne 0) { throw 'MSI 빌드 실패' }
 
-      # TODO(설계서 10.6): SignPath 코드 서명을 MSI·exe에 적용한 뒤 아래 manifest 목록에 넣는다.
+      # ── 코드 서명 2: MSI ──
+      - name: Upload MSI for signing
+        id: up-msi
+        if: env.SIGNPATH_ENABLED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: msi-unsigned
+          path: artifacts/release/*.msi
+          if-no-files-found: error
+
+      - name: SignPath sign MSI
+        if: env.SIGNPATH_ENABLED == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: msi
+          github-artifact-id: ${{ steps.up-msi.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: dist/msi-signed
+
+      - name: Replace MSI with signed file
+        if: env.SIGNPATH_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          Copy-Item dist/msi-signed/*.msi artifacts/release -Force
+          Get-ChildItem artifacts/release -Filter *.msi | ForEach-Object {
+            $sig = Get-AuthenticodeSignature $_.FullName
+            if ($sig.Status -ne 'Valid') { throw "$($_.Name) 서명 상태: $($sig.Status)" }
+          }
+
+      # update.json의 해시는 서명이 끝난 최종 파일로 계산한다.
       - name: update.json + Ed25519 signature
         shell: pwsh
         env:
@@ -91,7 +171,9 @@ jobs:
         run: |
           $tag = '${{ github.ref_name }}'
           $files = Get-ChildItem artifacts/release -File | Where-Object Extension -ne '.wixpdb' | ForEach-Object FullName
-          $flags = @('--generate-notes', '--title', "Foldy $tag", '--verify-tag')
+          # SignPath Foundation 요건: 릴리스 페이지에 Code signing policy 링크
+          'Code signing policy: https://github.com/chadolkr/Foldy#code-signing-policy' | Set-Content release-notes-header.md -Encoding utf8
+          $flags = @('--generate-notes', '--notes-file', 'release-notes-header.md', '--title', "Foldy $tag", '--verify-tag')
           if ('${{ steps.ver.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
           gh release create $tag @files @flags
           if ($LASTEXITCODE -ne 0) { throw 'release 생성 실패' }
