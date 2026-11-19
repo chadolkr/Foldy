@@ -1,3 +1,5 @@
+using Foldy.Platform.SystemInfo;
+
 namespace Foldy.Platform.Imaging;
 
 /// <summary>
@@ -23,9 +25,15 @@ public static class CloudFileGuard
 
     /// <summary>
     /// 경로의 속성을 읽어 판정한다. 속성을 못 읽으면(없는 파일, 권한) 내용도 못 읽으므로 true.
+    /// 클라우드 드라이브(Google Drive for desktop 등)는 속성과 상관없이 true (<see cref="CloudVolumes"/>).
     /// </summary>
     public static bool MustNotReadContent(string path)
     {
+        if (CloudVolumes.IsCloudPath(path))
+        {
+            return true;
+        }
+
         try
         {
             return MustNotReadContent(File.GetAttributes(path));

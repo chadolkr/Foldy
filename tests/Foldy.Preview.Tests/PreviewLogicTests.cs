@@ -93,12 +93,27 @@ public class PreviewPolicyTests
     }
 
     [Fact]
+    public void Cloud_drive_paths_wait_for_the_user_like_network_drives()
+    {
+        var before = PreviewGuards.IsCloudVolumePath;
+        try
+        {
+            PreviewGuards.IsCloudVolumePath = p => p.StartsWith(@"G:\", StringComparison.OrdinalIgnoreCase);
+            PreviewGuards.IsRemotePath(@"G:\내 드라이브\보고서.docx").Should().BeTrue();
+        }
+        finally
+        {
+            PreviewGuards.IsCloudVolumePath = before;
+        }
+    }
+
+    [Fact]
     public void Network_drive_waits_for_the_user()
     {
         var req = Req.Of("a.txt", remote: true);
         var d = PreviewPolicy.Evaluate(req, Registry());
         d.Status.Should().Be(PreviewStatus.NetworkDrive);
-        d.StatusText.Should().Be("네트워크 드라이브 — [미리보기]");
+        d.StatusText.Should().Be("네트워크·클라우드 드라이브 — [미리보기]");
         d.CanForce.Should().BeTrue();
 
         PreviewPolicy.Evaluate(req with { UserForced = true }, Registry()).IsReady.Should().BeTrue();
@@ -271,7 +286,7 @@ public class PreviewViewModelTests
         var vm = Vm();
         await vm.ShowAsync(Req.Of("a.txt", remote: true, path: @"\\nowhere\share\a.txt"));
         vm.Status.Should().Be(PreviewStatus.NetworkDrive);
-        vm.StatusText.Should().Be("네트워크 드라이브 — [미리보기]");
+        vm.StatusText.Should().Be("네트워크·클라우드 드라이브 — [미리보기]");
         vm.CanForce.Should().BeTrue();
         vm.ForceCommand.CanExecute(null).Should().BeTrue();
         vm.Content.Should().BeNull();

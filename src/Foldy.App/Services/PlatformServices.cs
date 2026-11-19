@@ -76,11 +76,6 @@ public sealed class TerminalService(Func<AppSettings> settings, Action<string, b
             return;
         }
 
-        if (Foldy.Presentation.Navigation.PathUtil.IsGDrive(folder))
-        {
-            throw new InvalidOperationException("Google Drive 폴더에서는 터미널을 열 수 없습니다");
-        }
-
         var s = settings().Terminal;
         var shell = kind switch
         {
@@ -121,7 +116,8 @@ public sealed class DriveService(DriveQueueRegistry queues) : IDriveService
             var details = await queues.ForPath(drive.Root)
                 .Enqueue(_ => Drives.Details(drive.Root), WorkPriority.SizeCalc, ct)
                 .WaitAsync(TimeSpan.FromSeconds(3), ct);
-            return drive with { Label = details.Label, FreeBytes = (long?)details.Free, TotalBytes = (long?)details.Total };
+            var cloud = CloudVolumes.Remember(drive.Root, details.Label, details.FileSystem);
+            return drive with { Label = details.Label, FreeBytes = (long?)details.Free, TotalBytes = (long?)details.Total, Cloud = cloud };
         }
         catch (Exception ex) when (ex is TimeoutException or IOException or DriveUnresponsiveException or OperationCanceledException)
         {

@@ -14,6 +14,9 @@ public static class PreviewGuards
     /// <summary>내용을 읽으면 다운로드가 시작되는 파일인지 (OFFLINE / RECALL_ON_*).</summary>
     public static bool IsCloudOnly(FileAttributes attributes) => ((int)attributes & CloudMask) != 0;
 
+    /// <summary>클라우드 드라이브 판정 (앱 시작 때 Foldy.Platform의 CloudVolumes.IsCloudPath를 넣는다).</summary>
+    public static Func<string, bool>? IsCloudVolumePath { get; set; }
+
     /// <summary>
     /// UNC(\\서버\...), URI 형태(sftp://), 매핑된 네트워크 드라이브. 드라이브 종류 조회는 디스크·네트워크 I/O 없이
     /// GetDriveType만 부르므로 끊긴 공유에서도 멈추지 않는다.
@@ -23,6 +26,12 @@ public static class PreviewGuards
         if (string.IsNullOrEmpty(path))
         {
             return false;
+        }
+
+        // 클라우드 드라이브(G: Google Drive for desktop)도 네트워크처럼 사용자가 누를 때만 읽는다. 앱이 판정 함수를 넣는다.
+        if (IsCloudVolumePath?.Invoke(path) == true)
+        {
+            return true;
         }
 
         if (path.StartsWith(@"\\", StringComparison.Ordinal) && !path.StartsWith(@"\\?\", StringComparison.Ordinal))

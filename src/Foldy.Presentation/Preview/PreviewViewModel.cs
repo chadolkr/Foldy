@@ -52,9 +52,6 @@ public sealed partial class PreviewViewModel : ObservableObject
     /// <summary>[미리보기] 버튼 (네트워크 드라이브).</summary>
     public IRelayCommand ForceCommand { get; }
 
-    /// <summary>원격(gdrive://) 파일을 로컬 캐시 경로로 내려받는 함수. 앱이 Google Drive를 쓸 수 있을 때 넣는다.</summary>
-    public static Func<string, CancellationToken, Task<string>>? RemoteFetch { get; set; }
-
     /// <summary>선택이 바뀐 뒤 이 시간 동안 더 바뀌지 않으면 읽기 시작.</summary>
     public TimeSpan Debounce { get; set; } = TimeSpan.FromMilliseconds(120);
 
@@ -98,13 +95,6 @@ public sealed partial class PreviewViewModel : ObservableObject
             }
 
             var provider = decision.Provider!;
-            if (RemoteFetch is { } fetch && request.Path.StartsWith("gdrive://", StringComparison.OrdinalIgnoreCase))
-            {
-                // Google Drive: [미리보기]를 눌렀을 때만 캐시로 내려받아 로컬 파일처럼 읽는다.
-                var local = await fetch(request.Path, ct).ConfigureAwait(true);
-                request = request with { Path = local, IsRemote = false };
-            }
-
             // 공급자는 디스크를 읽으므로 UI 스레드를 비킨다.
             var content = await Task.Run(() => provider.LoadAsync(request, ct), ct).ConfigureAwait(true);
             if (gen != Volatile.Read(ref _generation))
@@ -125,7 +115,7 @@ public sealed partial class PreviewViewModel : ObservableObject
         {
             // 더 새로운 선택이 이 읽기를 대체했다.
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or NotSupportedException or HttpRequestException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or NotSupportedException)
         {
             if (gen == Volatile.Read(ref _generation))
             {

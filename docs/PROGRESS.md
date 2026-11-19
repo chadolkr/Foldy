@@ -27,6 +27,8 @@
 - CI 통과(639개) 후 0.2.7 릴리스. **아직 안 한 것**: 실제 PC 화면 확인(사이드바 너비, 좁은 창에서 목록 폭, 레트로 테마).
 - CI 메모: `Foldy.Interop.Tests`의 시험 1개가 가끔 실패한다(c9f3711, d613a4d 1차). 다시 돌리면 통과. 로그에서 Rust 의도적 패닉 출력에 가려 이름을 못 봤다 → 노트북에서 찾아 고칠 것.
 
+- **Google Drive 직접 연결은 제거함** (2026-11-19, 사용자 결정: 기능이 복잡해서 Google Drive for desktop의 G: 드라이브를 쓰기로 함). PR #3(022ae61)을 되돌렸다. 다시 필요하면 이 되돌리기 커밋을 `git revert` 하거나 022ae61 기록에서 되살린다.
+
 ## 0.2.10 (2026-11-19 13:49 PC 무UAC 업데이트 확인, 창 1개로 정상 재시작)
 
 0.2.8은 CI 시간 측정 시험이 실패해서, 0.2.9는 MSI RTF 한글 이스케이프 버그로 릴리스되지 않았다(태그만 있음). 아래 내용과 SFTP 복사·이동(덮어쓰기 안전, 심볼릭 링크 알림)이 0.2.10에 들어갔다.
@@ -44,7 +46,6 @@ main에 들어간 것 (642개 시험 통과, 아직 릴리스 전):
 - **터미널**: 사용자가 모두 정상이라고 확인했다 (이슈 해결).
 
 - **SFTP 복사·이동**: `SftpAwareFileOperationService`(Foldy.Providers.Sftp)가 sftp:// 경로가 낀 작업만 맡고 로컬끼리는 기존 서비스로 넘긴다. 업로드·다운로드(재귀), 같은 연결 이동=서버 이름 바꾸기, 서버 간 복사=임시 파일 경유, 바이트 진행률, 취소 시 부분 파일 삭제, 충돌 창 재사용, SFTP 삭제 전 확인(`ShellViewModel.ConfirmAsync`). 시험 `SftpTransferTests`(메모리 가짜 서버). 실제 서버 수동 확인은 아직 안 했다. 덮어쓰기는 `.이름.foldy-part` 임시 파일에 다 쓴 뒤 바꿔 넣는다(SFTP는 posix-rename, 미지원이면 삭제 후 이름 바꾸기; 로컬은 File.Move overwrite). 건너뛴 심볼릭 링크 수는 결과 문구로 알린다. 알려진 한계: 탐색기로 끌어 내기는 안 됨(FileDrop에 sftp:// 문자열).
-- **Google Drive 바로 연결** (클라우드, `docs/google-drive.md`): Google Drive for desktop 없이 Foldy 안에서 Google 계정으로 로그인해 `gdrive://계정/폴더` 탭으로 연다. `Foldy.Providers.GoogleDrive`(Drive REST v3 직접 호출, 외부 패키지 없음) + `GDriveFileOperationService`(파일 작업 맨 앞: gdrive가 끼면 Drive, 아니면 SFTP → Rust 엔진 순). 복사·이동(로컬↔Drive, Drive↔Drive, 같은 계정 이동=부모만 바꿈, 같은 계정 복사=서버 복사), 폴더 합치기, 충돌 창 재사용, 이름 바꾸기, 새 폴더, Del=Drive 휴지통·Shift+Del=확인 후 영구 삭제, 열기·미리보기=필요할 때만 캐시로 내려받기, Google 문서는 .gdoc 등으로 보이고 열면 브라우저·복사하면 Office 파일. OAuth는 시스템 브라우저 + 127.0.0.1 loopback + PKCE, 범위 `drive` 하나, 갱신 토큰은 DPAPI(`%LOCALAPPDATA%\Foldy\gdrive.json`), 시스템 프록시. 사이드바 도구 "Google Drive", 명령 `gdrive.connect`. 시험 `Foldy.GoogleDrive.Tests` 48개(가짜 Drive). **아직 실제 Google 계정으로 확인 안 함.** OAuth 클라이언트 ID가 있어야 로그인된다: 사용자가 Google Cloud 콘솔에서 만들어 연결 창 "고급"에 넣거나, GitHub 변수 `FOLDY_GOOGLE_CLIENT_ID` + Secret `FOLDY_GOOGLE_CLIENT_SECRET`을 넣으면 release.yml이 빌드에 넣는다(방법은 docs/google-drive.md). 한계: 공유 문서함·공유 드라이브 목록 없음, SFTP↔Drive 직접 복사 없음, 탐색기로 끌어 내기 안 됨.
 
 진행 중 (작업 트리 `.claude/worktrees/agent-adc20aa7eab2f277d`, 아직 병합 전):
 - **Git 개편**

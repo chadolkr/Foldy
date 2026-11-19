@@ -118,7 +118,6 @@
               <MenuItem Header="디스크 분석" Click="OnMenuAnalysis" />
               <Separator />
               <MenuItem Header="SFTP 서버에 연결…" InputGestureText="Ctrl+Shift+O" Click="OnSftpConnect" />
-              <MenuItem Header="Google Drive 열기/연결…" Click="OnGDriveConnect" />
               <MenuItem Header="색인 서비스 설치 (관리자)…" Click="OnInstallIndexer" />
               <Separator />
               <MenuItem Header="설정…" InputGestureText="Ctrl+," Click="OnSettings" />
@@ -219,7 +218,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                       </Grid.ColumnDefinitions>
-                      <TextBlock Style="{StaticResource SideIcon}" Text="&#xEDA2;" VerticalAlignment="Top" Margin="0,2,0,0" />
+                      <TextBlock x:Name="DriveIcon" Style="{StaticResource SideIcon}" VerticalAlignment="Top" Margin="0,2,0,0" />
                       <StackPanel Grid.Column="1" Style="{StaticResource SideLabel}" Margin="10,0,0,0" Width="150">
                         <TextBlock Text="{Binding Display}" TextTrimming="CharacterEllipsis" />
                         <ProgressBar x:Name="Bar" Height="5" Margin="0,4,0,3" Minimum="0" Maximum="1" Value="{Binding UsedFraction, Mode=OneWay}"
@@ -234,6 +233,13 @@
                     </DataTrigger>
                     <DataTrigger Binding="{Binding HasSpace}" Value="False">
                       <Setter TargetName="Bar" Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                    <!-- 아이콘은 지역 값으로 두면 트리거가 못 바꾸므로 둘 다 트리거로 준다. 클라우드 = Google Drive for desktop 등 -->
+                    <DataTrigger Binding="{Binding Cloud}" Value="False">
+                      <Setter TargetName="DriveIcon" Property="Text" Value="&#xEDA2;" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Cloud}" Value="True">
+                      <Setter TargetName="DriveIcon" Property="Text" Value="&#xE753;" />
                     </DataTrigger>
                   </DataTemplate.Triggers>
                 </DataTemplate>
@@ -258,12 +264,6 @@
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE968;" />
                 <TextBlock Style="{StaticResource SideName}" Text="SFTP 연결" />
-              </StackPanel>
-            </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnGDriveConnect" ToolTip="Google 계정으로 로그인해 Google Drive를 탭에서 열기 (설치 필요 없음)">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE753;" />
-                <TextBlock Style="{StaticResource SideName}" Text="Google Drive" />
               </StackPanel>
             </Button>
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnMenuTemplate" ToolTip="템플릿으로 새 폴더 (Ctrl+Shift+N)">

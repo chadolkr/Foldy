@@ -17,11 +17,6 @@ public static class PathUtil
             return NormalizeSftp(p);
         }
 
-        if (IsGDrive(p))
-        {
-            return NormalizeGDrive(p);
-        }
-
         p = Environment.ExpandEnvironmentVariables(p);
         if (p.Length == 2 && p[1] == ':' && char.IsAsciiLetter(p[0]))
         {
@@ -66,40 +61,6 @@ public static class PathUtil
 
     public static bool IsSftp(string? path) => path?.StartsWith(SftpScheme, StringComparison.OrdinalIgnoreCase) == true;
 
-    public const string GDriveScheme = "gdrive://";
-
-    /// <summary>Google Drive 경로 (gdrive://계정/폴더).</summary>
-    public static bool IsGDrive(string? path) => path?.StartsWith(GDriveScheme, StringComparison.OrdinalIgnoreCase) == true;
-
-    /// <summary>둘 다 Google Drive이고 같은 계정인가 (끌어 놓기의 기본 동작: 같은 계정이면 이동).</summary>
-    public static bool SameGDriveAccount(string a, string b) =>
-        IsGDrive(a) && IsGDrive(b) && string.Equals(GDriveAccount(a), GDriveAccount(b), StringComparison.OrdinalIgnoreCase);
-
-    private static string GDriveAccount(string p)
-    {
-        var rest = p[GDriveScheme.Length..];
-        var slash = rest.IndexOf('/');
-        return slash < 0 ? rest : rest[..slash];
-    }
-
-    /// <summary>로컬 파일 시스템이 아닌 URI 경로(SFTP, Google Drive). 셸·Git·폴더 크기·템플릿 같은 로컬 기능을 끈다.</summary>
-    public static bool IsRemoteUri(string? path) => IsSftp(path) || IsGDrive(path);
-
-    /// <summary>gdrive://Me@Gmail.com//a/ → gdrive://me@gmail.com/a (계정은 소문자).</summary>
-    private static string? NormalizeGDrive(string p)
-    {
-        var rest = p[GDriveScheme.Length..];
-        var slash = rest.IndexOf('/');
-        var account = (slash < 0 ? rest : rest[..slash]).Trim().ToLowerInvariant();
-        if (account.Length == 0 || account.IndexOfAny(['\\', ':', '?', '#', ' ']) >= 0)
-        {
-            return null;
-        }
-
-        var parts = slash < 0 ? [] : rest[slash..].Split('/', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Any(x => x is "." or "..") ? null : GDriveScheme + account + "/" + string.Join('/', parts);
-    }
-
     /// <summary>sftp://user@host:port/a/b → 경로 부분의 중복 /와 끝 / 정리 (루트는 /).</summary>
     private static string? NormalizeSftp(string p)
     {
@@ -118,17 +79,16 @@ public static class PathUtil
 
     private static (string Root, string[] Parts) SplitSftp(string p)
     {
-        var scheme = IsGDrive(p) ? GDriveScheme : SftpScheme;
-        var rest = p[scheme.Length..];
+        var rest = p[SftpScheme.Length..];
         var slash = rest.IndexOf('/');
         var authority = slash < 0 ? rest : rest[..slash];
         var parts = slash < 0 ? [] : rest[slash..].Split('/', StringSplitOptions.RemoveEmptyEntries);
-        return (scheme + authority + "/", parts);
+        return (SftpScheme + authority + "/", parts);
     }
 
     public static string? Parent(string path)
     {
-        if (IsRemoteUri(path))
+        if (IsSftp(path))
         {
             var (sroot, parts) = SplitSftp(path);
             return parts.Length == 0 ? null : sroot + string.Join('/', parts[..^1]);
@@ -144,17 +104,8 @@ public static class PathUtil
         return parent is null ? null : Normalize(parent);
     }
 
-    /// <summary>Google Drive 루트(내 드라이브)의 표시 이름.</summary>
-    public const string GDriveRootName = "내 드라이브";
-
     public static string DisplayName(string path)
     {
-        if (IsGDrive(path))
-        {
-            var (_, gparts) = SplitSftp(path);
-            return gparts.Length == 0 ? GDriveRootName : gparts[^1];
-        }
-
         if (IsSftp(path))
         {
             var (sroot, parts) = SplitSftp(path);
@@ -174,11 +125,10 @@ public static class PathUtil
     public static IReadOnlyList<(string Name, string Path)> Segments(string path)
     {
         var list = new List<(string, string)>();
-        if (IsRemoteUri(path))
+        if (IsSftp(path))
         {
             var (sroot, parts) = SplitSftp(path);
-            var authority = sroot[(IsGDrive(path) ? GDriveScheme : SftpScheme).Length..].TrimEnd('/');
-            list.Add((IsGDrive(path) ? $"{GDriveRootName} ({authority})" : authority, sroot));
+            list.Add((sroot[SftpScheme.Length..].TrimEnd('/'), sroot));
             var sacc = sroot.TrimEnd('/');
             foreach (var part in parts)
             {
