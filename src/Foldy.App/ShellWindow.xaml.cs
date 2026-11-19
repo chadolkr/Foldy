@@ -395,12 +395,13 @@ public partial class ShellWindow : Window, IPaneHost
             var target = new Uri("https://api.github.com/");
             var proxy = System.Net.WebRequest.GetSystemWebProxy();
             var via = proxy.GetProxy(target);
-            return via is null || via == target ? "직접 연결" : via.ToString();
+            // 프록시 주소(회사 서버 이름)는 기록하지 않는다: 로그 끝부분이 공개 버그 신고에 붙을 수 있다
+            return via is null || via == target ? "직접 연결" : "시스템 프록시 사용";
         }
 #pragma warning disable CA1031
         catch (Exception ex)
         {
-            return "프록시 확인 실패: " + ex.Message;
+            return "프록시 확인 실패: " + ex.GetType().Name;
         }
 #pragma warning restore CA1031
     }
@@ -1290,6 +1291,13 @@ public partial class ShellWindow : Window, IPaneHost
         if (install && !File.Exists(exe))
         {
             Shell.Status = "foldy-index.exe가 없습니다 (설치본에서 실행하세요)";
+            return;
+        }
+
+        if (install && !Foldy.Platform.SystemInfo.IndexerService.IsProtectedLocation(exe))
+        {
+            // SYSTEM 서비스 exe가 사용자 폴더에 있으면 바꿔치기로 권한을 빼앗길 수 있다
+            Shell.Status = "색인 서비스는 설치본(Program Files)에서만 설치할 수 있어요. 압축본에서는 색인 없이 검색해요.";
             return;
         }
 

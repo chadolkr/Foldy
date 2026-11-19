@@ -199,6 +199,7 @@ public partial class MemoWindow : Window
         _idle.Stop();
         _render?.Stop();
         _password = null; // 암호를 잊는다
+        SecureZip.ForgetKeys(); // 암호로 만든 열쇠도 잊는다
         Editor.Clear();
         _note.Markdown = "";
         _note.Images.Clear();

@@ -68,19 +68,19 @@ public sealed class VaultTests : IDisposable
     [InlineData("ok.txt:hidden")]
     [InlineData("..")]
     [InlineData("")]
-    public void SafeDestination_refuses_names_that_leave_the_folder(string name)
+    public void SafeTarget_refuses_names_that_leave_the_folder(string name)
     {
-        SecureZip.SafeDestination(Path.Combine(_root, "out"), name).Should().BeNull();
+        SecureZip.SafeTarget(Path.Combine(_root, "out"), name).Should().BeNull();
     }
 
     [Theory]
     [InlineData("a.txt", "a.txt")]
     [InlineData("sub/b.txt", "sub\\b.txt")]
     [InlineData("sub/../c.txt", "c.txt")]
-    public void SafeDestination_keeps_names_inside_the_folder(string name, string expected)
+    public void SafeTarget_keeps_names_inside_the_folder(string name, string expected)
     {
         var dest = Path.Combine(_root, "out");
-        SecureZip.SafeDestination(dest, name).Should().Be(Path.Combine(dest, expected.Replace('\\', Path.DirectorySeparatorChar)));
+        SecureZip.SafeTarget(dest, name).Should().Be(Path.Combine(dest, expected.Replace('\\', Path.DirectorySeparatorChar)));
     }
 
     [Fact]
@@ -104,7 +104,10 @@ public sealed class VaultTests : IDisposable
         File.WriteAllText(Path.Combine(folder, "a.txt"), "A");
         File.WriteAllText(Path.Combine(folder, "하위", "b.txt"), "B");
 
-        var vault = VaultMaker.Create(folder, "pw");
+        var made = VaultMaker.Create(folder, "pw");
+        made.Complete.Should().BeTrue();
+        made.Files.Should().Be(2);
+        var vault = made.VaultPath;
         vault.Should().EndWith("중요.foldyvault");
         SecureZip.Verify(vault, "pw").Should().BeTrue();
         SecureZip.List(vault, "pw").Select(e => e.Name).Should().BeEquivalentTo(["a.txt", "하위/b.txt"]);
@@ -135,8 +138,104 @@ public sealed class VaultTests : IDisposable
         SecureZip.ExtractAll(vault, "pw", dst).Should().Be(1);
         File.Exists(Path.Combine(dst, "ok.txt")).Should().BeTrue();
         File.Exists(Path.Combine(_root, "escaped.txt")).Should().BeFalse("zip 밖으로 나가는 이름은 꺼내지 않는다");
-        SecureZip.SafeDestination(dst, "../x").Should().BeNull();
-        SecureZip.SafeDestination(dst, @"C:\Windows\x").Should().BeNull();
-        SecureZip.SafeDestination(dst, "a/b.txt").Should().Be(Path.Combine(dst, "a", "b.txt"));
+        SecureZip.SafeTarget(dst, "../x").Should().BeNull();
+        SecureZip.SafeTarget(dst, @"C:\Windows\x").Should().BeNull();
+        SecureZip.SafeTarget(dst, "a/b.txt").Should().Be(Path.Combine(dst, "a", "b.txt"));
+    }
+
+    [Fact]
+    public void New_files_use_strong_key_and_hide_names()
+    {
+        var vault = Path.Combine(_root, "v2" + SecureZip.VaultExtension);
+        SecureZip.Write(vault, [("인사평가/2026_급여.xlsx", () => new MemoryStream("비밀"u8.ToArray()))], "correct horse battery");
+
+        SecureZip.IsStrongFormat(vault).Should().BeTrue();
+        using (var zf = new ICSharpCode.SharpZipLib.Zip.ZipFile(vault))
+        {
+            var names = zf.Cast<ICSharpCode.SharpZipLib.Zip.ZipEntry>().Select(e => e.Name).ToList();
+            names.Should().NotContain(n => n.Contains("급여") || n.Contains("인사평가"), "암호 없이 파일 이름이 보이면 안 된다");
+            names.Should().Contain(SecureZip.HeaderEntry);
+            using var h = zf.GetInputStream(zf.GetEntry(SecureZip.HeaderEntry));
+            var json = new StreamReader(h).ReadToEnd();
+            json.Should().Contain("pbkdf2-sha256").And.Contain(SecureZip.Iterations.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        // 사용자 암호 그대로는 zip 암호가 아니다 (7-Zip에 넣어도 안 열림)
+        using (var zf = new ICSharpCode.SharpZipLib.Zip.ZipFile(vault) { Password = "correct horse battery" })
+        {
+            FluentActions.Invoking(() =>
+            {
+                using var s = zf.GetInputStream(zf.GetEntry("d/000001"));
+                s.CopyTo(Stream.Null);
+            }).Should().Throw<Exception>();
+        }
+
+        SecureZip.List(vault, "correct horse battery").Should().Equal([("인사평가/2026_급여.xlsx", 6L)]);
+        SecureZip.ReadEntry(vault, "correct horse battery", "인사평가/2026_급여.xlsx").Should().Equal("비밀"u8.ToArray());
+        FluentActions.Invoking(() => SecureZip.List(vault, "wrong horse")).Should().Throw<WrongPasswordException>();
+        SecureZip.Verify(vault, "wrong horse").Should().BeFalse();
+    }
+
+    [Fact]
+    public void Old_standard_zip_files_still_open()
+    {
+        var old = Path.Combine(_root, "old" + SecureZip.LockExtension);
+        using (var fs = File.Create(old))
+        using (var zip = new ICSharpCode.SharpZipLib.Zip.ZipOutputStream(fs) { Password = "1234" })
+        {
+            zip.PutNextEntry(new ICSharpCode.SharpZipLib.Zip.ZipEntry("계약서.pdf") { AESKeySize = 256 });
+            zip.Write("%PDF-1.7"u8);
+            zip.CloseEntry();
+        }
+
+        SecureZip.IsStrongFormat(old).Should().BeFalse();
+        FileLocker.InnerName(old, "1234").Should().Be("계약서.pdf");
+        SecureZip.Verify(old, "1234").Should().BeTrue();
+        SecureZip.Verify(old, "틀림").Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(1_000)]
+    [InlineData(2_000_000_000)]
+    public void Rejects_headers_with_weak_or_huge_iteration_counts(int iterations)
+    {
+        // 남이 만든 파일이 반복 횟수를 1,000으로 낮추거나(약하게) 20억으로 키워(앱 멈춤) 속이지 못한다
+        var path = Path.Combine(_root, $"it{iterations}" + SecureZip.VaultExtension);
+        using (var fs = File.Create(path))
+        using (var zip = new ICSharpCode.SharpZipLib.Zip.ZipOutputStream(fs))
+        {
+            zip.PutNextEntry(new ICSharpCode.SharpZipLib.Zip.ZipEntry(SecureZip.HeaderEntry));
+            zip.Write(System.Text.Encoding.UTF8.GetBytes($"{{\"format\":2,\"kdf\":\"pbkdf2-sha256\",\"iterations\":{iterations},\"salt\":\"AAAAAAAAAAAAAAAAAAAAAA==\"}}"));
+            zip.CloseEntry();
+        }
+
+        FluentActions.Invoking(() => SecureZip.List(path, "pw")).Should().Throw<InvalidDataException>();
+    }
+
+    [Fact]
+    public void Vault_reports_folder_links_so_the_original_is_not_deleted()
+    {
+        var folder = Path.Combine(_root, "링크");
+        var elsewhere = Path.Combine(_root, "다른곳");
+        Directory.CreateDirectory(folder);
+        Directory.CreateDirectory(elsewhere);
+        File.WriteAllText(Path.Combine(folder, "a.txt"), "A");
+        var hidden = Path.Combine(folder, ".숨김.txt");
+        File.WriteAllText(hidden, "H");
+        File.SetAttributes(hidden, FileAttributes.Hidden);
+        File.WriteAllText(Path.Combine(elsewhere, "x.txt"), "X");
+        try
+        {
+            Directory.CreateSymbolicLink(Path.Combine(folder, "바로가기"), elsewhere);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return; // 링크를 만들 권한이 없는 환경 (Windows 개발자 모드 꺼짐)
+        }
+
+        var made = VaultMaker.Create(folder, "pw");
+        made.Files.Should().Be(2, "숨김 파일도 넣는다");
+        made.Complete.Should().BeFalse("폴더 링크 안의 파일은 들어가지 않았으므로 원본을 지우면 안 된다");
+        made.Skipped.Should().ContainSingle(x => x.Path.EndsWith("바로가기"));
     }
 }

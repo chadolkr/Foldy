@@ -231,6 +231,7 @@ public static class SecureFlows
         }
 
         pw = null;
+        SecureZip.ForgetKeys();
         w.Close();
     }
 
@@ -321,9 +322,11 @@ public static class SecureFlows
         var count = 0;
         try
         {
-            foreach (var f in new DirectoryInfo(folder).EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true }))
+            // 금고에 실제로 넣을 것과 같은 기준으로 센다 (숨김 파일 포함, 폴더 링크는 따라가지 않음)
+            var (files, _) = await Task.Run(() => VaultMaker.Scan(folder.TrimEnd('\\', '/')));
+            foreach (var f in files)
             {
-                size += f.Length;
+                size += new FileInfo(f).Length;
                 count++;
             }
         }
@@ -343,9 +346,11 @@ public static class SecureFlows
         w.Busy();
         var status = w.Say("넣고 있어요… 파일이 많으면 조금 걸려요.");
         string vault;
+        VaultResult made;
         try
         {
-            vault = await Task.Run(() => VaultMaker.Create(folder, pw));
+            made = await Task.Run(() => VaultMaker.Create(folder, pw));
+            vault = made.VaultPath;
             status.Text = "다 넣었어요. 제대로 열리는지 하나하나 확인하고 있어요…";
             if (!await Task.Run(() => SecureZip.Verify(vault, pw)))
             {
@@ -363,6 +368,17 @@ public static class SecureFlows
         }
 
         status.Text = "확인까지 끝났어요.";
+        var inVault = await Task.Run(() => SecureZip.List(vault, pw).Count);
+        if (!made.Complete || inVault != made.Files)
+        {
+            // 빠진 것이 있으면 원본을 지우자고 하지 않는다 (OneDrive라면 클라우드에서도 지워진다)
+            var list = string.Join("\n", made.Skipped.Take(5).Select(x => $"· {Path.GetFileName(x.Path)}: {x.Reason}"));
+            var more = made.Skipped.Count > 5 ? $"\n…외 {made.Skipped.Count - 5:N0}개" : "";
+            await w.AskAsync($"금고는 만들었지만 원본 폴더의 일부를 넣지 못했어요. 그래서 원본 폴더는 그대로 둘게요.\n{list}{more}", C("close", "닫기"));
+            w.Close();
+            return;
+        }
+
         var c = await w.AskAsync($"\"{Path.GetFileName(vault)}\"({FileItem.FormatBytes(new FileInfo(vault).Length)})를 만들었어요. 암호가 없는 원본 폴더는 휴지통으로 보낼까요? (휴지통에서 되살릴 수 있어요)",
             C("recycle", "원본은 휴지통으로"), C("keep", "원본도 그대로 두기"));
         if (c == "recycle")
@@ -442,13 +458,12 @@ public static class SecureFlows
                     var done = 0;
                     foreach (var name in names)
                     {
-                        // 금고 안 이름이 "..\..\시작프로그램\x.bat"처럼 꺼낼 폴더 밖을 가리키면 건너뛴다 (zip slip)
-                        if (SecureZip.SafeDestination(dest, name) is not { } safe)
+                        if (SecureZip.SafeTarget(dest, name) is not { } target)
                         {
-                            continue;
+                            continue; // 금고 밖으로 나가는 이름은 꺼내지 않는다
                         }
 
-                        var dst = SecureZip.Unique(safe);
+                        var dst = SecureZip.Unique(target);
                         Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
                         File.WriteAllBytes(dst, SecureZip.ReadEntry(vault, p, name));
                         done++;
@@ -474,6 +489,7 @@ public static class SecureFlows
         }
 
         pw = null;
+        SecureZip.ForgetKeys();
         if (!w.IsClosed)
         {
             w.Close();
