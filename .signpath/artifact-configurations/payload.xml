@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath 아티팩트 구성 "payload": release.yml이 올리는 dist/Foldy-Setup/payload (GitHub 아티팩트 zip).
+     SignPath 프로젝트 화면 → Artifact Configurations → payload 에 그대로 붙여 넣는다 (docs/code-signing.md). -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <!-- .NET 어셈블리: 제품 이름 Foldy로 제한 -->
+    <pe-file-set>
+      <include path="Foldy.exe" product-name="Foldy" />
+      <include path="Foldy.*.dll" product-name="Foldy" min-matches="1" max-matches="unbounded" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+    <!-- Rust 실행 파일 (버전 리소스를 넣으면 product-name 제한을 추가한다) -->
+    <pe-file-set>
+      <include path="foldy-index.exe" />
+      <include path="foldy-update.exe" />
+      <include path="foldy_*.dll" min-matches="0" max-matches="unbounded" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>
