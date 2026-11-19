@@ -125,7 +125,7 @@
         </Border>
       </Grid>
 
-      <TabControl Grid.Row="1" Style="{StaticResource Tpl.Tabs}" Margin="0,10,0,0">
+      <TabControl Grid.Row="1" Style="{StaticResource Tpl.Tabs}" Margin="0,10,0,0" SelectedIndex="{Binding SelectedListTab}">
         <TabItem Header="옮길 파일">
           <ListView ItemsSource="{Binding Moves}">
             <ListView.View>

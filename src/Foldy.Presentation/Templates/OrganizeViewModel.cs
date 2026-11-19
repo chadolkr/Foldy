@@ -272,6 +272,10 @@ public sealed partial class OrganizeViewModel : ObservableObject
 
     partial void OnIncludeSubfoldersChanged(bool value) => Invalidate();
 
+    /// <summary>아래 목록 탭 (0 = 옮길 파일, 1 = 건너뛸 파일). 옮길 것이 없으면 건너뛴 이유를 바로 보여 준다.</summary>
+    [ObservableProperty]
+    private int _selectedListTab;
+
     /// <summary>프로젝트 폴더(.git 등)라도 맨 위 파일만 정리한다 (하위 폴더는 그대로). 기본 꺼짐.</summary>
     [ObservableProperty]
     private bool _organizeProjectAnyway;
@@ -392,8 +396,21 @@ public sealed partial class OrganizeViewModel : ObservableObject
         }
 
         State = OrganizeState.Ready;
-        Status = plan.Moves.Count == 0 ? "옮길 파일이 없습니다. 이미 정리돼 있어요." : "계획을 확인하고 [정리하기]를 누르세요. 아무것도 삭제하지 않습니다.";
+        Status = plan.Moves.Count == 0
+            ? (plan.Skipped.Count == 0 || plan.Skipped.All(x => Directory.Exists(x.FullPath))
+                ? "정리할 파일이 없습니다. 이 폴더에는 파일이 없고 폴더만 있어요 (하위 폴더 안까지 보려면 \"하위 폴더 안까지 정리\"를 켜세요)."
+                : $"옮길 파일이 없습니다. 아래 \"건너뛸 파일\"에서 {plan.Skipped.Count}개를 건너뛴 이유를 볼 수 있어요.")
+            : "계획을 확인하고 [정리하기]를 누르세요. 아무것도 삭제하지 않습니다.";
+        SelectedListTab = plan.Moves.Count == 0 && plan.Skipped.Count > 0 ? 1 : 0;
         OnPlanEdited();
+        if (plan.Moves.Count == 0 && plan.Skipped.Count > 0)
+        {
+            // 옮길 것이 없으면 지금 구조(건너뛴 항목)를 양쪽에 그대로 보여 준다 — "지금 = 정리 후"
+            var rel = plan.Skipped.Select(x => Path.GetRelativePath(plan.Root, x.FullPath)).ToList();
+            var folders = new HashSet<string>(plan.Skipped.Where(x => Directory.Exists(x.FullPath)).Select(x => Path.GetRelativePath(plan.Root, x.FullPath)), StringComparer.OrdinalIgnoreCase);
+            BeforeTree = OrganizeTreeNode.Build(rel, folders);
+            AfterTree = OrganizeTreeNode.Build(rel, folders);
+        }
     }
 
     internal void OnPlanEdited()
