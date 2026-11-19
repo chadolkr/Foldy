@@ -13,6 +13,8 @@ public static class OrganizeScanner
     [
         ".git", ".hg", ".svn", "package.json", "Cargo.toml", "pyproject.toml", "setup.py", "go.mod", "pom.xml",
         "build.gradle", "build.gradle.kts", "CMakeLists.txt", "Makefile", "composer.json", "Gemfile", ".foldy-project",
+        // AI 프로젝트 (Claude Code 등): 정리 도구가 구조를 건드리지 않는다
+        ".claude", "CLAUDE.md", "AGENTS.md", "SKILL.md",
     ];
 
     private static readonly string[] ProjectMarkerExtensions = [".sln", ".slnx", ".csproj", ".vcxproj", ".xcodeproj", ".psd", ".prproj", ".aep", ".blend", ".uproject"];
@@ -22,13 +24,22 @@ public static class OrganizeScanner
         FolderDescription.FileName, "desktop.ini", "thumbs.db", ".DS_Store",
     };
 
+    // 사용자 폴더(C:\Users\이름)의 .claude는 Claude Code의 사용자 설정이지 프로젝트 표시가 아니다
+    private static readonly string UserHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+
     public static bool IsProjectFolder(string folder)
     {
         try
         {
+            var home = string.Equals(Path.GetFullPath(folder).TrimEnd('\\'), UserHome, StringComparison.OrdinalIgnoreCase);
             foreach (var e in Directory.EnumerateFileSystemEntries(folder))
             {
                 var name = Path.GetFileName(e);
+                if (home && name.Equals(".claude", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 if (ProjectMarkers.Contains(name, StringComparer.OrdinalIgnoreCase)
                     || ProjectMarkerExtensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase))
                 {
@@ -44,7 +55,7 @@ public static class OrganizeScanner
         return false;
     }
 
-    public const string ProjectRootReason = "Git 저장소·개발 프로젝트 폴더(.git, .sln, package.json 등이 있음)는 정리하지 않습니다. 파일을 옮기면 빌드나 Git 기록이 깨질 수 있어요. 프로젝트 밖의 일반 폴더에서 정리해 주세요.";
+    public const string ProjectRootReason = "Git 저장소·개발·AI 프로젝트 폴더(.git, .sln, package.json, .claude, CLAUDE.md 등이 있음)는 정리하지 않습니다. 파일을 옮기면 빌드나 Git 기록이 깨질 수 있어요. 프로젝트 밖의 일반 폴더에서 정리해 주세요.";
 
     /// <summary>정리하면 안 되는 폴더면 이유, 아니면 null. <paramref name="allowProject"/>면 프로젝트 폴더도 허용한다.</summary>
     public static string? CheckRoot(string root, bool allowProject = false)
