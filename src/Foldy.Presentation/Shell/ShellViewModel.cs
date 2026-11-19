@@ -333,6 +333,21 @@ public sealed partial class ShellViewModel : ObservableObject
         return r.Succeeded;
     }
 
+    /// <summary>경로들을 휴지통을 거치지 않고 지운다 (금고·잠그기 뒤 암호 없는 원본). 사용자가 고른 뒤에만 부른다.</summary>
+    public async Task<bool> DeletePermanentlyAsync(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0)
+        {
+            return false;
+        }
+
+        var job = StartJob($"{JobViewModel.Describe(paths)} 영구 삭제", Mascot.JobKind.DeletePermanent);
+        var r = await _services.FileOps.DeleteAsync(paths, recycle: false, job, job.Token);
+        FinishJob(job, r);
+        await RefreshFoldersAsync(paths.Select(s => PathUtil.Parent(s) ?? s));
+        return r.Succeeded;
+    }
+
     /// <summary>
     /// SFTP 삭제 확인 문구: 몇 개를 지우는지와 이름(최대 5개)을 보여 주고, 되돌릴 수 없다는 걸 친근하게 알린다.
     /// 이 확인은 설정으로 끌 수 없다.
