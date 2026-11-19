@@ -8,7 +8,7 @@ using Foldy.Presentation.Tabs;
 namespace Foldy.Presentation.Analysis;
 
 /// <summary>
-/// 디스크 분석 탭 (설계서 7.3, DESIGN.md "디스크 정리"). 분석 스냅샷 DB 하나를 읽기 전용으로 열고 트리맵, 큰 폴더·파일 Top N,
+/// 폴더 분석 탭 (설계서 7.3, DESIGN.md "디스크 정리"). 분석 스냅샷 DB 하나를 읽기 전용으로 열고 트리맵, 큰 폴더·파일 Top N,
 /// 확장자별 용량, 오래된 파일, 정리 제안, 지난 분석 대비 증감을 보여 준다. 화면은 Foldy.UI의 AnalysisView.
 /// 이 ViewModel은 아무것도 지우지 않는다: [휴지통으로]는 <see cref="RecycleRequested"/>로 호스트에 넘긴다.
 /// DB 조회는 백그라운드에서 하나씩(_gate) 하고, 결과는 await 뒤(UI 컨텍스트)에 반영한다. 스레드 소유권: UI 스레드 전용.

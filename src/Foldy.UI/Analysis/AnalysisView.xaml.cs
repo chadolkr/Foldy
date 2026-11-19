@@ -8,7 +8,7 @@ using Foldy.Presentation.Analysis;
 namespace Foldy.UI.Analysis;
 
 /// <summary>
-/// 디스크 분석 화면. DataContext = <see cref="AnalysisTabViewModel"/>. 논리는 ViewModel에 있고 여기에는 두 번 클릭 전달,
+/// 폴더 분석 화면. DataContext = <see cref="AnalysisTabViewModel"/>. 논리는 ViewModel에 있고 여기에는 두 번 클릭 전달,
 /// 키 입력 같은 화면 일만 둔다. 휴지통으로 보내기는 호스트가 <see cref="AnalysisTabViewModel.RecycleRequested"/>를 받아 한다.
 /// 스레드 소유권: UI 스레드 전용.
 /// </summary>

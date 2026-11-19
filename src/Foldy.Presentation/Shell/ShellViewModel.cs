@@ -313,7 +313,7 @@ public sealed partial class ShellViewModel : ObservableObject
         await RefreshFoldersAsync([dest, .. src.Select(s => PathUtil.Parent(s) ?? s)]);
     }
 
-    /// <summary>경로들을 휴지통으로 (디스크 분석의 정리 후보). 성공 여부를 돌려준다.</summary>
+    /// <summary>경로들을 휴지통으로 (폴더 분석의 정리 후보). 성공 여부를 돌려준다.</summary>
     public async Task<bool> RecycleAsync(IReadOnlyList<string> paths)
     {
         if (paths.Count == 0)
