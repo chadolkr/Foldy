@@ -115,6 +115,7 @@ public sealed class AppUpdater : IDisposable
             ReadyVersion = version;
             ReadyFolder = dir;
             ReadyMsi = msi;
+            ReadyAsset = asset;
             Log.Information("업데이트 {Version} 설치 준비됨: {Msi}", version, msi);
             return true;
         }
@@ -133,6 +134,21 @@ public sealed class AppUpdater : IDisposable
     }
 
     public string? ReadyMsi { get; private set; }
+
+    private ManifestAsset? ReadyAsset { get; set; }
+
+    private static bool StillMatches(string path, ManifestAsset asset)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return fs.Length == asset.Size && string.Equals(Convert.ToHexStringLower(SHA256.HashData(fs)), asset.Sha256, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
 
     private static async Task<bool> MatchesAsync(string path, ManifestAsset asset, CancellationToken ct)
     {
@@ -186,6 +202,7 @@ public sealed class AppUpdater : IDisposable
 
     /// <summary>
     /// 관리자 권한(UAC 한 번)으로 MSI를 설치하고, 끝나면 탐색기를 통해(일반 권한) Foldy를 다시 띄운다.
+    /// 설치 직전에 해시를 다시 보고, 관리자 쪽에서도 보호된 폴더로 복사한 뒤 한 번 더 확인한다 (바꿔치기 방지).
     /// 호출자는 바로 앱을 종료해야 한다. UAC를 취소하면 false.
     /// </summary>
     public bool LaunchInstaller()
@@ -197,18 +214,17 @@ public sealed class AppUpdater : IDisposable
 
         try
         {
-            var exe = Environment.ProcessPath!;
-            var log = Path.Combine(_root, $"install-{ReadyVersion}.log");
-            var script = $"Start-Sleep -Seconds 2; $p = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/i \"{ReadyMsi}\" /passive /norestart /l*v \"{log}\"'; " +
-                         $"Start-Process explorer.exe -ArgumentList '\"{exe}\"'";
-            var psi = new ProcessStartInfo("powershell.exe")
+            if (ReadyAsset is not { } asset || !StillMatches(ReadyMsi, asset))
             {
-                UseShellExecute = true,
-                Verb = "runas",
-                WindowStyle = ProcessWindowStyle.Hidden,
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"", StringComparison.Ordinal)}\"",
-            };
-            using var _ = Process.Start(psi);
+                // 확인한 뒤 바뀌었다: 설치하지 않고 다음 확인 때 다시 받는다
+                Log.Warning("업데이트 MSI가 확인한 뒤 바뀌어 설치하지 않습니다");
+                ReadyMsi = null;
+                ReadyVersion = null;
+                return false;
+            }
+
+            // 관리자 권한으로 뜬 뒤 보호된 폴더로 복사하고 해시를 다시 확인한 복사본만 설치한다 (ElevatedMsiInstall)
+            using var _ = Process.Start(Foldy.Platform.SystemInfo.ElevatedMsiInstall.BuildStartInfo(ReadyMsi, asset.Sha256, Environment.ProcessPath!));
             return true;
         }
         catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)

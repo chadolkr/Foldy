@@ -12,25 +12,20 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
 use tokio::sync::mpsc;
 
-fn create(name: &str, first: bool, sec: &mut Option<PipeSecurity>) -> io::Result<NamedPipeServer> {
+fn create(name: &str, first: bool, sec: &mut PipeSecurity) -> io::Result<NamedPipeServer> {
     let mut opts = ServerOptions::new();
     opts.first_pipe_instance(first).reject_remote_clients(true);
-    match sec {
-        // SAFETY: sec가 가리키는 SECURITY_ATTRIBUTES는 서버 루프가 끝날 때까지 살아 있다.
-        Some(s) => unsafe { opts.create_with_security_attributes_raw(name, s.as_ptr()) },
-        None => opts.create(name),
-    }
+    // SAFETY: sec가 가리키는 SECURITY_ATTRIBUTES는 서버 루프가 끝날 때까지 살아 있다.
+    unsafe { opts.create_with_security_attributes_raw(name, sec.as_ptr()) }
 }
 
 /// 서버 루프. `once`면 첫 클라이언트를 처리한 뒤 끝낸다. `shutdown`이 끝나면 멈춘다.
 pub async fn run(pipe: &str, once: bool, indexer: Arc<Indexer>, shutdown: impl std::future::Future<Output = ()>) -> io::Result<()> {
-    let mut sec = match PipeSecurity::interactive_only() {
-        Ok(s) => Some(s),
-        Err(e) => {
-            eprintln!("pipe ACL 설정 실패, 기본 보안으로 엽니다: {e}");
-            None
-        }
-    };
+    // 보안 설명자를 못 만들면 파이프를 열지 않는다 (기본 보안으로 열면 SYSTEM 서비스에 누가 붙을지 알 수 없다)
+    let mut sec = PipeSecurity::interactive_only().map_err(|e| {
+        eprintln!("pipe ACL 설정 실패, 파이프를 열지 않습니다: {e}");
+        e
+    })?;
     let mut server = create(pipe, true, &mut sec)?;
     println!("READY {pipe}");
     tokio::pin!(shutdown);

@@ -134,6 +134,8 @@ struct Inner {
     st: UpdateState,
     check_requested: bool,
     watch: Option<StartWatch>,
+    /// 업데이트 폴더 보안 설정이 실패함: 확인·다운로드·설치를 하지 않는다
+    unsafe_dir: bool,
 }
 
 pub struct UpdateService {
@@ -178,7 +180,7 @@ impl UpdateService {
         Arc::new(UpdateService {
             cfg,
             host,
-            inner: Mutex::new(Inner { m: Machine::default(), st: UpdateState::default(), check_requested: false, watch: None }),
+            inner: Mutex::new(Inner { m: Machine::default(), st: UpdateState::default(), check_requested: false, watch: None, unsafe_dir: false }),
             kick: Notify::new(),
         })
     }
@@ -323,7 +325,14 @@ impl UpdateService {
         match secured {
             Ok(true) => self.log("다른 사용자가 미리 만든 업데이트 폴더를 비우고 ACL을 다시 정했습니다"),
             Ok(false) => {}
-            Err(e) => self.log(&format!("업데이트 폴더 준비 실패: {e}")),
+            Err(e) => {
+                // 폴더 보안을 확인하지 못했으면 그 안의 파일(state.json, MSI)을 믿을 수 없다 → 이번 실행은 자동 업데이트를 끈다
+                self.log(&format!("업데이트 폴더 준비 실패, 이번 실행은 자동 업데이트를 끕니다: {e}"));
+                let mut g = self.lock();
+                g.unsafe_dir = true;
+                g.m.last_error = Some("업데이트 폴더의 보안을 확인하지 못해 자동 업데이트를 껐습니다 (서비스를 다시 시작해 보세요)".into());
+                return;
+            }
         }
         let mut st = UpdateState::load(&state_path(dir));
         // 준비된 업데이트는 메모리에만 있으므로 시작 후 첫 확인은 304 없이 다시 받는다 (파일은 검증되면 재사용)
@@ -414,7 +423,7 @@ impl UpdateService {
     pub fn check_blocking(&self) {
         let (mut st, channel) = {
             let mut g = self.lock();
-            if !g.m.begin_check() {
+            if g.unsafe_dir || !g.m.begin_check() {
                 return;
             }
             (g.st.clone(), Self::channel(&g.st))
@@ -503,6 +512,9 @@ impl UpdateService {
     /// 설치 요청 처리: Foldy 종료를 기다린 뒤 설치한다.
     async fn install(self: Arc<Self>) {
         let Some((ready, req)) = self.lock().m.take_install() else { return };
+        if self.lock().unsafe_dir {
+            return;
+        }
         let exe = self.cfg.foldy_exe();
         let deadline = tokio::time::Instant::now() + self.cfg.idle_timeout;
         loop {

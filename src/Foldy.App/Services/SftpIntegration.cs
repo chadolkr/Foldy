@@ -62,11 +62,12 @@ public sealed class SftpSessions
         {
             var changed = c.Status == HostKeyStatus.Changed;
             var msg = changed
-                ? $"⚠ {c.Host}:{c.Port} 서버의 호스트 키가 저장된 것과 다릅니다.\n중간자 공격일 수 있습니다.\n\n{c.KeyType}\n{c.FingerprintSha256}\n\n새 키를 믿고 저장할까요?"
+                ? $"⚠ {c.Host}:{c.Port} 서버의 호스트 키가 저장된 것과 다릅니다.\n중간자 공격일 수 있습니다.\n\n{c.KeyType}\n{c.FingerprintSha256}\n\n서버 관리자에게 키가 바뀐 게 맞는지 확인한 뒤에만 \"확인\"을 누르세요."
                 : $"{c.Host}:{c.Port} 서버에 처음 연결합니다.\n\n{c.KeyType}\n{c.FingerprintSha256}\n\n이 키를 known_hosts에 저장하고 연결할까요?\n(아니요: 이번만 연결)";
             var r = MessageBox.Show(Application.Current.MainWindow, msg, "Foldy · 호스트 키 확인",
                 changed ? MessageBoxButton.OKCancel : MessageBoxButton.YesNoCancel,
-                changed ? MessageBoxImage.Warning : MessageBoxImage.Question);
+                changed ? MessageBoxImage.Warning : MessageBoxImage.Question,
+                MessageBoxResult.Cancel); // Enter 한 번에 바뀐 키를 믿지 않도록 기본은 취소
             return r switch
             {
                 MessageBoxResult.Yes or MessageBoxResult.OK => HostKeyDecision.AcceptAndSave,

@@ -75,81 +75,128 @@ public static class LogArchiver
     {
         var skipped = new List<(string, string)>();
         var added = new List<(string Path, string Entry, byte[] Hash)>();
-        var before = File.Exists(group.ZipPath) ? new FileInfo(group.ZipPath).Length : 0;
-
         var existed = File.Exists(group.ZipPath);
-        using (var zip = ZipFile.Open(group.ZipPath, existed ? ZipArchiveMode.Update : ZipArchiveMode.Create))
+        var before = existed ? new FileInfo(group.ZipPath).Length : 0;
+
+        // 기존 월별 zip은 제자리에서 고치지 않는다 (Update 모드는 닫을 때 전체를 다시 써서, 그 사이 꺼지면
+        // 예전에 넣고 휴지통으로 보낸 로그까지 잃는다). 새 파일에 기존 항목 + 새 항목을 쓰고, 확인한 뒤 바꿔 끼운다.
+        var tmp = group.ZipPath + ".writing";
+        var oldCount = 0;
+        try
         {
-            var names = new HashSet<string>(existed ? zip.Entries.Select(e => e.FullName) : [], StringComparer.OrdinalIgnoreCase);
-            foreach (var f in group.Files)
+            using (var zip = ZipFile.Open(tmp, ZipArchiveMode.Create))
             {
-                ct.ThrowIfCancellationRequested();
-                FileStream src;
-                try
+                var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (existed)
                 {
-                    // 다른 프로그램이 열어 두고 있으면(쓰는 중) 열리지 않는다 → 건너뜀
-                    src = new FileStream(f.Path, FileMode.Open, FileAccess.Read, FileShare.None);
-                }
-                catch (IOException)
-                {
-                    skipped.Add((f.Path, "다른 프로그램이 쓰는 중"));
-                    continue;
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    skipped.Add((f.Path, "권한 없음"));
-                    continue;
+                    using var old = ZipFile.OpenRead(group.ZipPath);
+                    foreach (var e in old.Entries)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        var copy = zip.CreateEntry(e.FullName, CompressionLevel.Optimal);
+                        copy.LastWriteTime = e.LastWriteTime;
+                        using (var src = e.Open())
+                        using (var dst = copy.Open())
+                        {
+                            src.CopyTo(dst);
+                        }
+
+                        names.Add(e.FullName);
+                        oldCount++;
+                    }
                 }
 
-                using (src)
+                foreach (var f in group.Files)
                 {
-                    var entryName = UniqueName(names, System.IO.Path.GetFileName(f.Path));
-                    var entry = zip.CreateEntry(entryName, CompressionLevel.Optimal);
-                    entry.LastWriteTime = File.GetLastWriteTime(f.Path);
-                    using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                    using (var dst = entry.Open())
+                    ct.ThrowIfCancellationRequested();
+                    FileStream src;
+                    try
                     {
-                        var buf = new byte[81920];
-                        int n;
-                        while ((n = src.Read(buf, 0, buf.Length)) > 0)
-                        {
-                            sha.AppendData(buf, 0, n);
-                            dst.Write(buf, 0, n);
-                        }
+                        // 다른 프로그램이 열어 두고 있으면(쓰는 중) 열리지 않는다 → 건너뜀
+                        src = new FileStream(f.Path, FileMode.Open, FileAccess.Read, FileShare.None);
+                    }
+                    catch (IOException)
+                    {
+                        skipped.Add((f.Path, "다른 프로그램이 쓰는 중"));
+                        continue;
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        skipped.Add((f.Path, "권한 없음"));
+                        continue;
                     }
 
-                    names.Add(entryName);
-                    added.Add((f.Path, entryName, sha.GetHashAndReset()));
+                    using (src)
+                    {
+                        var entryName = UniqueName(names, System.IO.Path.GetFileName(f.Path));
+                        var entry = zip.CreateEntry(entryName, CompressionLevel.Optimal);
+                        entry.LastWriteTime = File.GetLastWriteTime(f.Path);
+                        using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                        using (var dst = entry.Open())
+                        {
+                            var buf = new byte[81920];
+                            int n;
+                            while ((n = src.Read(buf, 0, buf.Length)) > 0)
+                            {
+                                sha.AppendData(buf, 0, n);
+                                dst.Write(buf, 0, n);
+                            }
+                        }
+
+                        names.Add(entryName);
+                        added.Add((f.Path, entryName, sha.GetHashAndReset()));
+                    }
                 }
             }
-        }
 
-        // 다시 열어 확인: 같은 내용이어야만 원본을 지울 수 있다
-        var ok = new List<string>();
-        using (var zip = ZipFile.OpenRead(group.ZipPath))
-        {
-            foreach (var (path, entryName, hash) in added)
+            // 다시 열어 확인: 같은 내용이어야만 원본을 지울 수 있다. 기존 항목 수도 그대로여야 바꿔 끼운다.
+            var ok = new List<string>();
+            var verifySkipped = new List<(string, string)>();
+            using (var zip = ZipFile.OpenRead(tmp))
             {
-                ct.ThrowIfCancellationRequested();
-                var e = zip.GetEntry(entryName);
-                if (e is not null && Hash(e).AsSpan().SequenceEqual(hash))
+                if (zip.Entries.Count != oldCount + added.Count)
                 {
-                    ok.Add(path);
+                    throw new InvalidDataException("새 zip의 항목 수가 맞지 않음");
                 }
-                else
+
+                foreach (var (path, entryName, hash) in added)
                 {
-                    skipped.Add((path, "압축 확인 실패 (원본은 그대로 둠)"));
+                    ct.ThrowIfCancellationRequested();
+                    var e = zip.GetEntry(entryName);
+                    if (e is not null && Hash(e).AsSpan().SequenceEqual(hash))
+                    {
+                        ok.Add(path);
+                    }
+                    else
+                    {
+                        verifySkipped.Add((path, "압축 확인 실패 (원본은 그대로 둠)"));
+                    }
                 }
             }
-        }
 
-        if (added.Count == 0 && before == 0 && File.Exists(group.ZipPath))
+            if (added.Count == 0)
+            {
+                File.Delete(tmp); // 넣은 것이 없으면 기존 zip은 그대로, 빈 zip도 남기지 않는다
+                return new LogArchiveResult([], skipped, 0);
+            }
+
+            File.Move(tmp, group.ZipPath, overwrite: true);
+            skipped.AddRange(verifySkipped);
+            var after = new FileInfo(group.ZipPath).Length;
+            return new LogArchiveResult(ok, skipped, after - before);
+        }
+        catch
         {
-            File.Delete(group.ZipPath); // 아무것도 못 넣었으면 빈 zip을 남기지 않는다
-        }
+            try
+            {
+                File.Delete(tmp); // 기존 zip은 건드리지 않았다
+            }
+            catch (IOException)
+            {
+            }
 
-        var after = File.Exists(group.ZipPath) ? new FileInfo(group.ZipPath).Length : 0;
-        return new LogArchiveResult(ok, skipped, after - before);
+            throw;
+        }
     }
 
     private static byte[] Hash(ZipArchiveEntry e)

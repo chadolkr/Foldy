@@ -644,6 +644,12 @@ public sealed class MarkdownFlowRenderer
         }
 
         var path = target.Path;
+        if (MarkdownLinks.IsNetworkPath(path))
+        {
+            // 문서를 열기만 해도 그림을 받으러 다른 컴퓨터에 접속하면 로그인 정보(NTLM)가 그쪽으로 간다
+            return Placeholder("🖼 " + (alt.Length > 0 ? alt : "네트워크 그림"), "네트워크 위치의 그림은 불러오지 않아요: " + path);
+        }
+
         if (string.Equals(Path.GetExtension(path), ".svg", StringComparison.OrdinalIgnoreCase))
         {
             return Placeholder("🖼 " + (alt.Length > 0 ? alt : Path.GetFileName(path)) + " (SVG)", path);

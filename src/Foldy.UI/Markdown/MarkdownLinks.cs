@@ -46,6 +46,27 @@ public static class MarkdownLinks
 
     public static bool IsExecutable(string path) => ExecutableExtensions.Contains(System.IO.Path.GetExtension(path));
 
+    // 문서 링크로 묻지 않고 바로 열어도 되는 확장자 (문서·그림·소리·영상·텍스트). 나머지는 모두 한 번 묻는다.
+    // 위험 목록만으로는 .iso .img .chm .msc .settingcontent-ms .library-ms .docm 같은 것을 다 막을 수 없다.
+    private static readonly HashSet<string> SafeExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".txt", ".log", ".csv", ".tsv", ".json", ".yaml", ".yml", ".toml", ".ini", ".md", ".markdown",
+        ".pdf", ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp", ".hwp", ".hwpx", ".rtf",
+        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tif", ".tiff", ".ico", ".heic",
+        ".mp3", ".wav", ".flac", ".m4a", ".ogg", ".mp4", ".mkv", ".mov", ".avi", ".webm",
+        ".zip", ".7z",
+    };
+
+    /// <summary>열기 전에 사용자에게 물어야 하는지: 안전한 확장자 목록에 없으면 묻는다.</summary>
+    public static bool NeedsConfirmation(string path) => !SafeExtensions.Contains(System.IO.Path.GetExtension(path));
+
+    /// <summary>
+    /// 다른 컴퓨터를 가리키는 경로(\\서버\공유, //서버/공유). 열거나 있는지 확인만 해도 Windows가 그 서버에
+    /// 로그인 정보(NTLM)를 보내므로, 사용자가 허락하기 전에는 건드리지 않는다.
+    /// </summary>
+    public static bool IsNetworkPath(string path) =>
+        path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal);
+
     /// <summary>
     /// 링크를 분류한다. 상대 경로는 baseFolder(문서가 있는 폴더) 기준. 퍼센트 인코딩(%20)은 풀고,
     /// 경로가 실제 폴더이거나 '/'로 끝나면 Folder.
@@ -76,6 +97,11 @@ public static class MarkdownLinks
                     if (Uri.TryCreate(url, UriKind.Absolute, out var fileUri) && fileUri.IsFile)
                     {
                         var frag = fileUri.Fragment.Length > 1 ? Unescape(fileUri.Fragment[1..]) : null;
+                        if (fileUri.IsUnc)
+                        {
+                            return Network(@"\\" + fileUri.Host + Unescape(fileUri.AbsolutePath).Replace('/', '\\'), frag, url.EndsWith('/'));
+                        }
+
                         return ClassifyLocal(fileUri.LocalPath, frag, url.EndsWith('/'), directoryExists);
                     }
 
@@ -83,6 +109,13 @@ public static class MarkdownLinks
                 default:
                     return new MarkdownLinkTarget(MarkdownLinkKind.Blocked, url, null);
             }
+        }
+
+        // 장치 경로(\\?\…, \\.\…)는 열지 않는다. '?'를 쿼리로 떼기 전에 본다.
+        var unescaped = Unescape(url).Replace('/', '\\');
+        if (unescaped.StartsWith(@"\\?\", StringComparison.Ordinal) || unescaped.StartsWith(@"\\.\", StringComparison.Ordinal))
+        {
+            return new MarkdownLinkTarget(MarkdownLinkKind.Blocked, url, null);
         }
 
         // 상대·절대 로컬 경로. '?'(쿼리)와 '#'(앵커)를 떼어 낸다.
@@ -106,7 +139,13 @@ public static class MarkdownLinks
             return new MarkdownLinkTarget(MarkdownLinkKind.Anchor, "", fragment ?? "");
         }
 
-        var rel = Unescape(url).Replace('/', System.IO.Path.DirectorySeparatorChar);
+        var raw = Unescape(url);
+        if (IsNetworkPath(raw))
+        {
+            return Network(raw.Replace('/', '\\'), fragment, url.EndsWith('/') || url.EndsWith('\\'));
+        }
+
+        var rel = raw.Replace('/', System.IO.Path.DirectorySeparatorChar);
         string full;
         try
         {
@@ -123,6 +162,12 @@ public static class MarkdownLinks
         var trailingSlash = url.EndsWith('/') || url.EndsWith('\\');
         return ClassifyLocal(full, fragment, trailingSlash, directoryExists);
     }
+
+    // 네트워크 경로는 폴더인지 확인하지 않는다 (확인만 해도 서버에 접속한다)
+    private static MarkdownLinkTarget Network(string path, string? fragment, bool trailingSlash) =>
+        trailingSlash ? new MarkdownLinkTarget(MarkdownLinkKind.Folder, path.TrimEnd('\\'), null)
+        : IsMarkdownPath(path) ? new MarkdownLinkTarget(MarkdownLinkKind.Markdown, path, fragment)
+        : new MarkdownLinkTarget(MarkdownLinkKind.File, path, null);
 
     private static MarkdownLinkTarget ClassifyLocal(string full, string? fragment, bool trailingSlash, Func<string, bool> directoryExists)
     {

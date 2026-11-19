@@ -148,12 +148,9 @@ public static class SecureFlows
             return;
         }
 
-        var c = await w.AskAsync($"다 됐어요! \"{Path.GetFileName(r.LockPath)}\"를 만들고 풀어 보며 확인했어요. 암호가 없는 원본은 휴지통으로 보낼까요? (휴지통에서 되살릴 수 있어요)",
-            C("recycle", "원본은 휴지통으로"), C("keep", "원본도 그대로 두기"));
-        if (c == "recycle")
-        {
-            await shell.RecycleAsync([file]);
-        }
+        var c = await w.AskAsync($"다 됐어요! \"{Path.GetFileName(r.LockPath)}\"를 만들고 풀어 보며 확인했어요. 암호가 없는 원본은 어떻게 할까요?",
+            C("recycle", "원본은 휴지통으로"), C("delete", "원본 바로 지우기"), C("keep", "원본도 그대로 두기"));
+        await DisposeOriginalAsync(w, shell, file, c);
 
         await w.AskAsync("끝났어요. 잠긴 파일은 자물쇠 아이콘으로 보여요.", C("close", "닫기"));
         w.Close();
@@ -312,6 +309,29 @@ public static class SecureFlows
         w.Close();
     }
 
+    /// <summary>
+    /// 잠그거나 금고에 넣은 뒤 암호 없는 원본 처리. 휴지통은 비우기 전까지 원본이 그대로 남는다는 것을 알려 준다.
+    /// "바로 지우기"는 휴지통을 거치지 않는다 (디스크 복구 도구까지 막는 완전 삭제는 아니다).
+    /// </summary>
+    private static async Task DisposeOriginalAsync(GuideWindow w, ShellViewModel shell, string path, string? choice)
+    {
+        if (choice == "recycle")
+        {
+            if (await shell.RecycleAsync([path]))
+            {
+                w.Say("원본을 휴지통으로 보냈어요. 휴지통을 비우기 전까지는 암호 없이 볼 수 있으니, 다 확인했으면 휴지통을 비워 주세요.");
+            }
+        }
+        else if (choice == "delete")
+        {
+            var sure = await w.AskAsync("원본을 휴지통을 거치지 않고 지울게요. 되살릴 수 없어요. 괜찮을까요?", C("yes", "지우기"), C("no", "그만두기"));
+            if (sure == "yes" && await shell.DeletePermanentlyAsync([path]))
+            {
+                w.Say("원본을 지웠어요.");
+            }
+        }
+    }
+
     // ───────────── 금고 ─────────────
 
     public static async Task PutInVaultAsync(Window owner, string folder, ShellViewModel shell)
@@ -379,12 +399,9 @@ public static class SecureFlows
             return;
         }
 
-        var c = await w.AskAsync($"\"{Path.GetFileName(vault)}\"({FileItem.FormatBytes(new FileInfo(vault).Length)})를 만들었어요. 암호가 없는 원본 폴더는 휴지통으로 보낼까요? (휴지통에서 되살릴 수 있어요)",
-            C("recycle", "원본은 휴지통으로"), C("keep", "원본도 그대로 두기"));
-        if (c == "recycle")
-        {
-            await shell.RecycleAsync([folder]);
-        }
+        var c = await w.AskAsync($"\"{Path.GetFileName(vault)}\"({FileItem.FormatBytes(new FileInfo(vault).Length)})를 만들었어요. 암호가 없는 원본 폴더는 어떻게 할까요?",
+            C("recycle", "원본은 휴지통으로"), C("delete", "원본 바로 지우기"), C("keep", "원본도 그대로 두기"));
+        await DisposeOriginalAsync(w, shell, folder, c);
 
         await w.AskAsync("끝났어요. 금고는 금고 아이콘으로 보이고, 더블클릭하면 열려요.", C("close", "닫기"));
         w.Close();
