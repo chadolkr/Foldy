@@ -12,6 +12,7 @@
     <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.371" />
     <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.15" />
     <PackageVersion Include="Markdig" Version="1.6.0" />
+    <PackageVersion Include="SharpZipLib" Version="1.4.2" />
     <PackageVersion Include="SSH.NET" Version="2026.0.1" />
     <!-- 디스크 분석 DB (설계서 7.2/7.3): 최신 SQLite를 번들한 SQLitePCLRaw. OS의 sqlite에 기대지 않는다. -->
     <PackageVersion Include="Microsoft.Data.Sqlite.Core" Version="10.0.15" />

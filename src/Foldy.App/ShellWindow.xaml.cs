@@ -92,6 +92,7 @@ public partial class ShellWindow : Window, IPaneHost
         {
             Settings = _settings,
             ConfirmAsync = msg => Task.FromResult(MessageBox.Show(this, msg, "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes),
+            OpenSpecial = p => SecureFlows.TryOpen(this, p, Shell!),
         };
 
         _updater = new LegacyUpdateSource(new AppUpdater(AppVersion));
@@ -316,7 +317,14 @@ public partial class ShellWindow : Window, IPaneHost
         ActiveView.FocusList();
         if (App.Options.OpenPath is { } open && Shell.ActivePane.ActiveFolder is { } tab)
         {
-            _ = tab.NavigateAsync(open);
+            if (File.Exists(open) && SecureFlows.TryOpen(this, open, Shell))
+            {
+                _ = tab.NavigateAsync(Path.GetDirectoryName(open)!);
+            }
+            else
+            {
+                _ = tab.NavigateAsync(open);
+            }
         }
 
         RefreshDrives();
@@ -846,6 +854,37 @@ public partial class ShellWindow : Window, IPaneHost
         Add("cleanup.logs", "로그 정리 (현재 드라이브)", () => OpenLogCleanup(null));
         Add("cleanup.downloads", "다운로드 정리", () => OpenDownloadsCleanup(null));
         Add("cleanup.desktop", "바탕화면 정리", OpenDesktopTidy);
+        Add("secure.newMemo", "새 잠긴 메모 (지금 폴더에)", () =>
+        {
+            if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
+            {
+                _ = SecureFlows.NewMemoAsync(this, p);
+            }
+        });
+        Add("secure.lock", "암호 걸기 (고른 파일)", () =>
+        {
+            var sel = ShellViewModel.SelectedPaths(Shell.ActivePane);
+            if (sel.Count == 1 && File.Exists(sel[0]) && !SecureFlows.IsLocked(sel[0]))
+            {
+                _ = SecureFlows.LockFileAsync(this, sel[0], Shell);
+            }
+            else
+            {
+                Shell.Status = "암호를 걸 파일 하나를 골라 주세요";
+            }
+        });
+        Add("secure.vault", "금고에 넣기 (고른 폴더)", () =>
+        {
+            var sel = ShellViewModel.SelectedPaths(Shell.ActivePane);
+            if (sel.Count == 1 && Directory.Exists(sel[0]))
+            {
+                _ = SecureFlows.PutInVaultAsync(this, sel[0], Shell);
+            }
+            else
+            {
+                Shell.Status = "금고에 넣을 폴더 하나를 골라 주세요";
+            }
+        });
         Add("folder.manage", "이 폴더 관리 방식 정하기…", () =>
         {
             if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
@@ -1536,6 +1575,10 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void OpenDesktopTidy() => _ = CleanupFlows.DesktopAsync(this);
 
+    public void LockFile(string file) => _ = SecureFlows.LockFileAsync(this, file, Shell);
+
+    public void PutInVault(string folder) => _ = SecureFlows.PutInVaultAsync(this, folder, Shell);
+
     public void ManageFolder(string folder) => _ = CleanupFlows.SetMethodAsync(this, folder);
 
     public void ShowManagedSuggestions(string root)
@@ -1954,6 +1997,11 @@ public partial class ShellWindow : Window, IPaneHost
     public void ActivateFromOtherInstance(string[] args)
     {
         var path = AppOptions.Parse(args).OpenPath;
+        if (!string.IsNullOrWhiteSpace(path) && File.Exists(path) && SecureFlows.TryOpen(this, path, Shell))
+        {
+            path = null; // 탐색기에서 연 잠긴 파일·금고
+        }
+
         if (!string.IsNullOrWhiteSpace(path))
         {
             Shell.ActivePane.NewFolderTab(path);

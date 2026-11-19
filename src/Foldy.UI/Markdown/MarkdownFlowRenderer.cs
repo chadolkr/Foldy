@@ -39,6 +39,9 @@ public sealed class MarkdownRenderOptions
 
     /// <summary>테스트용: 이미지를 같은 스레드에서 바로 읽는다.</summary>
     public bool LoadImagesSynchronously { get; init; }
+
+    /// <summary>메모리에 있는 그림 (잠긴 메모: images/그림-1.png). 값이 있으면 디스크를 보지 않는다.</summary>
+    public Func<string, byte[]?>? InMemoryImage { get; init; }
 }
 
 /// <summary>
@@ -627,6 +630,11 @@ public sealed class MarkdownFlowRenderer
             }
 
             return Placeholder("🖼 " + alt, "지원하지 않는 이미지 형식");
+        }
+
+        if (_options.InMemoryImage?.Invoke(url) is { } mem)
+        {
+            return ImageHost(url, alt, _ => Task.FromResult(mem));
         }
 
         var target = MarkdownLinks.Classify(url, _options.BaseFolder, _ => false);

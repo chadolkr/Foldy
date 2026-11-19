@@ -516,6 +516,15 @@ public partial class ShellWindow
             g.Close();
         });
 
+        await DocSceneAsync("memo", async () =>
+        {
+            var note = new Foldy.Core.Vault.LockedNote { Markdown = "# 집 와이파이\n\n- 이름: home-5G\n- 암호: 예시-암호-1234\n\n# 현관\n\n비밀번호는 가족 생일 순서대로 (힌트만 적어 두기)\n" };
+            var path = Path.Combine(r, "비밀번호" + Foldy.Core.Vault.SecureZip.MemoSuffix);
+            var m = (MemoWindow)DocOpen(new MemoWindow(path, note, "doc-shot"));
+            await DocShotDialogAsync("memo", m, 900);
+            m.Close();
+        });
+
         await DocSceneAsync("about", async () =>
         {
             var win = DocOpen(new AboutWindow());

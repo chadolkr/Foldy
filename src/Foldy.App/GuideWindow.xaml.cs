@@ -84,6 +84,65 @@ public partial class GuideWindow : Window
         return (choice, rows.Where(r => r.Box.IsChecked == true).Select(r => r.Item).ToList());
     }
 
+    /// <summary>
+    /// 암호를 받는다. <paramref name="confirm"/>이면 두 번 입력해 같은지 확인한다. 취소·닫기면 null.
+    /// 입력 칸은 답을 받은 뒤 바로 비운다 (암호는 화면·기록에 남기지 않는다).
+    /// </summary>
+    public async Task<string?> AskPasswordAsync(string text, bool confirm, string okLabel = "확인")
+    {
+        Say(text);
+        var p1 = new PasswordBox { MinWidth = 260, Margin = new Thickness(0, 2, 0, 2) };
+        var p2 = new PasswordBox { MinWidth = 260, Margin = new Thickness(0, 2, 0, 2) };
+        var err = new TextBlock { Foreground = (Brush)FindResource("Brush.Error"), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = "암호" });
+        panel.Children.Add(p1);
+        if (confirm)
+        {
+            panel.Children.Add(new TextBlock { Text = "한 번 더", Margin = new Thickness(0, 4, 0, 0) });
+            panel.Children.Add(p2);
+        }
+
+        panel.Children.Add(err);
+        Add(panel, mine: false);
+        p1.Focus();
+        while (true)
+        {
+            var c = await ChooseAsync([("ok", okLabel), ("cancel", "그만두기")]);
+            if (c != "ok")
+            {
+                p1.Clear();
+                p2.Clear();
+                panel.IsEnabled = false;
+                return null;
+            }
+
+            var a = p1.Password;
+            if (a.Length < 4)
+            {
+                err.Text = "암호는 4글자 이상으로 정해 주세요.";
+            }
+            else if (confirm && a != p2.Password)
+            {
+                err.Text = "두 암호가 달라요. 다시 입력해 주세요.";
+                p2.Clear();
+            }
+            else
+            {
+                p1.Clear();
+                p2.Clear();
+                panel.IsEnabled = false;
+                return a;
+            }
+
+            err.Visibility = Visibility.Visible;
+            Messages.Children.RemoveAt(Messages.Children.Count - 1); // "확인" 말풍선은 지운다
+        }
+    }
+
+    /// <summary>그림이나 글을 그대로 보여 준다 (메모리에서 푼 내용 미리 보기).</summary>
+    public void ShowContent(FrameworkElement content) => Add(content, mine: false);
+
     /// <summary>읽기만 하는 목록 (자세히 보기).</summary>
     public void ShowList(IEnumerable<string> lines, int max = 200)
     {

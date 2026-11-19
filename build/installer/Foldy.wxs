@@ -61,6 +61,17 @@
                       Description="Foldy file manager" WorkingDirectory="INSTALLFOLDER"
                       Icon="FoldyIcon" Advertise="no" />
           </File>
+          <!-- 잠긴 파일(.foldylock)·금고(.foldyvault): 탐색기에서 두 번 누르면 Foldy가 암호를 묻고 연다. 제거하면 연결도 지워진다 -->
+          <ProgId Id="Foldy.LockedFile" Description="Foldy 잠긴 파일" Icon="FoldyExeFile" IconIndex="0">
+            <Extension Id="foldylock" ContentType="application/x-foldy-lock">
+              <Verb Id="open" Command="Foldy로 열기" TargetFile="FoldyExeFile" Argument="&quot;%1&quot;" />
+            </Extension>
+          </ProgId>
+          <ProgId Id="Foldy.Vault" Description="Foldy 금고" Icon="FoldyExeFile" IconIndex="0">
+            <Extension Id="foldyvault" ContentType="application/x-foldy-vault">
+              <Verb Id="open" Command="Foldy로 열기" TargetFile="FoldyExeFile" Argument="&quot;%1&quot;" />
+            </Extension>
+          </ProgId>
           <!-- 스크립트 설치본이 남긴 흔적 정리 (없으면 아무 일도 하지 않는다) -->
           <RemoveRegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Foldy"
                              Action="removeOnInstall" />

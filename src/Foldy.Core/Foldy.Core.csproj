@@ -5,6 +5,10 @@
     <RootNamespace>Foldy.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <!-- 금고·잠긴 메모: 표준 AES-256 zip (7-Zip·반디집에서도 열림). MIT 라이선스 -->
+    <PackageReference Include="SharpZipLib" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Foldy.Core.Tests" />
     <InternalsVisibleTo Include="Foldy.Templates.Tests" />
   </ItemGroup>

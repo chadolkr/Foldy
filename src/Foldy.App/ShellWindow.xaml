@@ -264,9 +264,13 @@
                 <TextBlock Style="{StaticResource SideName}" Text="정리하기" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="휴지통 (백업·금고·잠긴 메모는 곧 들어와요)" AutomationProperties.Name="지키기">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="잠긴 메모, 암호 걸기, 금고, 휴지통" AutomationProperties.Name="지키기">
               <Button.ContextMenu>
                 <ContextMenu>
+                  <MenuItem Header="새 잠긴 메모 (지금 폴더에)" Tag="secure.newMemo" Click="OnGroupMenuItem" />
+                  <MenuItem Header="암호 걸기 (고른 파일)" Tag="secure.lock" Click="OnGroupMenuItem" />
+                  <MenuItem Header="금고에 넣기 (고른 폴더)" Tag="secure.vault" Click="OnGroupMenuItem" />
+                  <Separator />
                   <MenuItem Header="휴지통 열기" Tag="side.recycleBin" Click="OnGroupMenuItem" />
                   <MenuItem Header="휴지통 비우기…" Tag="app.emptyRecycleBin" Click="OnGroupMenuItem" />
                 </ContextMenu>

@@ -11,6 +11,7 @@ Foldy uses the following open-source components, each under its own license.
 | CommunityToolkit.Mvvm | MIT |
 | Serilog, Serilog.Sinks.File, Serilog.Extensions.Hosting | Apache-2.0 |
 | Markdig | BSD-2-Clause |
+| SharpZipLib | MIT |
 | SSH.NET | MIT |
 | SQLitePCLRaw, SQLite | Apache-2.0 / Public Domain |
 

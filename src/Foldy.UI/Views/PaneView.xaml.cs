@@ -970,13 +970,32 @@ public partial class PaneView : UserControl
         // PointToScreen은 이미 장치 픽셀
         // 폴더 하나(또는 빈 곳 = 지금 폴더)에서는 "이 폴더 관리 방식 정하기"를 맨 위에 덧붙인다 (로컬 드라이브만)
         var target = paths.Length == 1 && e.Index >= 0 && CurrentSelection[0].IsFolder ? paths[0] : paths.Length == 0 ? _tab?.Path : null;
-        string[]? extra = target is { Length: > 2 } && target[1] == ':' ? ["이 폴더 관리 방식 정하기…"] : null;
+        var local = (target ?? (paths.Length == 1 ? paths[0] : null)) is { Length: > 2 } lp && lp[1] == ':';
+        var oneFile = paths.Length == 1 && e.Index >= 0 && !CurrentSelection[0].IsFolder && !paths[0].EndsWith(".foldylock", StringComparison.OrdinalIgnoreCase)
+            && !paths[0].EndsWith(".foldyvault", StringComparison.OrdinalIgnoreCase);
+        var oneFolder = paths.Length == 1 && e.Index >= 0 && CurrentSelection[0].IsFolder;
+        string[]? extra = !local ? null
+            : oneFile ? ["🔒 암호 걸기…"]
+            : oneFolder ? ["이 폴더 관리 방식 정하기…", "🔒 금고에 넣기…"]
+            : target is not null ? ["이 폴더 관리 방식 정하기…"] : null;
         var verb = _host.ShellMenu.Show(
             _host.OwnerHandle, paths, (int)e.ScreenPoint.X, (int)e.ScreenPoint.Y, extended,
             backgroundFolder: paths.Length == 0 ? _tab!.Path : null, extraItems: extra);
+        if (verb == "foldy:0" && oneFile)
+        {
+            _host.LockFile(paths[0]);
+            return;
+        }
+
         if (verb == "foldy:0" && target is not null)
         {
             _host.ManageFolder(target);
+            return;
+        }
+
+        if (verb == "foldy:1" && oneFolder)
+        {
+            _host.PutInVault(paths[0]);
             return;
         }
 
