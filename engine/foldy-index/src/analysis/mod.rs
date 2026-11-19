@@ -827,11 +827,21 @@ pub fn default_dir() -> PathBuf {
 /// Interactive 읽기로 둔다 (docs/disk-analysis.md). ProgramData 기본 ACL은 Users에게 쓰기까지 주므로,
 /// 일반 사용자가 가짜 DB를 넣지 못하게 막는 의미도 있다.
 pub fn secure_dir(dir: &Path) -> std::io::Result<()> {
+    secure_dir_with(dir, true)
+}
+
+/// 색인 스냅샷 폴더: SYSTEM·Administrators만 (일반 사용자는 읽기도 불가: 다른 사용자의 파일 이름이 들어 있다).
+pub fn secure_dir_private(dir: &Path) -> std::io::Result<()> {
+    secure_dir_with(dir, false)
+}
+
+fn secure_dir_with(dir: &Path, interactive_read: bool) -> std::io::Result<()> {
     use windows_sys::Win32::Foundation::{HLOCAL, LocalFree};
     use windows_sys::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1};
     use windows_sys::Win32::Security::{DACL_SECURITY_INFORMATION, PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, SetFileSecurityW};
-    let me = crate::acl::current_user_sid().map(|s| format!("(A;OICI;FA;;;{s})")).unwrap_or_default();
-    let sddl = format!("D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FRFX;;;IU){me}");
+    let me = if interactive_read { crate::acl::current_user_sid().map(|s| format!("(A;OICI;FA;;;{s})")).unwrap_or_default() } else { String::new() };
+    let iu = if interactive_read { "(A;OICI;FRFX;;;IU)" } else { "" };
+    let sddl = format!("D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA){iu}{me}");
     let wide: Vec<u16> = sddl.encode_utf16().chain([0]).collect();
     let mut sd: PSECURITY_DESCRIPTOR = std::ptr::null_mut();
     // SAFETY: wide는 NUL로 끝나는 UTF-16. 성공하면 sd는 LocalAlloc 메모리이고 아래에서 해제한다.

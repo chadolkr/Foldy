@@ -108,5 +108,59 @@ pub fn run(volume: &str) -> i32 {
     let win = idx.resolve(&format!("{}\\Windows", vol.name));
     let kids = win.map(|w| idx.children(w).len()).unwrap_or(0);
     println!("folder sizes   : {}\\Windows → {kids} children in {:.2?}", vol.name, t.elapsed());
+    bench_snapshot(&idx, Some(build));
+    // 저널 따라잡기: 지금 위치에서 한 번 읽는 시간 (변경이 없으면 거의 0)
+    if let Ok(j) = vol.query_journal() {
+        let lock = std::sync::RwLock::new(Some(idx));
+        let t = Instant::now();
+        let r = crate::persist::replay(&vol, &lock, j.id, j.next_usn, &AtomicBool::new(false));
+        println!("journal replay : from current position (no changes) {:.2?} ({})", t.elapsed(), if r.is_ok() { "ok" } else { "error" });
+    }
+    0
+}
+
+/// 스냅샷 저장·복원 시간 (전체 구축 시간과 비교). 임시 폴더에 쓰고 지운다.
+pub fn bench_snapshot(idx: &VolumeIndex, build: Option<std::time::Duration>) {
+    use foldy_ntfs::SnapshotMeta;
+    let meta = SnapshotMeta { volume_serial: 1, journal_id: 1, next_usn: 0 };
+    let path = std::env::temp_dir().join(format!("foldy-bench-{}.idx", std::process::id()));
+    let t = Instant::now();
+    let bytes = idx.to_snapshot(&meta);
+    let ser = t.elapsed();
+    let t = Instant::now();
+    let w = crate::persist::write_atomic(&path, &bytes);
+    let write = t.elapsed();
+    let t = Instant::now();
+    let read = std::fs::read(&path);
+    let read_t = t.elapsed();
+    let t = Instant::now();
+    let back = read.ok().and_then(|b| VolumeIndex::from_snapshot(&b).ok());
+    let load = t.elapsed();
+    let _ = std::fs::remove_file(&path);
+    println!(
+        "snapshot       : {:.1} MB ({:.1} B/entry); serialize {ser:.2?}, write {write:.2?} ({}), read {read_t:.2?}, parse+rebuild {load:.2?}; restored {} entries",
+        mb(bytes.len()),
+        bytes.len() as f64 / idx.live_count().max(1) as f64,
+        if w.is_ok() { "ok" } else { "FAILED" },
+        back.as_ref().map(|b| b.0.live_count()).unwrap_or(0)
+    );
+    if let Some(b) = build {
+        println!("startup        : full build {b:.2?}  vs  snapshot load {:.2?} (read+parse, journal replay excluded)", read_t + load);
+    }
+}
+
+/// `--bench-scan <폴더>`: 관리자 권한 없이 폴더 열거로 만든 색인으로 스냅샷 시간을 잰다.
+pub fn run_scan(dir: &str) -> i32 {
+    let t = Instant::now();
+    let idx = match crate::state::scan_dir(dir) {
+        Ok(i) => i,
+        Err(e) => {
+            eprintln!("폴더 열거 실패: {e}");
+            return 1;
+        }
+    };
+    let build = t.elapsed();
+    println!("scan {dir}: {} entries in {build:.2?}", idx.live_count());
+    bench_snapshot(&idx, Some(build));
     0
 }

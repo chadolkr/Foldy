@@ -42,6 +42,12 @@ pub struct VolumeSlot {
     pub message: Mutex<String>,
     pub index: RwLock<Option<VolumeIndex>>,
     pub analysis: AnalysisJob,
+    /// 스냅샷 저장에 필요한 식별 정보. 저널을 따라가기 시작한 뒤에만 Some (그 전에는 저장하지 않는다).
+    pub persist: Mutex<Option<crate::persist::Context>>,
+    /// 마지막 저장 뒤에 색인이 바뀌었는지
+    pub dirty: AtomicBool,
+    /// 저장을 한 번에 하나만 (주기 저장과 종료 저장이 겹치지 않게)
+    pub save_lock: Mutex<()>,
 }
 
 impl VolumeSlot {
@@ -55,7 +61,26 @@ impl VolumeSlot {
             message: Mutex::new(String::new()),
             index: RwLock::new(None),
             analysis: AnalysisJob::default(),
+            persist: Mutex::new(None),
+            dirty: AtomicBool::new(false),
+            save_lock: Mutex::new(()),
         }
+    }
+
+    /// 색인을 스냅샷 파일로 저장한다. 저널을 따라가는 중이 아니면 저장하지 않고 false.
+    pub fn save_snapshot(&self, path: &std::path::Path) -> std::io::Result<bool> {
+        let Some(ctx) = self.persist.lock().ok().and_then(|g| g.clone()) else { return Ok(false) };
+        let _one = self.save_lock.lock();
+        self.dirty.store(false, Ordering::Relaxed);
+        // 위치를 먼저 읽는다: 색인이 이보다 조금 앞서 있어도 다시 적용하면 같은 결과가 된다.
+        let meta = foldy_ntfs::SnapshotMeta { volume_serial: ctx.serial, journal_id: ctx.journal_id, next_usn: self.last_usn.load(Ordering::Relaxed) };
+        let bytes = {
+            let Ok(g) = self.index.read() else { return Ok(false) };
+            let Some(idx) = g.as_ref() else { return Ok(false) };
+            idx.to_snapshot(&meta)
+        };
+        crate::persist::write_atomic(path, &bytes).inspect_err(|_| self.dirty.store(true, Ordering::Relaxed))?;
+        Ok(true)
     }
 
     pub fn analysis_status(&self) -> AnalysisProgress {
@@ -103,9 +128,42 @@ pub struct Indexer {
     pub shutdown: AtomicBool,
     /// 분석 DB 폴더. None이면 %ProgramData%\Foldy\Analysis (폴더 ACL도 설정한다).
     pub analysis_dir: Option<std::path::PathBuf>,
+    /// 색인 스냅샷 폴더. None이면 %ProgramData%\Foldy\Index (폴더 ACL도 설정한다).
+    pub index_dir: Option<std::path::PathBuf>,
 }
 
 impl Indexer {
+    pub fn index_dir(&self) -> std::path::PathBuf {
+        self.index_dir.clone().unwrap_or_else(crate::persist::default_dir)
+    }
+
+    /// 슬롯 하나를 저장한다. 실패해도 색인에는 영향이 없고 기록만 남긴다.
+    pub fn save_slot(&self, slot: &VolumeSlot) {
+        let dir = self.index_dir();
+        let prepared = if self.index_dir.is_none() { crate::persist::ensure_secure_dir(&dir) } else { std::fs::create_dir_all(&dir) };
+        let stem = slot.persist.lock().ok().and_then(|g| g.as_ref().map(|c| c.stem.clone()));
+        if let Err(e) = prepared {
+            slot.set_message(format!("스냅샷 폴더를 만들 수 없음: {e}"));
+            return;
+        }
+        let Some(stem) = stem else { return };
+        let t = std::time::Instant::now();
+        match slot.save_snapshot(&crate::persist::snapshot_path(&dir, &stem)) {
+            Ok(true) => eprintln!("[{}] 스냅샷 저장 {:?}", slot.name, t.elapsed()),
+            Ok(false) => {}
+            Err(e) => slot.set_message(format!("스냅샷 저장 실패: {e}")),
+        }
+    }
+
+    /// 종료 직전에 바뀐 볼륨을 모두 저장한다 (정상 종료 때만 불린다).
+    pub fn save_all(&self) {
+        for slot in &self.volumes {
+            if slot.dirty.load(Ordering::Relaxed) {
+                self.save_slot(slot);
+            }
+        }
+    }
+
     /// 볼륨 이름("C:", "c:\")이나 --scan-dir 경로로 슬롯을 찾는다 (대소문자 무시).
     pub fn find_volume(&self, volume: &str) -> Option<&Arc<VolumeSlot>> {
         let want = foldy_ntfs::fold_name(volume.trim().trim_end_matches(['\\', '/']));
@@ -208,15 +266,23 @@ pub fn start_dir_scan(slot: Arc<VolumeSlot>) {
     });
 }
 
-/// NTFS 볼륨: $MFT 구축 후 USN 저널을 따라간다. 저널이 끊기면 다시 구축한다.
+/// 스냅샷을 주기적으로 저장하는 간격 (바뀐 것이 있을 때만).
+const SAVE_INTERVAL: std::time::Duration = std::time::Duration::from_secs(10 * 60);
+
+/// NTFS 볼륨: 가능하면 스냅샷을 불러와 저널을 따라잡고(빠른 시작), 아니면 $MFT를 전부 읽어 구축한 뒤
+/// USN 저널을 따라간다. 저널이 끊기면 다시 전부 구축한다.
 pub fn start_ntfs(slot: Arc<VolumeSlot>, indexer: Arc<Indexer>) {
-    use foldy_ntfs::usn;
+    use crate::persist;
     use foldy_ntfs::volume::{self, Volume};
-    use std::collections::HashMap;
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
     std::thread::spawn(move || {
+        // 스냅샷 복원은 시작할 때 한 번만 시도한다. 그 뒤 재구축은 항상 전체 구축이다.
+        let mut try_restore = true;
         'rebuild: loop {
+            if let Ok(mut g) = slot.persist.lock() {
+                *g = None;
+            }
             let vol = match Volume::open(&slot.name) {
                 Ok(v) => v,
                 Err(e) => {
@@ -229,60 +295,90 @@ pub fn start_ntfs(slot: Arc<VolumeSlot>, indexer: Arc<Indexer>) {
                     return;
                 }
             };
+            let stem = volume::volume_guid(&slot.name).unwrap_or_else(|| format!("serial-{:016x}", vol.boot.serial));
+            let snap_path = persist::snapshot_path(&indexer.index_dir(), &stem);
             // 구축 전에 저널 위치를 잡아 두면, 구축하는 동안 생긴 변경도 뒤이어 반영된다.
             let journal = vol.query_journal().ok();
             slot.state.store(state::INDEXING, Ordering::Release);
             slot.progress.store(0, Ordering::Relaxed);
-            let t = std::time::Instant::now();
-            let built = vol.build_index(&indexer.shutdown, |done, total| {
-                let p = (done * 1000).checked_div(total).unwrap_or(0) as u16;
-                slot.progress.store(p.min(999), Ordering::Relaxed);
-            });
-            let idx = match built {
-                Ok(i) => i,
-                Err(e) => {
-                    slot.state.store(state::NOT_READY, Ordering::Release);
-                    slot.set_message(format!("MFT 색인 실패: {e}"));
-                    return;
-                }
-            };
-            let n = idx.live_count();
-            slot.publish(idx);
-            slot.set_message(format!("MFT 색인 완료: {n}개, {:?}", t.elapsed()));
+            let t = Instant::now();
 
-            let Some(j) = journal else {
-                slot.set_message(format!("MFT 색인 완료: {n}개 (USN 저널 없음 - 실시간 갱신 안 됨)"));
-                return;
+            let mut restored: Option<(i64, u64)> = None;
+            if std::mem::take(&mut try_restore) && journal.is_some() {
+                match std::fs::read(&snap_path) {
+                    Ok(bytes) => match persist::restore(&slot, &vol, &bytes, &indexer.shutdown) {
+                        Ok(r) => restored = Some(r),
+                        Err(why) => slot.set_message(format!("스냅샷을 쓰지 않음 ({why}) - 전체 색인")),
+                    },
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => slot.set_message("스냅샷 없음 - 전체 색인"),
+                    Err(e) => slot.set_message(format!("스냅샷을 읽을 수 없음 ({e}) - 전체 색인")),
+                }
+            }
+
+            let (mut next, journal_id) = if let Some(r) = restored {
+                if let Ok(g) = slot.index.read()
+                    && let Some(idx) = g.as_ref()
+                {
+                    slot.entries.store(idx.live_count() as u64, Ordering::Relaxed);
+                }
+                slot.set_message(format!("스냅샷 복원 완료: {}개, {:?}", slot.entries.load(Ordering::Relaxed), t.elapsed()));
+                r
+            } else {
+                let built = vol.build_index(&indexer.shutdown, |done, total| {
+                    let p = (done * 1000).checked_div(total).unwrap_or(0) as u16;
+                    slot.progress.store(p.min(999), Ordering::Relaxed);
+                });
+                let idx = match built {
+                    Ok(i) => i,
+                    Err(e) => {
+                        slot.state.store(state::NOT_READY, Ordering::Release);
+                        slot.set_message(format!("MFT 색인 실패: {e}"));
+                        return;
+                    }
+                };
+                let n = idx.live_count();
+                slot.publish(idx);
+                slot.set_message(format!("MFT 색인 완료: {n}개, {:?}", t.elapsed()));
+                let Some(j) = journal else {
+                    slot.set_message(format!("MFT 색인 완료: {n}개 (USN 저널 없음 - 실시간 갱신 안 됨)"));
+                    return;
+                };
+                slot.last_usn.store(j.next_usn, Ordering::Relaxed);
+                (j.next_usn, j.id)
             };
-            let mut next = j.next_usn;
-            slot.last_usn.store(next, Ordering::Relaxed);
+
+            if let Ok(mut g) = slot.persist.lock() {
+                *g = Some(persist::Context { stem, serial: vol.boot.serial, journal_id });
+            }
+            // 전체 구축 직후에는 바로 저장해 둔다 (다음 시작이 빨라진다). 복원했다면 주기 저장만 한다.
+            slot.dirty.store(restored.is_none(), Ordering::Relaxed);
+            let mut last_save = Instant::now();
+            if restored.is_none() {
+                indexer.save_slot(&slot);
+            }
+
             let mut buf = vec![0u8; 256 * 1024];
             loop {
                 if indexer.shutdown.load(Ordering::Relaxed) {
                     return;
                 }
-                match vol.read_journal(next, j.id, &mut buf) {
-                    Ok((n2, recs)) => {
-                        if recs.is_empty() {
-                            next = n2.max(next);
-                            std::thread::sleep(Duration::from_millis(500));
-                            continue;
+                match persist::step(&vol, &slot.index, journal_id, &mut next, &mut buf) {
+                    Ok(0) => {
+                        slot.last_usn.store(next, Ordering::Relaxed);
+                        if slot.dirty.load(Ordering::Relaxed) && last_save.elapsed() >= SAVE_INTERVAL {
+                            indexer.save_slot(&slot);
+                            last_save = Instant::now();
                         }
-                        let changes = usn::plan(&recs);
-                        // MFT 다시 읽기는 잠금 밖에서
-                        let mut fetched: HashMap<u32, Option<foldy_ntfs::Entry>> = changes
-                            .iter()
-                            .filter(|c| matches!(c, usn::Change::Refresh { .. }))
-                            .map(|c| (c.record(), vol.fetch_entry(c.record())))
-                            .collect();
-                        if let Ok(mut g) = slot.index.write()
-                            && let Some(idx) = g.as_mut()
+                        std::thread::sleep(Duration::from_millis(500));
+                    }
+                    Ok(_) => {
+                        if let Ok(g) = slot.index.read()
+                            && let Some(idx) = g.as_ref()
                         {
-                            usn::apply(idx, &changes, |r| fetched.remove(&r).flatten());
                             slot.entries.store(idx.live_count() as u64, Ordering::Relaxed);
                         }
-                        next = n2;
                         slot.last_usn.store(next, Ordering::Relaxed);
+                        slot.dirty.store(true, Ordering::Relaxed);
                     }
                     Err(e)
                         if matches!(

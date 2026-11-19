@@ -67,10 +67,14 @@ fn run_service() -> windows_service::Result<()> {
                 }
                 Err(e) => eprintln!("자동 업데이트 꺼짐: {e}"),
             }
-            let r = rt.block_on(crate::server::run(foldy_proto::PIPE_NAME, false, indexer, async move { stop.notified().await }));
+            let r = rt.block_on(crate::server::run(foldy_proto::PIPE_NAME, false, indexer.clone(), async move { stop.notified().await }));
             if let Err(e) = r {
                 eprintln!("pipe server error: {e}");
             }
+            // 정상 종료: 색인 스냅샷을 저장한다 (몇 초 걸릴 수 있어 정지 중으로 표시)
+            let _ = handle.set_service_status(status(ServiceState::StopPending));
+            indexer.shutdown.store(true, std::sync::atomic::Ordering::Relaxed);
+            indexer.save_all();
             // 업데이트 다운로드 중이어도 서비스 정지(MSI 업그레이드 포함)를 오래 막지 않는다
             rt.shutdown_timeout(Duration::from_secs(2));
         }

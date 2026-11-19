@@ -11,6 +11,9 @@ use crate::record::ParsedRecord;
 use rayon::prelude::*;
 use std::collections::HashMap;
 
+mod snap;
+pub use snap::{SnapshotError, SnapshotMeta};
+
 pub const NO_PARENT: u32 = u32::MAX;
 /// 하드링크 추가 이름 노드 id 표시 비트.
 pub const LINK_BIT: u32 = 0x8000_0000;
