@@ -22,7 +22,6 @@
     <ProjectReference Include="..\Foldy.Presentation\Foldy.Presentation.csproj" />
     <ProjectReference Include="..\Foldy.Platform\Foldy.Platform.csproj" />
     <ProjectReference Include="..\Foldy.Providers.Sftp\Foldy.Providers.Sftp.csproj" />
-    <ProjectReference Include="..\Foldy.Providers.GoogleDrive\Foldy.Providers.GoogleDrive.csproj" />
     <ProjectReference Include="..\Foldy.Reporting\Foldy.Reporting.csproj" />
     <ProjectReference Include="..\Foldy.Git\Foldy.Git.csproj" />
   </ItemGroup>

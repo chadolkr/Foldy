@@ -329,7 +329,7 @@ public sealed partial class FolderTabViewModel : TabBase
     /// <summary>폴더 크기 열: 색인에서 디스크 I/O 없이 (DESIGN.md "폴더를 열자마자 보이는 폴더 크기").</summary>
     private async Task LoadFolderSizesAsync(string folder, int gen)
     {
-        if (_env.FolderSizes is null || PathUtil.IsRemoteUri(folder))
+        if (_env.FolderSizes is null || PathUtil.IsSftp(folder))
         {
             return;
         }
@@ -371,7 +371,7 @@ public sealed partial class FolderTabViewModel : TabBase
 
     private async Task LoadGitAsync(string folder, int gen)
     {
-        if (_env.Git is null || PathUtil.IsRemoteUri(folder))
+        if (_env.Git is null || PathUtil.IsSftp(folder))
         {
             Git = null;
             return;
@@ -463,7 +463,7 @@ public sealed partial class FolderTabViewModel : TabBase
         if (_watch is null)
         {
             // 감시할 수 없는 드라이브(네트워크·SFTP)는 활성 탭만 주기적으로 새로 고친다 (DESIGN.md: 30~60초 폴링)
-            var period = PathUtil.IsRemoteUri(Path) ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(45);
+            var period = PathUtil.IsSftp(Path) ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(45);
             _watch = new Timer(_ => _env.Ui.Post(() =>
             {
                 if (_active && State == LoadState.Idle)

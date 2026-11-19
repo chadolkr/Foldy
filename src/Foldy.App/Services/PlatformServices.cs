@@ -76,11 +76,6 @@ public sealed class TerminalService(Func<AppSettings> settings, Action<string, b
             return;
         }
 
-        if (Foldy.Presentation.Navigation.PathUtil.IsGDrive(folder))
-        {
-            throw new InvalidOperationException("Google Drive 폴더에서는 터미널을 열 수 없습니다");
-        }
-
         var s = settings().Terminal;
         var shell = kind switch
         {
