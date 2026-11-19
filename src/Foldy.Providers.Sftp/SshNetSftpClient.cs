@@ -89,6 +89,38 @@ internal sealed class SshNetSftpClient : ISftpClient
 
     public void Rename(string source, string target) => Guard(() => Connected().RenameFile(source, target));
 
+    public void Replace(string source, string target) => Guard(() =>
+    {
+        var c = Connected();
+        if (!_posixUnsupported)
+        {
+            try
+            {
+                c.RenameFile(source, target, isPosix: true);
+                return;
+            }
+            catch (NotSupportedException)
+            {
+                _posixUnsupported = true; // posix-rename@openssh.com 미지원 서버
+            }
+        }
+
+        // 임시 파일이 온전히 있을 때만 옛 파일을 지운다 (이 경로에서만 짧게 대상이 없는 순간이 생긴다).
+        if (!c.Exists(source))
+        {
+            throw new FileNotFoundException("임시 파일이 없습니다: " + source);
+        }
+
+        if (c.Exists(target))
+        {
+            c.DeleteFile(target);
+        }
+
+        c.RenameFile(source, target);
+    });
+
+    private bool _posixUnsupported;
+
     public void Dispose()
     {
         _client?.Dispose();

@@ -39,7 +39,7 @@ main에 들어간 것 (642개 시험 통과, 아직 릴리스 전):
 - **코드 서명 준비**: SignPath 아티팩트 구성 초안, `docs/code-signing.md`, README의 Code signing policy, `PRIVACY.md`, 설치 중 개인정보 정책 표시. release.yml에 SignPath 단계가 있지만, 변수·시크릿이 없으면 건너뛴다. SignPath Foundation 승인을 기다리는 중이다 (클라우드).
 - **터미널**: 사용자가 모두 정상이라고 확인했다 (이슈 해결).
 
-- **SFTP 복사·이동**: `SftpAwareFileOperationService`(Foldy.Providers.Sftp)가 sftp:// 경로가 낀 작업만 맡고 로컬끼리는 기존 서비스로 넘긴다. 업로드·다운로드(재귀), 같은 연결 이동=서버 이름 바꾸기, 서버 간 복사=임시 파일 경유, 바이트 진행률, 취소 시 부분 파일 삭제, 충돌 창 재사용, SFTP 삭제 전 확인(`ShellViewModel.ConfirmAsync`). 시험 `SftpTransferTests`(메모리 가짜 서버). 실제 서버 수동 확인은 아직 안 했다. 알려진 한계: 심볼릭 링크는 건너뜀, 탐색기로 끌어 내기는 안 됨(FileDrop에 sftp:// 문자열).
+- **SFTP 복사·이동**: `SftpAwareFileOperationService`(Foldy.Providers.Sftp)가 sftp:// 경로가 낀 작업만 맡고 로컬끼리는 기존 서비스로 넘긴다. 업로드·다운로드(재귀), 같은 연결 이동=서버 이름 바꾸기, 서버 간 복사=임시 파일 경유, 바이트 진행률, 취소 시 부분 파일 삭제, 충돌 창 재사용, SFTP 삭제 전 확인(`ShellViewModel.ConfirmAsync`). 시험 `SftpTransferTests`(메모리 가짜 서버). 실제 서버 수동 확인은 아직 안 했다. 덮어쓰기는 `.이름.foldy-part` 임시 파일에 다 쓴 뒤 바꿔 넣는다(SFTP는 posix-rename, 미지원이면 삭제 후 이름 바꾸기; 로컬은 File.Move overwrite). 건너뛴 심볼릭 링크 수는 결과 문구로 알린다. 알려진 한계: 탐색기로 끌어 내기는 안 됨(FileDrop에 sftp:// 문자열).
 
 진행 중 (작업 트리 `.claude/worktrees/agent-adc20aa7eab2f277d`, 아직 병합 전):
 - **Git 개편**
