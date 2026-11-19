@@ -123,13 +123,25 @@ public class FolderWizardViewModelTests
         var vm = Wizard(tmp, out _);
         vm.SelectPurpose("dev");
         vm.NextCommand.Execute(null);
-        vm.Answer("language", "python");
+        vm.Answer("language", "rust");
         vm.NextCommand.Execute(null);
         vm.SelectedRecommendation!.Template.Id.Should().Be("software-project");
         vm.NextCommand.Execute(null);
-        vm.Customizer.Variables.Single(v => v.Key == "language").Value.Should().Be("python");
+        vm.Customizer.Variables.Single(v => v.Key == "language").Value.Should().Be("rust");
         vm.Customizer.Variables.Single(v => v.Key == "프로젝트").Value = "tool";
-        vm.Customizer.Plan!.Flatten().Single(n => n.Name == ".gitignore").Content.Should().Contain("__pycache__");
+        vm.Customizer.Plan!.Flatten().Single(n => n.Name == ".gitignore").Content.Should().Contain("/target/");
+    }
+
+    [Fact]
+    public void Dev_language_answer_recommends_the_language_template()
+    {
+        using var tmp = new TempDir();
+        var vm = Wizard(tmp, out _);
+        vm.SelectPurpose("dev");
+        vm.NextCommand.Execute(null);
+        vm.Answer("language", "java");
+        vm.NextCommand.Execute(null);
+        vm.Recommendations[0].Template.Id.Should().Be("java-project");
     }
 
     [Fact]
@@ -153,7 +165,7 @@ public class FolderWizardViewModelTests
         var vm = Wizard(tmp, out _);
         vm.PickTemplateDirectlyCommand.Execute(null);
         vm.CurrentStep.Should().Be(WizardStep.Recommend);
-        vm.Recommendations.Should().HaveCount(5);
+        vm.Recommendations.Should().HaveCount(TemplateLibrary.LoadBuiltIn().Count);
         vm.CanGoBack.Should().BeFalse();
     }
 }

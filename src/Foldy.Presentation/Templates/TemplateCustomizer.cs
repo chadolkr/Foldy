@@ -15,6 +15,13 @@ public sealed class TemplateItemViewModel(FolderTemplate template)
 
     public string Badge => Template.DisplayBadge;
 
+    public string Category => Template.DisplayCategory;
+
+    /// <summary>묶음의 첫 항목이면 묶음 이름 (목록에서 제목줄로 보인다), 아니면 null.</summary>
+    public string? CategoryHeader { get; set; }
+
+    public bool HasCategoryHeader => CategoryHeader is not null;
+
     public bool IsBuiltIn => Template.IsBuiltIn;
 
     public string Origin => Template.IsBuiltIn ? "내장" : "내 템플릿";

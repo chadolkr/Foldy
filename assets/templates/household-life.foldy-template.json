@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "id": "household-life",
+  "name": "생활·가정 서류",
+  "badge": "생활",
+  "category": "개인·업무",
+  "description": "재무, 건강, 집, 차량, 여권·신분, 보험으로 나누는 개인·가족 서류함",
+  "purposes": [
+    "personal"
+  ],
+  "variables": [
+    {
+      "key": "이름",
+      "label": "서류함 이름 (폴더 이름)",
+      "default": "생활서류",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{이름}}",
+      "children": [
+        {
+          "name": "재무",
+          "nameEn": "finance",
+          "children": [
+            {
+              "name": "세금",
+              "nameEn": "tax"
+            },
+            {
+              "name": "통장·카드",
+              "nameEn": "bank-card"
+            }
+          ]
+        },
+        {
+          "name": "건강",
+          "nameEn": "health",
+          "children": [
+            {
+              "name": "진료·처방",
+              "nameEn": "medical"
+            },
+            {
+              "name": "검진",
+              "nameEn": "checkup"
+            }
+          ]
+        },
+        {
+          "name": "집",
+          "nameEn": "home",
+          "children": [
+            {
+              "name": "계약·등기",
+              "nameEn": "contract"
+            },
+            {
+              "name": "공과금·관리비",
+              "nameEn": "utilities"
+            },
+            {
+              "name": "수리·설명서",
+              "nameEn": "manuals"
+            }
+          ]
+        },
+        {
+          "name": "차량",
+          "nameEn": "car"
+        },
+        {
+          "name": "여권·신분",
+          "nameEn": "id-documents"
+        },
+        {
+          "name": "보험",
+          "nameEn": "insurance"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "날짜_기관_내용.확장자 (서류에 적힌 날짜 기준)",
+      "examples": [
+        "2026-05-31_국세청_종합소득세신고.pdf",
+        "2026-11-01_한전_전기요금.pdf"
+      ],
+      "regex": "^\\d{4}-\\d{2}-\\d{2}_.+"
+    }
+  ],
+  "firstSteps": [
+    "가장 급한 서류(여권·신분, 보험증권)부터 스캔해서 해당 폴더에 넣기",
+    "새 서류는 날짜_기관_내용 이름으로 저장하기",
+    "이 폴더를 암호화하거나 비밀번호가 있는 백업에 포함시키기"
+  ],
+  "organize": [
+    {
+      "target": "재무/세금",
+      "keywords": [
+        "세금",
+        "소득",
+        "연말정산",
+        "tax"
+      ],
+      "reason": "이름에 세금"
+    },
+    {
+      "target": "건강/진료·처방",
+      "keywords": [
+        "진료",
+        "처방",
+        "병원",
+        "약"
+      ],
+      "reason": "이름에 진료·처방"
+    },
+    {
+      "target": "집/공과금·관리비",
+      "keywords": [
+        "전기",
+        "가스",
+        "수도",
+        "관리비",
+        "공과금"
+      ],
+      "reason": "이름에 공과금"
+    },
+    {
+      "target": "보험",
+      "keywords": [
+        "보험",
+        "insurance"
+      ],
+      "reason": "이름에 보험"
+    },
+    {
+      "target": "차량",
+      "keywords": [
+        "자동차",
+        "차량",
+        "정비",
+        "주유"
+      ],
+      "reason": "이름에 차량"
+    }
+  ]
+}
