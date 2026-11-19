@@ -96,6 +96,9 @@ public partial class GuideWindow : Window
     /// 암호를 받는다. <paramref name="confirm"/>이면 두 번 입력해 같은지 확인한다. 취소·닫기면 null.
     /// 입력 칸은 답을 받은 뒤 바로 비운다 (암호는 화면·기록에 남기지 않는다).
     /// </summary>
+    /// <summary>새로 정하는 암호의 최소 길이. 금고 키는 PBKDF2 60만 회라도 짧은 암호는 결국 맞혀진다.</summary>
+    public const int MinNewPasswordLength = 8;
+
     public async Task<string?> AskPasswordAsync(string text, bool confirm, string okLabel = "확인")
     {
         Say(text);
@@ -126,9 +129,10 @@ public partial class GuideWindow : Window
             }
 
             var a = p1.Password;
-            if (a.Length < 4)
+            if (a.Length == 0 || (confirm && a.Length < MinNewPasswordLength))
             {
-                err.Text = "암호는 4글자 이상으로 정해 주세요.";
+                // 새 암호만 길이를 본다 (예전에 짧게 만든 금고도 열 수 있어야 한다)
+                err.Text = a.Length == 0 ? "암호를 입력해 주세요." : $"암호는 {MinNewPasswordLength}글자 이상으로 정해 주세요. 단어 몇 개를 띄어 쓴 문장이 기억하기 쉽고 안전해요.";
             }
             else if (confirm && a != p2.Password)
             {
