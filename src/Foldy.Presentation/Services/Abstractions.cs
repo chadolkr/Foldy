@@ -62,7 +62,7 @@ public interface IDriveService
 
 public enum DriveKind : byte { Fixed, Removable, Network, CdRom, Ram, Unknown }
 
-public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null, long? FreeBytes = null, long? TotalBytes = null, bool Offline = false)
+public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null, long? FreeBytes = null, long? TotalBytes = null, bool Offline = false, bool Cloud = false)
 {
     public string Letter => Root.TrimEnd('\\');
 
