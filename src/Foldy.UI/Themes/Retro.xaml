@@ -92,6 +92,58 @@
     <Setter Property="Template" Value="{StaticResource Retro.RaisedButton}" />
   </Style>
 
+  <Style x:Key="Foldy.DriveChip" TargetType="Button">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.UI}" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="Margin" Value="2,0,0,0" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template" Value="{StaticResource Retro.RaisedButton}" />
+  </Style>
+
+  <Style x:Key="Foldy.SideItem" TargetType="Button">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.UI}" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size}" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Margin" Value="3,1" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Bd" Background="Transparent" BorderThickness="1" BorderBrush="Transparent" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Shadow}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="Foldy.SideHeader" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Margin" Value="8,10,6,3" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style x:Key="Foldy.Sidebar" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Shadow}" />
+    <Setter Property="BorderThickness" Value="0,0,2,0" />
+  </Style>
+
   <!-- 오목 입력칸 -->
   <Style x:Key="Foldy.InputBorder" TargetType="Border">
     <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
@@ -115,6 +167,26 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
+  <Style x:Key="Foldy.StatusPill" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Shadow}" />
+    <Setter Property="BorderThickness" Value="1,1,0,0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="10,2" />
+    <Setter Property="Margin" Value="8,3" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+
+  <Style x:Key="Foldy.StatusMessage" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="MaxWidth" Value="640" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+
   <!-- OneNote 스타일 탭 색 (탭마다 다른 색) -->
   <SolidColorBrush x:Key="Brush.Tab0" Color="#A8C8F0" />
   <SolidColorBrush x:Key="Brush.Tab1" Color="#F8C890" />

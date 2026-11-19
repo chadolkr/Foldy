@@ -12,6 +12,20 @@
 - 테스트 624개 통과 (`./build.ps1`, 또는 `dotnet test --solution Foldy.slnx --max-parallel-test-modules 3`).
 - 브랜치 `main` = origin/main. 릴리스 방법: `Directory.Build.props`의 Version을 올리고 커밋한 뒤 `git tag vX.Y.Z` 하고 main과 태그를 푸시한다. `.github/workflows/release.yml`이 설치 zip, MSI, 서명된 update.json을 만든다.
 
+## 클라우드 세션에서 한 일 (2026-11-19 09:00 KST, 노트북 꺼짐)
+
+노트북 세션은 pull 뒤 아래 일을 다시 하지 않는다. Linux 클라우드에서 `dotnet build -p:EnableWindowsTargeting=true`로 컴파일만 확인했고, WPF 실행·전체 시험은 Windows(CI 또는 노트북)에서 돌려야 한다.
+
+- **드라이브 칩**(패널 오른쪽 위): 본문 글자색 13px 굵게 + 테두리 칩(`Foldy.DriveChip`, 레트로는 입체 버튼). 툴팁에 이름·남은 공간.
+- **상태바**: 메시지를 가운데 칩(`Foldy.StatusPill`/`Foldy.StatusMessage`, 14px 굵게)에 표시, 새 메시지면 강조색이 1.7초 비쳤다 사라짐(애니메이션 끄면 없음). 상태바 높이 34.
+- **공통 사이드바**(창 맨 왼쪽, 216px, 접으면 48px 아이콘 띠, Ctrl+Shift+B): 자주 쓰는 폴더(핀 고정·순서·해제), 최근 폴더 8개(`Foldy.Presentation/Sidebar/QuickAccess.cs`, `%LOCALAPPDATA%\Foldy\quickaccess.json`), 드라이브 용량 막대(90% 이상 빨강), 도구(검색·디스크 분석·SFTP·템플릿·위저드·정리·이미지·터미널·휴지통), 맨 아래 모든 명령·업데이트·버그 신고·설정·도움말·더 보기(기존 ⋯ 메뉴).
+- **아래 버튼 줄**: 앱 기능 버튼을 사이드바로 옮기고 파일 작업 6개만 남김 (사용자 요청 2026-11-19, 예전 "오른쪽 끝" 사양을 바꿈).
+- **패널별 폴더 트리**: 두 패널 모두 트리 | 목록. 트리 너비·숨김을 session.json(`LeftTreeWidth`/`RightTreeWidth`, `SidebarExpanded`)에 저장.
+- **단일 인스턴스**(알려진 이슈 1): `Foldy.Platform/System/SingleInstance.cs` (Local 뮤텍스 + 현재 사용자 전용 파이프). 두 번째 실행은 인자를 넘기고 끝나며, 첫 창이 앞으로 오고 경로는 새 탭. 첫 Foldy가 3초 안에 답하지 않으면 그냥 새로 뜬다. 벤치·스크린샷 실행은 예외.
+- 시험 추가: `QuickAccessTests`, `DriveSpaceTests`(Presentation), `SingleInstanceTests`(Platform). 도움말 `assets/help/index.md`에 "공통 사이드바" 절 추가.
+- 화면 시안: 프로젝트 파일 `mockups/foldy-sidebar-{dark,light,retro}.png` (HTML 시안, 실제 화면 아님).
+- **아직 안 한 것**: Windows에서 시험 실행, 실제 화면 확인, 릴리스(0.2.7). 클라우드 세션에 GitHub 권한이 없어 push 못 함 → 패치 Claude 프로젝트 파일 `patches/`에 있음.
+
 ## 릴리스 이력
 
 | 버전 | 내용 |
@@ -75,7 +89,7 @@
 
 ## 알려진 이슈
 
-1. 0.2.6 업데이트 뒤 Foldy 창이 두 개 떴다. 단일 인스턴스 처리가 없다.
+1. ~~0.2.6 업데이트 뒤 Foldy 창이 두 개 떴다~~ → 단일 인스턴스 추가 (클라우드, Windows 확인 전).
 2. 마스코트 띠가 48px라 3점슛 포물선이 낮다. 스크린앤롤 때 이름표가 겹칠 수 있다. 덩크·휴지통·영구 삭제 장면은 눈으로 확인하지 않았다.
 3. 터미널 수정(0.2.3)은 사용자 확인 전이다. 오류가 계속 나면 메시지를 받아야 한다.
 4. 레트로 테마에서 말풍선의 "?", "!"가 잘 안 보인다.
@@ -84,7 +98,7 @@
 
 ## 다음 할 일 (순서대로)
 
-1. **단일 인스턴스**: 이미 켜져 있으면 기존 창을 앞으로 가져오고, 경로 인자는 새 탭으로 넘긴다. 서비스는 Foldy가 이미 떠 있으면 다시 띄우지 않는다.
+1. ~~단일 인스턴스~~ (클라우드에서 구현, 위 참고). Windows에서 시험·실제 확인 후 0.2.7 릴리스.
 2. 터미널·관리자 모드를 사용자에게 확인받고, 필요하면 고친다.
 3. 마스코트를 다듬는다: 띠 높이를 키우거나 포물선을 높이고, 이름표 겹침을 없애고, 나머지 장면을 눈으로 확인한다.
 4. CopyThreads 설정을 복사 엔진에 연결한다.

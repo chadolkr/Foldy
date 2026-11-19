@@ -1024,22 +1024,52 @@ public partial class PaneView : UserControl
         }
     }
 
-    private void OnToggleTree(object sender, RoutedEventArgs e)
-    {
-        var show = TreeColumn.Width.Value < 1;
-        TreeColumn.Width = new GridLength(show ? 200 : 0);
-        TreeHost.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        Splitter.Visibility = TreeHost.Visibility;
-    }
+    private double _treeWidth = 200;
 
+    private void OnToggleTree(object sender, RoutedEventArgs e) => TreeVisible = !TreeVisible;
+
+    /// <summary>폴더 트리 보이기 (Ctrl+B). 숨겼다 다시 켜면 직전 너비로 돌아온다.</summary>
     public bool TreeVisible
     {
         get => TreeHost.Visibility == Visibility.Visible;
         set
         {
-            if (value != TreeVisible)
+            if (value == TreeVisible)
             {
-                OnToggleTree(this, new RoutedEventArgs());
+                return;
+            }
+
+            if (!value && TreeColumn.Width.Value >= 1)
+            {
+                _treeWidth = TreeColumn.Width.Value;
+            }
+
+            TreeColumn.Width = new GridLength(value ? _treeWidth : 0);
+            TreeHost.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            Splitter.Visibility = TreeHost.Visibility;
+        }
+    }
+
+    /// <summary>트리 너비 (세션 저장용). 0이면 숨김.</summary>
+    public double TreeWidth
+    {
+        get => TreeVisible ? TreeColumn.Width.Value : 0;
+        set
+        {
+            if (double.IsNaN(value) || value < 1)
+            {
+                TreeVisible = false;
+                return;
+            }
+
+            _treeWidth = Math.Clamp(value, 120, 520);
+            if (TreeVisible)
+            {
+                TreeColumn.Width = new GridLength(_treeWidth);
+            }
+            else
+            {
+                TreeVisible = true;
             }
         }
     }

@@ -89,9 +89,19 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Button Style="{DynamicResource Foldy.CrumbButton}" Padding="6,3" Margin="1,0" Click="OnDriveClick" Tag="{Binding}"
-                    ToolTip="{Binding Display}">
-              <TextBlock Text="{Binding Letter}" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="11.5" />
+            <!-- 드라이브 칩: 본문 글자색·13px·굵게, 테두리로 버튼임을 드러낸다 (모든 테마에서 대비 4.5:1 이상) -->
+            <Button Style="{DynamicResource Foldy.DriveChip}" Click="OnDriveClick" Tag="{Binding}">
+              <Button.ToolTip>
+                <StackPanel>
+                  <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding SpaceText}" />
+                </StackPanel>
+              </Button.ToolTip>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xEDA2;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource Brush.Text}" />
+                <TextBlock Text="{Binding Letter}" Foreground="{DynamicResource Brush.Text}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </StackPanel>
             </Button>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
@@ -172,7 +182,7 @@
     <!-- 3행: 트리 | 목록 -->
     <Grid Grid.Row="3" Margin="8,0,8,8">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition x:Name="TreeColumn" Width="200" MinWidth="0" />
+        <ColumnDefinition x:Name="TreeColumn" Width="200" MinWidth="0" MaxWidth="520" />
         <ColumnDefinition x:Name="SplitColumn" Width="6" />
         <ColumnDefinition Width="*" MinWidth="200" />
         <ColumnDefinition x:Name="PreviewSplitColumn" Width="0" />

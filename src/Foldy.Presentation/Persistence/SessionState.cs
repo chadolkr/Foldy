@@ -19,6 +19,16 @@ public sealed record SessionState
 
     /// <summary>왼쪽 패널 너비 비율 (0.2~0.8)</summary>
     public double SplitRatio { get; init; } = 0.5;
+
+    /// <summary>공통 사이드바를 펼쳤는가 (접으면 아이콘만 보이는 좁은 띠).</summary>
+    public bool SidebarExpanded { get; init; } = true;
+
+    /// <summary>패널별 폴더 트리 너비. 0이면 숨김.</summary>
+    public double LeftTreeWidth { get; init; } = DefaultTreeWidth;
+
+    public double RightTreeWidth { get; init; } = DefaultTreeWidth;
+
+    public const double DefaultTreeWidth = 200;
 }
 
 public sealed record PaneState

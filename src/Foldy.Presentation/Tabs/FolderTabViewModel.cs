@@ -41,6 +41,9 @@ public sealed class TabEnvironment(IFileSystemProvider provider, IUiDispatcher u
     public Func<bool> ShowHidden { get; init; } = () => false;
     public IGitStatusProvider? Git { get; init; }
     public IFolderSizeProvider? FolderSizes { get; init; }
+
+    /// <summary>폴더를 다 열었을 때 (새로 고침 제외). 사이드바의 최근 폴더가 쓴다.</summary>
+    public Action<string>? Visited { get; set; }
 }
 
 /// <summary>
@@ -276,6 +279,11 @@ public sealed partial class FolderTabViewModel : TabBase
             IsLoaded = true;
             State = LoadState.Idle;
             Status = "";
+            if (!refresh)
+            {
+                _env.Visited?.Invoke(target);
+            }
+
             if (_active)
             {
                 StartWatching();
