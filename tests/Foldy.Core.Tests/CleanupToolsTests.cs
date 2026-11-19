@@ -75,6 +75,45 @@ public sealed class CleanupToolsTests : IDisposable
     }
 
     [Fact]
+    public void Adding_to_a_monthly_zip_keeps_earlier_entries_and_never_breaks_it()
+    {
+        var dir = Path.Combine(_root, "logs2");
+        Directory.CreateDirectory(dir);
+        var oct = new DateTime(2026, 10, 10, 3, 0, 0, DateTimeKind.Utc);
+        LogFile F(string name, string text)
+        {
+            var p = Path.Combine(dir, name);
+            File.WriteAllText(p, text);
+            return new LogFile(p, text.Length, oct);
+        }
+
+        var first = new LogGroup(dir, "2026-10", [F("a.log", "AAAA")]);
+        LogArchiver.Archive(first, CancellationToken.None).Archived.Should().HaveCount(1);
+        File.Delete(Path.Combine(dir, "a.log")); // 휴지통으로 보냈다고 치자: 이제 zip이 유일한 사본
+
+        // 두 번째 정리가 중간에 취소돼도 기존 zip은 그대로여야 한다
+        var second = new LogGroup(dir, "2026-10", [F("b.log", "BBBB"), F("c.log", "CCCC")]);
+        using (var cts = new CancellationTokenSource())
+        {
+            cts.Cancel();
+            FluentActions.Invoking(() => LogArchiver.Archive(second, cts.Token)).Should().Throw<OperationCanceledException>();
+        }
+
+        File.Exists(second.ZipPath + ".writing").Should().BeFalse("쓰다 만 파일을 남기지 않는다");
+        using (var z = ZipFile.OpenRead(second.ZipPath))
+        {
+            z.Entries.Select(e => e.Name).Should().Equal("a.log");
+        }
+
+        LogArchiver.Archive(second, CancellationToken.None).Archived.Should().HaveCount(2);
+        using (var z = ZipFile.OpenRead(second.ZipPath))
+        {
+            z.Entries.Select(e => e.Name).Should().BeEquivalentTo(["a.log", "b.log", "c.log"]);
+            new StreamReader(z.GetEntry("a.log")!.Open()).ReadToEnd().Should().Be("AAAA");
+        }
+    }
+
+    [Fact]
     public void Downloads_finds_installers_duplicates_unpacked_zips_and_old_files()
     {
         var recent = Now.AddDays(-3);
