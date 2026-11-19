@@ -226,11 +226,12 @@
 
             <!-- 도구: 네 묶음. 누르면 그 묶음의 기능 메뉴가 열린다 (사이드바가 한 화면에 들어가도록) -->
             <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="도구" Visibility="{Binding SidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVis}}" />
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="파일 검색, 폴더 분석, 이미지만 보기" AutomationProperties.Name="찾기">
+            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="파일 검색, 폴더 분석, 두 창 비교, 이미지만 보기" AutomationProperties.Name="찾기">
               <Button.ContextMenu>
                 <ContextMenu>
                   <MenuItem Header="파일 이름 검색" Tag="search.focus" Click="OnGroupMenuItem" InputGestureText="Ctrl+F" />
                   <MenuItem Header="폴더 분석 (무엇이 공간을 차지하나)" Tag="analysis.open" Click="OnGroupMenuItem" />
+                  <MenuItem Header="두 창 비교·맞추기" Tag="compare.panes" Click="OnGroupMenuItem" />
                   <MenuItem Header="이미지만 보기" Tag="view.images" Click="OnGroupMenuItem" InputGestureText="Ctrl+Shift+I" />
                 </ContextMenu>
               </Button.ContextMenu>

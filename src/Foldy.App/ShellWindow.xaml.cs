@@ -886,6 +886,17 @@ public partial class ShellWindow : Window, IPaneHost
         Add("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, true));
         Add("view.hidden", "숨김 파일 보기 켜기/끄기", ToggleHidden, Key.H, ModifierKeys.Control);
         Add("analysis.open", "폴더 분석 (현재 폴더)", OpenAnalysis);
+        Add("compare.panes", "두 창 비교·맞추기", () =>
+        {
+            if (Shell.Left.ActiveFolder?.Path is { Length: > 2 } l && Shell.Right.ActiveFolder?.Path is { Length: > 2 } r && !Foldy.Presentation.Navigation.PathUtil.IsSftp(l) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(r))
+            {
+                _ = CompareFlow.RunAsync(this, l, r, Shell);
+            }
+            else
+            {
+                Shell.Status = "양쪽 창에 비교할 폴더를 열어 주세요 (내 PC·네트워크 폴더)";
+            }
+        });
         Add("cleanup.logs", "로그 정리 (현재 드라이브)", () => OpenLogCleanup(null));
         Add("cleanup.downloads", "다운로드 정리", () => OpenDownloadsCleanup(null));
         Add("cleanup.desktop", "바탕화면 정리", OpenDesktopTidy);
