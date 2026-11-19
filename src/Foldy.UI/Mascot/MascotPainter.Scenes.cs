@@ -303,7 +303,7 @@ public sealed partial class MascotPainter
                     var catchPt = new Point(x[p] + (f * 3.5), Ground - 33 - lift[p]);
                     if (s is >= 0.3 and < 0.7)
                     {
-                        ball = Arc(Chest(x[h], f), new Point(x[p] + (f * 3.5), Ground - 33 - (7 * Bump(0.7, 0.5, 0.82))), Seg(s, 0.3, 0.7), 24);
+                        ball = Arc(Chest(x[h], f), new Point(x[p] + (f * 3.5), Ground - 33 - (7 * Bump(0.7, 0.5, 0.82))), Seg(s, 0.3, 0.7), 20);
                         fh[h] = new Point(10.5, -22);
                         bh[h] = new Point(9, -20);
                     }
@@ -430,7 +430,7 @@ public sealed partial class MascotPainter
         if (basket)
         {
             target = hit ? new Point(RimX, RimY - 3.5) : new Point(RimX - 6.5, RimY - 3.2);
-            arcH = mode == 0 && variant == 0 ? 8 : 9;
+            arcH = mode == 0 ? (variant == 0 ? 10 : (variant == 1 ? 14 : 18)) : 18;
         }
         else if (bin)
         {
@@ -440,7 +440,7 @@ public sealed partial class MascotPainter
         else
         {
             target = new Point(_w + 50, Ground - 6);
-            arcH = 24;
+            arcH = 34;
         }
 
         Point? ball;
@@ -657,8 +657,8 @@ public sealed partial class MascotPainter
 
         if (basket && hit && mode == 0 && T is > 0.66 and < 0.95)
         {
-            Sparkle(RimX - 9, 9, 2.4 + Sin01(T * 9), Gold);
-            Sparkle(RimX + 9, 12, 2 + Sin01((T * 9) + 0.5), Gold);
+            Sparkle(RimX - 9, RimY - 8.5, 2.4 + Sin01(T * 9), Gold);
+            Sparkle(RimX + 9, RimY - 5.5, 2 + Sin01((T * 9) + 0.5), Gold);
         }
     }
 
@@ -685,7 +685,7 @@ public sealed partial class MascotPainter
         }
         else if (T < 0.55)
         {
-            ball = Arc(Chest(yx, 1, 0), catchPt, Seg(T, 0.28, 0.55), 20);
+            ball = Arc(Chest(yx, 1, 0), catchPt, Seg(T, 0.28, 0.55), 11);
         }
         else if (T < 0.63)
         {

@@ -188,6 +188,27 @@ public class MascotRenderTests
     });
 
     [Fact]
+    public void Name_labels_never_overlap_in_any_scene() => Sta.Run(() =>
+    {
+        var painter = new MascotPainter(MascotPalette.Default);
+        foreach (var (name, frame) in Showcase())
+        {
+            for (var t = 0.0; t < 40; t += 0.17)
+            {
+                foreach (var u in new[] { 0.1, 0.45, 0.8 })
+                {
+                    _ = MascotBitmap.RenderVector(painter, 600, frame, u, t);
+                    var l = painter.ResolvedLabels().OrderBy(x => x.X).ToList();
+                    for (var i = 1; i < l.Count; i++)
+                    {
+                        (l[i].X - l[i - 1].X).Should().BeGreaterThanOrEqualTo(((l[i].Width + l[i - 1].Width) / 2) + 2.5, "{0} t={1}", name, t);
+                    }
+                }
+            }
+        }
+    });
+
+    [Fact]
     public void Hidden_frame_draws_nothing() => Sta.Run(() =>
     {
         var bmp = MascotBitmap.RenderVector(new MascotPainter(MascotPalette.Default), Width, MascotFrame.Hidden, 0.5, 1);
@@ -211,7 +232,7 @@ public class MascotRenderTests
         var painter = new MascotPainter(MascotPalette.Default, minStroke: 3);
         var bmp = MascotBitmap.RenderRetro(painter, Width, F(MascotScene.Pass), 0.3, 1);
         bmp.PixelWidth.Should().Be((int)Math.Ceiling(Width / 3));
-        bmp.PixelHeight.Should().Be(16);
+        bmp.PixelHeight.Should().Be(22);
         var px = Pixels(bmp);
         var colors = new HashSet<int>();
         for (var i = 0; i < px.Length; i += 4)
@@ -258,6 +279,60 @@ public class MascotRenderTests
         var frame = F(MascotScene.TossBin, outcome: TossOutcome.Hit);
         Opaque(Pixels(view.Snapshot(frame, 0.5, 240, retro: false))).Should().BeGreaterThan(200);
         Opaque(Pixels(view.Snapshot(frame, 0.5, 240, retro: true))).Should().BeGreaterThan(20);
+    });
+
+    /// <summary>시각 확인용: 마무리 슛(복사 3점, 이동 덩크, 삭제 휴지통, 영구 삭제 던지기)의 공 궤적을 겹쳐 그려 포물선이 띠 안에 다 들어오는지 본다.</summary>
+    [Fact]
+    public void Export_ball_trajectories_when_requested() => Sta.Run(() =>
+    {
+        var dir = Environment.GetEnvironmentVariable("FOLDY_MASCOT_PNG_DIR");
+        if (string.IsNullOrWhiteSpace(dir))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(dir);
+        var painter = new MascotPainter(MascotPalette.Default);
+        const double scale = 2;
+        const double w = 600;
+        var cases = new (string Name, MascotFrame Frame)[]
+        {
+            ("trajectory-copy-3pointer", F(MascotScene.Score, finish: MascotFinish.ThreePointer, progress: 1)),
+            ("trajectory-move-dunk", F(MascotScene.Dunk, finish: MascotFinish.Dunk, progress: 1)),
+            ("trajectory-delete-bin", F(MascotScene.TossBin, outcome: TossOutcome.Hit, finish: MascotFinish.BinToss, progress: 1)),
+            ("trajectory-permanent-punt", F(MascotScene.OutOfBounds, finish: MascotFinish.Punt, progress: 1)),
+        };
+        var bg = new SolidColorBrush(Colors.White);
+        var dv = new DrawingVisual();
+        var dg = new DrawingGroup();
+        using (var dc = dg.Open())
+        {
+            for (var k = 0; k < cases.Length; k++)
+            {
+                var y = k * ((MascotPainter.DesignHeight * scale) + 6);
+                dc.DrawRectangle(bg, null, new Rect(0, y, w * scale, MascotPainter.DesignHeight * scale));
+                var def = MascotView.SceneCatalog.Get(cases[k].Frame.Scene);
+                for (var i = 0; i <= 24; i++)
+                {
+                    var u = 0.38 + (i * 0.012);
+                    dc.PushOpacity(i == 24 ? 1 : 0.3);
+                    dc.DrawImage(MascotBitmap.RenderVector(painter, w, cases[k].Frame, u, u * def.LoopSeconds, scale), new Rect(0, y, w * scale, MascotPainter.DesignHeight * scale));
+                    dc.Pop();
+                }
+            }
+        }
+
+        using (var dcv = dv.RenderOpen())
+        {
+            dcv.DrawDrawing(dg);
+        }
+
+        var rtb = new RenderTargetBitmap((int)(w * scale), (int)(cases.Length * ((MascotPainter.DesignHeight * scale) + 6)), 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(dv);
+        var enc = new PngBitmapEncoder();
+        enc.Frames.Add(BitmapFrame.Create(rtb));
+        using var fs = File.Create(Path.Combine(dir, "ball-trajectories.png"));
+        enc.Save(fs);
     });
 
     /// <summary>
