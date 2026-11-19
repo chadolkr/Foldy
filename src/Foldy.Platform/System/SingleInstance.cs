@@ -6,7 +6,7 @@ namespace Foldy.Platform.SystemInfo;
 
 /// <summary>
 /// 단일 인스턴스: 같은 사용자·같은 로그온 세션에서 Foldy는 하나만 뜬다.
-/// 처음 뜬 Foldy가 이름 있는 뮤텍스를 잡고, 파이프로 "앞으로 와 달라 + 인자" 요청을 받는다.
+/// 처음 뜬 Foldy가 이름 있는 이벤트 개체를 만들고, 파이프로 "앞으로 와 달라 + 인자" 요청을 받는다.
 /// 나중에 뜬 Foldy는 요청을 보내고 바로 끝난다. 앞의 Foldy가 응답하지 않으면(멈춤 등) 그냥 새로 뜬다 — 창이 하나도 없는 것보다 낫다.
 /// 프로토콜: 서버가 자기 PID(int32)를 쓰고, 클라이언트는 AllowSetForegroundWindow(PID) 뒤 인자 개수(int32)와 UTF-8 문자열들을 쓴다.
 /// </summary>
@@ -15,15 +15,15 @@ public sealed partial class SingleInstance : IDisposable
     private const int MaxArgs = 64;
     private const int MaxArgBytes = 32 * 1024;
 
-    private readonly Mutex _mutex;
+    private readonly EventWaitHandle _marker;
     private readonly string _pipeName;
     private readonly CancellationTokenSource _cts = new();
     private bool _owns;
     private Task? _server;
 
-    private SingleInstance(Mutex mutex, bool owns, string pipeName)
+    private SingleInstance(EventWaitHandle marker, bool owns, string pipeName)
     {
-        _mutex = mutex;
+        _marker = marker;
         _owns = owns;
         _pipeName = pipeName;
     }
@@ -34,26 +34,17 @@ public sealed partial class SingleInstance : IDisposable
     public string PipeName => _pipeName;
 
     /// <summary>
-    /// 뮤텍스를 잡아 본다. key는 앱 이름 (시험에서는 고유 이름). 세션 ID를 붙여 원격 데스크톱의 다른 세션과 섞이지 않게 한다.
-    /// 이전 Foldy가 비정상 종료해 버려진 뮤텍스도 내 것으로 친다.
+    /// 이름 있는 커널 개체를 처음 만든 프로세스가 첫 Foldy다. key는 앱 이름 (시험에서는 고유 이름).
+    /// 세션 ID를 붙여 원격 데스크톱의 다른 세션과 섞이지 않게 한다.
+    /// 뮤텍스 대신 이벤트를 쓴다: 스레드에 묶이지 않고(같은 스레드가 다시 잡아도 "처음"이 아님), 첫 Foldy가 죽으면 핸들이 닫혀 개체가 사라진다.
     /// </summary>
     public static SingleInstance Acquire(string key = "Foldy")
     {
-        var session = Environment.ProcessId > 0 ? System.Diagnostics.Process.GetCurrentProcess().SessionId : 0;
+        var session = System.Diagnostics.Process.GetCurrentProcess().SessionId;
         var user = Environment.UserName.GetHashCode(StringComparison.OrdinalIgnoreCase).ToString("x8", System.Globalization.CultureInfo.InvariantCulture);
         var name = $"{key}.{session}.{user}";
-        var mutex = new Mutex(initiallyOwned: false, @"Local\" + name + ".instance");
-        bool owns;
-        try
-        {
-            owns = mutex.WaitOne(0);
-        }
-        catch (AbandonedMutexException)
-        {
-            owns = true;
-        }
-
-        return new SingleInstance(mutex, owns, name + ".activate");
+        var marker = new EventWaitHandle(false, EventResetMode.ManualReset, @"Local\" + name + ".instance", out var createdNew);
+        return new SingleInstance(marker, createdNew, name + ".activate");
     }
 
     /// <summary>첫 Foldy: 다른 Foldy의 요청을 받기 시작한다. onActivate는 스레드 풀에서 불린다 (UI로 넘기는 건 호출자 몫).</summary>
@@ -186,21 +177,8 @@ public sealed partial class SingleInstance : IDisposable
         {
         }
 
-        if (_owns)
-        {
-            try
-            {
-                _mutex.ReleaseMutex();
-            }
-            catch (ApplicationException)
-            {
-                // 다른 스레드에서 잡은 뮤텍스: 프로세스가 끝나면 풀린다.
-            }
-
-            _owns = false;
-        }
-
-        _mutex.Dispose();
+        _owns = false;
+        _marker.Dispose();
         _cts.Dispose();
     }
 }
