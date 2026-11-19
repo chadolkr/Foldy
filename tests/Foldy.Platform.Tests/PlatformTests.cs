@@ -227,3 +227,10 @@ public sealed class SingleInstanceTests
         })).Should().BeTrue();
     }
 }
+
+public class RecycleBinTests
+{
+    [Fact]
+    public void Query_returns_totals() =>
+        Foldy.Platform.Shell.RecycleBin.Query().Should().NotBeNull("SHQueryRecycleBin은 휴지통이 비어 있어도 성공한다");
+}

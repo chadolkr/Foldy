@@ -23,7 +23,7 @@ public sealed record QuickFolder(string Path)
 /// </summary>
 public sealed class QuickAccess
 {
-    public const int MaxRecent = 8;
+    public const int MaxRecent = 5;
     public const int MaxPinned = 30;
 
     public QuickAccess(QuickAccessState? state = null)

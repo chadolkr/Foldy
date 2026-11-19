@@ -60,44 +60,27 @@
           </StackPanel>
         </Button>
 
-        <!-- 맨 아래: 앱 공통 기능 (명령·업데이트·버그 신고·설정·도움말·더 보기) -->
+        <!-- 맨 아래: 앱 공통 기능을 아이콘 한 줄로 (명령·업데이트·버그 신고·설정·도움말·더 보기). 이름은 툴팁. 사이드바를 접으면 세로로 -->
         <StackPanel DockPanel.Dock="Bottom" Margin="0,4,0,6">
           <Rectangle Height="1" Margin="10,0,10,4" Fill="{DynamicResource Brush.Border}" />
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnFnPalette" ToolTip="모든 명령 (Ctrl+Shift+P)" AutomationProperties.Name="모든 명령">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Style="{StaticResource SideIcon}" Text="&#xE765;" />
-              <TextBlock Style="{StaticResource SideName}" Text="모든 명령" />
-            </StackPanel>
+          <WrapPanel HorizontalAlignment="Center" ItemWidth="34" ItemHeight="32">
+          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnFnPalette" ToolTip="모든 명령 (Ctrl+Shift+P)" AutomationProperties.Name="모든 명령">
+            <TextBlock Style="{StaticResource SideIcon}" Text="&#xE765;" Margin="0" HorizontalAlignment="Center" />
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnCheckUpdate" ToolTip="지금 새 버전 확인하고 설치" AutomationProperties.Name="업데이트">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Style="{StaticResource SideIcon}" Text="&#xE895;" />
-              <TextBlock Style="{StaticResource SideName}" Text="업데이트" />
-            </StackPanel>
+          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnCheckUpdate" ToolTip="지금 새 버전 확인하고 설치" AutomationProperties.Name="업데이트">
+            <TextBlock Style="{StaticResource SideIcon}" Text="&#xE895;" Margin="0" HorizontalAlignment="Center" />
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnReportBug" ToolTip="버그 신고 (앱·Windows 버전과 최근 기록을 채운 GitHub 이슈 작성 페이지)" AutomationProperties.Name="버그 신고">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Style="{StaticResource SideIcon}" Text="&#xEBE8;" />
-              <TextBlock Style="{StaticResource SideName}" Text="버그 신고" />
-            </StackPanel>
+          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnReportBug" ToolTip="버그 신고 (앱·Windows 버전과 최근 기록을 채운 GitHub 이슈 작성 페이지)" AutomationProperties.Name="버그 신고">
+            <TextBlock Style="{StaticResource SideIcon}" Text="&#xEBE8;" Margin="0" HorizontalAlignment="Center" />
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSettings" ToolTip="설정 (Ctrl+,)" AutomationProperties.Name="설정">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Style="{StaticResource SideIcon}" Text="&#xE713;" />
-              <TextBlock Style="{StaticResource SideName}" Text="설정" />
-            </StackPanel>
+          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnSettings" ToolTip="설정 (Ctrl+,)" AutomationProperties.Name="설정">
+            <TextBlock Style="{StaticResource SideIcon}" Text="&#xE713;" Margin="0" HorizontalAlignment="Center" />
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" Click="OnHelp" ToolTip="도움말 (F1)" AutomationProperties.Name="도움말">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Style="{StaticResource SideIcon}" Text="&#xE897;" />
-              <TextBlock Style="{StaticResource SideName}" Text="도움말" />
-            </StackPanel>
+          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnHelp" ToolTip="도움말 (F1)" AutomationProperties.Name="도움말">
+            <TextBlock Style="{StaticResource SideIcon}" Text="&#xE897;" Margin="0" HorizontalAlignment="Center" />
           </Button>
-          <Button x:Name="MoreButton" Style="{DynamicResource Foldy.SideItem}" Click="OnMore" ToolTip="테마, 숨김 파일, 목록 간격, 정보 등" AutomationProperties.Name="더 보기">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Style="{StaticResource SideIcon}" Text="&#xE712;" />
-              <TextBlock Style="{StaticResource SideName}" Text="더 보기 (테마·정보)" />
-            </StackPanel>
+          <Button x:Name="MoreButton" Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnMore" ToolTip="테마, 숨김 파일, 목록 간격, 정보 등" AutomationProperties.Name="더 보기">
+            <TextBlock Style="{StaticResource SideIcon}" Text="&#xE712;" Margin="0" HorizontalAlignment="Center" />
           <Button.ContextMenu>
             <ContextMenu x:Name="MoreMenu">
               <MenuItem x:Name="ThemeSystem" Header="테마: 시스템 설정 따르기" Click="OnTheme" Tag="System" />
@@ -131,6 +114,7 @@
             </ContextMenu>
           </Button.ContextMenu>
           </Button>
+          </WrapPanel>
         </StackPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
@@ -142,7 +126,7 @@
               <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="자주 쓰는 폴더" />
             </DockPanel>
             <TextBlock x:Name="PinnedEmpty" Margin="14,2,10,4" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"
-                       Text="오른쪽 핀 버튼을 누르면 지금 폴더가 여기 고정됩니다. 목록에서 마우스 오른쪽 버튼을 눌러도 됩니다." />
+                       Text="핀 버튼으로 지금 폴더를 고정하세요." />
             <ItemsControl x:Name="PinnedList" Focusable="False">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type sb:QuickFolder}">
@@ -296,12 +280,20 @@
                 <TextBlock Style="{StaticResource SideName}" Text="터미널" />
               </StackPanel>
             </Button>
-            <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideRecycleBin" ToolTip="Windows 휴지통 열기 (지운 파일 되살리기)" AutomationProperties.Name="휴지통">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE74D;" />
-                <TextBlock Style="{StaticResource SideName}" Text="휴지통" />
-              </StackPanel>
-            </Button>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideRecycleBin" ToolTip="Windows 휴지통 열기 (지운 파일 되살리기)" AutomationProperties.Name="휴지통">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Style="{StaticResource SideIcon}" Text="&#xE74D;" />
+                  <TextBlock x:Name="RecycleBinText" Style="{StaticResource SideName}" Text="휴지통" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="EmptyRecycleBinButton" Grid.Column="1" Style="{DynamicResource Foldy.ToolButton}" Content="비우기" FontFamily="{DynamicResource Font.UI}" FontSize="11" Width="Auto" Padding="6,0" Margin="2,0,6,0"
+                      ToolTip="휴지통 비우기 (영구 삭제, 되살릴 수 없음)" AutomationProperties.Name="휴지통 비우기" Click="OnEmptyRecycleBin" Visibility="Collapsed" />
+            </Grid>
           </StackPanel>
         </ScrollViewer>
       </DockPanel>

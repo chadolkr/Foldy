@@ -85,6 +85,9 @@ public partial class App : Application
         // 클라우드 드라이브(G: Google Drive for desktop)는 미리보기를 누를 때만 읽는다 (온라인 전용 파일 자동 다운로드 방지).
         Foldy.Presentation.Preview.PreviewGuards.IsCloudVolumePath = Foldy.Platform.SystemInfo.CloudVolumes.IsCloudPath;
         Foldy.Platform.Imaging.CloudFileGuard.IsSlowDrivePath = Foldy.Presentation.Services.DriveSpeedTracker.Shared.IsSlow;
+        Foldy.Presentation.Services.DriveSpeedTracker.Shared.Eligible = root =>
+            root.StartsWith(@"\\", StringComparison.Ordinal)
+            || (root.Length >= 2 && root[1] == ':' && Foldy.Platform.SystemInfo.Drives.TypeOf(root[..2] + "\\") == Foldy.Platform.SystemInfo.NativeDriveType.Remote);
 
         _stallDetector = new UiStallDetector(Dispatcher, TimeSpan.FromMilliseconds(200));
         var settings = Foldy.Presentation.Persistence.AppSettings.Migrate(Foldy.Presentation.Persistence.JsonFileStore.Load(Path.Combine(DataDir, "settings.json"), () => new Foldy.Presentation.Persistence.AppSettings()));

@@ -128,6 +128,9 @@ public partial class ShellWindow : Window, IPaneHost
         JobsList.ItemsSource = Shell.Jobs;
 
         BuildCommands();
+        UpdateRecycleBinInfo();
+        new DispatcherTimer(TimeSpan.FromMinutes(1), DispatcherPriority.Background, (_, _) => UpdateRecycleBinInfo(), Dispatcher).Start();
+        Shell.Jobs.CollectionChanged += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Background, UpdateRecycleBinInfo);
         Diagnostics.DiagnosticMode.Apply(_settings.DiagnosticUntil);
         UpdateDiagnosticIndicator();
         // 진단 모드는 24시간 뒤 저절로 꺼진다 (켠 채로 앱을 오래 두어도)
@@ -780,6 +783,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("app.help", "도움말 (사용 설명서)", ShowHelp, Key.F1, inText: true);
         Add("app.settings", "설정…", ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
         Add("app.reportBug", "버그 신고…", App.OpenBugReport);
+        Add("app.emptyRecycleBin", "휴지통 비우기…", () => OnEmptyRecycleBin(this, new RoutedEventArgs()));
         Add("app.diagnostic", "버그 진단 모드 켜기/끄기", ToggleDiagnostic);
         Add("app.logs", "로그 폴더 열기", OpenLogFolder);
         Add("app.about", "Foldy 정보", ShowAbout);
@@ -1655,6 +1659,45 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnSideSearch(object sender, RoutedEventArgs e) => ActiveView.FocusSearch();
 
     private void OnSideTerminal(object sender, RoutedEventArgs e) => Shell.OpenTerminal(TerminalKind.Default, false);
+
+    /// <summary>사이드바의 휴지통 용량 표시. 시작할 때, 삭제 작업이 끝날 때, 1분마다 갱신한다.</summary>
+    private async void UpdateRecycleBinInfo()
+    {
+        var info = await Task.Run(Foldy.Platform.Shell.RecycleBin.Query);
+        if (info is { } i && i.Items > 0)
+        {
+            RecycleBinText.Text = $"휴지통 · {Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)}";
+            EmptyRecycleBinButton.Visibility = Visibility.Visible;
+            EmptyRecycleBinButton.ToolTip = $"휴지통 비우기: {i.Items:N0}개, {Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)} (영구 삭제, 되살릴 수 없음)";
+        }
+        else
+        {
+            RecycleBinText.Text = "휴지통";
+            EmptyRecycleBinButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private async void OnEmptyRecycleBin(object sender, RoutedEventArgs e)
+    {
+        var info = Foldy.Platform.Shell.RecycleBin.Query();
+        if (info is not { Items: > 0 } i)
+        {
+            UpdateRecycleBinInfo();
+            return;
+        }
+
+        if (MessageBox.Show(this, $"휴지통의 {i.Items:N0}개 항목({Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)})을 영구 삭제할까요?\n\n되살릴 수 없습니다.",
+                "휴지통 비우기", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        Shell.Status = "휴지통 비우는 중…";
+        var ok = await Task.Run(() => Foldy.Platform.Shell.RecycleBin.Empty(hwnd));
+        Shell.Status = ok ? $"휴지통을 비웠습니다 ({Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)} 확보)" : "휴지통을 비우지 못했습니다";
+        UpdateRecycleBinInfo();
+    }
 
     private void OnSideRecycleBin(object sender, RoutedEventArgs e)
     {

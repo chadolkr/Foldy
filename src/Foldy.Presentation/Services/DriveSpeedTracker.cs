@@ -79,9 +79,13 @@ public sealed class DriveSpeedTracker
     public DriveSpeedClass Classify(string? path) => IsSlow(path) ? DriveSpeedClass.Slow : DriveSpeedClass.Fast;
 
     /// <summary>폴더를 열 때 첫 묶음까지 걸린 시간을 기록한다. 이 기록으로 처음 느려졌으면 true.</summary>
+    /// <summary>느림 판정 대상 드라이브인가 (기본: 모두). 앱은 네트워크·리다이렉터 드라이브만 대상으로 한다
+    /// (로컬 디스크는 시작 직후 첫 목록이 느려도 "느린 드라이브"로 표시하지 않는다).</summary>
+    public Func<string, bool>? Eligible { get; set; }
+
     public bool Record(string? path, TimeSpan firstBatch)
     {
-        if (RootOf(path) is not { } root)
+        if (RootOf(path) is not { } root || Eligible?.Invoke(root) == false)
         {
             return false;
         }
