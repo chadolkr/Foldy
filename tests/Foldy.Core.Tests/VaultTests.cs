@@ -57,6 +57,45 @@ public sealed class VaultTests : IDisposable
         back.Images.Keys.Should().Equal(img);
     }
 
+    [Theory]
+    [InlineData("../evil.bat")]
+    [InlineData("..\\evil.bat")]
+    [InlineData("a/../../evil.bat")]
+    [InlineData("C:\\Windows\\evil.bat")]
+    [InlineData("C:evil.bat")]
+    [InlineData("/evil.bat")]
+    [InlineData("\\\\server\\share\\evil.bat")]
+    [InlineData("ok.txt:hidden")]
+    [InlineData("..")]
+    [InlineData("")]
+    public void SafeDestination_refuses_names_that_leave_the_folder(string name)
+    {
+        SecureZip.SafeDestination(Path.Combine(_root, "out"), name).Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("a.txt", "a.txt")]
+    [InlineData("sub/b.txt", "sub\\b.txt")]
+    [InlineData("sub/../c.txt", "c.txt")]
+    public void SafeDestination_keeps_names_inside_the_folder(string name, string expected)
+    {
+        var dest = Path.Combine(_root, "out");
+        SecureZip.SafeDestination(dest, name).Should().Be(Path.Combine(dest, expected.Replace('\\', Path.DirectorySeparatorChar)));
+    }
+
+    [Fact]
+    public void ExtractAll_never_writes_outside_the_destination()
+    {
+        // 다른 사람이 만든 금고: 이름에 "..\"를 넣어 꺼낼 폴더 밖(예: 시작프로그램)에 쓰려는 경우
+        var vault = Path.Combine(_root, "evil" + SecureZip.VaultExtension);
+        SecureZip.Write(vault, [("../escaped.txt", () => new MemoryStream("x"u8.ToArray())), ("fine.txt", () => new MemoryStream("y"u8.ToArray()))], "pw");
+        var dest = Path.Combine(_root, "out");
+
+        SecureZip.ExtractAll(vault, "pw", dest).Should().Be(1);
+        File.Exists(Path.Combine(_root, "escaped.txt")).Should().BeFalse();
+        File.Exists(Path.Combine(dest, "fine.txt")).Should().BeTrue();
+    }
+
     [Fact]
     public void Vault_holds_a_whole_folder_and_extracts_without_overwriting()
     {

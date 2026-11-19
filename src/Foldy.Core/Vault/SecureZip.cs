@@ -140,8 +140,7 @@ public static class SecureZip
                 continue;
             }
 
-            var dst = Path.GetFullPath(Path.Combine(root, e.Name.Replace('/', Path.DirectorySeparatorChar)));
-            if (!dst.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            if (SafeDestination(root, e.Name) is not { } dst)
             {
                 continue; // zip 밖으로 나가는 이름은 무시
             }
@@ -159,6 +158,28 @@ public static class SecureZip
         }
 
         return n;
+    }
+
+    /// <summary>
+    /// zip 항목 이름을 꺼낼 폴더 안의 전체 경로로 바꾼다. "..\", 절대 경로("C:\…", "\\서버\…"), 드라이브 상대 경로("C:x")처럼
+    /// 꺼낼 폴더 밖을 가리키면 null (zip slip 방지). 다른 사람이 보낸 금고 파일의 이름은 믿을 수 없다.
+    /// </summary>
+    public static string? SafeDestination(string destFolder, string entryName)
+    {
+        if (string.IsNullOrWhiteSpace(entryName) || entryName.Contains('\0', StringComparison.Ordinal) || entryName.Contains(':', StringComparison.Ordinal))
+        {
+            return null; // ':'는 드라이브 문자나 NTFS 대체 데이터 스트림
+        }
+
+        var rel = entryName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+        if (Path.IsPathRooted(rel))
+        {
+            return null;
+        }
+
+        var root = Path.GetFullPath(destFolder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var full = Path.GetFullPath(Path.Combine(root, rel));
+        return full.StartsWith(root, StringComparison.OrdinalIgnoreCase) && full.Length > root.Length ? full : null;
     }
 
     public static string Unique(string path)
