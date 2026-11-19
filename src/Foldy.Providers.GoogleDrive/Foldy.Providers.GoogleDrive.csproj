@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Foldy.Providers.GoogleDrive</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Foldy.Core\Foldy.Core.csproj" />
+    <InternalsVisibleTo Include="Foldy.GoogleDrive.Tests" />
+  </ItemGroup>
+  <!--
+    OAuth 클라이언트 ID/비밀값은 저장소에 넣지 않는다. 빌드할 때 환경 변수(또는 -p:)로 주입한다.
+      FoldyGoogleClientId, FoldyGoogleClientSecret  (release.yml은 GitHub 변수·Secret에서 넘긴다)
+    없으면 빈 값이고, 앱은 사용자가 연결 창에서 넣은 자기 클라이언트 ID를 쓴다.
+  -->
+  <ItemGroup Condition="'$(FoldyGoogleClientId)' != ''">
+    <AssemblyMetadata Include="FoldyGoogleClientId" Value="$(FoldyGoogleClientId)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(FoldyGoogleClientSecret)' != ''">
+    <AssemblyMetadata Include="FoldyGoogleClientSecret" Value="$(FoldyGoogleClientSecret)" />
+  </ItemGroup>
+</Project>

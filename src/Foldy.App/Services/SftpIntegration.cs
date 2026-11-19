@@ -7,13 +7,15 @@ using Foldy.Providers.Sftp;
 
 namespace Foldy.App.Services;
 
-/// <summary>경로를 보고 Provider를 고른다 (설계서 5.3 ProviderResolver): sftp:// → SftpProvider, 그 외 → 로컬.</summary>
-public sealed class ProviderRouter(IFileSystemProvider local, IFileSystemProvider sftp) : IFileSystemProvider
+/// <summary>경로를 보고 Provider를 고른다 (설계서 5.3 ProviderResolver): sftp:// → SftpProvider, gdrive:// → Google Drive, 그 외 → 로컬.</summary>
+public sealed class ProviderRouter(IFileSystemProvider local, IFileSystemProvider sftp, IFileSystemProvider? gdrive = null) : IFileSystemProvider
 {
     public ProviderId Id => ProviderId.Local;
 
     public IAsyncEnumerable<IReadOnlyList<FsEntry>> ListBatchedAsync(FsPath path, CancellationToken ct) =>
-        PathUtil.IsSftp(path.Value) ? sftp.ListBatchedAsync(path with { Provider = ProviderId.Sftp }, ct) : local.ListBatchedAsync(path, ct);
+        PathUtil.IsSftp(path.Value) ? sftp.ListBatchedAsync(path with { Provider = ProviderId.Sftp }, ct)
+        : gdrive is not null && PathUtil.IsGDrive(path.Value) ? gdrive.ListBatchedAsync(path with { Provider = gdrive.Id }, ct)
+        : local.ListBatchedAsync(path, ct);
 }
 
 /// <summary>SFTP 연결 관리: 저장된 프로필 + 이번 실행 동안만 기억하는 자격 증명, 호스트 키 확인 창.</summary>
