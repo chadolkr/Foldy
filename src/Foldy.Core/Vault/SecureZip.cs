@@ -140,7 +140,7 @@ public static class SecureZip
                 continue;
             }
 
-            if (SafeTarget(root, e.Name) is not { } target)
+            if (SafeDestination(root, e.Name) is not { } target)
             {
                 continue; // zip 밖으로 나가는 이름은 무시
             }
@@ -160,21 +160,26 @@ public static class SecureZip
         return n;
     }
 
-    /// <summary>항목 이름을 꺼낼 위치로. 폴더 밖으로 나가는 이름("../", 절대 경로)이면 null (zip slip 막기).</summary>
-    public static string? SafeTarget(string destFolder, string entryName)
+    /// <summary>
+    /// zip 항목 이름을 꺼낼 폴더 안의 전체 경로로 바꾼다. "..\", 절대 경로("C:\…", "\\서버\…"), 드라이브 상대 경로("C:x")처럼
+    /// 꺼낼 폴더 밖을 가리키면 null (zip slip 방지). 다른 사람이 보낸 금고 파일의 이름은 믿을 수 없다.
+    /// </summary>
+    public static string? SafeDestination(string destFolder, string entryName)
     {
-        var root = Path.GetFullPath(destFolder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        string dst;
-        try
+        if (string.IsNullOrWhiteSpace(entryName) || entryName.Contains('\0', StringComparison.Ordinal) || entryName.Contains(':', StringComparison.Ordinal))
         {
-            dst = Path.GetFullPath(Path.Combine(root, entryName.Replace('/', Path.DirectorySeparatorChar)));
+            return null; // ':'는 드라이브 문자나 NTFS 대체 데이터 스트림
         }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+
+        var rel = entryName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+        if (Path.IsPathRooted(rel))
         {
             return null;
         }
 
-        return dst.StartsWith(root, StringComparison.OrdinalIgnoreCase) ? dst : null;
+        var root = Path.GetFullPath(destFolder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var full = Path.GetFullPath(Path.Combine(root, rel));
+        return full.StartsWith(root, StringComparison.OrdinalIgnoreCase) && full.Length > root.Length ? full : null;
     }
 
     public static string Unique(string path)

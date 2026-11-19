@@ -442,12 +442,13 @@ public static class SecureFlows
                     var done = 0;
                     foreach (var name in names)
                     {
-                        if (SecureZip.SafeTarget(dest, name) is not { } target)
+                        // 금고 안 이름이 "..\..\시작프로그램\x.bat"처럼 꺼낼 폴더 밖을 가리키면 건너뛴다 (zip slip)
+                        if (SecureZip.SafeDestination(dest, name) is not { } safe)
                         {
-                            continue; // 금고 밖으로 나가는 이름은 꺼내지 않는다
+                            continue;
                         }
 
-                        var dst = SecureZip.Unique(target);
+                        var dst = SecureZip.Unique(safe);
                         Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
                         File.WriteAllBytes(dst, SecureZip.ReadEntry(vault, p, name));
                         done++;
