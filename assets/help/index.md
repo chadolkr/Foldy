@@ -6,8 +6,8 @@ Foldy는 빠르고 멈추지 않는 Windows 듀얼 패널 파일 관리자입니
 | --- | --- |
 | 버전 | {{version}} |
 | 개발자 | David CHA |
-| 저장소 | https://github.com/chadolkr/Foldy |
-| 라이선스 | GPL-3.0-or-later (자유 소프트웨어) |
+| 내려받기·문의 | https://github.com/chadolkr/Foldy-releases |
+| 라이선스 | 무료 배포 프리웨어 (소스 비공개) |
 
 - [화면 둘러보기](#화면-둘러보기)
 - [공통 사이드바](#공통-사이드바)
@@ -314,5 +314,5 @@ Foldy는 오류를 자동으로 모아 둡니다. 비정상 종료뿐 아니라 
 **설정과 기록은 어디에 있나요?**
 `%LOCALAPPDATA%\Foldy` (settings.json, session.json, logs). 색인 데이터는 `%ProgramData%\Foldy`.
 
-**소스 코드와 라이선스는?**
-GPL-3.0-or-later 자유 소프트웨어입니다. https://github.com/chadolkr/Foldy
+**라이선스는?**
+무료로 쓰고 나눌 수 있는 프리웨어입니다(소스 비공개). 사용권은 설치 폴더의 LICENSE, 오픈소스 고지는 THIRD-PARTY-NOTICES.md를 보세요. https://github.com/chadolkr/Foldy-releases

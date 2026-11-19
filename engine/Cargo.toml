@@ -7,7 +7,7 @@ members = ["foldy-proto", "foldy-ntfs", "foldy-index", "foldy-copy", "foldy-upda
 version = "0.1.0"
 edition = "2024"
 authors = ["David CHA"]
-repository = "https://github.com/chadolkr/Foldy"
+repository = "https://github.com/chadolkr/Foldy-releases"
 license = "GPL-3.0-or-later"
 
 [workspace.dependencies]

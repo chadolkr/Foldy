@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   배포용 설치 폴더를 만든다: artifacts\Foldy-Setup\ (payload + Foldy-Setup.ps1 + 더블클릭용 Foldy 설치.cmd)
   그리고 zip(artifacts\Foldy-<버전>-setup.zip)으로 묶는다.
@@ -28,6 +28,7 @@ foreach ($f in 'foldy-index.exe', 'foldy-update.exe') {
 }
 Copy-Item (Join-Path $root 'LICENSE') $payload
 Copy-Item (Join-Path $root 'PRIVACY.md') $payload
+Copy-Item (Join-Path $root 'THIRD-PARTY-NOTICES.md') $payload
 # Windows PowerShell 5.1이 한글을 바르게 읽도록 UTF-8 BOM으로 저장
 [IO.File]::WriteAllText((Join-Path $out 'Foldy-Setup.ps1'), [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Foldy-Setup.ps1')), [Text.UTF8Encoding]::new($true))
 

@@ -69,7 +69,9 @@ internal static class DiagnosticMode
             var type = Foldy.Platform.SystemInfo.Drives.TypeOf(root);
             var unc = type == Foldy.Platform.SystemInfo.NativeDriveType.Remote ? Foldy.Platform.SystemInfo.Drives.ToUnc(root) : "";
             var exists = Directory.Exists(root);
-            return $"드라이브 종류={type}, UNC={(unc.Length > 0 ? unc : "-")}, 보임={exists}, 논리 드라이브={string.Join("", Environment.GetLogicalDrives().Select(d => d[0]))}";
+            // 서버·공유 이름은 회사 정보일 수 있어 남기지 않는다 (로컬 리다이렉터인지만)
+            var uncKind = unc.Length == 0 ? "-" : unc.StartsWith(@"\localhost\", StringComparison.OrdinalIgnoreCase) || unc.StartsWith(@"\127.", StringComparison.Ordinal) ? "로컬 리다이렉터" : "네트워크 공유";
+            return $"드라이브 종류={type}, UNC={uncKind}, 보임={exists}, 논리 드라이브={string.Join("", Environment.GetLogicalDrives().Select(d => d[0]))}";
         }
 #pragma warning disable CA1031 // 진단 정보 수집이 실패해도 앱은 계속
         catch (Exception ex)

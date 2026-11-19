@@ -35,9 +35,9 @@
     <!-- 프로그램 추가/제거(ARP) -->
     <Icon Id="FoldyIcon" SourceFile="$(RepoRoot)\assets\icons\foldy.ico" />
     <Property Id="ARPPRODUCTICON" Value="FoldyIcon" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/chadolkr/Foldy" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/chadolkr/Foldy" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/chadolkr/Foldy/releases" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/chadolkr/Foldy-releases/issues" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/chadolkr/Foldy-releases" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/chadolkr/Foldy-releases/releases" />
 
     <!-- 스크립트 설치본(Foldy-Setup.ps1) 감지: 정보용 속성 (동작은 아래 RemoveRegistryKey/RemoveFile 참고) -->
     <Property Id="SCRIPT_INSTALL_FOUND">

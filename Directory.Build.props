@@ -5,10 +5,10 @@
     <Authors>David CHA</Authors>
     <Company>David CHA</Company>
     <Copyright>© 2026 David CHA</Copyright>
-    <RepositoryUrl>https://github.com/chadolkr/Foldy</RepositoryUrl>
+    <RepositoryUrl>https://github.com/chadolkr/Foldy-releases</RepositoryUrl>
     <PackageProjectUrl>https://github.com/chadolkr/Foldy</PackageProjectUrl>
-    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <Version>0.3.12</Version>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Version>0.3.13</Version>
 
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>

@@ -22,7 +22,7 @@ namespace Foldy.App.Services;
 /// </summary>
 public sealed class AppUpdater : IDisposable
 {
-    public const string Repo = "chadolkr/Foldy";
+    public const string Repo = "chadolkr/Foldy-releases"; // 릴리스 전용 공개 저장소 (소스는 비공개)
     private static readonly TimeSpan Period = TimeSpan.FromHours(6);
 
     private readonly HttpClient _http;

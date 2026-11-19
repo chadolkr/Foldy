@@ -164,16 +164,29 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw '내장 공개키로 검증 실패 — keys/update-signing.pub과 시크릿이 짝인지 확인' }
           Get-Content "$out/update.json"
 
-      - name: GitHub Release
+      - name: GitHub Release (공개 릴리스 저장소 chadolkr/Foldy-releases)
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          # 소스 저장소는 비공개다. 공개 저장소에 올리려면 그 저장소의 Contents 쓰기 권한이 있는
+          # fine-grained PAT를 소스 저장소 secret RELEASES_TOKEN으로 넣는다. 없으면 이 단계는 건너뛰고,
+          # build/publish-release.ps1로 PC에서 올린다.
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
+          if (-not $env:GH_TOKEN) { Write-Host 'RELEASES_TOKEN 없음: 공개 릴리스는 build/publish-release.ps1로 올린다'; exit 0 }
           $tag = '${{ github.ref_name }}'
           $files = Get-ChildItem artifacts/release -File | Where-Object Extension -ne '.wixpdb' | ForEach-Object FullName
-          # SignPath Foundation 요건: 릴리스 페이지에 Code signing policy 링크
-          'Code signing policy: https://github.com/chadolkr/Foldy#code-signing-policy' | Set-Content release-notes-header.md -Encoding utf8
-          $flags = @('--generate-notes', '--notes-file', 'release-notes-header.md', '--title', "Foldy $tag", '--verify-tag')
+          $flags = @('--repo', 'chadolkr/Foldy-releases', '--title', "Foldy $tag", '--notes', "Foldy $tag")
           if ('${{ steps.ver.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
           gh release create $tag @files @flags
           if ($LASTEXITCODE -ne 0) { throw 'release 생성 실패' }
+
+      - name: Upload release files (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.ref_name }}
+          path: |
+            artifacts/release/*.msi
+            artifacts/release/*.zip
+            artifacts/release/update.json
+            artifacts/release/update.json.sig
+          retention-days: 30
