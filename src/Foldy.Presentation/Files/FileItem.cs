@@ -18,7 +18,7 @@ public sealed class FileItem(FsEntry entry, Func<FsEntry, string>? typeName = nu
 
     public bool IsFolder => Entry.Kind is FsKind.Folder or FsKind.Drive || (Entry.Kind == FsKind.Link && (Entry.Attributes & FileAttributes.Directory) != 0);
 
-    // 탐색기처럼 숨김(Hidden)만 숨긴다. System만 있는 폴더(예: 회사 보안 드라이브 K:의 My files)는 보인다.
+    // 탐색기처럼 숨김(Hidden)만 숨긴다. System만 있는 폴더(예: 회사 보안 드라이브의 루트 폴더)는 보인다.
     public bool IsHidden => (Entry.Attributes & FileAttributes.Hidden) != 0;
 
     public string Extension => IsFolder ? "" : System.IO.Path.GetExtension(Entry.Name);
