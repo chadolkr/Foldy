@@ -18,7 +18,7 @@ public class MascotViewModelTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(4.9)]
+    [InlineData(1.4)]
     public void Short_jobs_are_hidden(double seconds) =>
         MascotViewModel.Evaluate(Running(JobKind.Copy, seconds)).Visible.Should().BeFalse();
 
@@ -187,7 +187,7 @@ public class MascotViewModelTests
 
     [Fact]
     public void Done_quick_job_never_shows() =>
-        MascotViewModel.Evaluate(Running(JobKind.Copy, 3) with { State = JobState.Done, SinceFinished = TimeSpan.Zero }).Visible.Should().BeFalse();
+        MascotViewModel.Evaluate(Running(JobKind.Copy, 1) with { State = JobState.Done, SinceFinished = TimeSpan.Zero }).Visible.Should().BeFalse();
 
     [Fact]
     public void Failed_misses_the_shot_then_hides()

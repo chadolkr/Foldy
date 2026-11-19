@@ -139,7 +139,7 @@ public sealed record MascotOptions
     public bool AnimationsAllowed { get; init; } = true;
 
     /// <summary>이보다 짧은 작업에는 보이지 않는다.</summary>
-    public TimeSpan MinDuration { get; init; } = TimeSpan.FromSeconds(5);
+    public TimeSpan MinDuration { get; init; } = TimeSpan.FromSeconds(1.5);
 
     /// <summary>완료 장면(슛 성공·하이파이브) 후 숨기기까지.</summary>
     public TimeSpan DoneHold { get; init; } = TimeSpan.FromSeconds(2);

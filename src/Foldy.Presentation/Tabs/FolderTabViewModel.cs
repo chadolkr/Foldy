@@ -273,7 +273,7 @@ public sealed partial class FolderTabViewModel : TabBase
                     FirstBatchTime = sw.Elapsed;
                     if (_env.Speed.Record(target, FirstBatchTime))
                     {
-                        slowNotice = $"느린 드라이브 {DriveSpeedTracker.RootOf(target)}: 미리보기·썸네일·Git 감지를 줄였습니다";
+                        slowNotice = $"느린 드라이브({DriveSpeedTracker.RootOf(target)}) — 미리보기·썸네일·Git 감지를 줄였습니다";
                     }
 
                     IsSlowDrive = _env.Speed.IsSlow(target);

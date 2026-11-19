@@ -165,7 +165,7 @@ public sealed class MascotView : FrameworkElement
     private void Refresh()
     {
         _clock.Update(State);
-        var options = new MascotOptions { Enabled = IsMascotEnabled, AnimationsAllowed = SystemParameters.ClientAreaAnimation };
+        var options = new MascotOptions { Enabled = IsMascotEnabled, AnimationsAllowed = true }; // VDI·원격 데스크톱은 Windows 애니메이션 효과를 꺼 두는 경우가 많다. 끄기는 Foldy 설정 "애니메이션 사용"으로만
         var next = MascotViewModel.Evaluate(BuildInput(), options);
         var wasVisible = _frame.Visible;
         var sceneChanged = next.Scene != _frame.Scene;
