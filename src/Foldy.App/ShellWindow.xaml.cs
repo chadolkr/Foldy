@@ -1282,6 +1282,13 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
+        if (install && !Foldy.Platform.SystemInfo.IndexerService.IsProtectedLocation(exe))
+        {
+            // SYSTEM 서비스 exe가 사용자 폴더에 있으면 바꿔치기로 권한을 빼앗길 수 있다
+            Shell.Status = "색인 서비스는 설치본(Program Files)에서만 설치할 수 있어요. 압축본에서는 색인 없이 검색해요.";
+            return;
+        }
+
         try
         {
             using var p = Process.Start(install ? Foldy.Platform.SystemInfo.IndexerService.BuildInstall(exe) : Foldy.Platform.SystemInfo.IndexerService.BuildUninstall());

@@ -23,9 +23,59 @@ public static class IndexerService
         }
     }
 
-    /// <summary>관리자 PowerShell 한 번으로 등록·설명·시작 (지연된 자동 시작).</summary>
+    /// <summary>
+    /// 서비스 exe가 관리자만 바꿀 수 있는 곳(Program Files, Windows)에 있는지. SYSTEM 서비스의 exe가 사용자 폴더
+    /// (다운로드, 바탕화면, 압축 푼 폴더)에 있으면 아무 프로그램이나 그 파일을 바꿔치기해 다음 시작 때 SYSTEM 권한을 얻는다.
+    /// </summary>
+    public static bool IsProtectedLocation(string exePath, IEnumerable<string?>? protectedRoots = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(exePath);
+        protectedRoots ??=
+        [
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+        ];
+        string full;
+        try
+        {
+            full = Path.GetFullPath(exePath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+
+        if (full.StartsWith(@"\\", StringComparison.Ordinal))
+        {
+            return false; // 네트워크 경로
+        }
+
+        foreach (var root in protectedRoots)
+        {
+            if (string.IsNullOrEmpty(root))
+            {
+                continue;
+            }
+
+            var r = Path.GetFullPath(root).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+            if (full.StartsWith(r, StringComparison.OrdinalIgnoreCase) && !full.Contains(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>관리자 PowerShell 한 번으로 등록·설명·시작 (지연된 자동 시작). exe가 보호된 곳에 없으면 거부한다.</summary>
     public static ProcessStartInfo BuildInstall(string exePath)
     {
+        if (!IsProtectedLocation(exePath))
+        {
+            throw new InvalidOperationException("색인 서비스는 설치본(Program Files)에서만 설치할 수 있어요. 압축본이나 사용자 폴더의 exe를 SYSTEM 권한으로 돌리면 다른 프로그램이 바꿔치기할 수 있어요.");
+        }
+
         var bin = $"\\\"{exePath}\\\" --service";
         var script = string.Join("; ",
             $"sc.exe create {Name} binPath= \"{bin}\" start= delayed-auto DisplayName= \"Foldy Indexer\"",
