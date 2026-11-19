@@ -20,6 +20,14 @@ public partial class GuideWindow : Window
         InitializeComponent();
         Title = title;
         Closed += (_, _) => _pending?.TrySetResult(ClosedChoice);
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                Close(); // Esc = 그만두기 (아무것도 바꾸지 않은 채 닫힌다)
+                e.Handled = true;
+            }
+        };
     }
 
     public bool IsClosed { get; private set; }

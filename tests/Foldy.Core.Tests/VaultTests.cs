@@ -68,19 +68,19 @@ public sealed class VaultTests : IDisposable
     [InlineData("ok.txt:hidden")]
     [InlineData("..")]
     [InlineData("")]
-    public void SafeDestination_refuses_names_that_leave_the_folder(string name)
+    public void SafeTarget_refuses_names_that_leave_the_folder(string name)
     {
-        SecureZip.SafeDestination(Path.Combine(_root, "out"), name).Should().BeNull();
+        SecureZip.SafeTarget(Path.Combine(_root, "out"), name).Should().BeNull();
     }
 
     [Theory]
     [InlineData("a.txt", "a.txt")]
     [InlineData("sub/b.txt", "sub\\b.txt")]
     [InlineData("sub/../c.txt", "c.txt")]
-    public void SafeDestination_keeps_names_inside_the_folder(string name, string expected)
+    public void SafeTarget_keeps_names_inside_the_folder(string name, string expected)
     {
         var dest = Path.Combine(_root, "out");
-        SecureZip.SafeDestination(dest, name).Should().Be(Path.Combine(dest, expected.Replace('\\', Path.DirectorySeparatorChar)));
+        SecureZip.SafeTarget(dest, name).Should().Be(Path.Combine(dest, expected.Replace('\\', Path.DirectorySeparatorChar)));
     }
 
     [Fact]
@@ -114,5 +114,29 @@ public sealed class VaultTests : IDisposable
         File.ReadAllText(Path.Combine(dst, "하위", "b.txt")).Should().Be("B");
         SecureZip.ExtractAll(vault, "pw", dst).Should().Be(2);
         File.Exists(Path.Combine(dst, "a (2).txt")).Should().BeTrue("이미 있으면 덮어쓰지 않는다");
+    }
+
+    [Fact]
+    public void Extract_ignores_entries_that_escape_the_destination_zip_slip()
+    {
+        var vault = Path.Combine(_root, "evil.foldyvault");
+        using (var fs = File.Create(vault))
+        using (var zip = new ICSharpCode.SharpZipLib.Zip.ZipOutputStream(fs) { Password = "pw" })
+        {
+            foreach (var name in new[] { "../../escaped.txt", "ok.txt" })
+            {
+                zip.PutNextEntry(new ICSharpCode.SharpZipLib.Zip.ZipEntry(name) { AESKeySize = 256 });
+                zip.Write("x"u8);
+                zip.CloseEntry();
+            }
+        }
+
+        var dst = Path.Combine(_root, "out", "deep");
+        SecureZip.ExtractAll(vault, "pw", dst).Should().Be(1);
+        File.Exists(Path.Combine(dst, "ok.txt")).Should().BeTrue();
+        File.Exists(Path.Combine(_root, "escaped.txt")).Should().BeFalse("zip 밖으로 나가는 이름은 꺼내지 않는다");
+        SecureZip.SafeTarget(dst, "../x").Should().BeNull();
+        SecureZip.SafeTarget(dst, @"C:\Windows\x").Should().BeNull();
+        SecureZip.SafeTarget(dst, "a/b.txt").Should().Be(Path.Combine(dst, "a", "b.txt"));
     }
 }

@@ -140,12 +140,12 @@ public static class SecureZip
                 continue;
             }
 
-            if (SafeDestination(root, e.Name) is not { } dst)
+            if (SafeTarget(root, e.Name) is not { } target)
             {
                 continue; // zip 밖으로 나가는 이름은 무시
             }
 
-            dst = Unique(dst);
+            var dst = Unique(target);
             Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
             using (var s = zf.GetInputStream(e))
             using (var o = File.Create(dst))
@@ -160,26 +160,33 @@ public static class SecureZip
         return n;
     }
 
-    /// <summary>
-    /// zip 항목 이름을 꺼낼 폴더 안의 전체 경로로 바꾼다. "..\", 절대 경로("C:\…", "\\서버\…"), 드라이브 상대 경로("C:x")처럼
-    /// 꺼낼 폴더 밖을 가리키면 null (zip slip 방지). 다른 사람이 보낸 금고 파일의 이름은 믿을 수 없다.
-    /// </summary>
-    public static string? SafeDestination(string destFolder, string entryName)
+    /// <summary>항목 이름을 꺼낼 위치로. 폴더 밖으로 나가는 이름("../", 절대 경로)이면 null (zip slip 막기).</summary>
+    public static string? SafeTarget(string destFolder, string entryName)
     {
+        // ':'는 드라이브 문자("C:x")나 NTFS 대체 데이터 스트림, '\\'로 시작하면 다른 서버 → 모두 거부
         if (string.IsNullOrWhiteSpace(entryName) || entryName.Contains('\0', StringComparison.Ordinal) || entryName.Contains(':', StringComparison.Ordinal))
         {
-            return null; // ':'는 드라이브 문자나 NTFS 대체 데이터 스트림
+            return null;
         }
 
-        var rel = entryName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-        if (Path.IsPathRooted(rel))
+        var rel = entryName.Replace('\\', '/');
+        if (rel.StartsWith('/'))
         {
             return null;
         }
 
         var root = Path.GetFullPath(destFolder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        var full = Path.GetFullPath(Path.Combine(root, rel));
-        return full.StartsWith(root, StringComparison.OrdinalIgnoreCase) && full.Length > root.Length ? full : null;
+        string dst;
+        try
+        {
+            dst = Path.GetFullPath(Path.Combine(root, rel.Replace('/', Path.DirectorySeparatorChar)));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        return dst.StartsWith(root, StringComparison.OrdinalIgnoreCase) && dst.Length > root.Length ? dst : null;
     }
 
     public static string Unique(string path)
