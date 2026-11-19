@@ -429,10 +429,24 @@ public sealed partial class ShellViewModel : ObservableObject
         return job;
     }
 
+    /// <summary>끝난 작업이 작업 창에 남아 있는 시간 (마스코트 마무리 장면이 끝날 만큼). 실패한 작업은 닫을 때까지 남는다.</summary>
+    public static TimeSpan FinishedJobLinger { get; set; } = TimeSpan.FromSeconds(6);
+
     private void FinishJob(JobViewModel job, FileOpResult r)
     {
         job.Complete(r);
         Status = r.Succeeded ? r.Error ?? "" : r.Aborted ? "취소됨" : $"{job.Title}: {r.Error}";
+        if (job.State != JobState.Failed)
+        {
+            _ = RemoveLaterAsync(job);
+        }
+    }
+
+    // 작업 창은 지금 하는 일만 보여 준다: 끝난 작업은 잠깐 뒤 사라지고, 비면 창도 접힌다
+    private async Task RemoveLaterAsync(JobViewModel job)
+    {
+        await Task.Delay(FinishedJobLinger);
+        Jobs.Remove(job);
     }
 
     public void ClearFinishedJobs()
