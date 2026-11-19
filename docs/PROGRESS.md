@@ -39,6 +39,9 @@ main에 들어간 것 (642개 시험 통과, 아직 릴리스 전):
 - **코드 서명 준비**: SignPath 아티팩트 구성 초안, `docs/code-signing.md`, README의 Code signing policy, `PRIVACY.md`, 설치 중 개인정보 정책 표시. release.yml에 SignPath 단계가 있지만, 변수·시크릿이 없으면 건너뛴다. SignPath Foundation 승인을 기다리는 중이다 (클라우드).
 - **터미널**: 사용자가 모두 정상이라고 확인했다 (이슈 해결).
 
+- **SFTP 복사·이동**: `SftpAwareFileOperationService`(Foldy.Providers.Sftp)가 sftp:// 경로가 낀 작업만 맡고 로컬끼리는 기존 서비스로 넘긴다. 업로드·다운로드(재귀), 같은 연결 이동=서버 이름 바꾸기, 서버 간 복사=임시 파일 경유, 바이트 진행률, 취소 시 부분 파일 삭제, 충돌 창 재사용, SFTP 삭제 전 확인(`ShellViewModel.ConfirmAsync`). 시험 `SftpTransferTests`(메모리 가짜 서버). 실제 서버 수동 확인은 아직 안 했다. 알려진 한계: 심볼릭 링크는 건너뜀, 탐색기로 끌어 내기는 안 됨(FileDrop에 sftp:// 문자열).
+- **Google Drive 바로 연결** (클라우드, `docs/google-drive.md`): Google Drive for desktop 없이 Foldy 안에서 Google 계정으로 로그인해 `gdrive://계정/폴더` 탭으로 연다. `Foldy.Providers.GoogleDrive`(Drive REST v3 직접 호출, 외부 패키지 없음) + `GDriveFileOperationService`(파일 작업 맨 앞: gdrive가 끼면 Drive, 아니면 SFTP → Rust 엔진 순). 복사·이동(로컬↔Drive, Drive↔Drive, 같은 계정 이동=부모만 바꿈, 같은 계정 복사=서버 복사), 폴더 합치기, 충돌 창 재사용, 이름 바꾸기, 새 폴더, Del=Drive 휴지통·Shift+Del=확인 후 영구 삭제, 열기·미리보기=필요할 때만 캐시로 내려받기, Google 문서는 .gdoc 등으로 보이고 열면 브라우저·복사하면 Office 파일. OAuth는 시스템 브라우저 + 127.0.0.1 loopback + PKCE, 범위 `drive` 하나, 갱신 토큰은 DPAPI(`%LOCALAPPDATA%\Foldy\gdrive.json`), 시스템 프록시. 사이드바 도구 "Google Drive", 명령 `gdrive.connect`. 시험 `Foldy.GoogleDrive.Tests` 48개(가짜 Drive). **아직 실제 Google 계정으로 확인 안 함.** OAuth 클라이언트 ID가 있어야 로그인된다: 사용자가 Google Cloud 콘솔에서 만들어 연결 창 "고급"에 넣거나, GitHub 변수 `FOLDY_GOOGLE_CLIENT_ID` + Secret `FOLDY_GOOGLE_CLIENT_SECRET`을 넣으면 release.yml이 빌드에 넣는다(방법은 docs/google-drive.md). 한계: 공유 문서함·공유 드라이브 목록 없음, SFTP↔Drive 직접 복사 없음, 탐색기로 끌어 내기 안 됨.
+
 진행 중 (작업 트리 `.claude/worktrees/agent-adc20aa7eab2f277d`, 아직 병합 전):
 - **Git 개편**
   - 위쪽 한 줄: 브랜치, 변경 수, 가져오기·받기·올리기·임시 보관 버튼(한국어 이름과 툴팁).

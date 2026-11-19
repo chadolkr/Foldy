@@ -68,6 +68,27 @@ internal sealed class SshNetSftpClient : ISftpClient
             .UploadFileAsync(source, path, true, new Reporter<UploadFileProgressReport>(r => progress(unchecked((long)r.TotalBytesUploaded))), ct)
             .GetAwaiter().GetResult());
 
+    public SftpEntryInfo? Stat(string path)
+    {
+        try
+        {
+            var f = Guard(() => Connected().Get(path));
+            return new SftpEntryInfo(f.Name, f.IsDirectory, f.IsSymbolicLink, f.Length, f.LastWriteTimeUtc);
+        }
+        catch (Renci.SshNet.Common.SftpPathNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    public void CreateDirectory(string path) => Guard(() => Connected().CreateDirectory(path));
+
+    public void DeleteFile(string path) => Guard(() => Connected().DeleteFile(path));
+
+    public void DeleteDirectory(string path) => Guard(() => Connected().DeleteDirectory(path));
+
+    public void Rename(string source, string target) => Guard(() => Connected().RenameFile(source, target));
+
     public void Dispose()
     {
         _client?.Dispose();

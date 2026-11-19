@@ -185,13 +185,14 @@ public sealed class TransferTests : IDisposable
     public void Dispose() => _dir.Delete(true);
 
     [Fact]
-    public async Task Uploads_local_tree_with_progress_and_renames_on_conflict()
+    public async Task Uploads_local_tree_with_progress_and_merges_into_existing_folder()
     {
         var src = Directory.CreateDirectory(Path.Combine(_dir.FullName, "Proj"));
         File.WriteAllText(Path.Combine(src.FullName, "a.txt"), "aaaa");
         Directory.CreateDirectory(Path.Combine(src.FullName, "sub"));
         File.WriteAllText(Path.Combine(src.FullName, "sub", "b.txt"), "bb");
-        _api.AddFolder("root-id", "Proj");
+        var proj = _api.AddFolder("root-id", "Proj");
+        var oldA = _api.Add(proj, "a.txt", content: [1]);
 
         long last = 0, total = 0;
         var err = await _t.TransferAsync([src.FullName], Me, move: false, (d, t, _) => { last = d; total = t; }, CancellationToken.None);
@@ -199,13 +200,48 @@ public sealed class TransferTests : IDisposable
         err.Should().BeNull();
         last.Should().Be(total);
         total.Should().Be(4 + 2 + 4); // 바이트 + 항목 4개(폴더 2, 파일 2)
-        var top = _api.Children("root-id").Select(f => f.Name);
-        top.Should().BeEquivalentTo(["Proj", "Proj (2)"]);
-        var copy = _api.Children("root-id").Single(f => f.Name == "Proj (2)");
-        _api.Children(copy.Id).Select(f => f.Name).Should().BeEquivalentTo(["sub", "a.txt"]);
-        var sub = _api.Children(copy.Id).Single(f => f.Name == "sub");
+        _api.Children("root-id").Select(f => f.Name).Should().Equal("Proj");
+        _api.Children(proj).Select(f => f.Name).Should().BeEquivalentTo(["sub", "a.txt", "a (2).txt"]); // 묻는 창이 없으면 둘 다 유지
+        _api.IsTrashed(oldA).Should().BeFalse();
+        var sub = _api.Children(proj).Single(f => f.Name == "sub");
         Encoding.UTF8.GetString(_api.Content(_api.Children(sub.Id).Single().Id)).Should().Be("bb");
         Directory.Exists(src.FullName).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Conflict_choices_overwrite_skip_and_apply_to_all()
+    {
+        foreach (var n in new[] { "a.txt", "b.txt", "c.txt" })
+        {
+            File.WriteAllText(Path.Combine(_dir.FullName, n), "new");
+            _api.Add("root-id", n, content: [1]);
+        }
+
+        var asked = new List<string>();
+        var answers = new Queue<GDriveConflictDecision>([new(GDriveConflictAction.Overwrite), new(GDriveConflictAction.Skip, ApplyToAll: true)]);
+        var t = new GDriveTransfer(_p, (c, _) => { asked.Add(Path.GetFileName(c.Dest)); return Task.FromResult(answers.Dequeue()); });
+        var files = new[] { "a.txt", "b.txt", "c.txt" }.Select(n => Path.Combine(_dir.FullName, n)).ToArray();
+
+        (await t.TransferAsync(files, Me, move: true, null, CancellationToken.None)).Should().BeNull();
+
+        asked.Should().Equal("a.txt", "b.txt");
+        var live = _api.Children("root-id");
+        live.Should().HaveCount(3);
+        Encoding.UTF8.GetString(_api.Content(live.Single(f => f.Name == "a.txt").Id)).Should().Be("new"); // 덮어씀(옛 것은 Drive 휴지통)
+        File.Exists(files[0]).Should().BeFalse(); // 이동 완료
+        File.Exists(files[1]).Should().BeTrue();  // 건너뛴 원본은 남긴다
+        File.Exists(files[2]).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Download_conflict_overwrite_replaces_local_file()
+    {
+        _api.Add("root-id", "r.txt", content: Encoding.UTF8.GetBytes("drive"));
+        var local = Path.Combine(_dir.FullName, "r.txt");
+        File.WriteAllText(local, "old");
+        var t = new GDriveTransfer(_p, (_, _) => Task.FromResult(new GDriveConflictDecision(GDriveConflictAction.Overwrite)));
+        (await t.TransferAsync([Me + "r.txt"], _dir.FullName, false, null, CancellationToken.None)).Should().BeNull();
+        File.ReadAllText(local).Should().Be("drive");
     }
 
     [Fact]
@@ -269,7 +305,7 @@ public sealed class TransferTests : IDisposable
         (await _t.TransferAsync([Me + "A"], Me, move: false, null, CancellationToken.None)).Should().BeNull();
         _api.Log.Should().Contain(["copy one.txt", "copy Doc"]);
         _api.DownloadCalls.Should().Be(0);
-        _api.Children("root-id").Select(f => f.Name).Should().BeEquivalentTo(["A", "A (2)"]);
+        _api.Children("root-id").Select(f => f.Name).Should().BeEquivalentTo(["A", "A (2)"]); // 같은 폴더에 복사: 합치지 않고 새로
     }
 
     [Fact]

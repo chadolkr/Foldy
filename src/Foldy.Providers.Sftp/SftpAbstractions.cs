@@ -48,6 +48,19 @@ public interface ISftpClient : IDisposable
     void Download(string path, Stream destination, Action<long> progress, CancellationToken ct);
 
     void Upload(Stream source, string path, Action<long> progress, CancellationToken ct);
+
+    /// <summary>경로의 정보. 없으면 null.</summary>
+    SftpEntryInfo? Stat(string path);
+
+    void CreateDirectory(string path);
+
+    void DeleteFile(string path);
+
+    /// <summary>빈 폴더만 지운다(재귀는 호출자가 한다).</summary>
+    void DeleteDirectory(string path);
+
+    /// <summary>같은 서버 안에서 이름·위치를 바꾼다(대상이 있으면 실패).</summary>
+    void Rename(string source, string target);
 }
 
 public interface ISftpClientFactory

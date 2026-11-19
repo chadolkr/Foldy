@@ -3,21 +3,46 @@ namespace Foldy.Providers.GoogleDrive;
 /// <summary>진행 보고: 끝낸 양, 전체 양(바이트 + 항목마다 1), 지금 다루는 이름.</summary>
 public delegate void GDriveTransferProgress(long done, long total, string? current);
 
+public enum GDriveConflictAction { Skip, Overwrite, Rename }
+
+/// <summary>충돌 하나에 대한 결정. ApplyToAll이면 이번 작업의 남은 충돌에도 같은 처리.</summary>
+public readonly record struct GDriveConflictDecision(GDriveConflictAction Action, bool ApplyToAll = false);
+
+/// <summary>대상에 같은 이름의 파일이 이미 있다 (Source는 원본 경로, Dest는 대상 경로).</summary>
+public sealed record GDriveConflict(string Source, string Dest);
+
 /// <summary>
-/// 로컬 ↔ Google Drive, Drive ↔ Drive 복사·이동 (F5/F6, 붙여넣기, 끌어 놓기 공통).
+/// 로컬 ↔ Google Drive, Drive ↔ Drive 복사·이동 (F5/F6, 붙여넣기, 끌어 놓기 공통). SFTP 전송과 같은 규칙을 따른다.
 /// <list type="bullet">
 /// <item>먼저 전체를 훑어 양을 잰 뒤(진행률·마스코트 위치), 위에서부터 폴더를 만들고 파일을 옮긴다.</item>
-/// <item>대상에 같은 이름이 있으면 덮어쓰지 않고 "이름 (2)"로 만든다(데이터를 잃지 않는 쪽).</item>
+/// <item>같은 이름의 폴더는 합친다. 같은 이름의 파일은 <c>resolve</c>로 묻는다(둘 다 유지·덮어쓰기·건너뛰기). 묻지 못하면 둘 다 유지("이름 (2)").</item>
+/// <item>Drive에서 덮어쓰기는 기존 파일을 Drive 휴지통으로 보낸 뒤 새로 올린다(되살릴 수 있게).</item>
 /// <item>같은 계정 안의 이동은 부모만 바꾼다(내려받지 않음, 즉시). 같은 계정 안의 복사는 Drive 서버에서 복사한다.</item>
-/// <item>이동의 원본 정리: 로컬 원본은 모두 올린 뒤 지우고, Drive 원본은 Drive 휴지통으로 보낸다.</item>
-/// <item>로컬로 받을 때는 <c>.foldy-part</c>에 받은 뒤 이름을 바꾼다(끊겨도 반쪽 파일이 남지 않음).</item>
+/// <item>이동은 그 항목의 복사가 모두 성공한 뒤 원본을 정리한다: 로컬 원본은 지우고, Drive 원본은 Drive 휴지통으로. 건너뛴 것이 있으면 원본을 남긴다.</item>
+/// <item>로컬로 받을 때는 <c>.foldy-part</c>에 받은 뒤 이름을 바꾼다(끊기거나 취소해도 반쪽 파일이 남지 않음).</item>
 /// </list>
 /// </summary>
-public sealed class GDriveTransfer(GoogleDriveProvider drive)
+public sealed class GDriveTransfer(GoogleDriveProvider drive, Func<GDriveConflict, CancellationToken, Task<GDriveConflictDecision>>? resolve = null)
 {
     private sealed record Item(string RelativePath, bool IsFolder, long Size, string? LocalPath, GDriveFile? File);
 
     private sealed record Root(string Source, bool IsDrive, GDriveLocation? DriveLoc, List<Item> Items);
+
+    /// <summary>작업 하나의 상태: 진행량, "남은 충돌에도 똑같이" 결정.</summary>
+    private sealed class Run(long total, GDriveTransferProgress? progress)
+    {
+        public long Done;
+        public GDriveConflictDecision? All;
+        public bool Skipped;
+
+        public void Add(long n, string? cur)
+        {
+            Done += n;
+            progress?.Invoke(Done, total, cur);
+        }
+
+        public void Finish() => progress?.Invoke(total, total, null);
+    }
 
     /// <summary>
     /// sources를 destinationFolder 안으로 복사(move면 이동). 경로는 로컬(C:\...) 또는 gdrive://. 성공하면 null, 실패하면 오류 문장.
@@ -26,8 +51,7 @@ public sealed class GDriveTransfer(GoogleDriveProvider drive)
     public async Task<string?> TransferAsync(IReadOnlyList<string> sources, string destinationFolder, bool move, GDriveTransferProgress? progress, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(sources);
-        var destIsDrive = GDriveLocation.IsGDrive(destinationFolder);
-        var destLoc = destIsDrive ? GDriveLocation.Parse(destinationFolder) : null;
+        var destLoc = GDriveLocation.IsGDrive(destinationFolder) ? GDriveLocation.Parse(destinationFolder) : null;
         GDriveFile? destFolder = null;
         if (destLoc is not null)
         {
@@ -76,51 +100,32 @@ public sealed class GDriveTransfer(GoogleDriveProvider drive)
             }
         }
 
-        var total = roots.Sum(r => r.Items.Sum(i => i.Size + 1)) + fastMoves.Count;
-        long done = 0;
-        void Report(string? cur) => progress?.Invoke(done, total, cur);
-        Report(null);
+        var run = new Run(roots.Sum(r => r.Items.Sum(i => i.Size + 1)) + fastMoves.Count, progress);
+        run.Add(0, null);
 
-        // 대상 폴더에 이미 있는 이름 (겹치면 "(2)")
-        var used = destLoc is not null
-            ? await ExistingDriveNamesAsync(destLoc, destFolder!, ct).ConfigureAwait(false)
-            : new HashSet<string>(Directory.EnumerateFileSystemEntries(destinationFolder).Select(Path.GetFileName).OfType<string>(), StringComparer.OrdinalIgnoreCase);
+        // 대상 폴더마다 이미 있는 항목 (폴더 합치기·충돌 판단). 새로 만든 폴더는 비어 있다.
+        var existing = new Dictionary<string, Dictionary<string, GDriveFile>>(StringComparer.Ordinal);
 
         foreach (var s in fastMoves)
         {
             ct.ThrowIfCancellationRequested();
-            var loc = GDriveLocation.Parse(s);
-            Report(loc.Name);
-            var file = await drive.ResolveAsync(loc, ct).ConfigureAwait(false);
-            var parent = await drive.ResolveAsync(loc.Parent!, ct).ConfigureAwait(false);
-            if (parent.EffectiveId == destFolder!.EffectiveId)
-            {
-                done++;
-                continue; // 같은 폴더로 이동: 할 일 없음
-            }
-
-            var name = Unique(file.Name, used);
-            await drive.Api(loc.Account).UpdateAsync(file.Id, new GDriveUpdate(
-                Name: name == file.Name ? null : name, AddParent: destFolder.EffectiveId, RemoveParent: parent.EffectiveId), ct).ConfigureAwait(false);
-            drive.Forget(loc);
-            drive.Forget(destLoc!, includeSelf: false);
-            done++;
-            Report(loc.Name);
+            await FastMoveAsync(s, destLoc!, destFolder!, existing, run, ct).ConfigureAwait(false);
         }
 
         foreach (var root in roots)
         {
             ct.ThrowIfCancellationRequested();
+            run.Skipped = false;
             if (destLoc is not null)
             {
-                await CopyToDriveAsync(root, destLoc, destFolder!, used, () => done, d => { done += d; }, Report, ct).ConfigureAwait(false);
+                await CopyToDriveAsync(root, destLoc, destFolder!, existing, run, ct).ConfigureAwait(false);
             }
             else
             {
-                await CopyToLocalAsync(root, destinationFolder, used, d => { done += d; }, Report, ct).ConfigureAwait(false);
+                await CopyToLocalAsync(root, destinationFolder, run, ct).ConfigureAwait(false);
             }
 
-            if (move)
+            if (move && !run.Skipped)
             {
                 await RemoveSourceAsync(root, ct).ConfigureAwait(false);
             }
@@ -131,121 +136,235 @@ public sealed class GDriveTransfer(GoogleDriveProvider drive)
             drive.Forget(destLoc, includeSelf: false);
         }
 
-        done = total;
-        Report(null);
+        run.Finish();
         return null;
     }
 
-    private async Task CopyToDriveAsync(Root root, GDriveLocation destLoc, GDriveFile destFolder, HashSet<string> used,
-        Func<long> done, Action<long> add, Action<string?> report, CancellationToken ct)
+    private async Task FastMoveAsync(string source, GDriveLocation destLoc, GDriveFile destFolder,
+        Dictionary<string, Dictionary<string, GDriveFile>> existing, Run run, CancellationToken ct)
+    {
+        var loc = GDriveLocation.Parse(source);
+        var api = drive.Api(loc.Account);
+        var file = await drive.ResolveAsync(loc, ct).ConfigureAwait(false);
+        var parent = await drive.ResolveAsync(loc.Parent!, ct).ConfigureAwait(false);
+        if (parent.EffectiveId == destFolder.EffectiveId)
+        {
+            run.Add(1, loc.Name);
+            return; // 같은 폴더로 이동: 할 일 없음
+        }
+
+        var map = await ChildrenAsync(api, destFolder.EffectiveId, existing, ct).ConfigureAwait(false);
+        var name = file.Name;
+        if (map.TryGetValue(name, out var clash))
+        {
+            if (file.IsFolder || clash.IsFolder)
+            {
+                name = Unique(name, map.Keys); // 폴더 이동은 합치지 않고 둘 다 유지
+            }
+            else
+            {
+                var d = await DecideAsync(source, destLoc.Combine(GDriveLocation.EscapeName(name)).ToString(), run, ct).ConfigureAwait(false);
+                switch (d)
+                {
+                    case GDriveConflictAction.Skip:
+                        run.Add(1, loc.Name);
+                        return;
+                    case GDriveConflictAction.Overwrite:
+                        _ = await api.UpdateAsync(clash.Id, new GDriveUpdate(Trashed: true), ct).ConfigureAwait(false);
+                        map.Remove(name);
+                        break;
+                    default:
+                        name = Unique(name, map.Keys);
+                        break;
+                }
+            }
+        }
+
+        var moved = await api.UpdateAsync(file.Id, new GDriveUpdate(
+            Name: name == file.Name ? null : name, AddParent: destFolder.EffectiveId, RemoveParent: parent.EffectiveId), ct).ConfigureAwait(false);
+        map[name] = moved;
+        drive.Forget(loc);
+        run.Add(1, loc.Name);
+    }
+
+    private async Task CopyToDriveAsync(Root root, GDriveLocation destLoc, GDriveFile destFolder,
+        Dictionary<string, Dictionary<string, GDriveFile>> existing, Run run, CancellationToken ct)
     {
         var api = drive.Api(destLoc.Account);
-        var folderIds = new Dictionary<string, string>(StringComparer.Ordinal) { [""] = destFolder.EffectiveId };
+        // 상대 경로 → (Drive 폴더 id, 그 폴더의 gdrive 경로)
+        var folders = new Dictionary<string, (string Id, GDriveLocation Loc)>(StringComparer.Ordinal) { [""] = (destFolder.EffectiveId, destLoc) };
+        var skippedFolders = new List<string>();
         foreach (var item in root.Items)
         {
             ct.ThrowIfCancellationRequested();
             var parentRel = ParentOf(item.RelativePath);
-            var parentId = folderIds[parentRel];
-            var name = LeafOf(item.RelativePath);
-            if (parentRel.Length == 0)
+            if (skippedFolders.Any(f => parentRel == f || parentRel.StartsWith(f + "/", StringComparison.Ordinal)) || !folders.TryGetValue(parentRel, out var parent))
             {
-                // 맨 위 항목만 대상과 겹칠 수 있다(아래는 새로 만든 폴더 안).
-                name = Unique(item.File is { } f0 && root.IsDrive ? f0.Name : name, used);
-            }
-            else if (item.File is { } fi)
-            {
-                name = fi.Name;
+                continue;
             }
 
-            report(name);
+            var name = item.File is { } fi ? fi.Name : LeafOf(item.RelativePath);
+            var map = await ChildrenAsync(api, parent.Id, existing, ct).ConfigureAwait(false);
+            run.Add(0, name);
+
             if (item.IsFolder)
             {
-                var created = await api.CreateFolderAsync(parentId, name, ct).ConfigureAwait(false);
-                folderIds[item.RelativePath] = created.Id;
-                add(1);
+                // 같은 이름 폴더는 합친다. 단 자기 자신(같은 폴더에 복사)이면 "이름 (2)"로 새로 만든다.
+                if (map.TryGetValue(name, out var same) && same.IsFolder && same.ShortcutTargetId is null && same.Id != item.File?.Id)
+                {
+                    folders[item.RelativePath] = (same.Id, parent.Loc.Combine(GDriveLocation.EscapeName(name))); // 합치기
+                }
+                else
+                {
+                    if (map.ContainsKey(name))
+                    {
+                        name = Unique(name, map.Keys);
+                    }
+
+                    var created = await api.CreateFolderAsync(parent.Id, name, ct).ConfigureAwait(false);
+                    map[name] = created;
+                    existing[created.Id] = new Dictionary<string, GDriveFile>(StringComparer.Ordinal);
+                    folders[item.RelativePath] = (created.Id, parent.Loc.Combine(GDriveLocation.EscapeName(name)));
+                }
+
+                run.Add(1, name);
                 continue;
             }
 
-            if (root.IsDrive && item.File is { } src && root.DriveLoc!.Account == destLoc.Account)
+            // 업로드할 이름: 다른 계정으로 가는 Google 문서는 Office 파일이 된다.
+            var crossAccount = root.IsDrive && root.DriveLoc!.Account != destLoc.Account;
+            if (crossAccount && item.File!.IsGoogleApp && GoogleDriveProvider.ExportFormat(item.File.EffectiveMimeType) is { } fmt)
+            {
+                name += fmt.Extension;
+            }
+
+            if (map.TryGetValue(name, out var clash))
+            {
+                var action = clash.IsFolder || clash.Id == item.File?.Id
+                    ? GDriveConflictAction.Rename
+                    : await DecideAsync(SourcePath(root, item), parent.Loc.Combine(GDriveLocation.EscapeName(name)).ToString(), run, ct).ConfigureAwait(false);
+                if (action == GDriveConflictAction.Skip)
+                {
+                    run.Skipped = true;
+                    run.Add(item.Size + 1, name);
+                    continue;
+                }
+
+                if (action == GDriveConflictAction.Overwrite)
+                {
+                    _ = await api.UpdateAsync(clash.Id, new GDriveUpdate(Trashed: true), ct).ConfigureAwait(false);
+                    map.Remove(name);
+                }
+                else
+                {
+                    name = Unique(name, map.Keys);
+                }
+            }
+
+            var start = run.Done;
+            GDriveFile made;
+            if (root.IsDrive && !crossAccount)
             {
                 // 같은 계정: 서버에서 복사 (Google 문서도 그대로)
-                _ = await api.CopyAsync(src.EffectiveId, parentId, name, ct).ConfigureAwait(false);
-                add(item.Size + 1);
-                continue;
+                made = await api.CopyAsync(item.File!.EffectiveId, parent.Id, name, ct).ConfigureAwait(false);
             }
-
-            if (root.IsDrive && item.File is { } other)
+            else if (root.IsDrive)
             {
-                // 다른 계정: 임시 파일로 받아서 올린다. Google 문서는 Office 파일로 바뀐다.
+                // 다른 계정: 임시 파일로 받아서 올린다.
                 var tmp = Path.Combine(Path.GetTempPath(), "foldy-gdrive-" + Guid.NewGuid().ToString("N"));
                 try
                 {
-                    await using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 1 << 16, FileOptions.DeleteOnClose | FileOptions.Asynchronous))
-                    {
-                        var start = done();
-                        long half = 0;
-                        await drive.DownloadAsync(root.DriveLoc!.Account, other, fs, new Progress(n => { var d = n / 2 - half; half += d; add(d); report(name); }), ct).ConfigureAwait(false);
-                        fs.Position = 0;
-                        var upName = other.IsGoogleApp && GoogleDriveProvider.ExportFormat(other.EffectiveMimeType) is { } fmt ? name + fmt.Extension : name;
-                        long up = 0;
-                        _ = await api.UploadAsync(parentId, upName, fs, fs.Length, new Progress(n => { var d = n / 2 - up; up += d; add(d); report(name); }), ct).ConfigureAwait(false);
-                        add(item.Size + 1 - (done() - start));
-                    }
+                    await using var fs = new FileStream(tmp, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 1 << 16, FileOptions.DeleteOnClose | FileOptions.Asynchronous);
+                    long half = 0, up = 0;
+                    var label = name;
+                    await drive.DownloadAsync(root.DriveLoc!.Account, item.File!, fs, new Progress(n => { var d = n / 2 - half; half += d; run.Add(d, label); }), ct).ConfigureAwait(false);
+                    fs.Position = 0;
+                    made = await api.UploadAsync(parent.Id, name, fs, fs.Length, new Progress(n => { var d = n / 2 - up; up += d; run.Add(d, label); }), ct).ConfigureAwait(false);
                 }
                 finally
                 {
                     TryDelete(tmp);
                 }
-
-                continue;
             }
-
-            // 로컬 → Drive
-            await using (var fs = new FileStream(item.LocalPath!, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 16, useAsync: true))
+            else
             {
+                // 로컬 → Drive
+                await using var fs = new FileStream(item.LocalPath!, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 16, useAsync: true);
                 long sent = 0;
-                _ = await api.UploadAsync(parentId, name, fs, fs.Length, new Progress(n => { var d = n - sent; sent += d; add(d); report(name); }), ct).ConfigureAwait(false);
-                add(item.Size + 1 - sent);
+                var label = name;
+                made = await api.UploadAsync(parent.Id, name, fs, fs.Length, new Progress(n => { var d = n - sent; sent += d; run.Add(d, label); }), ct).ConfigureAwait(false);
             }
-        }
 
+            map[name] = made;
+            run.Add(Math.Max(0, item.Size + 1 - (run.Done - start)), name);
+        }
     }
 
-    private async Task CopyToLocalAsync(Root root, string destFolder, HashSet<string> used, Action<long> add, Action<string?> report, CancellationToken ct)
+    private async Task CopyToLocalAsync(Root root, string destFolder, Run run, CancellationToken ct)
     {
         var map = new Dictionary<string, string>(StringComparer.Ordinal) { [""] = destFolder };
         foreach (var item in root.Items)
         {
             ct.ThrowIfCancellationRequested();
-            var parentRel = ParentOf(item.RelativePath);
-            var parentDir = map[parentRel];
-            var name = item.IsFolder ? GoogleDriveProvider.SafeFileName(item.File!.Name) : GoogleDriveProvider.LocalFileName(item.File!);
-            if (parentRel.Length == 0)
+            if (!map.TryGetValue(ParentOf(item.RelativePath), out var parentDir))
             {
-                name = Unique(name, used);
-            }
-            else
-            {
-                // Drive는 같은 이름을 허용하므로 폴더 안에서도 겹칠 수 있다.
-                name = UniqueOnDisk(parentDir, name);
-            }
-
-            var target = Path.Combine(parentDir, name);
-            report(name);
-            if (item.IsFolder)
-            {
-                Directory.CreateDirectory(target);
-                map[item.RelativePath] = target;
-                add(1);
                 continue;
             }
 
-            if (item.File!.IsGoogleApp && GoogleDriveProvider.ExportFormat(item.File.EffectiveMimeType) is null)
+            var file = item.File!;
+            var name = item.IsFolder ? GoogleDriveProvider.SafeFileName(file.Name) : GoogleDriveProvider.LocalFileName(file);
+            var linkOnly = !item.IsFolder && file.IsGoogleApp && GoogleDriveProvider.ExportFormat(file.EffectiveMimeType) is null;
+            if (linkOnly)
+            {
+                name = Path.ChangeExtension(name, ".url");
+            }
+
+            var target = Path.Combine(parentDir, name);
+            run.Add(0, name);
+            if (item.IsFolder)
+            {
+                if (File.Exists(target))
+                {
+                    target = Path.Combine(parentDir, UniqueOnDisk(parentDir, name));
+                }
+
+                Directory.CreateDirectory(target); // 같은 이름 폴더는 합친다
+                map[item.RelativePath] = target;
+                run.Add(1, name);
+                continue;
+            }
+
+            var overwrite = false;
+            if (Directory.Exists(target))
+            {
+                target = Path.Combine(parentDir, UniqueOnDisk(parentDir, name));
+            }
+            else if (File.Exists(target))
+            {
+                var action = await DecideAsync(SourcePath(root, item), target, run, ct).ConfigureAwait(false);
+                if (action == GDriveConflictAction.Skip)
+                {
+                    run.Skipped = true;
+                    run.Add(item.Size + 1, name);
+                    continue;
+                }
+
+                if (action == GDriveConflictAction.Overwrite)
+                {
+                    overwrite = true;
+                }
+                else
+                {
+                    target = Path.Combine(parentDir, UniqueOnDisk(parentDir, name));
+                }
+            }
+
+            if (linkOnly)
             {
                 // 내보낼 수 없는 Google 파일(설문지·사이트 등): 브라우저로 여는 바로가기를 만든다.
-                await File.WriteAllTextAsync(Path.ChangeExtension(target, ".url"),
-                    $"[InternetShortcut]\r\nURL={item.File.WebViewLink ?? "https://drive.google.com/open?id=" + item.File.EffectiveId}\r\n", ct).ConfigureAwait(false);
-                add(1);
+                await File.WriteAllTextAsync(target,
+                    $"[InternetShortcut]\r\nURL={file.WebViewLink ?? "https://drive.google.com/open?id=" + file.EffectiveId}\r\n", ct).ConfigureAwait(false);
+                run.Add(1, name);
                 continue;
             }
 
@@ -255,13 +374,19 @@ public sealed class GDriveTransfer(GoogleDriveProvider drive)
             {
                 await using (var fs = new FileStream(part, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true))
                 {
-                    await drive.DownloadAsync(root.DriveLoc!.Account, item.File, fs, new Progress(n => { var d = n - got; got += d; add(d); report(name); }), ct).ConfigureAwait(false);
+                    var label = name;
+                    await drive.DownloadAsync(root.DriveLoc!.Account, file, fs, new Progress(n => { var d = n - got; got += d; run.Add(d, label); }), ct).ConfigureAwait(false);
                 }
 
-                File.Move(part, target);
-                if (item.File.ModifiedUtc != DateTime.MinValue)
+                if (overwrite && File.Exists(target))
                 {
-                    File.SetLastWriteTimeUtc(target, item.File.ModifiedUtc);
+                    File.SetAttributes(target, FileAttributes.Normal);
+                }
+
+                File.Move(part, target, overwrite);
+                if (file.ModifiedUtc != DateTime.MinValue)
+                {
+                    File.SetLastWriteTimeUtc(target, file.ModifiedUtc);
                 }
             }
             catch
@@ -270,9 +395,59 @@ public sealed class GDriveTransfer(GoogleDriveProvider drive)
                 throw;
             }
 
-            add(Math.Max(0, item.Size - got) + 1);
+            run.Add(Math.Max(0, item.Size - got) + 1, name);
         }
     }
+
+    /// <summary>충돌 처리 결정: "남은 충돌에도 똑같이"가 있으면 그것, 묻는 함수가 없으면 둘 다 유지.</summary>
+    private async Task<GDriveConflictAction> DecideAsync(string source, string dest, Run run, CancellationToken ct)
+    {
+        if (run.All is { } all)
+        {
+            return all.Action;
+        }
+
+        if (resolve is null)
+        {
+            return GDriveConflictAction.Rename;
+        }
+
+        var d = await resolve(new GDriveConflict(source, dest), ct).ConfigureAwait(false);
+        if (d.ApplyToAll)
+        {
+            run.All = d;
+        }
+
+        return d.Action;
+    }
+
+    private static async Task<Dictionary<string, GDriveFile>> ChildrenAsync(IGDriveApi api, string folderId,
+        Dictionary<string, Dictionary<string, GDriveFile>> existing, CancellationToken ct)
+    {
+        if (existing.TryGetValue(folderId, out var map))
+        {
+            return map;
+        }
+
+        map = new Dictionary<string, GDriveFile>(StringComparer.Ordinal);
+        string? token = null;
+        do
+        {
+            var page = await api.ListChildrenAsync(folderId, token, ct).ConfigureAwait(false);
+            foreach (var f in page.Files)
+            {
+                map.TryAdd(f.Name, f);
+            }
+
+            token = page.NextPageToken;
+        }
+        while (token is not null);
+        existing[folderId] = map;
+        return map;
+    }
+
+    private static string SourcePath(Root root, Item item) =>
+        item.LocalPath ?? (root.Source.TrimEnd('/') + item.RelativePath[item.RelativePath.IndexOf('/') is var i and >= 0 ? i.. : ^0..]);
 
     private async Task RemoveSourceAsync(Root root, CancellationToken ct)
     {
@@ -355,20 +530,6 @@ public sealed class GDriveTransfer(GoogleDriveProvider drive)
         return [.. list.OrderBy(i => i.RelativePath.Count(c => c == '/'))];
     }
 
-    private async Task<HashSet<string>> ExistingDriveNamesAsync(GDriveLocation loc, GDriveFile folder, CancellationToken ct)
-    {
-        var set = new HashSet<string>(StringComparer.Ordinal);
-        await foreach (var page in drive.ListChildrenAsync(loc, folder, ct).ConfigureAwait(false))
-        {
-            foreach (var (_, f) in page)
-            {
-                set.Add(f.Name);
-            }
-        }
-
-        return set;
-    }
-
     // ───────────── 도우미 ─────────────
 
     private static bool IsSameOrInside(GDriveLocation dest, GDriveLocation src) =>
@@ -387,7 +548,8 @@ public sealed class GDriveTransfer(GoogleDriveProvider drive)
         return GoogleDriveProvider.UnescapeName(i < 0 ? rel : rel[(i + 1)..]);
     }
 
-    private static string Unique(string name, HashSet<string> used) => GoogleDriveProvider.Unique(name, used);
+    private static string Unique(string name, IEnumerable<string> taken) =>
+        GoogleDriveProvider.Unique(name, new HashSet<string>(taken, StringComparer.Ordinal));
 
     private static string UniqueOnDisk(string dir, string name)
     {

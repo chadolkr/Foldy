@@ -71,6 +71,17 @@ public static class PathUtil
     /// <summary>Google Drive 경로 (gdrive://계정/폴더).</summary>
     public static bool IsGDrive(string? path) => path?.StartsWith(GDriveScheme, StringComparison.OrdinalIgnoreCase) == true;
 
+    /// <summary>둘 다 Google Drive이고 같은 계정인가 (끌어 놓기의 기본 동작: 같은 계정이면 이동).</summary>
+    public static bool SameGDriveAccount(string a, string b) =>
+        IsGDrive(a) && IsGDrive(b) && string.Equals(GDriveAccount(a), GDriveAccount(b), StringComparison.OrdinalIgnoreCase);
+
+    private static string GDriveAccount(string p)
+    {
+        var rest = p[GDriveScheme.Length..];
+        var slash = rest.IndexOf('/');
+        return slash < 0 ? rest : rest[..slash];
+    }
+
     /// <summary>로컬 파일 시스템이 아닌 URI 경로(SFTP, Google Drive). 셸·Git·폴더 크기·템플릿 같은 로컬 기능을 끈다.</summary>
     public static bool IsRemoteUri(string? path) => IsSftp(path) || IsGDrive(path);
 

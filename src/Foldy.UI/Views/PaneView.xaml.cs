@@ -966,7 +966,10 @@ public partial class PaneView : UserControl
 
         // 탐색기 규칙: 같은 드라이브면 이동, 다르면 복사
         var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-        var sameDrive = files is { Length: > 0 } && string.Equals(Path.GetPathRoot(files[0]), Path.GetPathRoot(_tab.Path), StringComparison.OrdinalIgnoreCase);
+        var sameDrive = files is { Length: > 0 } && !files.Any(Foldy.Presentation.Navigation.PathUtil.IsSftp) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path) &&
+            (Foldy.Presentation.Navigation.PathUtil.IsGDrive(files[0]) || Foldy.Presentation.Navigation.PathUtil.IsGDrive(_tab.Path)
+                ? Foldy.Presentation.Navigation.PathUtil.SameGDriveAccount(files[0], _tab.Path) // Google Drive: 같은 계정이면 이동
+                : string.Equals(Path.GetPathRoot(files[0]), Path.GetPathRoot(_tab.Path), StringComparison.OrdinalIgnoreCase));
         var want = sameDrive ? DragDropEffects.Move : DragDropEffects.Copy;
         return (want & e.AllowedEffects) != 0 ? want : DragDropEffects.Copy & e.AllowedEffects;
     }
