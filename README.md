@@ -2,7 +2,7 @@
 
 <img src="assets/icons/png/foldy-64.png" width="64" align="right" alt="Foldy icon" />
 
-빠르고 안정적인 Windows 듀얼 패널 파일 관리자입니다. "절대 멈춘 것처럼 보이지 않는 탐색기"를 목표로 합니다.
+**찾고, 옮기고, 정리하는 일을 한 창에서 빠르게.** 검색은 0.003초, 느린 드라이브는 알아서 가볍게. Git 상태는 폴더에 들어가는 순간 보이고, 폴더 분석은 공간을 잡아먹는 폴더를 짚어 주고, 폴더 템플릿은 Java·Python 같은 프로젝트 구조를 버튼 한 번에 만들어 줘요.
 
 ![Foldy 메인 화면: 사이드바, 두 패널, 폴더 트리, Git 바](docs/images/main.png)
 
