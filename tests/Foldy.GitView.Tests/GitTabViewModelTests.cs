@@ -104,6 +104,25 @@ internal sealed class FakeGit : IGitService
     public Task<GitResult> CheckoutAsync(string repo, string branch, CancellationToken ct = default) =>
         Task.FromResult(Next("checkout:" + branch));
 
+    public Dictionary<string, FileDiff> Diffs { get; } = [];
+    public List<BlameLine> Blame { get; set; } = [];
+    public GitResult? FailDiff { get; set; }
+
+    public Task<GitResult<FileDiff>> GetDiffAsync(string repo, GitDiffTarget target, int maxLines = GitDiffParser.DefaultMaxLines, CancellationToken ct = default)
+    {
+        Calls.Add($"diff:{target.Kind}:{target.Path}:{maxLines}");
+        if (FailDiff is { } f) return Task.FromResult(new GitResult<FileDiff>(f, null));
+        return Task.FromResult(new GitResult<FileDiff>(GitResult.Ok(), Diffs.TryGetValue(target.Path, out var d) ? d : FileDiff.Empty));
+    }
+
+    public Task<GitResult<IReadOnlyList<BlameLine>>> GetBlameAsync(string repo, string path, string? revision = null, CancellationToken ct = default)
+    {
+        Calls.Add($"blame:{path}:{revision}");
+        return Task.FromResult(new GitResult<IReadOnlyList<BlameLine>>(GitResult.Ok(), Blame));
+    }
+
+    public Task<GitResult> InitAsync(string folder, CancellationToken ct = default) => Task.FromResult(Next("init"));
+
     public Task<GitResult> AddSafeDirectoryAsync(string path, CancellationToken ct = default)
     {
         var r = Next("safe:" + path);
@@ -342,7 +361,7 @@ public class GitTabViewModelTests
         var (vm, _) = Make();
         await vm.FetchAsync();
         // Progress<T> 알림은 스레드풀로 돌아올 수 있어 정확한 문장 대신 접두사만 본다
-        vm.ProgressText.Should().StartWith("Fetch");
+        vm.ProgressText.Should().StartWith("가져오기");
         vm.IsBusy.Should().BeFalse();
     }
 

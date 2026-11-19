@@ -25,4 +25,16 @@ public interface IPaneHost
 
     /// <summary>Git 뷰 탭을 연다 (브랜치 칩을 눌렀을 때).</summary>
     void OpenGit(PaneViewModel pane, string repoRoot);
+
+    /// <summary>설정의 "Git 바 보이기".</summary>
+    bool ShowGitBar { get; }
+
+    /// <summary>Git 바 버튼 (받기/올리기/커밋…/Git 화면 열기).</summary>
+    void GitBarAction(PaneViewModel pane, string repoRoot, GitBarCommand command);
+
+    /// <summary>폴더 탭이 Git 저장소 안으로 들어왔다 (설정의 "Git 화면 자동 열기"가 켜져 있으면 호스트가 탭을 연다).</summary>
+    void GitDetected(PaneViewModel pane, string repoRoot);
 }
+
+/// <summary>Git 바의 버튼.</summary>
+public enum GitBarCommand { Pull, Push, Commit, Open }

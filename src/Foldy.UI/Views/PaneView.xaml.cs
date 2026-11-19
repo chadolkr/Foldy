@@ -375,14 +375,96 @@ public partial class PaneView : UserControl
         return text is not null && TryFindResource(key) is Brush b ? (text, b) : null;
     }
 
+    private string? _gitDetectedRoot;
+
+    /// <summary>설정이 바뀐 뒤: Git 바를 다시 판단하고 자동 열기도 다시 평가한다.</summary>
+    public void RefreshGit()
+    {
+        _gitDetectedRoot = null;
+        UpdateGit();
+    }
+
     private void UpdateGit()
     {
         var g = _tab?.Git;
         GitChip.Visibility = g is null ? Visibility.Collapsed : Visibility.Visible;
         GitText.Text = g is null ? "" : g.Changes > 0 ? $"{g.BranchText} · 변경 {g.Changes}" : g.BranchText;
         GitChip.ToolTip = g?.RepoRoot;
+        UpdateGitBar();
         List.Redraw();
+        if (g is not null && _host is not null && _pane is not null && !string.Equals(_gitDetectedRoot, g.RepoRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            _gitDetectedRoot = g.RepoRoot;
+            _host.GitDetected(_pane, g.RepoRoot);
+        }
+        else if (g is null)
+        {
+            _gitDetectedRoot = null;
+        }
     }
+
+    /// <summary>Git 바를 보이거나 숨긴다 (설정 변경 때도 부른다). 높이를 짧게 펼쳐 목록이 갑자기 밀리지 않게 한다.</summary>
+    public void UpdateGitBar()
+    {
+        var g = _tab?.Git;
+        var show = g is not null && _host?.ShowGitBar == true;
+        if (show)
+        {
+            GitBarBranch.Text = g!.BranchText;
+            GitBarChanges.Text = g.Changes > 0 ? $"변경 {g.Changes}개" : "변경 없음";
+            GitBar.ToolTip = g.RepoRoot;
+        }
+
+        const double full = 38;
+        var target = show ? full : 0;
+        if (!show && GitBar.Height == 0)
+        {
+            GitBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        GitBar.Visibility = Visibility.Visible;
+        if (Math.Abs(GitBar.Height - target) < 0.5)
+        {
+            return;
+        }
+
+        if (!SystemParameters.ClientAreaAnimation || !IsLoaded)
+        {
+            GitBar.BeginAnimation(HeightProperty, null);
+            GitBar.Height = target;
+            if (!show) GitBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var anim = new System.Windows.Media.Animation.DoubleAnimation(target, TimeSpan.FromMilliseconds(120))
+        {
+            EasingFunction = new System.Windows.Media.Animation.QuadraticEase(),
+            FillBehavior = System.Windows.Media.Animation.FillBehavior.Stop,
+        };
+        anim.Completed += (_, _) =>
+        {
+            GitBar.Height = target;
+            if (!show) GitBar.Visibility = Visibility.Collapsed;
+        };
+        GitBar.BeginAnimation(HeightProperty, anim);
+    }
+
+    private void GitBarClick(GitBarCommand command)
+    {
+        if (_tab?.Git is { } g && _host is not null && _pane is not null)
+        {
+            _host.GitBarAction(_pane, g.RepoRoot, command);
+        }
+    }
+
+    private void OnGitBarPull(object sender, RoutedEventArgs e) => GitBarClick(GitBarCommand.Pull);
+
+    private void OnGitBarPush(object sender, RoutedEventArgs e) => GitBarClick(GitBarCommand.Push);
+
+    private void OnGitBarCommit(object sender, RoutedEventArgs e) => GitBarClick(GitBarCommand.Commit);
+
+    private void OnGitBarOpen(object sender, RoutedEventArgs e) => GitBarClick(GitBarCommand.Open);
 
     private void UpdateNav()
     {

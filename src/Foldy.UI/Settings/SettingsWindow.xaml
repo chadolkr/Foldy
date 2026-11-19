@@ -249,6 +249,11 @@
           <TextBlock Text="애니메이션" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="애니메이션 사용 (연주·우진 포함)" IsChecked="{Binding Animations, Mode=TwoWay}" />
           <TextBlock Text="끄면 작업 패널의 연주·우진과 화면 움직임이 사라집니다. Windows의 '애니메이션 효과 줄이기'도 따릅니다." Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="Git" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="Git 바 보이기" IsChecked="{Binding ShowGitBar, Mode=TwoWay}" />
+          <TextBlock Text="Git 저장소 폴더에서 파일 목록 위에 브랜치·변경 개수와 받기/올리기 버튼을 보입니다." Style="{StaticResource Settings.Hint}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="Git 저장소 폴더에서 Git 화면 자동 열기" IsChecked="{Binding AutoOpenGitView, Mode=TwoWay}" />
+          <TextBlock Text="저장소 폴더에 들어가면 Git 화면 탭을 옆에 열어 둡니다 (저장소마다 실행 중 한 번만, 탭은 바로 가지 않습니다)." Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="오류 보고" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="오류 보고서 자동으로 보내기 (같은 오류는 하나로 묶고, 경로·사용자 이름은 지움)" IsChecked="{Binding SendCrashReports, Mode=TwoWay}" />
           <TextBlock Text="경로·파일 이름 같은 개인 정보는 제거한 뒤 보내며, 언제든 끌 수 있습니다." Style="{StaticResource Settings.Hint}" />

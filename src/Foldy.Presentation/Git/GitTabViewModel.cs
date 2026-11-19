@@ -248,6 +248,7 @@ public sealed partial class GitTabViewModel : TabBase
         Ahead = s.Ahead;
         Behind = s.Behind;
         ChangeCount = s.ChangeCount;
+        NeedsInit = false;
 
         Unstaged.Clear();
         Staged.Clear();
@@ -264,7 +265,7 @@ public sealed partial class GitTabViewModel : TabBase
         }
         _selectedUnstaged = [];
         _selectedStaged = [];
-        OnPropertyChanged(nameof(CanCommit));
+        RebuildChangeRows();
     }
 
     private async Task RefreshBranchesAsync(CancellationToken ct)
@@ -336,6 +337,7 @@ public sealed partial class GitTabViewModel : TabBase
             MaxLaneCount = max;
             HasMoreHistory = count >= PageSize;
             OnPropertyChanged(nameof(LoadedCommitCount));
+            OnPropertyChanged(nameof(ShowNoHistory));
             ApplyFilter();
         }
         catch (OperationCanceledException)
@@ -373,6 +375,7 @@ public sealed partial class GitTabViewModel : TabBase
         _detailCts?.Cancel();
         _detailCts?.Dispose();
         var cts = _detailCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+        SelectedCommitFile = null;
         CommitFiles.Clear();
         if (row is null) return;
         try
@@ -419,7 +422,7 @@ public sealed partial class GitTabViewModel : TabBase
     {
         var paths = items.Select(i => i.Path).Distinct().ToList();
         if (paths.Count == 0) return;
-        await ExecAsync("Stage", (_, ct) => _git.StageAsync(RepoRoot, paths, ct), RefreshScope.Status);
+        await ExecAsync("스테이지", (_, ct) => _git.StageAsync(RepoRoot, paths, ct), RefreshScope.Status, "");
     }
 
     private async Task UnstageCoreAsync(IEnumerable<GitChangeItem> items)
@@ -427,7 +430,7 @@ public sealed partial class GitTabViewModel : TabBase
         // 이름 변경은 새 경로와 원본 경로를 함께 되돌려야 인덱스에서 완전히 빠진다
         var paths = items.SelectMany(i => i.OrigPath is null ? [i.Path] : new[] { i.Path, i.OrigPath }).Distinct().ToList();
         if (paths.Count == 0) return;
-        await ExecAsync("Unstage", (_, ct) => _git.UnstageAsync(RepoRoot, paths, ct), RefreshScope.Status);
+        await ExecAsync("스테이지 해제", (_, ct) => _git.UnstageAsync(RepoRoot, paths, ct), RefreshScope.Status, "");
     }
 
     [RelayCommand]
@@ -435,7 +438,7 @@ public sealed partial class GitTabViewModel : TabBase
     {
         if (!CanCommit) return;
         var (msg, amend) = (CommitMessage, Amend);
-        if (await ExecAsync("Commit", (_, ct) => _git.CommitAsync(RepoRoot, msg, amend, ct)))
+        if (await ExecAsync("커밋", (_, ct) => _git.CommitAsync(RepoRoot, msg, amend, ct), RefreshScope.All, "커밋 완료"))
         {
             CommitMessage = "";
             Amend = false;
@@ -448,7 +451,7 @@ public sealed partial class GitTabViewModel : TabBase
     {
         if (!CanCommit) return;
         var (msg, amend, setUpstream) = (CommitMessage, Amend, !HasUpstream);
-        var ok = await ExecAsync("Commit & Push", async (p, ct) =>
+        var ok = await ExecAsync("커밋 후 올리기", async (p, ct) =>
         {
             var c = await _git.CommitAsync(RepoRoot, msg, amend, ct);
             if (!c.Success) return c;
@@ -458,19 +461,26 @@ public sealed partial class GitTabViewModel : TabBase
             // amend 한 커밋은 이미 올라간 경우가 많아 일반 push 가 거절될 수 있다 (강제 push 는 별도 확인 경로)
             return await _git.PushAsync(RepoRoot, setUpstream, false, p, ct);
         });
-        if (ok) ProgressText = "Commit & Push 완료";
+        if (ok) { ProgressText = "커밋 후 올리기 완료"; ShowToast(ProgressText); }
     }
 
     // ───────────── 원격 ─────────────
 
     [RelayCommand]
-    public Task FetchAsync() => ExecAsync("Fetch", (p, ct) => _git.FetchAsync(RepoRoot, p, interactive: true, ct));
+    public Task FetchAsync() => ExecAsync("가져오기", (p, ct) => _git.FetchAsync(RepoRoot, p, interactive: true, ct), RefreshScope.All, "가져오기 완료");
 
     [RelayCommand]
-    public Task PullMergeAsync() => ExecAsync("Pull", (p, ct) => _git.PullAsync(RepoRoot, PullMode.Merge, p, ct));
+    public Task PullMergeAsync() => PullCoreAsync("받기", PullMode.Merge);
 
     [RelayCommand]
-    public Task PullRebaseAsync() => ExecAsync("Pull (rebase)", (p, ct) => _git.PullAsync(RepoRoot, PullMode.Rebase, p, ct));
+    public Task PullRebaseAsync() => PullCoreAsync("받기 (rebase)", PullMode.Rebase);
+
+    private Task<bool> PullCoreAsync(string label, PullMode mode)
+    {
+        var n = Behind;
+        return ExecAsync(label, (p, ct) => _git.PullAsync(RepoRoot, mode, p, ct), RefreshScope.All,
+            n > 0 ? $"받기 완료: {n}개 커밋" : "받기 완료: 이미 최신입니다");
+    }
 
     public Task PullAsync(PullMode mode) => mode == PullMode.Rebase ? PullRebaseAsync() : PullMergeAsync();
 
@@ -478,7 +488,9 @@ public sealed partial class GitTabViewModel : TabBase
     public Task PushAsync()
     {
         var setUpstream = !HasUpstream;
-        return ExecAsync("Push", (p, ct) => _git.PushAsync(RepoRoot, setUpstream, false, p, ct));
+        var n = Ahead;
+        return ExecAsync("올리기", (p, ct) => _git.PushAsync(RepoRoot, setUpstream, false, p, ct), RefreshScope.All,
+            n > 0 ? $"올리기 완료: {n}개 커밋" : "올리기 완료");
     }
 
     /// <summary>--force-with-lease 푸시. Confirm 콜백이 true 를 돌려줄 때만 실행한다 (콜백이 없으면 실행하지 않음).</summary>
@@ -492,27 +504,27 @@ public sealed partial class GitTabViewModel : TabBase
             return;
         }
         var setUpstream = !HasUpstream;
-        await ExecAsync("Push (force-with-lease)", (p, ct) => _git.PushAsync(RepoRoot, setUpstream, true, p, ct));
+        await ExecAsync("강제 올리기", (p, ct) => _git.PushAsync(RepoRoot, setUpstream, true, p, ct));
     }
 
     // ───────────── Stash / 브랜치 ─────────────
 
     [RelayCommand]
-    public Task StashPushAsync() => ExecAsync("Stash", (_, ct) => _git.StashPushAsync(RepoRoot, null, true, ct));
+    public Task StashPushAsync() => ExecAsync("임시 보관", (_, ct) => _git.StashPushAsync(RepoRoot, null, true, ct), RefreshScope.All, "임시 보관 완료: 변경한 내용을 치워 두었습니다");
 
     /// <summary>선택한 Stash 를 적용하고 지운다. 선택이 없으면 가장 최근 것.</summary>
     [RelayCommand]
     public Task StashPopAsync()
     {
         var name = SelectedStash?.Name;
-        return ExecAsync("Stash pop", (_, ct) => _git.StashPopAsync(RepoRoot, name, ct));
+        return ExecAsync("임시 보관 꺼내기", (_, ct) => _git.StashPopAsync(RepoRoot, name, ct));
     }
 
     [RelayCommand]
     public async Task CheckoutAsync(GitBranchItem? branch)
     {
         if (branch is null || (branch.IsCurrent && !branch.IsRemote)) return;
-        await ExecAsync("Checkout", (_, ct) => _git.CheckoutAsync(RepoRoot, branch.Name, ct));
+        await ExecAsync("브랜치 전환", (_, ct) => _git.CheckoutAsync(RepoRoot, branch.Name, ct));
     }
 
     /// <summary>NewBranchName 으로 새 브랜치를 만들어 이동한다.</summary>
@@ -549,7 +561,7 @@ public sealed partial class GitTabViewModel : TabBase
     /// 실패는 ErrorText 에 담는다. 실패해도 (병합 충돌 등) 상태를 다시 읽는다.
     /// </summary>
     private async Task<bool> ExecAsync(string label, Func<IProgress<GitProgress>, CancellationToken, Task<GitResult>> op,
-        RefreshScope refresh = RefreshScope.All)
+        RefreshScope refresh = RefreshScope.All, string? doneText = null)
     {
         if (_opActive) return false;
         _opActive = true;
@@ -565,11 +577,17 @@ public sealed partial class GitTabViewModel : TabBase
                 ProgressText = p.Percent >= 0 ? $"{label}: {p.Stage} {p.Percent}%" : $"{label}: {p.Stage}");
             var r = await op(progress, _cts.Token);
             ok = r.Success;
-            if (ok) ProgressText = label + " 완료";
+            if (ok)
+            {
+                // doneText "" = 알림 없이 조용히 (스테이지 같은 잦은 동작)
+                ProgressText = doneText is { Length: > 0 } ? doneText : label + " 완료";
+                if (doneText != "") ShowToast(ProgressText);
+            }
             else if (r.Failure == GitFailure.Cancelled) ProgressText = label + " 취소됨";
             else
             {
                 ProgressText = label + " 실패";
+                ToastText = "";
                 Report(r);
             }
         }
@@ -590,13 +608,15 @@ public sealed partial class GitTabViewModel : TabBase
     {
         IsBusy = busy;
         OnPropertyChanged(nameof(IsIdle));
-        OnPropertyChanged(nameof(CanCommit));
+        RaiseCommitState();
+        OnPropertyChanged(nameof(ShowNoHistory));
     }
 
     /// <summary>실패 결과를 문장으로 바꿔 ErrorText 에 올리고, dubious ownership 이면 신뢰 버튼을 켠다.</summary>
     private void Report(GitResult r)
     {
         ErrorText = GitErrorText.Describe(r);
+        if (r.Failure == GitFailure.NotARepository) NeedsInit = true;
         if (r.Failure == GitFailure.DubiousOwnership)
         {
             CanTrustRepo = true;

@@ -262,6 +262,7 @@ public sealed class KeyMap
         new("sidebar.pin", "지금 폴더를 자주 쓰는 폴더에 고정/해제", null),
         new("view.images", "이미지만 보기 켜기/끄기", "Ctrl+Shift+I"),
         new("git.open", "Git 뷰 열기", null),
+        new("git.blame", "Git: 이 파일 Blame", null),
         new("sftp.connect", "SFTP 서버에 연결", "Ctrl+Shift+O"),
         new("app.palette", "모든 명령 보기", "Ctrl+Shift+P"),
         new("app.settings", "설정", "Ctrl+,"),

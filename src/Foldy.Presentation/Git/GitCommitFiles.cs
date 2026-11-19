@@ -10,6 +10,18 @@ public sealed record GitCommitFile(string Status, string Path, string? OrigPath 
     /// <summary>목록 배지 글자 (Status 와 같다).</summary>
     public string Letter => Status;
 
+    /// <summary>목록 배지 글자 (한국어).</summary>
+    public string Label => Status switch
+    {
+        "A" => "추가",
+        "M" => "수정",
+        "D" => "삭제",
+        "R" => "이름 변경",
+        "C" => "복사",
+        "T" => "형식 변경",
+        _ => Status,
+    };
+
     public string FileName => Path[(Path.LastIndexOf('/') + 1)..];
 
     public string Folder => Path.LastIndexOf('/') is var i and > 0 ? Path[..i] : "";

@@ -58,6 +58,7 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="3" />
       <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
@@ -179,8 +180,31 @@
       </StackPanel>
     </Grid>
 
-    <!-- 3행: 트리 | 목록 -->
-    <Grid Grid.Row="3" Margin="8,0,8,8">
+    <!-- 3행: Git 바 (저장소 안에서만. 높이를 0에서 빠르게 펼쳐 목록이 튀지 않게 한다) -->
+    <Border x:Name="GitBar" Grid.Row="3" Height="0" Margin="8,0,8,0" ClipToBounds="True" Visibility="Collapsed">
+      <Border Height="32" VerticalAlignment="Top" Margin="0,0,0,6" Padding="10,0,4,0" CornerRadius="{DynamicResource Radius}"
+              Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+        <DockPanel LastChildFill="False">
+          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE8F1;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Brush.Accent}" />
+            <TextBlock x:Name="GitBarBranch" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
+            <TextBlock x:Name="GitBarChanges" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" />
+          </StackPanel>
+          <Button DockPanel.Dock="Right" Content="Git 화면 열기" Margin="2,3" Padding="10,0" Click="OnGitBarOpen"
+                  ToolTip="커밋 기록, 변경 내용 비교, 커밋 만들기를 한 화면에서" />
+          <Button DockPanel.Dock="Right" Content="커밋…" Margin="2,3" Padding="10,0" Click="OnGitBarCommit"
+                  ToolTip="Git 화면에서 변경한 파일을 골라 커밋합니다" />
+          <Button DockPanel.Dock="Right" Content="올리기" Margin="2,3" Padding="10,0" Click="OnGitBarPush"
+                  ToolTip="내 커밋을 원격 저장소로 보냅니다" />
+          <Button DockPanel.Dock="Right" Content="받기" Margin="2,3" Padding="10,0" Click="OnGitBarPull"
+                  ToolTip="원격 저장소의 새 커밋을 내 브랜치에 합칩니다" />
+        </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- 4행: 트리 | 목록 -->
+    <Grid Grid.Row="4" Margin="8,0,8,8">
       <Grid.ColumnDefinitions>
         <ColumnDefinition x:Name="TreeColumn" Width="200" MinWidth="0" MaxWidth="520" />
         <ColumnDefinition x:Name="SplitColumn" Width="6" />

@@ -111,6 +111,56 @@ public sealed class GitService : IGitService
         return list;
     }
 
+    // ── diff / blame ──
+
+    public async Task<GitResult<FileDiff>> GetDiffAsync(string repo, GitDiffTarget target, int maxLines = GitDiffParser.DefaultMaxLines, CancellationToken ct = default)
+    {
+        var r = await _cli.RunAsync(repo, BuildDiffArgs(target), ReadOpts, null, ct);
+        // --no-index 는 차이가 있으면 종료 코드 1 이다. 출력이 있으면 성공으로 본다.
+        if (!r.Success && target.Untracked && r.ExitCode == 1 && r.Output.Length > 0) r = GitResult.Ok(r.Output);
+        if (!r.Success) return new GitResult<FileDiff>(r, null);
+        var output = r.Output;
+        var diff = output.Length < 4096 ? GitDiffParser.Parse(output, maxLines) : await Task.Run(() => GitDiffParser.Parse(output, maxLines), ct);
+        return new GitResult<FileDiff>(r, diff);
+    }
+
+    internal static List<string> BuildDiffArgs(GitDiffTarget t)
+    {
+        var args = new List<string>();
+        switch (t.Kind)
+        {
+            case GitDiffKind.Commit:
+                args.AddRange(["show", "--no-color", "--no-ext-diff", "--format=", "-m", "--first-parent", "-M"]);
+                args.Add(t.Hash ?? "HEAD");
+                break;
+            case GitDiffKind.Staged:
+                args.AddRange(["diff", "--no-color", "--no-ext-diff", "-M", "--cached"]);
+                break;
+            default:
+                args.AddRange(["diff", "--no-color", "--no-ext-diff"]);
+                if (t.Untracked) args.Add("--no-index");
+                break;
+        }
+        args.Add("--");
+        if (t.Untracked) args.Add("/dev/null");
+        else if (t.OrigPath is not null) args.Add(t.OrigPath);
+        args.Add(t.Path);
+        return args;
+    }
+
+    public async Task<GitResult<IReadOnlyList<BlameLine>>> GetBlameAsync(string repo, string path, string? revision = null, CancellationToken ct = default)
+    {
+        var args = new List<string> { "blame", "--porcelain" };
+        if (!string.IsNullOrEmpty(revision)) args.Add(revision);
+        args.Add("--");
+        args.Add(path);
+        var r = await _cli.RunAsync(repo, args, ReadOpts, null, ct);
+        if (!r.Success) return new GitResult<IReadOnlyList<BlameLine>>(r, null);
+        var output = r.Output;
+        var lines = await Task.Run(() => GitBlameParser.Parse(output), ct);
+        return new GitResult<IReadOnlyList<BlameLine>>(r, lines);
+    }
+
     // ── 쓰기 ──
 
     public Task<GitResult> StageAsync(string repo, IReadOnlyList<string> paths, CancellationToken ct = default)
@@ -179,6 +229,9 @@ public sealed class GitService : IGitService
     // 원격 브랜치 이름(origin/x)이면 git switch 가 추적 브랜치를 자동 생성한다
     public Task<GitResult> CheckoutAsync(string repo, string branch, CancellationToken ct = default)
         => _cli.RunAsync(repo, ["switch", branch], WriteOpts, null, ct);
+
+    public Task<GitResult> InitAsync(string folder, CancellationToken ct = default)
+        => _cli.RunAsync(folder, ["init"], WriteOpts, null, ct);
 
     public Task<GitResult> AddSafeDirectoryAsync(string path, CancellationToken ct = default)
         => AddSafeDirectoryCoreAsync(_cli, path, ct);
