@@ -74,11 +74,28 @@ const env = (kv = new MemoryKV(), extra: Partial<Env> = {}): Env =>
 describe("scrub", () => {
   it("경로는 파일 이름만 남긴다", () => {
     expect(scrubText("at X() in C:\\Users\\kim\\src\\Foo.cs:line 42")).toBe("at X() in <path>\\Foo.cs:line 42");
-    expect(scrubText("Could not find file 'D:\\비밀\\계약서 폴더\\a b.docx'.")).toBe("Could not find file '<path>\\a b.docx'.");
+    expect(scrubText("Could not find file 'D:\\비밀\\계약서 폴더\\a b.docx'.")).toBe("Could not find file '<path>\\<file>.docx'.");
     expect(scrubText("열기 실패: D:\\비밀\\계약서.")).toBe("열기 실패: <path>.");
     expect(scrubText("\"C:\\Users\\kim\\My Docs\"")).toBe("\"<path>\"");
-    expect(scrubText("\\\\server\\share\\a.txt 없음")).toBe("<path>\\a.txt 없음");
+    expect(scrubText("\\\\server\\share\\a.txt 없음")).toBe("<path>\\<file>.txt 없음");
     expect(scrubText("mail kim@example.com")).toBe("mail <email>");
+  });
+  it("회사 정보(주소·IP·서버·계정)를 지운다", () => {
+    const cases: [string, string][] = [
+      ["프록시: http://proxy.example.co.kr:8080/", "프록시: <url>"],
+      ["A connection attempt failed 10.20.30.40:22", "A connection attempt failed <ip>"],
+      ["host fe80::1c2b:3a4d 응답 없음", "host <ip> 응답 없음"],
+      ["sftp 계정 deploy@build01 거부", "sftp 계정 <account> 거부"],
+      ["No such host fileserver.corp.local", "No such host <host>"],
+      ["No such file /home/kim/project/secret.txt", "No such file <path>"],
+      ["open 'C:\\Users\\kim\\Desktop\\인사평가_2026.xlsx'", "open '<path>\\<file>.xlsx'"],
+      // 버전·시각·코드 이름은 그대로
+      ["Foldy 0.3.18.0 시작", "Foldy 0.3.18.0 시작"],
+      ["Version=10.0.0.0, Culture=neutral", "Version=10.0.0.0, Culture=neutral"],
+      ["2026-11-19 10:49:42.776 +09:00 [INF]", "2026-11-19 10:49:42.776 +09:00 [INF]"],
+      ["foldy_proto::decode 실패, 11/19 /qn /norestart", "foldy_proto::decode 실패, 11/19 /qn /norestart"],
+    ];
+    for (const [input, expected] of cases) expect(scrubText(input)).toBe(expected);
   });
   it("마크다운 탈출과 멘션을 막는다", () => {
     expect(neutralizeMarkdown("```\n@octocat")).toBe("ʼʼʼ\n@\u200boctocat");

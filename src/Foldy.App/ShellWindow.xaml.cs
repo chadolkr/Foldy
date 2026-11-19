@@ -383,12 +383,13 @@ public partial class ShellWindow : Window, IPaneHost
             var target = new Uri("https://api.github.com/");
             var proxy = System.Net.WebRequest.GetSystemWebProxy();
             var via = proxy.GetProxy(target);
-            return via is null || via == target ? "직접 연결" : via.ToString();
+            // 프록시 주소(회사 서버 이름)는 기록하지 않는다: 로그 끝부분이 공개 버그 신고에 붙을 수 있다
+            return via is null || via == target ? "직접 연결" : "시스템 프록시 사용";
         }
 #pragma warning disable CA1031
         catch (Exception ex)
         {
-            return "프록시 확인 실패: " + ex.Message;
+            return "프록시 확인 실패: " + ex.GetType().Name;
         }
 #pragma warning restore CA1031
     }

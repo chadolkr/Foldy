@@ -10,13 +10,26 @@ public class ReportScrubberTests
 
     [Theory]
     [InlineData(@"at Foldy.A.B() in C:\Users\kim\src\Foldy\A.cs:line 42", @"at Foldy.A.B() in <path>\A.cs:line 42")]
-    [InlineData(@"Could not find file 'D:\비밀\계약서 폴더\a b.docx'.", @"Could not find file '<path>\a b.docx'.")]
+    [InlineData(@"Could not find file 'D:\비밀\계약서 폴더\a b.docx'.", @"Could not find file '<path>\<file>.docx'.")]
     [InlineData(@"Access to the path 'C:\Users\kim\My Docs' is denied.", @"Access to the path '<path>' is denied.")]
-    [InlineData(@"\\fileserver\share\x.txt 없음", @"<path>\x.txt 없음")]
+    [InlineData(@"\\fileserver\share\x.txt 없음", @"<path>\<file>.txt 없음")]
     [InlineData("사용자 kim의 권한 없음, CORP\\kim", "사용자 <user>의 권한 없음, <user>")]
     [InlineData("host KIM-PC down", "host <machine> down")]
     [InlineData("mail kim@example.com", "mail <email>")]
     [InlineData("kimchi는 그대로", "kimchi는 그대로")]
+    [InlineData("프록시: http://proxy.example.co.kr:8080/", "프록시: <url>")]
+    [InlineData("PAC https://wpad.example.com/proxy.pac 실패", "PAC <url> 실패")]
+    [InlineData("A connection attempt failed 10.20.30.40:22", "A connection attempt failed <ip>")]
+    [InlineData("연결 192.168.0.1 끊김", "연결 <ip> 끊김")]
+    [InlineData("host fe80::1c2b:3a4d 응답 없음", "host <ip> 응답 없음")]
+    [InlineData("sftp 계정 deploy@build01 거부", "sftp 계정 <account> 거부")]
+    [InlineData("No such host fileserver.corp.local", "No such host <host>")]
+    [InlineData("No such file /home/kim/project/secret.txt", "No such file <path>")]
+    [InlineData("Foldy 0.3.18.0 시작", "Foldy 0.3.18.0 시작")]
+    [InlineData("Version=10.0.0.0, Culture=neutral", "Version=10.0.0.0, Culture=neutral")]
+    [InlineData("2026-11-19 10:49:42.776 +09:00 [INF]", "2026-11-19 10:49:42.776 +09:00 [INF]")]
+    [InlineData("foldy_proto::decode 실패, 11/19 /qn /norestart", "foldy_proto::decode 실패, 11/19 /qn /norestart")]
+    [InlineData(@"open 'C:\Users\kim\Desktop\인사평가_2026.xlsx'", @"open '<path>\<file>.xlsx'")]
     public void Scrubs(string input, string expected) => _s.Scrub(input).Should().Be(expected);
 }
 
@@ -34,7 +47,7 @@ public class CrashReportBuilderTests
         var r = new CrashReportBuilder(Env, new ReportScrubber("kim", "PC")).Build(caught, "log kim");
 
         r.ExceptionType.Should().Be("System.IO.FileNotFoundException");
-        r.Message.Should().Be(@"missing <path>\secret.txt");
+        r.Message.Should().Be(@"missing <path>\<file>.txt");
         r.Frames.Should().Contain(f => f.Contains("Thrower.Throw"));
         r.Frames.Should().NotContain(f => f.Contains(":line"));
         r.Details.Should().NotContain("kim");
@@ -114,7 +127,7 @@ public class BugReportLinkTests
         var s = url.ToString();
         s.Should().StartWith("https://github.com/chadolkr/Foldy/issues/new?labels=bug&title=");
         var body = Uri.UnescapeDataString(url.Query.Split("body=")[1]);
-        body.Should().Contain("Foldy: 0.0.1").And.Contain("Windows 10.0.26100").And.Contain(@"opened <path>\a.txt").And.NotContain("kim");
+        body.Should().Contain("Foldy: 0.0.1").And.Contain("Windows 10.0.26100").And.Contain(@"opened <path>\<file>.txt").And.NotContain("kim");
     }
 
     [Fact]
