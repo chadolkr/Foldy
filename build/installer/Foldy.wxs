@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Foldy MSI (WiX 6). 빌드: build/installer/build-msi.ps1
   -d PayloadDir=<자체 포함 게시 폴더>  -d Version=<x.y.z>  -d RepoRoot=<저장소 루트>  -d LicenseRtf=<license.rtf>
@@ -21,7 +21,9 @@
          낮은 버전 설치(다운그레이드)는 자동 업데이트의 되돌리기(FOLDY_ROLLBACK=1, docs/auto-update.md)에서만 허용하고,
          그 밖에는 아래 Launch 조건으로 막는다. AllowDowngrades가 있어야 되돌리기 때 높은 버전이 제거된다
          (AllowDowngrades는 같은 버전 교체도 포함한다). -->
-    <MajorUpgrade AllowDowngrades="yes" />
+    <!-- afterInstallExecute: 새 파일을 먼저 덮어쓴 뒤 이전 제품을 정리한다. 실행 파일·바로가기가 중간에 사라지지 않아
+         작업 표시줄·시작 화면에 고정한 Foldy가 업데이트 뒤에도 그대로 남는다. -->
+    <MajorUpgrade AllowDowngrades="yes" Schedule="afterInstallExecute" />
     <Upgrade Id="6B1E4F0A-5C3D-4E8B-9A27-F01D1D7A4C21">
       <UpgradeVersion Minimum="$(Version)" IncludeMinimum="no" OnlyDetect="yes" Property="FOLDY_NEWER_FOUND" />
     </Upgrade>
