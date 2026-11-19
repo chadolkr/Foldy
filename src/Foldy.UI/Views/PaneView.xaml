@@ -181,13 +181,6 @@
             <TextBlock Text=" SSH" FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
-        <Button x:Name="SudoBtn" Style="{DynamicResource Foldy.ToolButton}" Width="Auto" Padding="8,0" Visibility="Collapsed"
-                ToolTip="sudo 셸로 SSH (비밀번호는 터미널에서 직접 입력, 저장하지 않음)" Click="OnSudo">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xEA18;" FontFamily="{DynamicResource Font.Icon}" VerticalAlignment="Center" />
-            <TextBlock Text=" sudo" FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
       </StackPanel>
     </Grid>
 

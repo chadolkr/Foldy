@@ -1226,7 +1226,6 @@ public partial class PaneView : UserControl
 
     private void OnSsh(object sender, RoutedEventArgs e) => _host?.Shell.OpenTerminal(TerminalKind.Default, elevated: false);
 
-    private void OnSudo(object sender, RoutedEventArgs e) => _host?.Shell.OpenTerminal(TerminalKind.Default, elevated: true);
 
     // ───────────── Git 뷰 ─────────────
 
@@ -1337,7 +1336,7 @@ public partial class PaneView : UserControl
     {
         var sftp = Foldy.Presentation.Navigation.PathUtil.IsSftp(path);
         CmdBtn.Visibility = PsBtn.Visibility = AdminBtn.Visibility = sftp ? Visibility.Collapsed : Visibility.Visible;
-        SshBtn.Visibility = SudoBtn.Visibility = sftp ? Visibility.Visible : Visibility.Collapsed;
+        SshBtn.Visibility = sftp ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnAdminShell(object sender, RoutedEventArgs e) =>
