@@ -25,6 +25,7 @@ mod analysis_job;
 mod bench;
 mod persist;
 mod query;
+mod visibility;
 mod server;
 mod service;
 mod state;

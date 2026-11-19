@@ -3,6 +3,7 @@
 //! 커서 = (볼륨 순번 << 56) | 이름 풀 위치. 클라이언트에게는 불투명한 값이다.
 
 use crate::state::Indexer;
+use crate::visibility::Visibility;
 use foldy_ntfs::search::{self, Outcome};
 use foldy_ntfs::{VolumeIndex, fold_name};
 use foldy_proto::*;
@@ -22,7 +23,8 @@ fn to_hit(idx: &VolumeIndex, id: u32) -> Option<SearchHit> {
 
 /// 검색을 실행하며 배치를 `send`로 보낸다. 마지막 배치는 항상 done=true다.
 /// `send`가 false를 돌려주면(연결 끊김) 멈춘다.
-pub fn search(ix: &Indexer, req: &Search, cancel: &AtomicBool, mut send: impl FnMut(SearchBatch) -> bool) {
+/// `vis`로 요청한 사용자가 보면 안 되는 경로(다른 사용자 프로필 등)는 뺀다.
+pub fn search(ix: &Indexer, req: &Search, vis: &Visibility, cancel: &AtomicBool, mut send: impl FnMut(SearchBatch) -> bool) {
     let id = req.search_id;
     let needle = fold_name(req.query.trim());
     if needle.is_empty() {
@@ -44,7 +46,7 @@ pub fn search(ix: &Indexer, req: &Search, cancel: &AtomicBool, mut send: impl Fn
         let outcome = search::search(idx, needle.as_bytes(), start, limit - found, cancel, |hits| {
             found += hits.len();
             for chunk in hits.chunks(SEARCH_BATCH_MAX) {
-                let v: Vec<SearchHit> = chunk.iter().filter_map(|h| to_hit(idx, h.id)).collect();
+                let v: Vec<SearchHit> = chunk.iter().filter_map(|h| to_hit(idx, h.id)).filter(|h| vis.allows(&h.path)).collect();
                 if !send(batch(id, v, false, search_status::OK, 0)) {
                     alive = false;
                     return false;
@@ -81,8 +83,11 @@ fn covers(idx: &VolumeIndex, path: &str) -> bool {
     p.starts_with(&root) && (p.len() == root.len() || p.as_bytes()[root.len()] == b'\\')
 }
 
-pub fn folder_sizes(ix: &Indexer, path: &str) -> FolderSizesReply {
+pub fn folder_sizes(ix: &Indexer, path: &str, vis: &Visibility) -> FolderSizesReply {
     let empty = |status| FolderSizesReply { status, total_size: 0, total_alloc: 0, entries: Vec::new() };
+    if !vis.allows(path) {
+        return empty(folder_status::NOT_FOUND);
+    }
     for slot in &ix.volumes {
         let Ok(guard) = slot.index.read() else { continue };
         let Some(idx) = guard.as_ref() else { continue };
@@ -113,6 +118,10 @@ mod tests {
     use crate::state::{VolumeSlot, scan_dir};
     use std::sync::Arc;
 
+    fn all() -> Visibility {
+        Visibility::new(None, &[])
+    }
+
     fn temp_tree(tag: &str) -> std::path::PathBuf {
         let root = std::env::temp_dir().join(format!("foldy-index-test-{tag}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
@@ -140,7 +149,7 @@ mod tests {
         let mut hits = Vec::new();
         let mut last = None;
         let c = AtomicBool::new(false);
-        search(ix, &Search { search_id: 9, query: q.into(), limit, cursor }, &c, |b| {
+        search(ix, &Search { search_id: 9, query: q.into(), limit, cursor }, &all(), &c, |b| {
             assert_eq!(b.search_id, 9);
             assert!(last.is_none(), "done 뒤에 배치가 오면 안 됨");
             hits.extend(b.hits.iter().cloned());
@@ -209,7 +218,7 @@ mod tests {
         assert_eq!(run(&ix, "   ", 0, 0).1.status, search_status::BAD_QUERY);
         let c = AtomicBool::new(true);
         let mut st = None;
-        search(&ix, &Search { search_id: 1, query: "report".into(), limit: 0, cursor: 0 }, &c, |b| {
+        search(&ix, &Search { search_id: 1, query: "report".into(), limit: 0, cursor: 0 }, &all(), &c, |b| {
             st = Some(b.status);
             true
         });
@@ -221,16 +230,34 @@ mod tests {
     fn folder_sizes_of_real_tree() {
         let root = temp_tree("sizes");
         let ix = indexer(&[&root]);
-        let r = folder_sizes(&ix, &root.to_string_lossy());
+        let r = folder_sizes(&ix, &root.to_string_lossy(), &all());
         assert_eq!(r.status, folder_status::OK);
         assert_eq!(r.total_size, 5000 + 100 + 7 + 50);
         let sub = r.entries.iter().find(|e| e.name == "하위").unwrap();
         assert!(sub.is_dir);
         assert_eq!(sub.size, 107);
-        let r2 = folder_sizes(&ix, &root.join("하위").to_string_lossy().to_uppercase());
+        let r2 = folder_sizes(&ix, &root.join("하위").to_string_lossy().to_uppercase(), &all());
         assert_eq!(r2.entries.len(), 2);
-        assert_eq!(folder_sizes(&ix, &root.join("없음").to_string_lossy()).status, folder_status::NOT_FOUND);
-        assert_eq!(folder_sizes(&ix, r"Q:\nowhere").status, folder_status::NOT_INDEXED);
+        assert_eq!(folder_sizes(&ix, &root.join("없음").to_string_lossy(), &all()).status, folder_status::NOT_FOUND);
+        assert_eq!(folder_sizes(&ix, r"Q:\nowhere", &all()).status, folder_status::NOT_INDEXED);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn other_users_folders_are_left_out_of_search_and_sizes() {
+        let root = temp_tree("hidden");
+        let ix = indexer(&[&root]);
+        let other = root.join("하위").to_string_lossy().into_owned();
+        let vis = Visibility::new(Some("S-1-5-21-1-1001"), &[("S-1-5-21-1-1002".into(), other.clone())]);
+        let mut hits = Vec::new();
+        let c = AtomicBool::new(false);
+        search(&ix, &Search { search_id: 2, query: "report-".into(), limit: 0, cursor: 0 }, &vis, &c, |b| {
+            hits.extend(b.hits.into_iter().map(|h| h.path));
+            true
+        });
+        assert_eq!(hits, [root.join("Report-2026.PDF").to_string_lossy().into_owned()]);
+        assert_eq!(folder_sizes(&ix, &other, &vis).status, folder_status::NOT_FOUND);
+        assert_eq!(folder_sizes(&ix, &root.to_string_lossy(), &vis).status, folder_status::OK);
         let _ = std::fs::remove_dir_all(&root);
     }
 }
