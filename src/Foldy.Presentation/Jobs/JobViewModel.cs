@@ -89,7 +89,7 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
         {
             State = JobState.Done;
             Progress = 1;
-            Detail = $"완료 · {FormatElapsed(_sw.Elapsed)}";
+            Detail = $"완료 · {FormatElapsed(_sw.Elapsed)}" + (string.IsNullOrEmpty(r.Error) ? "" : $" · {r.Error}");
         }
         else if (r.Aborted)
         {

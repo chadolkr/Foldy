@@ -61,6 +61,9 @@ public interface ISftpClient : IDisposable
 
     /// <summary>같은 서버 안에서 이름·위치를 바꾼다(대상이 있으면 실패).</summary>
     void Rename(string source, string target);
+
+    /// <summary>source를 target 자리로 옮기되 target이 있으면 바꿔 넣는다. posix-rename을 쓰고, 서버가 지원하지 않으면 지운 뒤 이름을 바꾼다.</summary>
+    void Replace(string source, string target);
 }
 
 public interface ISftpClientFactory
