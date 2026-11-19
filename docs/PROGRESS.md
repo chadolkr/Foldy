@@ -2,6 +2,14 @@
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 상세 설계서(Claude Doc) https://claude.ai/artifact/BQjDCujQvfm5T3hsVHNZFe, 결정 기록: `docs/adr/`.
 
+## 0.3.0 (2026-11-19)
+
+- 원칙 추가: **복잡한 기능은 하지 않는다** (단순·안정 우선). Google Drive 직접 연결은 제거(PR #4), Mermaid 렌더러는 중단.
+- 색인 저장: 서비스 재시작 때 저장된 색인을 읽고 USN 저널만 따라잡는다(`docs/index-persistence.md`, 실제 MFT 시간은 관리자로 `foldy-index --bench C:` 측정 필요).
+- 1.0 점검(`docs/release-1.0-checklist.md`): 대비 수정, 고대비 테마, 한국어 자동화 이름, Tab/Del/F2 키보드 수정, Ctrl+Shift+E 사이드바, 성능 기준 스크립트 `build/perf-check.ps1`(모두 통과), 스크립트 설치가 MSI 설치를 덮지 않게.
+- 0.2.11: 업데이트 뒤 Foldy를 탐색기 토큰으로 다시 띄움(매핑 드라이브 K: 문제), 드라이브 열기 진단 로그, 버그 진단 모드, 로그 폴더 열기.
+- 남은 것(사용자): SignPath 승인, 스크린 리더 실사용 확인, K: 컴퓨터에서 0.2.11+ 확인.
+
 ## 현재 상태
 
 - **최신 버전 0.2.7** (클라우드에서 릴리스, 아래 '클라우드 세션에서 한 일'). 이전 0.2.6: GitHub Releases https://github.com/chadolkr/Foldy/releases 에 올라가 있고, 사용자 PC에도 설치돼 있다(`C:\Program Files\Foldy`).
