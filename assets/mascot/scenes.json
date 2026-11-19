@@ -6,7 +6,7 @@
   // 레트로는 retroFps로 시간을 양자화해 같은 장면을 뚝뚝 끊어 그린다.
   "version": 4,
   "render": {
-    "designHeight": 48,
+    "designHeight": 64,
     "maxWorldWidth": 640,
     "modernFps": 30,
     "retroFps": 12,

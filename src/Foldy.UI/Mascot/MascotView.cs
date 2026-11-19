@@ -355,10 +355,12 @@ public sealed class MascotView : FrameworkElement
                 _retroDirty = false;
             }
 
+            drawingContext.PushClip(new RectangleGeometry(new Rect(0, 0, ActualWidth, MascotPainter.DesignHeight)));
             drawingContext.DrawImage(
                 _retroBitmap,
                 new Rect(0, 0, _retroBitmap.PixelWidth * (double)Catalog.Render.RetroScale, _retroBitmap.PixelHeight * (double)Catalog.Render.RetroScale));
-            painter.PaintLabels(drawingContext); // 이름표는 확대 후에 또렷하게
+            painter.PaintLabels(drawingContext); // 이름표와 말풍선 글리프는 확대 후에 또렷하게
+            drawingContext.Pop();
         }
         else
         {
