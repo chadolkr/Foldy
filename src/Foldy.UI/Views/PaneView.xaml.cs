@@ -99,6 +99,9 @@ public partial class PaneView : UserControl
         UpdateActive();
     }
 
+    /// <summary>성능 측정(--bench-shell)용: 목록과 그 스크롤러.</summary>
+    public (FastFileList List, ScrollViewer Scroller) BenchHandles => (List, Scroller);
+
     public void FocusList()
     {
         if (_pane?.ActiveTab is FolderTabViewModel)

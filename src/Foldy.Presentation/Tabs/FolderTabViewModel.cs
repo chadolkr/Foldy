@@ -124,6 +124,9 @@ public sealed partial class FolderTabViewModel : TabBase
     /// <summary>마지막 열기 소요 시간 (진단용).</summary>
     public TimeSpan LastLoadTime { get; private set; }
 
+    /// <summary>마지막 열기에서 첫 항목 묶음이 화면 목록에 들어가기까지 걸린 시간 (진단·성능 관문: 10만 개에서 100ms).</summary>
+    public TimeSpan FirstBatchTime { get; private set; }
+
     public bool IsLoaded { get; private set; }
 
     // ───────────── 이동 ─────────────
@@ -204,6 +207,7 @@ public sealed partial class FolderTabViewModel : TabBase
         ItemList? live = null;
         var all = new List<FileItem>(256);
         var showHidden = _env.ShowHidden();
+        var firstBatchSeen = false;
 
         Error = null;
         IsBusy = true;
@@ -250,6 +254,12 @@ public sealed partial class FolderTabViewModel : TabBase
                     }
 
                     live.AddBatch(mapped);
+                }
+
+                if (!firstBatchSeen)
+                {
+                    firstBatchSeen = true;
+                    FirstBatchTime = sw.Elapsed;
                 }
 
                 if (sw.Elapsed > TimeSpan.FromSeconds(2))

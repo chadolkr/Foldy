@@ -12,6 +12,9 @@ namespace Foldy.App;
 public sealed record AppOptions
 {
     public bool BenchList { get; init; }
+
+    /// <summary>진짜 ShellWindow(사이드바·트리·Git 바 포함)에서 시작 시간·폴더 열기·스크롤·메모리를 재고 종료한다 (build/perf-check.ps1).</summary>
+    public bool BenchShell { get; init; }
     public string? BenchFolder { get; init; }
     public int Rows { get; init; } = 100_000;
     public int Step { get; init; } = 120;
@@ -27,7 +30,7 @@ public sealed record AppOptions
     public string? OpenPath { get; init; }
     public Foldy.UI.Theming.FoldyTheme Theme { get; init; } = Foldy.UI.Theming.FoldyTheme.System;
 
-    public bool IsBench => BenchList || BenchFolder is not null;
+    public bool IsBench => BenchList || BenchShell || BenchFolder is not null;
 
     public static AppOptions Parse(string[] args)
     {
@@ -38,6 +41,7 @@ public sealed record AppOptions
             o = args[i] switch
             {
                 "--bench-list" => o with { BenchList = true },
+                "--bench-shell" => o with { BenchShell = true },
                 "--bench-folder" => o with { BenchFolder = Next() },
                 "--rows" => o with { Rows = int.Parse(Next(), CultureInfo.InvariantCulture) },
                 "--step" => o with { Step = int.Parse(Next(), CultureInfo.InvariantCulture) },

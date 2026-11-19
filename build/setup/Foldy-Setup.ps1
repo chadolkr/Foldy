@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Foldy 한 번에 설치: 프로그램(Program Files\Foldy) + 시작 메뉴 + 색인 서비스(FoldyIndexer) + 프로그램 추가/제거 등록.
   관리자 권한이 필요하며, 일반 권한으로 실행하면 UAC 창을 한 번 띄워 스스로 다시 실행한다.
@@ -52,6 +52,20 @@ if (-not $Uninstall) {
     Write-Host ''
 }
 
+# MSI(자동 업데이트가 설치하는 정식 설치본)로 깔려 있으면 이 스크립트로 덮어쓰거나 지우지 않는다.
+# 파일만 지우면 Windows Installer 등록(프로그램 추가/제거)이 남아 고장 난 항목이 된다.
+$msiFoldy = Get-ChildItem 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue |
+    ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } |
+    Where-Object { $_.DisplayName -eq 'Foldy' -and $_.WindowsInstaller -eq 1 } | Select-Object -First 1
+if ($msiFoldy) {
+    $what = if ($Uninstall) { '제거' } else { '설치' }
+    Write-Host "Foldy가 MSI로 설치돼 있습니다 (버전 $($msiFoldy.DisplayVersion)). 이 스크립트로는 $what 하지 않습니다." -ForegroundColor Yellow
+    if ($Uninstall) { Write-Host '제거: 설정 > 앱 > 설치된 앱 > Foldy > 제거 (또는 msiexec /x). 설정·세션은 남습니다.' }
+    else { Write-Host '새 버전은 Foldy의 자동 업데이트가 설치합니다. 수동 설치는 릴리스의 .msi를 실행하세요.' }
+    Stop-Transcript | Out-Null
+    Start-Sleep -Seconds 4
+    return
+}
 # 실행 중인 Foldy와 서비스 정지
 Get-Process Foldy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 if (Get-Service $service -ErrorAction SilentlyContinue) {
