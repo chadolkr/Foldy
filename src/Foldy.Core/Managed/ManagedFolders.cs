@@ -156,6 +156,7 @@ public static class ManagedFolders
     public static void SetMethod(string folder, FolderMethod method)
     {
         var path = Path.Combine(folder, FileName);
+        var keptTags = File.Exists(path) ? Foldy.Core.Tags.FileTags.Parse(File.ReadAllText(path)) : [];
         if (File.Exists(path))
         {
             File.SetAttributes(path, FileAttributes.Normal);
@@ -171,6 +172,7 @@ public static class ManagedFolders
             .AppendLine("이 파일은 Foldy가 이 폴더를 어떤 방법으로 관리하는지 기억하는 메모예요. 지워도 괜찮아요 (관리가 꺼질 뿐 파일은 그대로예요).")
             .AppendLine("Foldy는 저절로 옮기지 않고, 제안을 보여 드린 뒤 확인을 받고 옮겨요. 옮긴 것은 [되돌리기]로 돌릴 수 있어요.")
             .ToString();
+        text = Foldy.Core.Tags.FileTags.Render(text, keptTags); // 파일 상태 태그 칸은 그대로
         File.WriteAllText(path, text, new UTF8Encoding(true));
         File.SetAttributes(path, FileAttributes.Hidden);
         lock (Roots)
@@ -186,8 +188,15 @@ public static class ManagedFolders
         var path = Path.Combine(folder, FileName);
         if (File.Exists(path))
         {
+            var tags = Foldy.Core.Tags.FileTags.Parse(File.ReadAllText(path));
             File.SetAttributes(path, FileAttributes.Normal);
             File.Delete(path);
+            if (tags.Count > 0)
+            {
+                // 관리 방법만 끄고 태그는 남긴다
+                File.WriteAllText(path, Foldy.Core.Tags.FileTags.Render("", tags), new UTF8Encoding(true));
+                File.SetAttributes(path, FileAttributes.Hidden);
+            }
         }
 
         lock (Roots)

@@ -60,6 +60,12 @@ public partial class PaneView : UserControl
         List.SortColumn = 0;
         List.IsDimmed = o => o is FileItem f && (f.IsHidden || _tab?.Git?.BadgeOf(f.FullPath) == Foldy.Core.FileSystem.GitFileStatus.Ignored);
         List.BadgeSelector = GitBadge;
+        List.ChipSelector = TagChips;
+        Foldy.Core.Tags.FileTags.Changed += () => Dispatcher.BeginInvoke(() =>
+        {
+            List.Redraw();
+            UpdateTagBar();
+        });
         List.SelectionChanged += OnListSelectionChanged;
         List.ItemActivated += OnItemActivated;
         List.HeaderClicked += OnHeaderClicked;
@@ -333,6 +339,7 @@ public partial class PaneView : UserControl
             case nameof(FolderTabViewModel.Items):
                 List.ItemsSource = _tab!.Items;
                 UpdateState();
+                UpdateTagBar();
                 if (_tab.ImagesOnly)
                 {
                     UpdateImageLayer();
@@ -773,6 +780,10 @@ public partial class PaneView : UserControl
                 BeginRename();
                 e.Handled = true;
                 break;
+            case Key.D when mods == ModifierKeys.Control:
+                ToggleTag(Foldy.Core.Tags.FileTags.Default);
+                e.Handled = true;
+                break;
             case Key.Delete:
                 _ = _host.Shell.DeleteSelectionAsync(permanent: (mods & ModifierKeys.Shift) != 0);
                 e.Handled = true;
@@ -890,6 +901,123 @@ public partial class PaneView : UserControl
                 TreeVisible = true;
                 _treeAutoHidden = false;
             }
+        }
+    }
+
+    // ───────────── 작업 태그 ─────────────
+
+    private static readonly Dictionary<string, Brush> TagBrushes = [];
+
+    private static Brush TagBrush(string color)
+    {
+        if (!TagBrushes.TryGetValue(color, out var b))
+        {
+            b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+            b.Freeze();
+            TagBrushes[color] = b;
+        }
+
+        return b;
+    }
+
+    private IReadOnlyList<(string Text, Brush Brush)> TagChips(object o)
+    {
+        if (o is not FileItem f || f.IsFolder || _tab is null || _tab.IsSlowDrive || f.FullPath.Length < 3 || f.FullPath[1] != ':')
+        {
+            return [];
+        }
+
+        var tags = Foldy.Core.Tags.FileTags.Get(f.FullPath);
+        return tags.Count == 0 ? [] : [.. tags.Select(t => (t, TagBrush(Foldy.Core.Tags.FileTags.Def(t).Color)))];
+    }
+
+    /// <summary>고른 파일들에 태그를 켜고 끈다 (Ctrl+D = 작업 완료).</summary>
+    public void ToggleTag(string tag)
+    {
+        var files = CurrentSelection.Where(i => !i.IsFolder).Select(i => i.FullPath).Where(p => p.Length > 2 && p[1] == ':').ToList();
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        Foldy.Core.Tags.FileTags.Toggle(files, tag);
+        _host?.Shell.Status = Foldy.Core.Tags.FileTags.Has(files[0], tag) ? $"'{tag}' 표시했어요 ({files.Count:N0}개)" : $"'{tag}' 표시를 뺐어요 ({files.Count:N0}개)";
+    }
+
+    /// <summary>이 폴더에 태그가 있으면 위쪽에 진행 상황을 한 줄로.</summary>
+    private void UpdateTagBar()
+    {
+        if (_tab?.Items is not { } items || _tab.IsSlowDrive || _tab.Path.Length < 3 || _tab.Path[1] != ':')
+        {
+            TagBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var files = items.Where(i => !i.IsFolder).Select(i => i.FullPath).ToList();
+        var counts = Foldy.Core.Tags.FileTags.Counts(files);
+        if (counts.Count == 0)
+        {
+            TagBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        TagBarText.Text = $"파일 {files.Count:N0}개 중 " + string.Join(" · ", counts.Select(c => $"{c.Tag.Name} {c.Count:N0}"));
+        TagNextButton.IsEnabled = files.Any(p => !Foldy.Core.Tags.FileTags.Has(p, Foldy.Core.Tags.FileTags.Default));
+        var inGit = Foldy.Core.Tags.FileTags.GitDir(_tab.Path) is not null;
+        TagShareToggle.Visibility = inGit ? Visibility.Visible : Visibility.Collapsed;
+        TagShareToggle.IsChecked = inGit && Foldy.Core.Tags.FileTags.IsSharedInGit(_tab.Path);
+        TagBar.Visibility = Visibility.Visible;
+    }
+
+    private void OnTagNext(object sender, RoutedEventArgs e)
+    {
+        if (_tab?.Items is not { } items)
+        {
+            return;
+        }
+
+        var list = items.ToList();
+        var start = Math.Max(0, List.FocusedIndex + 1);
+        for (var k = 0; k < list.Count; k++)
+        {
+            var i = (start + k) % list.Count;
+            if (!list[i].IsFolder && !Foldy.Core.Tags.FileTags.Has(list[i].FullPath, Foldy.Core.Tags.FileTags.Default))
+            {
+                List.FocusIndex(i);
+                List.Focus();
+                return;
+            }
+        }
+    }
+
+    private void OnTagShare(object sender, RoutedEventArgs e)
+    {
+        if (_tab?.Path is not { } p)
+        {
+            return;
+        }
+
+        var on = TagShareToggle.IsChecked == true;
+        if (on && MessageBox.Show(Window.GetWindow(this), "태그(.foldy.md)를 저장소에 함께 올리면 같이 쓰는 사람에게 보이고, 공개 저장소면 누구나 볼 수 있어요. 켤까요?",
+                "태그 공유", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            TagShareToggle.IsChecked = false;
+            return;
+        }
+
+        Foldy.Core.Tags.FileTags.SetSharedInGit(p, on);
+        if (_host is not null)
+        {
+            _host.Shell.Status = on ? "태그를 저장소에 함께 올려요 (.foldy.md가 git status에 보여요)" : "태그를 이 폴더에만 둬요 (저장소에는 올리지 않아요)";
+        }
+    }
+
+    private void OnTagClear(object sender, RoutedEventArgs e)
+    {
+        if (_tab?.Path is { } p)
+        {
+            var n = Foldy.Core.Tags.FileTags.ClearFolder(p);
+            _host?.Shell.Status = $"태그 {n:N0}개를 지웠어요 (파일은 그대로예요)";
         }
     }
 

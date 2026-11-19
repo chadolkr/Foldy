@@ -185,7 +185,9 @@
     </Grid>
 
     <!-- 3행: Git 바 (저장소 안에서만. 높이를 0에서 빠르게 펼쳐 목록이 튀지 않게 한다) -->
-    <Border x:Name="GitBar" Grid.Row="3" Height="0" Margin="8,0,8,0" ClipToBounds="True" Visibility="Collapsed">
+    <!-- 3행: 한 줄 안내들 (Git 바, 관리 방식, 작업 태그) -->
+    <StackPanel Grid.Row="3">
+    <Border x:Name="GitBar" Height="0" Margin="8,0,8,0" ClipToBounds="True" Visibility="Collapsed">
       <Border Height="32" VerticalAlignment="Top" Margin="0,0,0,6" Padding="10,0,4,0" CornerRadius="{DynamicResource Radius}"
               Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
         <DockPanel LastChildFill="False">
@@ -208,7 +210,7 @@
     </Border>
 
     <!-- 관리 방식 바: 가장 가까운 .foldy.md를 따른다 (Git 바가 없을 때만) -->
-    <Border x:Name="ManagedBar" Grid.Row="3" Margin="8,0,8,6" Padding="10,0,4,0" Height="30" CornerRadius="{DynamicResource Radius}" Visibility="Collapsed"
+    <Border x:Name="ManagedBar" Margin="8,0,8,6" Padding="10,0,4,0" Height="30" CornerRadius="{DynamicResource Radius}" Visibility="Collapsed"
             Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
       <DockPanel LastChildFill="True">
         <Button DockPanel.Dock="Right" x:Name="ManagedBarButton" Content="정리할 것 보기" Margin="2,3" Padding="10,0" Click="OnManagedBarOpen" />
@@ -217,6 +219,20 @@
         <TextBlock x:Name="ManagedBarText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
       </DockPanel>
     </Border>
+
+    <!-- 작업 태그 진행: "20개 중 작업 완료 7 · 반영 완료 3" + [다음 파일] -->
+    <Border x:Name="TagBar" Margin="8,0,8,6" Padding="10,0,4,0" Height="30" CornerRadius="{DynamicResource Radius}" Visibility="Collapsed"
+            Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+      <DockPanel LastChildFill="True">
+        <ToggleButton DockPanel.Dock="Right" x:Name="TagShareToggle" Content="저장소에 공유" Margin="2,3" Padding="10,0" Visibility="Collapsed" Click="OnTagShare"
+                      ToolTip="태그를 Git 저장소에 함께 올릴지 (기본 끔: 이 PC의 폴더에만)" />
+        <Button DockPanel.Dock="Right" Content="태그 모두 지우기" Margin="2,3" Padding="10,0" Click="OnTagClear" ToolTip="이 폴더 파일들의 태그를 지워요 (파일은 그대로)" />
+        <Button DockPanel.Dock="Right" x:Name="TagNextButton" Content="다음 파일" Margin="2,3" Padding="10,0" Click="OnTagNext" ToolTip="아직 '작업 완료'가 아닌 다음 파일로 (Ctrl+D: 작업 완료 켜고 끄기)" />
+        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock x:Name="TagBarText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+    </StackPanel>
 
     <!-- 4행: 트리 | 목록 -->
     <Grid Grid.Row="4" Margin="8,0,8,8">

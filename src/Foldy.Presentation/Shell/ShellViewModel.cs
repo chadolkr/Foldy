@@ -414,6 +414,7 @@ public sealed partial class ShellViewModel : ObservableObject
             return false;
         }
 
+        Foldy.Core.Tags.FileTags.Moved(item.FullPath, Path.Combine(Path.GetDirectoryName(item.FullPath) ?? "", newName));
         await RefreshFoldersAsync([tab.Path], focus: newName);
         return true;
     }

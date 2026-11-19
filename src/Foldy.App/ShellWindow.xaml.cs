@@ -71,6 +71,7 @@ public partial class ShellWindow : Window, IPaneHost
             w.Show();
             return true;
         };
+        Foldy.Core.Tags.FileTags.Load(Path.Combine(App.DataDir, "tags-local.json"));
         Foldy.Core.Managed.ManagedFolders.LoadRegistry(Path.Combine(App.DataDir, "managed-folders.json"));
         Foldy.Core.Managed.ManagedFolders.Changed += () => Dispatcher.BeginInvoke(() =>
         {
@@ -941,6 +942,12 @@ public partial class ShellWindow : Window, IPaneHost
                 Shell.Status = "금고에 넣을 폴더 하나를 골라 주세요";
             }
         });
+        Add("tag.done", "작업 완료 표시 켜기/끄기 (고른 파일)", () => ActiveView.ToggleTag(Foldy.Core.Tags.FileTags.Default), gesture: "Ctrl+D");
+        foreach (var t in Foldy.Core.Tags.FileTags.Builtin.Skip(1))
+        {
+            Add("tag." + t.Name, $"'{t.Name}' 표시 켜기/끄기 (고른 파일)", () => ActiveView.ToggleTag(t.Name));
+        }
+
         Add("folder.manage", "이 폴더 관리 방식 정하기…", () =>
         {
             if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')

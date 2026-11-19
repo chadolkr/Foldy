@@ -130,6 +130,9 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     /// <summary>이름 끝에 붙일 작은 배지 (Git 상태 M/A/?/! 등). 글자와 색.</summary>
     public Func<object, (string Text, Brush Brush)?>? BadgeSelector { get; set; }
 
+    /// <summary>이름 뒤 작은 상태 칩 ("작업 완료" 등). 이름을 가리지 않게 남는 자리에만 그린다.</summary>
+    public Func<object, IReadOnlyList<(string Text, Brush Brush)>>? ChipSelector { get; set; }
+
     /// <summary>흐리게 그릴 항목 (숨김 파일 등).</summary>
     public Func<object, bool>? IsDimmed { get; set; }
 
@@ -401,11 +404,32 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
                     }
 
                     dc.DrawText(ft, new Point(Math.Round(tx), Math.Round(y + (rh - ft.Height) / 2)));
+                    var after = tx + ft.Width + 8;
                     if (c == 0 && BadgeSelector?.Invoke(item) is { } badge)
                     {
                         var bt = new FormattedText(badge.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Typeface, FontSize - 1.5, badge.Brush, dpi);
-                        var bx = Math.Min(tx + ft.Width + 8, x + col.Width - bt.Width - 6);
+                        var bx = Math.Min(after, x + col.Width - bt.Width - 6);
                         dc.DrawText(bt, new Point(Math.Round(bx), Math.Round(y + (rh - bt.Height) / 2)));
+                        after = bx + bt.Width + 8;
+                    }
+
+                    if (c == 0 && ChipSelector?.Invoke(item) is { Count: > 0 } chips)
+                    {
+                        foreach (var (text, brush) in chips)
+                        {
+                            var ct = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface, FontSize - 2, Brushes.White, dpi);
+                            var cw = ct.Width + 10;
+                            var chh = Math.Min(rh - 6, ct.Height + 2);
+                            if (after + cw > x + col.Width - 4)
+                            {
+                                break; // 자리가 없으면 그리지 않는다 (이름이 먼저)
+                            }
+
+                            var top = y + (rh - chh) / 2;
+                            dc.DrawRoundedRectangle(brush, null, new Rect(Math.Round(after), Math.Round(top), Math.Round(cw), Math.Round(chh)), chh / 2, chh / 2);
+                            dc.DrawText(ct, new Point(Math.Round(after + 5), Math.Round(top + (chh - ct.Height) / 2)));
+                            after += cw + 4;
+                        }
                     }
 
                     x += col.Width;
