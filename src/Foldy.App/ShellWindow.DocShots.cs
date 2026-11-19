@@ -311,6 +311,30 @@ public partial class ShellWindow
             DocWide(leftOnly: false);
         });
 
+        // README 첫 화면: 왼쪽 = 폴더 분석, 오른쪽 = Git 화면 (변경 내용 보기)
+        await DocSceneAsync("hero", async () =>
+        {
+            DocFolderTab(left);
+            DocFolderTab(right);
+            DocWide(leftOnly: false);
+            var coordinator = new Foldy.Analysis.AnalysisCoordinator(null, localDirectory: Path.Combine(App.DataDir, "analysis"));
+            var analysis = new Foldy.Presentation.Analysis.AnalysisTabViewModel(coordinator, r);
+            left.AddTab(analysis, activate: true, assignColor: true);
+            await DocSettleAsync(600);
+            await analysis.AnalyzeAsync();
+
+            var git = OpenGitTab(right, DocShotsSandbox.Repo(r), activate: true);
+            await git.RefreshAsync();
+            git.ShowChangesTab();
+            await DocSettleAsync(800);
+            git.SelectedChange = git.ChangeRows.FirstOrDefault(c => c.Item?.Path == "src/app.py") ?? git.ChangeRows.FirstOrDefault(c => c.Item is not null);
+            await git.PanelLoadingTask;
+            DocActivate(right);
+            await DocShotWindowAsync("hero", 2500);
+            right.CloseTab(git);
+            left.CloseTab(analysis);
+        });
+
         await DocSceneAsync("settings", async () =>
         {
             var vm = new Foldy.Presentation.Settings.SettingsViewModel(_settings, _keyMap);
