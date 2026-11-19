@@ -456,7 +456,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private void FinishJob(JobViewModel job, FileOpResult r)
     {
         job.Complete(r);
-        Status = r.Succeeded ? "" : r.Aborted ? "취소됨" : $"{job.Title}: {r.Error}";
+        Status = r.Succeeded ? r.Error ?? "" : r.Aborted ? "취소됨" : $"{job.Title}: {r.Error}";
     }
 
     public void ClearFinishedJobs()

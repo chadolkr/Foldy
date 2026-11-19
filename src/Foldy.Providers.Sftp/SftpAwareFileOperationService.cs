@@ -215,7 +215,9 @@ public sealed class SftpAwareFileOperationService(
             run.Done = Math.Max(run.Done, run.Total);
             run.Current = null;
             run.Report(force: true);
-            return FileOpResult.Ok();
+            return run.SkippedLinks > 0
+                ? new FileOpResult(true, false, $"심볼릭 링크 {run.SkippedLinks:N0}개는 건너뛰었습니다")
+                : FileOpResult.Ok();
         }
         catch (OperationCanceledException)
         {
@@ -310,7 +312,7 @@ public sealed class SftpAwareFileOperationService(
         }
 
         long sum = 0;
-        foreach (var child in await ep.ListAsync(node.Path, ct).ConfigureAwait(false))
+        foreach (var child in await ep.ListAsync(node.Path, null, ct).ConfigureAwait(false))
         {
             ct.ThrowIfCancellationRequested();
             sum += await ScanNodeAsync(ep, child, ct).ConfigureAwait(false);
@@ -340,7 +342,7 @@ public sealed class SftpAwareFileOperationService(
                 await dst.MakeDirAsync(destPath, ct).ConfigureAwait(false);
             }
 
-            foreach (var child in await src.ListAsync(node.Path, ct).ConfigureAwait(false))
+            foreach (var child in await src.ListAsync(node.Path, run, ct).ConfigureAwait(false))
             {
                 await CopyNodeAsync(src, child, dst, destPath, factor, run, ct).ConfigureAwait(false);
             }
@@ -380,11 +382,15 @@ public sealed class SftpAwareFileOperationService(
     private static Task<string> UniqueNameAsync(IEndpoint dst, string folder, string name, bool isFolder, CancellationToken ct) =>
         ConflictNaming.UniqueAsync(name, isFolder, async c => await dst.StatAsync(dst.Combine(folder, c), ct).ConfigureAwait(false) is not null);
 
+    /// <summary>임시 이름(<c>.이름.foldy-part</c>)에 끝까지 쓴 뒤에만 대상과 바꿔 넣는다. 취소·실패하면 임시 파일만 지우고 옛 대상은 그대로다.</summary>
+    internal static string PartName(string name) => "." + name + ".foldy-part";
+
     private async Task CopyFileAsync(IEndpoint src, Node node, IEndpoint dst, string destPath, Run run, CancellationToken ct)
     {
         run.Current = node.Name;
         var baseDone = run.Done;
         var first = new SyncProgress(n => { run.Done = baseDone + n; run.Report(); });
+        var part = dst.Combine(dst.Parent(destPath), PartName(dst.NameOf(destPath)));
         string? temp = null;
         try
         {
@@ -393,12 +399,12 @@ public sealed class SftpAwareFileOperationService(
                 var fs = new FileStream(node.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);
                 await using (fs.ConfigureAwait(false))
                 {
-                    await sftp.UploadAsync(fs, Remote(destPath), first, ct).ConfigureAwait(false);
+                    await sftp.UploadAsync(fs, Remote(part), first, ct).ConfigureAwait(false);
                 }
             }
             else if (src.IsRemote && !dst.IsRemote)
             {
-                var fs = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+                var fs = new FileStream(part, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
                 await using (fs.ConfigureAwait(false))
                 {
                     await sftp.DownloadAsync(Remote(node.Path), fs, first, ct).ConfigureAwait(false);
@@ -413,17 +419,20 @@ public sealed class SftpAwareFileOperationService(
                     await sftp.DownloadAsync(Remote(node.Path), down, first, ct).ConfigureAwait(false);
                     down.Position = 0;
                     var second = new SyncProgress(n => { run.Done = baseDone + node.Size + n; run.Report(); });
-                    await sftp.UploadAsync(down, Remote(destPath), second, ct).ConfigureAwait(false);
+                    await sftp.UploadAsync(down, Remote(part), second, ct).ConfigureAwait(false);
                 }
             }
             else
             {
                 throw new InvalidOperationException("로컬끼리 복사는 이 서비스가 하지 않습니다.");
             }
+
+            ct.ThrowIfCancellationRequested();
+            await dst.ReplaceAsync(part, destPath, ct).ConfigureAwait(false);
         }
         catch
         {
-            await dst.TryDeleteFileAsync(destPath).ConfigureAwait(false); // 취소·실패 시 반쯤 쓴 대상 파일 제거
+            await dst.TryDeleteFileAsync(part).ConfigureAwait(false); // 임시 파일만 지운다. 옛 대상 파일은 건드리지 않는다.
             throw;
         }
         finally
@@ -467,7 +476,7 @@ public sealed class SftpAwareFileOperationService(
         Task<Node?> StatAsync(string path, CancellationToken ct);
 
         /// <summary>자식 목록. 심볼릭 링크·재분석 지점은 건너뛴다(순환 방지).</summary>
-        Task<IReadOnlyList<Node>> ListAsync(string folder, CancellationToken ct);
+        Task<IReadOnlyList<Node>> ListAsync(string folder, Run? run, CancellationToken ct);
 
         Task MakeDirAsync(string path, CancellationToken ct);
 
@@ -475,6 +484,13 @@ public sealed class SftpAwareFileOperationService(
         Task DeleteTreeAsync(string path, CancellationToken ct);
 
         Task TryDeleteFileAsync(string path);
+
+        string Parent(string path);
+
+        string NameOf(string path);
+
+        /// <summary>임시 파일을 목적지로 바꿔 넣는다(목적지가 있으면 교체).</summary>
+        Task ReplaceAsync(string temp, string target, CancellationToken ct);
     }
 
     private sealed class LocalEndpoint : IEndpoint
@@ -500,13 +516,14 @@ public sealed class SftpAwareFileOperationService(
             return Task.FromResult(n);
         }
 
-        public Task<IReadOnlyList<Node>> ListAsync(string folder, CancellationToken ct)
+        public Task<IReadOnlyList<Node>> ListAsync(string folder, Run? run, CancellationToken ct)
         {
             var list = new List<Node>();
             foreach (var e in new DirectoryInfo(folder).EnumerateFileSystemInfos())
             {
                 if (e.Attributes.HasFlag(FileAttributes.ReparsePoint))
                 {
+                    run?.SkipLink();
                     continue;
                 }
 
@@ -535,6 +552,16 @@ public sealed class SftpAwareFileOperationService(
                 File.Delete(path);
             }
 
+            return Task.CompletedTask;
+        }
+
+        public string Parent(string path) => Path.GetDirectoryName(path) ?? path;
+
+        public string NameOf(string path) => Path.GetFileName(path);
+
+        public Task ReplaceAsync(string temp, string target, CancellationToken ct)
+        {
+            File.Move(temp, target, overwrite: true);
             return Task.CompletedTask;
         }
 
@@ -584,14 +611,26 @@ public sealed class SftpAwareFileOperationService(
             return info is null ? null : new Node(PathUtil.DisplayName(path), path, info.IsDirectory, info.IsDirectory ? 0 : info.Size);
         }
 
-        public async Task<IReadOnlyList<Node>> ListAsync(string folder, CancellationToken ct)
+        public async Task<IReadOnlyList<Node>> ListAsync(string folder, Run? run, CancellationToken ct)
         {
             var entries = await sftp.ListAsync(new FsPath(ProviderId.Sftp, folder), ct).ConfigureAwait(false);
+            foreach (var _ in entries.Where(e => e.Kind == FsKind.Link))
+            {
+                run?.SkipLink();
+            }
+
             return [.. entries.Where(e => e.Kind != FsKind.Link)
                 .Select(e => new Node(e.Name, e.Path.Value, e.Kind == FsKind.Folder, e.Kind == FsKind.Folder ? 0 : e.Size))];
         }
 
         public Task MakeDirAsync(string path, CancellationToken ct) => sftp.CreateDirectoryAsync(new FsPath(ProviderId.Sftp, path), ct);
+
+        public string Parent(string path) => (SftpLocation.Parse(path).Parent() ?? SftpLocation.Parse(path)).ToString();
+
+        public string NameOf(string path) => PathUtil.DisplayName(path);
+
+        public Task ReplaceAsync(string temp, string target, CancellationToken ct) =>
+            sftp.ReplaceFileAsync(new FsPath(ProviderId.Sftp, temp), new FsPath(ProviderId.Sftp, target), ct);
 
         public async Task DeleteTreeAsync(string path, CancellationToken ct)
         {
@@ -647,6 +686,15 @@ public sealed class SftpAwareFileOperationService(
         private TransferConflictAction? _sticky;
 
         public long Total { get; set; }
+
+        /// <summary>건너뛴 심볼릭 링크 수. 링크가 든 원본은 이동해도 지우지 않는다.</summary>
+        public int SkippedLinks { get; private set; }
+
+        public void SkipLink()
+        {
+            SkippedLinks++;
+            Skipped = true;
+        }
 
         public long Done { get; set; }
 
