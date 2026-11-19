@@ -261,6 +261,7 @@
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="잠긴 메모, 암호 걸기, 금고, 휴지통" AutomationProperties.Name="지키기">
               <Button.ContextMenu>
                 <ContextMenu>
+                  <MenuItem Header="새 메모 (지금 폴더에)" Tag="memo.new" Click="OnGroupMenuItem" />
                   <MenuItem Header="새 잠긴 메모 (지금 폴더에)" Tag="secure.newMemo" Click="OnGroupMenuItem" />
                   <MenuItem Header="암호 걸기 (고른 파일)" Tag="secure.lock" Click="OnGroupMenuItem" />
                   <MenuItem Header="금고에 넣기 (고른 폴더)" Tag="secure.vault" Click="OnGroupMenuItem" />

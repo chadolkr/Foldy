@@ -422,6 +422,9 @@ public partial class MarkdownView : UserControl
 
     private void OnForward(object sender, RoutedEventArgs e) => _vm?.GoForward();
 
+    /// <summary>[쓰기]: 앱이 연결하면 Foldy 메모 창으로 고친다 (없으면 연결된 편집기).</summary>
+    public static Func<string, bool>? WriteInFoldy { get; set; }
+
     private void OnEdit(object sender, RoutedEventArgs e)
     {
         if (_vm is null)
@@ -430,6 +433,11 @@ public partial class MarkdownView : UserControl
         }
 
         var path = _vm.FilePath;
+        if (WriteInFoldy?.Invoke(path) == true)
+        {
+            return;
+        }
+
         try
         {
             // 연결된 "편집" 동사 (VS Code, 메모장++ 등이 등록)

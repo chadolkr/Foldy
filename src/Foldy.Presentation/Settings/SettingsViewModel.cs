@@ -129,8 +129,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public static IReadOnlyList<SettingChoice> MarkdownChoices { get; } =
     [
+        new("alwaysFoldy", "Foldy 뷰어로 보기 (기본)"),
         new("preferAssociated", "등록된 앱으로 열기 (없으면 Foldy)"),
-        new("alwaysFoldy", "항상 Foldy 뷰어로 열기"),
     ];
 
     public static IReadOnlyList<SettingChoice> TerminalHostChoices { get; } =
