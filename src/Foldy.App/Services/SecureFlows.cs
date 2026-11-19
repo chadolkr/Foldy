@@ -268,6 +268,49 @@ public static class SecureFlows
         return null;
     }
 
+    // ───────────── 이전 버전 (덮어쓰기 복구) ─────────────
+
+    public static async Task VersionsAsync(Window owner, string file, ShellViewModel shell)
+    {
+        var w = Open(owner, "이전 버전");
+        var name = Path.GetFileName(file);
+        var list = Foldy.Core.History.VersionHistory.VersionsOf(file);
+        if (list.Count == 0)
+        {
+            await w.AskAsync($"\"{name}\"의 이전 버전이 없어요. Foldy로 복사·이동하다 덮어쓴 파일만 7일 동안 보관해요.", C("close", "닫기"));
+            w.Close();
+            return;
+        }
+
+        w.Say($"\"{name}\"을 덮어쓰기 전 모습이 {list.Count:N0}개 남아 있어요. 7일이 지나면 저절로 지워져요.");
+        var choices = list.Take(6).Select((v, i) => C(i.ToString(System.Globalization.CultureInfo.InvariantCulture), $"{v.SavedUtc.ToLocalTime():MM-dd HH:mm} · {FileItem.FormatBytes(v.Size)}")).ToList();
+        choices.Add(C("close", "그만두기"));
+        var pick = await w.AskAsync("어느 때로 돌아갈까요?", [.. choices]);
+        if (!int.TryParse(pick, out var idx))
+        {
+            w.Close();
+            return;
+        }
+
+        var v = list[idx];
+        var c = await w.AskAsync("어떻게 할까요? [되돌리기]는 지금 파일도 이전 버전으로 보관한 뒤 바꿔서, 마음이 바뀌면 다시 되돌릴 수 있어요.",
+            C("restore", "되돌리기"), C("beside", "옆에 꺼내기"), C("close", "그만두기"));
+        if (c == "restore")
+        {
+            var ok = await Task.Run(() => Foldy.Core.History.VersionHistory.Restore(v));
+            await w.AskAsync(ok ? $"\"{name}\"을 {v.SavedUtc.ToLocalTime():MM-dd HH:mm} 모습으로 되돌렸어요." : "되돌리지 못했어요. 파일이 열려 있는지 확인해 주세요.", C("close", "닫기"));
+            await shell.RefreshFoldersAsync([Path.GetDirectoryName(file)!]);
+        }
+        else if (c == "beside")
+        {
+            var dst = await Task.Run(() => Foldy.Core.History.VersionHistory.ExtractBeside(v));
+            await w.AskAsync(dst is null ? "꺼내지 못했어요." : $"\"{Path.GetFileName(dst)}\"로 옆에 꺼냈어요. 지금 파일은 그대로예요.", C("close", "닫기"));
+            await shell.RefreshFoldersAsync([Path.GetDirectoryName(file)!]);
+        }
+
+        w.Close();
+    }
+
     // ───────────── 금고 ─────────────
 
     public static async Task PutInVaultAsync(Window owner, string folder, ShellViewModel shell)

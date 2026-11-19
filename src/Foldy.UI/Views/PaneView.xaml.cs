@@ -986,7 +986,7 @@ public partial class PaneView : UserControl
             && !paths[0].EndsWith(".foldyvault", StringComparison.OrdinalIgnoreCase);
         var oneFolder = paths.Length == 1 && e.Index >= 0 && CurrentSelection[0].IsFolder;
         string[]? extra = !local ? null
-            : oneFile ? ["🔒 암호 걸기…"]
+            : oneFile ? ["🔒 암호 걸기…", "이전 버전 보기…"]
             : oneFolder ? ["이 폴더 관리 방식 정하기…", "🔒 금고에 넣기…"]
             : target is not null ? ["이 폴더 관리 방식 정하기…"] : null;
         var verb = _host.ShellMenu.Show(
@@ -995,6 +995,12 @@ public partial class PaneView : UserControl
         if (verb == "foldy:0" && oneFile)
         {
             _host.LockFile(paths[0]);
+            return;
+        }
+
+        if (verb == "foldy:1" && oneFile)
+        {
+            _host.ShowVersions(paths[0]);
             return;
         }
 

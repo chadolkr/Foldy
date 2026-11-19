@@ -48,6 +48,9 @@ public sealed record AppSettings
     /// <summary>로그·다운로드가 많이 쌓이면 알려 준다 (색인으로 몰래 확인, 주 1회까지, 기본 켬).</summary>
     public bool CleanupNotices { get; init; } = true;
 
+    /// <summary>덮어쓰기 전에 이전 버전을 7일 동안 보관한다 (기본 켬).</summary>
+    public bool KeepPreviousVersions { get; init; } = true;
+
     public static AppSettings Migrate(AppSettings s) =>
         s.SchemaVersion switch
         {

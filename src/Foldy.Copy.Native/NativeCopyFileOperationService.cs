@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Foldy.Presentation.Services;
 
 namespace Foldy.Copy.Native;
@@ -31,6 +32,12 @@ public sealed class NativeCopyFileOperationOptions
 
     /// <summary>NeedsAttention일 때 충돌마다 불린다 (작업 패널 UI가 묻는 자리).</summary>
     public Func<CopyIssue, CancellationToken, Task<ConflictDecision>>? ResolveConflict { get; init; }
+
+    /// <summary>
+    /// 덮어쓰기 직전에 대상 파일을 넘긴다 (이전 버전 보관). 이게 있으면 "모두 덮어쓰기"도 엔진에 한꺼번에 맡기지 않고
+    /// 파일마다 이 함수를 부른 뒤 하나씩 덮어쓴다.
+    /// </summary>
+    public Action<string>? BeforeOverwrite { get; init; }
 
     private static string DefaultDataPath(string name) =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Foldy", name);
@@ -110,6 +117,7 @@ public sealed class NativeCopyFileOperationService(
         using (ct.Register(() => TryCancel(job)))
         {
             var asked = new HashSet<ulong>();
+            var overwriteAll = new StrongBox<bool>();
             while (true)
             {
                 var p = job.Poll();
@@ -121,7 +129,7 @@ public sealed class NativeCopyFileOperationService(
 
                 if (p.State == NativeJobState.NeedsAttention && resolver is not null && !ct.IsCancellationRequested)
                 {
-                    await AskAsync(job, resolver, asked, ct);
+                    await AskAsync(job, resolver, asked, overwriteAll, _options.BeforeOverwrite, ct);
                 }
 
                 // 취소 후에도 엔진이 Canceled가 될 때까지 기다린다 (워커가 대상 정리를 끝내도록).
@@ -130,7 +138,8 @@ public sealed class NativeCopyFileOperationService(
         }
     }
 
-    private static async Task AskAsync(ICopyJob job, Func<CopyIssue, CancellationToken, Task<ConflictDecision>> resolver, HashSet<ulong> asked, CancellationToken ct)
+    private static async Task AskAsync(ICopyJob job, Func<CopyIssue, CancellationToken, Task<ConflictDecision>> resolver, HashSet<ulong> asked,
+        StrongBox<bool> overwriteAll, Action<string>? beforeOverwrite, CancellationToken ct)
     {
         foreach (var issue in job.GetIssues())
         {
@@ -140,19 +149,47 @@ public sealed class NativeCopyFileOperationService(
             }
 
             ConflictDecision d;
-            try
+            if (overwriteAll.Value)
             {
-                d = await resolver(issue, ct);
+                d = new ConflictDecision(ConflictAction.Overwrite, ApplyToAll: true);
             }
-            catch (OperationCanceledException)
+            else
             {
-                return;
+                try
+                {
+                    d = await resolver(issue, ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+
+            if (d.Action == ConflictAction.Overwrite && beforeOverwrite is not null)
+            {
+                // 이전 버전을 보관하려면 파일마다 알아야 하므로 "모두"도 하나씩 처리한다
+                SafeInvoke(beforeOverwrite, issue.Dest);
+                overwriteAll.Value |= d.ApplyToAll;
+                job.Resolve(issue.Id, ConflictAction.Overwrite, false);
+                continue;
             }
 
             if (job.Resolve(issue.Id, d.Action, d.ApplyToAll) && d.ApplyToAll)
             {
                 return;
             }
+        }
+    }
+
+    private static void SafeInvoke(Action<string> a, string path)
+    {
+        try
+        {
+            a(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // 보관하지 못해도 사용자가 고른 덮어쓰기는 그대로 한다
         }
     }
 

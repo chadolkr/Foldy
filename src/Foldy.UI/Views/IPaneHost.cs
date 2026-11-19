@@ -38,6 +38,9 @@ public interface IPaneHost
     /// <summary>파일에 암호 걸기 (대화 창).</summary>
     void LockFile(string file);
 
+    /// <summary>이전 버전 보기 (덮어쓰기 복구).</summary>
+    void ShowVersions(string file);
+
     /// <summary>폴더를 금고에 넣기 (대화 창).</summary>
     void PutInVault(string folder);
 

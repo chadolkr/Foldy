@@ -84,7 +84,18 @@ public partial class ShellWindow : Window, IPaneHost
             new SftpAwareFileOperationService(
                 new NativeCopyFileOperationService(
                     new ShellFileOperationService(() => OwnerHandle),
-                    options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync, ThreadsProvider = () => _settings.CopyThreads }),
+                    options: new NativeCopyFileOperationOptions
+                    {
+                        ResolveConflict = ConflictWindow.AskAsync,
+                        ThreadsProvider = () => _settings.CopyThreads,
+                        BeforeOverwrite = dest =>
+                        {
+                            if (_settings.KeepPreviousVersions)
+                            {
+                                Foldy.Core.History.VersionHistory.Preserve(dest);
+                            }
+                        },
+                    }),
                 _sftp.Provider,
                 new SftpTransferOptions { ResolveConflict = ConflictWindow.AskTransferAsync }),
             new ShellOpenFileService(),
@@ -1611,6 +1622,8 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private void OpenDesktopTidy() => _ = CleanupFlows.DesktopAsync(this);
+
+    public void ShowVersions(string file) => _ = SecureFlows.VersionsAsync(this, file, Shell);
 
     public void LockFile(string file) => _ = SecureFlows.LockFileAsync(this, file, Shell);
 
