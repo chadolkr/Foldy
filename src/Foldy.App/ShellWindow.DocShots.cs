@@ -505,6 +505,17 @@ public partial class ShellWindow
             DocWide(leftOnly: false);
         });
 
+        await DocSceneAsync("guide", async () =>
+        {
+            var g = (GuideWindow)DocOpen(new GuideWindow("바탕화면 정리") { Height = 520 });
+            g.Say("방 청소해 주듯 바탕화면을 정리해 드릴게요. 버리는 건 하나도 없어요.");
+            g.Say("한동안 쓰지 않은 파일이 128개 있어요 (문서 52개, 이미지 41개, 압축 20개, 기타 15개). 바로 가기와 최근 7일 안에 쓴 파일은 그대로 둘게요.");
+            _ = g.AskAsync("바탕화면에 \"바탕화면 보관\" 폴더를 만들고, 그 안에 달별·종류별로 넣어 둘게요. 마음에 안 들면 [되돌리기] 한 번이면 원래대로예요.",
+                ("go", "이대로 정리"), ("detail", "자세히 보기"), ("later", "나중에"));
+            await DocShotDialogAsync("guide", g, 500);
+            g.Close();
+        });
+
         await DocSceneAsync("about", async () =>
         {
             var win = DocOpen(new AboutWindow());
