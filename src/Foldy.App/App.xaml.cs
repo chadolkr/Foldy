@@ -22,7 +22,19 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         Options = AppOptions.Parse(e.Args);
-        if (!Options.IsBench && Options.Screenshot is null && Diagnostics.Deelevate.RelaunchIfElevated(e.Args))
+        if (Options.DocShots is not null)
+        {
+            // 문서용 캡처는 항상 모던 라이트. 사용자 설정·세션을 건드리지 않도록 FOLDY_DATA_DIR(임시 폴더)가 꼭 필요하다.
+            Options = Options with { Theme = Foldy.UI.Theming.FoldyTheme.Light, ThemeGiven = true };
+            if (Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is not { Length: > 0 } || !DocShotsSandbox.Prepare(Options, DataDir))
+            {
+                Console.Error.WriteLine("--doc-screenshots 는 FOLDY_DATA_DIR 환경 변수(빈 임시 폴더)가 있어야 합니다.");
+                Shutdown(2);
+                return;
+            }
+        }
+
+        if (!Options.IsBench && !Options.IsCapture && Diagnostics.Deelevate.RelaunchIfElevated(e.Args))
         {
             Shutdown(0);
             return;
@@ -47,7 +59,7 @@ public partial class App : Application
 
         // 단일 인스턴스: 이미 Foldy가 떠 있으면 그 창을 앞으로 가져오고(경로 인자는 새 탭), 이 프로세스는 끝낸다.
         // 벤치·스크린샷 같은 시험 실행은 따로 뜬다. 앞의 Foldy가 3초 안에 답하지 않으면 그냥 새로 띄운다.
-        var normalRun = !(Options.IsBench || Options.Synthetic || Options.ListWpf || Options.Screenshot is not null);
+        var normalRun = !(Options.IsBench || Options.Synthetic || Options.ListWpf || Options.IsCapture);
         if (normalRun)
         {
             _instance = Foldy.Platform.SystemInfo.SingleInstance.Acquire();
