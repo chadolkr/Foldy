@@ -22,6 +22,7 @@ using Foldy.Presentation.Sidebar;
 using Foldy.Presentation.Tabs;
 using Foldy.Presentation.Tree;
 using Foldy.Providers.Local;
+using Foldy.Providers.Sftp;
 using Foldy.UI.Shell;
 using Foldy.UI.Theming;
 using Foldy.UI.Views;
@@ -72,13 +73,17 @@ public partial class ShellWindow : Window, IPaneHost
             FolderSizes = new IndexerFolderSizes(() => _indexer),
         };
         Shell = new ShellViewModel(_env, new ShellServices(
-            new NativeCopyFileOperationService(
-                new ShellFileOperationService(() => OwnerHandle),
-                options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync, ThreadsProvider = () => _settings.CopyThreads }),
+            new SftpAwareFileOperationService(
+                new NativeCopyFileOperationService(
+                    new ShellFileOperationService(() => OwnerHandle),
+                    options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync, ThreadsProvider = () => _settings.CopyThreads }),
+                _sftp.Provider,
+                new SftpTransferOptions { ResolveConflict = ConflictWindow.AskTransferAsync }),
             new ShellOpenFileService(),
             new TerminalService(() => _settings, (p, sudo) => _sftp.OpenTerminal(p, sudo))))
         {
             Settings = _settings,
+            ConfirmAsync = msg => Task.FromResult(MessageBox.Show(this, msg, "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes),
         };
 
         _updater = new LegacyUpdateSource(new AppUpdater(AppVersion));

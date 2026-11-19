@@ -6,6 +6,7 @@
   <ItemGroup>
     <PackageReference Include="SSH.NET" />
     <ProjectReference Include="..\Foldy.Core\Foldy.Core.csproj" />
+    <ProjectReference Include="..\Foldy.Presentation\Foldy.Presentation.csproj" />
     <InternalsVisibleTo Include="Foldy.Sftp.Tests" />
   </ItemGroup>
 </Project>

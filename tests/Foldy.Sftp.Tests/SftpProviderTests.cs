@@ -66,6 +66,16 @@ public sealed class SftpProviderTests
             owner.Uploaded = path;
         }
 
+        public SftpEntryInfo? Stat(string path) => null;
+
+        public void CreateDirectory(string path) { }
+
+        public void DeleteFile(string path) { }
+
+        public void DeleteDirectory(string path) { }
+
+        public void Rename(string from, string to) { }
+
         public void Dispose() => Connected = false;
     }
 
@@ -226,6 +236,11 @@ public sealed class SftpProviderTests
             public Stream OpenRead(string path) => throw new SftpConnectionLostException("always");
             public void Download(string path, Stream destination, Action<long> progress, CancellationToken ct) { }
             public void Upload(Stream source, string path, Action<long> progress, CancellationToken ct) { }
+            public SftpEntryInfo? Stat(string path) => null;
+            public void CreateDirectory(string path) { }
+            public void DeleteFile(string path) { }
+            public void DeleteDirectory(string path) { }
+            public void Rename(string source, string target) { }
             public void Dispose() => _c = false;
         }
     }
