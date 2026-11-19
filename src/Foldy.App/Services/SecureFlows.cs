@@ -399,7 +399,12 @@ public static class SecureFlows
                     var done = 0;
                     foreach (var name in names)
                     {
-                        var dst = SecureZip.Unique(Path.Combine(dest, name.Replace('/', Path.DirectorySeparatorChar)));
+                        if (SecureZip.SafeTarget(dest, name) is not { } target)
+                        {
+                            continue; // 금고 밖으로 나가는 이름은 꺼내지 않는다
+                        }
+
+                        var dst = SecureZip.Unique(target);
                         Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
                         File.WriteAllBytes(dst, SecureZip.ReadEntry(vault, p, name));
                         done++;

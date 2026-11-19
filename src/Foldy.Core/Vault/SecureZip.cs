@@ -140,13 +140,12 @@ public static class SecureZip
                 continue;
             }
 
-            var dst = Path.GetFullPath(Path.Combine(root, e.Name.Replace('/', Path.DirectorySeparatorChar)));
-            if (!dst.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            if (SafeTarget(root, e.Name) is not { } target)
             {
                 continue; // zip 밖으로 나가는 이름은 무시
             }
 
-            dst = Unique(dst);
+            var dst = Unique(target);
             Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
             using (var s = zf.GetInputStream(e))
             using (var o = File.Create(dst))
@@ -159,6 +158,23 @@ public static class SecureZip
         }
 
         return n;
+    }
+
+    /// <summary>항목 이름을 꺼낼 위치로. 폴더 밖으로 나가는 이름("../", 절대 경로)이면 null (zip slip 막기).</summary>
+    public static string? SafeTarget(string destFolder, string entryName)
+    {
+        var root = Path.GetFullPath(destFolder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        string dst;
+        try
+        {
+            dst = Path.GetFullPath(Path.Combine(root, entryName.Replace('/', Path.DirectorySeparatorChar)));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        return dst.StartsWith(root, StringComparison.OrdinalIgnoreCase) ? dst : null;
     }
 
     public static string Unique(string path)

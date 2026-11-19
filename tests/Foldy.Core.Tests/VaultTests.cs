@@ -76,4 +76,28 @@ public sealed class VaultTests : IDisposable
         SecureZip.ExtractAll(vault, "pw", dst).Should().Be(2);
         File.Exists(Path.Combine(dst, "a (2).txt")).Should().BeTrue("이미 있으면 덮어쓰지 않는다");
     }
+
+    [Fact]
+    public void Extract_ignores_entries_that_escape_the_destination_zip_slip()
+    {
+        var vault = Path.Combine(_root, "evil.foldyvault");
+        using (var fs = File.Create(vault))
+        using (var zip = new ICSharpCode.SharpZipLib.Zip.ZipOutputStream(fs) { Password = "pw" })
+        {
+            foreach (var name in new[] { "../../escaped.txt", "ok.txt" })
+            {
+                zip.PutNextEntry(new ICSharpCode.SharpZipLib.Zip.ZipEntry(name) { AESKeySize = 256 });
+                zip.Write("x"u8);
+                zip.CloseEntry();
+            }
+        }
+
+        var dst = Path.Combine(_root, "out", "deep");
+        SecureZip.ExtractAll(vault, "pw", dst).Should().Be(1);
+        File.Exists(Path.Combine(dst, "ok.txt")).Should().BeTrue();
+        File.Exists(Path.Combine(_root, "escaped.txt")).Should().BeFalse("zip 밖으로 나가는 이름은 꺼내지 않는다");
+        SecureZip.SafeTarget(dst, "../x").Should().BeNull();
+        SecureZip.SafeTarget(dst, @"C:\Windows\x").Should().BeNull();
+        SecureZip.SafeTarget(dst, "a/b.txt").Should().Be(Path.Combine(dst, "a", "b.txt"));
+    }
 }
