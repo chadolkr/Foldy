@@ -23,7 +23,7 @@ public partial class App : Application
         Foldy.UI.Controls.FileListView.LightweightAutomation = !Options.FullAutomation;
 
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.ControlledBy(Diagnostics.DiagnosticMode.Level)
             .WriteTo.File(
                 Path.Combine(DataDir, "logs", "foldy-.log"),
                 rollingInterval: RollingInterval.Day,

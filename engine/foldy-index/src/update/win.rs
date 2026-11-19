@@ -2,8 +2,11 @@
 //!
 //! - msiexec는 `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB`으로 띄운다.
 //!   MSI가 이 서비스를 멈추고 파일을 바꿔도 msiexec는 계속 돈다 (서비스의 작업 개체에 묶이지 않음).
-//! - Foldy 다시 띄우기: `WTSQueryUserToken`(SYSTEM만 가능) → `CreateEnvironmentBlock` →
-//!   `CreateProcessAsUserW`(winsta0\default). 사용자의 일반(제한) 토큰으로 뜨므로 Foldy는 관리자 권한이 아니다.
+//! - Foldy 다시 띄우기: 그 세션의 explorer.exe 토큰을 복제해(없으면 `WTSQueryUserToken`) →
+//!   `CreateEnvironmentBlock` → `CreateProcessAsUserW`(winsta0\default).
+//!   탐색기와 같은 로그온 세션으로 떠야 사용자의 매핑 드라이브(K: 등)가 보인다. 매핑 드라이브는 로그온 세션마다 따로이고,
+//!   `WTSQueryUserToken`은 관리자 계정에서 탐색기와 다른 로그온 세션 토큰을 줄 수 있다 (실제 PC에서 확인, 0.2.11).
+//!   어느 쪽이든 사용자의 일반(제한) 토큰이라 Foldy는 관리자 권한이 아니다.
 //! - 업데이트 폴더: 소유자 SYSTEM, 상속 끊은 DACL (SYSTEM·Administrators 모두, Users 읽기·실행).
 
 use std::ffi::c_void;
@@ -20,6 +23,7 @@ use windows_sys::Win32::Security::Authorization::{
     SE_FILE_OBJECT, SetNamedSecurityInfoW,
 };
 use windows_sys::Win32::Security::{
+    DuplicateTokenEx, SecurityImpersonation, TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE, TOKEN_QUERY, TokenPrimary,
     ACL, DACL_SECURITY_INFORMATION, GetSecurityDescriptorDacl, GetSecurityDescriptorOwner, OWNER_SECURITY_INFORMATION,
     PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID,
 };
@@ -27,10 +31,10 @@ use windows_sys::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_REPARSE_POINT, GetF
 use windows_sys::Win32::System::Environment::{CreateEnvironmentBlock, DestroyEnvironmentBlock};
 use windows_sys::Win32::System::Pipes::GetNamedPipeClientSessionId;
 use windows_sys::Win32::System::ProcessStatus::K32EnumProcesses;
-use windows_sys::Win32::System::RemoteDesktop::{WTSGetActiveConsoleSessionId, WTSQueryUserToken};
+use windows_sys::Win32::System::RemoteDesktop::{ProcessIdToSessionId, WTSGetActiveConsoleSessionId, WTSQueryUserToken};
 use windows_sys::Win32::System::Threading::{
     CREATE_BREAKAWAY_FROM_JOB, CREATE_NEW_PROCESS_GROUP, CREATE_UNICODE_ENVIRONMENT, CreateProcessAsUserW, DETACHED_PROCESS,
-    GetCurrentThread, OpenProcess, PROCESS_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
+    GetCurrentThread, OpenProcess, OpenProcessToken, PROCESS_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
     STARTUPINFOW, SetThreadPriority, THREAD_MODE_BACKGROUND_BEGIN, THREAD_MODE_BACKGROUND_END,
 };
 
@@ -43,6 +47,55 @@ const SID_SYSTEM: &str = "S-1-5-18";
 const SID_ADMINISTRATORS: &str = "S-1-5-32-544";
 
 pub struct WinHost;
+
+/// 세션 `session_id`의 explorer.exe 토큰을 기본 토큰으로 복제한다. 없거나 실패하면 None.
+fn explorer_token(session_id: u32) -> Option<HANDLE> {
+    let mut pids = vec![0u32; 8192];
+    let mut needed = 0u32;
+    // SAFETY: pids는 바이트 크기를 정확히 넘긴 쓰기 가능한 버퍼다.
+    if unsafe { K32EnumProcesses(pids.as_mut_ptr(), (pids.len() * 4) as u32, &mut needed) } == 0 {
+        return None;
+    }
+    pids.truncate((needed / 4) as usize);
+    for pid in pids.into_iter().filter(|&p| p != 0) {
+        let mut sid = u32::MAX;
+        // SAFETY: 출력 정수 하나.
+        if unsafe { ProcessIdToSessionId(pid, &mut sid) } == 0 || sid != session_id {
+            continue;
+        }
+        let Some(path) = image_path(pid) else { continue };
+        if !path.to_lowercase().ends_with("\\explorer.exe") {
+            continue;
+        }
+        // SAFETY: 핸들은 아래에서 모두 닫는다.
+        unsafe {
+            let proc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+            if proc.is_null() {
+                continue;
+            }
+            let mut tok: HANDLE = std::ptr::null_mut();
+            let opened = OpenProcessToken(proc, TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ASSIGN_PRIMARY, &mut tok) != 0;
+            CloseHandle(proc);
+            if !opened {
+                continue;
+            }
+            let mut primary: HANDLE = std::ptr::null_mut();
+            let dup = DuplicateTokenEx(
+                tok,
+                TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ASSIGN_PRIMARY | 0x0080 /* TOKEN_ADJUST_DEFAULT */ | 0x0100, /* TOKEN_ADJUST_SESSIONID */
+                std::ptr::null(),
+                SecurityImpersonation,
+                TokenPrimary,
+                &mut primary,
+            ) != 0;
+            CloseHandle(tok);
+            if dup {
+                return Some(primary);
+            }
+        }
+    }
+    None
+}
 
 fn wide(s: &std::ffi::OsStr) -> Vec<u16> {
     s.encode_wide().chain([0]).collect()
@@ -82,9 +135,12 @@ impl Host for WinHost {
         if !exe.is_file() {
             return Err(io::Error::new(io::ErrorKind::NotFound, format!("{} 없음", exe.display())));
         }
-        let mut token: HANDLE = std::ptr::null_mut();
+        let mut token: HANDLE = match explorer_token(session_id) {
+            Some(t) => t,
+            None => std::ptr::null_mut(),
+        };
         // SAFETY: token은 출력 핸들. 성공하면 아래에서 닫는다. SYSTEM(SE_TCB_NAME)만 성공한다.
-        if unsafe { WTSQueryUserToken(session_id, &mut token) } == 0 {
+        if token.is_null() && unsafe { WTSQueryUserToken(session_id, &mut token) } == 0 {
             return Err(io::Error::last_os_error());
         }
         let mut env: *mut c_void = std::ptr::null_mut();

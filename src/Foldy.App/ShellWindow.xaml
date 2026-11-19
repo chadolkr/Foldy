@@ -126,6 +126,8 @@
               <MenuItem Header="도움말" InputGestureText="F1" Click="OnHelp" />
               <MenuItem Header="업데이트 확인…" Click="OnCheckUpdate" />
               <MenuItem Header="버그 신고…" Click="OnReportBug" />
+              <MenuItem Header="버그 진단 모드 켜기/끄기" Click="OnToggleDiagnostic" />
+              <MenuItem Header="로그 폴더 열기" Click="OnOpenLogs" />
             <MenuItem Header="Foldy 정보" Click="OnAbout" />
             </ContextMenu>
           </Button.ContextMenu>
@@ -429,6 +431,9 @@
           </Grid>
         </Border>
         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button x:Name="DiagnosticBadge" Visibility="Collapsed" Click="OnToggleDiagnostic" Margin="0,2,8,2" Padding="8,0"
+                  ToolTip="버그 진단 모드 켜짐 (상세 기록 중). 누르면 끄고 기록을 보낼지 묻습니다" Content="버그 진단 중"
+                  Foreground="{DynamicResource Brush.Error}" BorderBrush="{DynamicResource Brush.Error}" />
           <TextBlock x:Name="IndexerText" Style="{DynamicResource Foldy.StatusText}" Text="색인: 확인 중…" />
           <TextBlock x:Name="CopyEngineText" Style="{DynamicResource Foldy.StatusText}" Text="복사 엔진: 확인 중…" />
           <Button x:Name="UpdateButton" Margin="4,2,8,2" Padding="10,1" Visibility="Collapsed" Click="OnInstallUpdate"

@@ -36,6 +36,9 @@ public sealed record AppSettings
     /// <summary>오류 보고서 보내기 동의. 기본은 보내지 않음.</summary>
     public bool SendCrashReports { get; init; }
 
+    /// <summary>진단 모드가 켜진 동안의 끝 시각(UTC). null이면 꺼짐. 켜면 24시간 뒤 저절로 꺼진다.</summary>
+    public DateTime? DiagnosticUntil { get; init; }
+
     /// <summary>Git 저장소 폴더에서 파일 목록 위에 Git 바를 보인다 (기본 켬).</summary>
     public bool ShowGitBar { get; init; } = true;
 

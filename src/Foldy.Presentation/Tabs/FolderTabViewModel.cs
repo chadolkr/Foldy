@@ -44,6 +44,9 @@ public sealed class TabEnvironment(IFileSystemProvider provider, IUiDispatcher u
 
     /// <summary>폴더를 다 열었을 때 (새로 고침 제외). 사이드바의 최근 폴더가 쓴다.</summary>
     public Action<string>? Visited { get; set; }
+
+    /// <summary>폴더 열기가 끝났을 때 (경로, 걸린 시간, 항목 수, 실패면 예외). 진단 기록용.</summary>
+    public Action<string, TimeSpan, int, Exception?>? Loaded { get; set; }
 }
 
 /// <summary>
@@ -276,6 +279,7 @@ public sealed partial class FolderTabViewModel : TabBase
             _ = LoadGitAsync(target, gen);
             _ = LoadFolderSizesAsync(target, gen);
             LastLoadTime = sw.Elapsed;
+            _env.Loaded?.Invoke(target, sw.Elapsed, all.Count, null);
             IsLoaded = true;
             State = LoadState.Idle;
             Status = "";
@@ -304,8 +308,10 @@ public sealed partial class FolderTabViewModel : TabBase
                 return;
             }
 
+            _env.Loaded?.Invoke(target, sw.Elapsed, 0, ex);
             Error = ex switch
             {
+                DirectoryNotFoundException when target.Length <= 3 => $"드라이브 {target}를 열 수 없습니다. 네트워크 드라이브라면 연결 상태를 확인하고 [다시 시도]를 누르세요. (Foldy를 탐색기와 다른 권한으로 실행하면 매핑 드라이브가 안 보일 수 있습니다)",
                 DirectoryNotFoundException => $"폴더를 찾을 수 없습니다: {target}",
                 UnauthorizedAccessException => $"접근 권한이 없습니다: {target}",
                 Core.Threading.DriveUnresponsiveException => $"드라이브가 응답하지 않습니다: {target}",

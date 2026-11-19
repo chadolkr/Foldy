@@ -74,6 +74,7 @@ public partial class ShellWindow : Window, IPaneHost
             ShowHidden = () => _settings.ShowHidden,
             Git = new GitStatusService(_git),
             FolderSizes = new IndexerFolderSizes(() => _indexer),
+            Loaded = Diagnostics.DiagnosticMode.FolderLoaded,
         };
         Shell = new ShellViewModel(_env, new ShellServices(
             new GDriveFileOperationService(
@@ -131,6 +132,17 @@ public partial class ShellWindow : Window, IPaneHost
         JobsList.ItemsSource = Shell.Jobs;
 
         BuildCommands();
+        Diagnostics.DiagnosticMode.Apply(_settings.DiagnosticUntil);
+        UpdateDiagnosticIndicator();
+        // 진단 모드는 24시간 뒤 저절로 꺼진다 (켠 채로 앱을 오래 두어도)
+        new DispatcherTimer(TimeSpan.FromMinutes(10), DispatcherPriority.Background, (_, _) =>
+        {
+            if (Diagnostics.DiagnosticMode.IsOn && _settings.DiagnosticUntil is { } u && u <= DateTime.UtcNow)
+            {
+                Diagnostics.DiagnosticMode.Apply(null);
+                UpdateDiagnosticIndicator();
+            }
+        }, Dispatcher).Start();
         PreviewKeyDown += OnWindowKeyDown;
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -696,6 +708,8 @@ public partial class ShellWindow : Window, IPaneHost
         Add("app.help", "도움말 (사용 설명서)", ShowHelp, Key.F1, inText: true);
         Add("app.settings", "설정…", ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
         Add("app.reportBug", "버그 신고…", App.OpenBugReport);
+        Add("app.diagnostic", "버그 진단 모드 켜기/끄기", ToggleDiagnostic);
+        Add("app.logs", "로그 폴더 열기", OpenLogFolder);
         Add("app.about", "Foldy 정보", ShowAbout);
         Add("app.checkUpdate", "업데이트 확인", CheckUpdateNow);
         ApplyKeyMap();
@@ -1256,6 +1270,61 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnHelp(object sender, RoutedEventArgs e) => ShowHelp();
 
     private void OnReportBug(object sender, RoutedEventArgs e) => App.OpenBugReport();
+
+    private void OnToggleDiagnostic(object sender, RoutedEventArgs e) => ToggleDiagnostic();
+
+    private void OnOpenLogs(object sender, RoutedEventArgs e) => OpenLogFolder();
+
+    private static void OpenLogFolder()
+    {
+        var dir = Path.Combine(App.DataDir, "logs");
+        Directory.CreateDirectory(dir);
+        using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dir) { UseShellExecute = true });
+    }
+
+    /// <summary>
+    /// 진단 모드 켜기/끄기. 켜면 상세 기록을 남기고(24시간 뒤 자동으로 꺼짐) 상태바에 "진단 중"을 보인다.
+    /// 끄면 그동안의 기록을 오류 보고서로 보낼지 한 번 묻는다 (경로·사용자 이름은 가림).
+    /// </summary>
+    private void ToggleDiagnostic()
+    {
+        if (!Diagnostics.DiagnosticMode.IsOn)
+        {
+            _settings = _settings with { DiagnosticUntil = DateTime.UtcNow.AddHours(24) };
+            SaveSettings();
+            Diagnostics.DiagnosticMode.Apply(_settings.DiagnosticUntil);
+            UpdateDiagnosticIndicator();
+            Shell.Status = "버그 진단 모드를 켰습니다. 문제를 다시 재현한 뒤 버그 진단 모드를 끄면 기록을 보낼 수 있습니다 (24시간 뒤 자동으로 꺼짐)";
+            return;
+        }
+
+        _settings = _settings with { DiagnosticUntil = null };
+        SaveSettings();
+        Log.Information("진단 모드 꺼짐");
+        Diagnostics.DiagnosticMode.Apply(null);
+        UpdateDiagnosticIndicator();
+        if (MessageBox.Show(this, "진단 기록을 개발자에게 오류 보고서로 보낼까요?\n\n최근 기록과 앱·Windows 버전이 들어가며, 파일 경로와 사용자 이름은 지웁니다. GitHub 공개 이슈로 올라갑니다.",
+                "버그 진단 모드", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        {
+            Foldy.Reporting.CrashReporting.Record(new DiagnosticReport("사용자 진단 기록 (버그 진단 모드)"), fatal: false);
+            _ = SendReportsAsync();
+        }
+    }
+
+    private async Task SendReportsAsync()
+    {
+        var results = await Task.Run(() => Foldy.Reporting.CrashReporting.SendPendingAsync());
+        var sent = results.FirstOrDefault(r => r.Outcome == Foldy.Reporting.SendOutcome.Sent);
+        Shell.Status = sent?.Response?.Url is { } url ? $"진단 기록을 보냈습니다: {url}" : results.Count == 0 ? "보낼 기록이 없습니다" : $"보내지 못했습니다: {results[^1].Error}";
+    }
+
+    private void UpdateDiagnosticIndicator()
+    {
+        DiagnosticBadge.Visibility = Diagnostics.DiagnosticMode.IsOn ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>진단 보고서용 표시 예외 (실제 오류가 아니다).</summary>
+    private sealed class DiagnosticReport(string message) : Exception(message);
 
     /// <summary>오류 보고서 자동 보내기 동의 (설정의 SendCrashReports).</summary>
     public bool AutoSendReports
