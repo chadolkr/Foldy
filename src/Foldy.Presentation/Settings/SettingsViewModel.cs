@@ -224,6 +224,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsDirty))]
     private bool _sendCrashReports;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private bool _showGitBar = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private bool _autoOpenGitView;
+
     public bool CopyThreadsManualEnabled => !CopyThreadsAuto;
 
     public IRelayCommand ApplyCommand { get; }
@@ -257,6 +265,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         CopyThreads = CopyThreadsAuto ? 0 : Math.Clamp(CopyThreadsManual, 1, MaxCopyThreads),
         Update = new UpdateSettings(ParseMode(UpdateModeChoice), ParseChannel(UpdateChannelChoice)),
         SendCrashReports = SendCrashReports,
+        ShowGitBar = ShowGitBar,
+        AutoOpenGitView = AutoOpenGitView,
     };
 
     /// <summary>편집한 단축키 (재지정만 저장하려면 Save를 호출).</summary>
@@ -322,6 +332,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         UpdateModeChoice = FormatMode(s.Update.Mode);
         UpdateChannelChoice = s.Update.Channel == Foldy.Presentation.Update.UpdateChannel.Beta ? "beta" : "stable";
         SendCrashReports = s.SendCrashReports;
+        ShowGitBar = s.ShowGitBar;
+        AutoOpenGitView = s.AutoOpenGitView;
         _loading = false;
         RefreshKeys();
         OnPropertyChanged(nameof(IsDirty));

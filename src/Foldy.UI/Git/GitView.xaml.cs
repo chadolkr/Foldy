@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using Foldy.Git;
 using Foldy.Presentation.Git;
 
 namespace Foldy.UI.Git;
@@ -96,25 +97,62 @@ public partial class GitView : UserControl
         }
     }
 
-    private void OnUnstagedSelection(object sender, SelectionChangedEventArgs e) =>
-        Vm?.SetSelectedUnstaged(UnstagedList.SelectedItems.OfType<GitChangeItem>());
-
-    private void OnStagedSelection(object sender, SelectionChangedEventArgs e) =>
-        Vm?.SetSelectedStaged(StagedList.SelectedItems.OfType<GitChangeItem>());
-
-    // 더블클릭: 한 줄을 반대쪽으로 옮긴다
-    private void OnUnstagedDoubleClick(object sender, MouseButtonEventArgs e)
+    // 체크박스: 눌렀을 때 바로 Stage/Unstage 하고, 화면 상태는 git 결과로 다시 그린다
+    private void OnRowCheckClick(object sender, RoutedEventArgs e)
     {
-        if (Vm is { } vm && UnstagedList.SelectedItems.Count > 0) vm.StageSelectedCommand.Execute(null);
+        if (sender is CheckBox { DataContext: GitChangeRow { Item: { } item } } cb && Vm is { } vm)
+        {
+            cb.IsChecked = item.IsStaged;   // 결과가 나올 때까지 원래 모양 유지
+            _ = vm.ToggleStageAsync(item);
+        }
+        e.Handled = true;
     }
 
-    private void OnStagedDoubleClick(object sender, MouseButtonEventArgs e)
+    private void OnMenuDiff(object sender, RoutedEventArgs e)
     {
-        if (Vm is { } vm && StagedList.SelectedItems.Count > 0) vm.UnstageSelectedCommand.Execute(null);
+        if (Vm is not { } vm || sender is not MenuItem { DataContext: { } ctx }) return;
+        _ = ctx switch
+        {
+            GitChangeRow { Item: { } item } => vm.ShowDiffForChangeAsync(item),
+            GitCommitFile file => vm.ShowDiffForCommitFileAsync(file),
+            _ => Task.CompletedTask,
+        };
     }
 
+    private void OnMenuBlame(object sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm || sender is not MenuItem { DataContext: { } ctx }) return;
+        _ = ctx switch
+        {
+            GitChangeRow { Item: { } item } => vm.ShowBlameForChangeAsync(item),
+            GitCommitFile file => vm.ShowBlameForCommitFileAsync(file),
+            _ => Task.CompletedTask,
+        };
+    }
+
+    private void OnInstallGit(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://git-scm.com/download/win") { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            if (Vm is { } vm) vm.ErrorText = "브라우저를 열 수 없습니다. https://git-scm.com/download/win 을 직접 여세요.";
+        }
+    }
     private void OnGraphReachedEnd(object? sender, EventArgs e)
     {
         if (Vm is { HasMoreHistory: true } vm) vm.LoadMoreHistoryCommand.Execute(null);
     }
+}
+
+/// <summary>BooleanToVisibilityConverter 의 반대 (false 면 보임).</summary>
+public sealed class InverseBoolToVisibilityConverter : System.Windows.Data.IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+        value is true ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+        throw new NotSupportedException();
 }

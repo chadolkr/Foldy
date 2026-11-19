@@ -13,6 +13,7 @@
   -->
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    <gc:InverseBoolToVisibilityConverter x:Key="InvBoolToVis" />
 
     <!-- 툴바 텍스트 버튼 -->
     <Style x:Key="Git.Btn" TargetType="Button">
@@ -191,80 +192,487 @@
       <Setter Property="RowHeight" Value="{DynamicResource List.RowHeight}" />
     </Style>
 
-    <!-- 파일 한 줄 (Local Changes / 커밋 변경 파일 공용): 배지 + 파일명 + 폴더 -->
+    <!-- 아이콘 + 글자 버튼의 내용 (툴바) -->
+    <Style x:Key="Git.ChipBtn" TargetType="Button" BasedOn="{StaticResource Git.Btn}">
+      <Setter Property="Background" Value="{DynamicResource Brush.SurfaceAlt}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius}"
+                    BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.TextDisabled}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 위쪽 탭 (변경 사항 / 기록) -->
+    <Style x:Key="Git.Tab" TargetType="RadioButton">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="Bd" Padding="16,7,16,6" BorderThickness="0,0,0,2" BorderBrush="Transparent" Background="Transparent">
+              <ContentPresenter VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 통합 / 나란히 토글 -->
+    <Style x:Key="Git.Seg" TargetType="RadioButton">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+      <Setter Property="FontSize" Value="11.5" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="Bd" Padding="9,3" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" Background="Transparent"
+                    CornerRadius="{DynamicResource Radius}" Margin="0,0,-1,0">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Selection}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.SelectionText}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 링크처럼 보이는 버튼 (blame 의 커밋 해시) -->
+    <Style x:Key="Git.LinkBtn" TargetType="Button">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <TextBlock x:Name="T" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" />
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="T" Property="TextDecorations" Value="Underline" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.TextDisabled}" />
+                <Setter Property="Cursor" Value="Arrow" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 상태 배지 (수정 / 추가 / 삭제 / 새 파일 / 충돌): 커밋 파일 목록용 (DataContext.Letter) -->
+    <Style x:Key="Git.Badge" TargetType="TextBlock">
+      <Setter Property="Width" Value="58" />
+      <Setter Property="FontSize" Value="11.5" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Letter}" Value="A">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Done}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Letter}" Value="?">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Done}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Letter}" Value="D">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Error}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Letter}" Value="!">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Error}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Letter}" Value="R">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- 같은 배지, 변경 사항 목록용 (DataContext.Item.Letter) -->
+    <Style x:Key="Git.ChangeBadge" TargetType="TextBlock" BasedOn="{StaticResource Git.Badge}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Item.Letter}" Value="A">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Done}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Item.Letter}" Value="?">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Done}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Item.Letter}" Value="D">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Error}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Item.Letter}" Value="!">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Error}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Item.Letter}" Value="R">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Item.Letter}" Value="M">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- 그룹 머리글 행은 누를 수 없다 -->
+    <Style x:Key="Git.ChangeItem" TargetType="ListBoxItem" BasedOn="{StaticResource Git.Item}">
+      <Setter Property="Margin" Value="4,0" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsHeader}" Value="True">
+          <Setter Property="IsHitTestVisible" Value="False" />
+          <Setter Property="Focusable" Value="False" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- diff / blame 목록: 가로 스크롤 + 가상화 (줄이 많아도 가볍게) -->
+    <Style x:Key="Git.DiffList" TargetType="ListBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+      <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+      <Setter Property="FontSize" Value="{DynamicResource Font.Size}" />
+      <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+      <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+      <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBox">
+            <ScrollViewer Focusable="False" Padding="0" CanContentScroll="True"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}">
+              <ItemsPresenter />
+            </ScrollViewer>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="Git.DiffItem" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBoxItem">
+            <ContentPresenter />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 변경 사항 목록의 행: [체크] 배지 파일명 폴더 -->
+    <DataTemplate x:Key="Git.ChangeRowTemplate">
+      <Grid>
+        <TextBlock Text="{Binding HeaderLabel}" Style="{StaticResource Git.SectionHeader}" Margin="2,10,0,2">
+          <TextBlock.Visibility>
+            <Binding Path="IsHeader" Converter="{StaticResource BoolToVis}" />
+          </TextBlock.Visibility>
+        </TextBlock>
+        <DockPanel LastChildFill="True" ToolTip="{Binding Item.Path}">
+          <DockPanel.Style>
+            <Style TargetType="DockPanel">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </DockPanel.Style>
+          <DockPanel.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="변경 내용 보기" Click="OnMenuDiff" />
+              <MenuItem Header="이 파일 Blame (줄마다 누가 고쳤나)" Click="OnMenuBlame" />
+            </ContextMenu>
+          </DockPanel.ContextMenu>
+          <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked, Mode=OneWay}" Click="OnRowCheckClick" VerticalAlignment="Center" Margin="0,0,8,0"
+                    ToolTip="체크하면 커밋 대상이 됩니다 (스테이지). 체크를 풀면 대상에서 빠집니다." />
+          <TextBlock DockPanel.Dock="Left" Text="{Binding Item.Label}" Style="{StaticResource Git.ChangeBadge}" />
+          <TextBlock DockPanel.Dock="Right" Text="{Binding Item.Folder}" Foreground="{DynamicResource Brush.TextSecondary}"
+                     TextTrimming="CharacterEllipsis" Margin="10,0,0,0" MaxWidth="150" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Item.FileName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        </DockPanel>
+      </Grid>
+    </DataTemplate>
+
+    <!-- 커밋의 변경 파일 한 줄: 배지 + 파일명 + 폴더 -->
     <DataTemplate x:Key="Git.FileRow">
-      <DockPanel LastChildFill="True">
-        <TextBlock DockPanel.Dock="Left" Text="{Binding Letter}" Style="{StaticResource Git.Letter}" />
+      <DockPanel LastChildFill="True" ToolTip="{Binding Path}">
+        <DockPanel.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="변경 내용 보기" Click="OnMenuDiff" />
+            <MenuItem Header="이 파일 Blame (이 커밋 기준)" Click="OnMenuBlame" />
+          </ContextMenu>
+        </DockPanel.ContextMenu>
+        <TextBlock DockPanel.Dock="Left" Text="{Binding Label}" Style="{StaticResource Git.Badge}" />
         <TextBlock DockPanel.Dock="Right" Text="{Binding Folder}" Foreground="{DynamicResource Brush.TextSecondary}"
-                   TextTrimming="CharacterEllipsis" Margin="12,0,0,0" MaxWidth="260" VerticalAlignment="Center" />
-        <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Path}" />
+                   TextTrimming="CharacterEllipsis" Margin="12,0,0,0" MaxWidth="200" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
       </DockPanel>
+    </DataTemplate>
+
+    <!-- diff: 통합 보기 한 줄 (옛 줄 번호 | 새 줄 번호 | +/- | 코드) -->
+    <DataTemplate x:Key="Git.DiffInlineRow">
+      <Grid>
+        <Rectangle x:Name="Tint" Fill="Transparent" Opacity="0" />
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="{Binding OldNo}" Width="48" TextAlignment="Right" Foreground="{DynamicResource Brush.TextDisabled}" Margin="0,0,8,0" />
+          <TextBlock Text="{Binding NewNo}" Width="48" TextAlignment="Right" Foreground="{DynamicResource Brush.TextDisabled}" Margin="0,0,8,0" />
+          <TextBlock x:Name="Mark" Text="{Binding Marker}" Width="14" FontWeight="Bold" />
+          <TextBlock x:Name="Code" Text="{Binding Display}" Margin="0,0,16,0" />
+        </StackPanel>
+      </Grid>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Kind}" Value="Added">
+          <Setter TargetName="Tint" Property="Fill" Value="{DynamicResource Brush.Done}" />
+          <Setter TargetName="Tint" Property="Opacity" Value="0.18" />
+          <Setter TargetName="Mark" Property="Foreground" Value="{DynamicResource Brush.Done}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Kind}" Value="Removed">
+          <Setter TargetName="Tint" Property="Fill" Value="{DynamicResource Brush.Error}" />
+          <Setter TargetName="Tint" Property="Opacity" Value="0.18" />
+          <Setter TargetName="Mark" Property="Foreground" Value="{DynamicResource Brush.Error}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Kind}" Value="Hunk">
+          <Setter TargetName="Tint" Property="Fill" Value="{DynamicResource Brush.Accent}" />
+          <Setter TargetName="Tint" Property="Opacity" Value="0.14" />
+          <Setter TargetName="Code" Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Kind}" Value="Meta">
+          <Setter TargetName="Code" Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+          <Setter TargetName="Code" Property="FontStyle" Value="Italic" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- diff: 나란히 보기 한 줄 (왼쪽 = 이전, 오른쪽 = 이후) -->
+    <DataTemplate x:Key="Git.DiffSideRow">
+      <Grid>
+        <Grid x:Name="Pair">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="1" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid>
+            <Rectangle x:Name="TintL" Fill="Transparent" Opacity="0" />
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Left" Text="{Binding Left.OldNo}" Width="44" TextAlignment="Right" Foreground="{DynamicResource Brush.TextDisabled}" Margin="0,0,8,0" />
+              <TextBlock Text="{Binding Left.Display}" TextWrapping="Wrap" Margin="0,0,8,0" />
+            </DockPanel>
+          </Grid>
+          <Rectangle Grid.Column="1" Fill="{DynamicResource Brush.Border}" />
+          <Grid Grid.Column="2">
+            <Rectangle x:Name="TintR" Fill="Transparent" Opacity="0" />
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Left" Text="{Binding Right.NewNo}" Width="44" TextAlignment="Right" Foreground="{DynamicResource Brush.TextDisabled}" Margin="0,0,8,0" />
+              <TextBlock Text="{Binding Right.Display}" TextWrapping="Wrap" Margin="0,0,8,0" />
+            </DockPanel>
+          </Grid>
+        </Grid>
+        <Grid x:Name="Head" Visibility="Collapsed">
+          <Rectangle x:Name="HeadTint" Fill="{DynamicResource Brush.Accent}" Opacity="0.14" />
+          <TextBlock x:Name="HeadText" Text="{Binding Header.Text}" Foreground="{DynamicResource Brush.Accent}" Margin="8,0" TextTrimming="CharacterEllipsis" />
+        </Grid>
+      </Grid>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding IsHeader}" Value="True">
+          <Setter TargetName="Pair" Property="Visibility" Value="Collapsed" />
+          <Setter TargetName="Head" Property="Visibility" Value="Visible" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Header.Kind}" Value="Meta">
+          <Setter TargetName="HeadTint" Property="Opacity" Value="0" />
+          <Setter TargetName="HeadText" Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Left.Kind}" Value="Removed">
+          <Setter TargetName="TintL" Property="Fill" Value="{DynamicResource Brush.Error}" />
+          <Setter TargetName="TintL" Property="Opacity" Value="0.18" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Right.Kind}" Value="Added">
+          <Setter TargetName="TintR" Property="Fill" Value="{DynamicResource Brush.Done}" />
+          <Setter TargetName="TintR" Property="Opacity" Value="0.18" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Left}" Value="{x:Null}">
+          <Setter TargetName="TintL" Property="Fill" Value="{DynamicResource Brush.Border}" />
+          <Setter TargetName="TintL" Property="Opacity" Value="0.35" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Right}" Value="{x:Null}">
+          <Setter TargetName="TintR" Property="Fill" Value="{DynamicResource Brush.Border}" />
+          <Setter TargetName="TintR" Property="Opacity" Value="0.35" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- blame 한 줄: 해시(누르면 기록에서 그 커밋) | 작성자 | 날짜 | 줄 번호 | 코드, 커밋 덩어리마다 음영이 번갈아 -->
+    <DataTemplate x:Key="Git.BlameRow">
+      <Grid x:Name="Row" ToolTip="{Binding Tooltip}">
+        <Rectangle x:Name="Shade" Fill="{DynamicResource Brush.SurfaceAlt}" Opacity="0" />
+        <Rectangle x:Name="BlockLine" Height="1" VerticalAlignment="Top" Fill="{DynamicResource Brush.Border}" Visibility="Collapsed" />
+        <StackPanel Orientation="Horizontal">
+          <Button Content="{Binding ShaShown}" Style="{StaticResource Git.LinkBtn}" Width="64" Margin="8,0,0,0" IsEnabled="{Binding CanNavigate}"
+                  Command="{Binding DataContext.SelectCommitByHashCommand, RelativeSource={RelativeSource AncestorType=gc:GitView}}"
+                  CommandParameter="{Binding Hash}" ToolTip="이 커밋을 기록 탭에서 엽니다" />
+          <TextBlock Text="{Binding AuthorShown}" Width="110" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.TextSecondary}" />
+          <TextBlock Text="{Binding DateShown}" Width="78" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.TextSecondary}" />
+          <TextBlock Text="{Binding LineNo}" Width="44" TextAlignment="Right" Foreground="{DynamicResource Brush.TextDisabled}" Margin="0,0,10,0" />
+          <TextBlock Text="{Binding Display}" Margin="0,0,16,0" />
+        </StackPanel>
+      </Grid>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Shaded}" Value="True">
+          <Setter TargetName="Shade" Property="Opacity" Value="1" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IsBlockStart}" Value="True">
+          <Setter TargetName="BlockLine" Property="Visibility" Value="Visible" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
     </DataTemplate>
   </UserControl.Resources>
 
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <!-- ───────── 툴바 ───────── -->
+    <!-- ───────── 1. 위쪽 한 줄: 브랜치 · 올림/받음 · 변경 수 · 버튼 ───────── -->
     <Border Grid.Row="0" Style="{DynamicResource Foldy.CommandBar}">
       <StackPanel Orientation="Horizontal">
-        <!-- 현재 브랜치 칩 -->
-        <Border Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
-                CornerRadius="{DynamicResource Radius}" Padding="10,0" Height="28" Margin="0,0,8,0">
-          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <!-- 현재 브랜치: 누르면 다른 브랜치로 바꾸거나 새로 만든다 -->
+        <Button x:Name="BranchBtn" Style="{StaticResource Git.ChipBtn}" Click="OnBranchMenu" IsEnabled="{Binding IsIdle}" Padding="10,0" Margin="0,0,8,0"
+                ToolTip="지금 있는 브랜치입니다. 눌러서 다른 브랜치로 바꾸거나 새 브랜치를 만듭니다.">
+          <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE8A1;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Accent}" Margin="0,1,6,0" VerticalAlignment="Center" />
             <TextBlock Text="{Binding BranchName}" FontWeight="SemiBold" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding AheadBehindText}" Foreground="{DynamicResource Brush.TextSecondary}" Margin="8,0,0,0" VerticalAlignment="Center" />
+            <TextBlock Text="&#xE70D;" FontFamily="{DynamicResource Font.Icon}" FontSize="9" Foreground="{DynamicResource Brush.TextSecondary}" Margin="8,2,0,0" VerticalAlignment="Center" />
           </StackPanel>
-        </Border>
-
-        <Button Style="{StaticResource Git.Btn}" Content="Fetch" Command="{Binding FetchCommand}" IsEnabled="{Binding IsIdle}" ToolTip="모든 원격에서 가져오기 (--all --prune)" />
-        <Button x:Name="PullBtn" Style="{StaticResource Git.Btn}" Content="Pull ▾" Click="OnPullMenu" IsEnabled="{Binding IsIdle}" ToolTip="Pull (병합 또는 리베이스)" />
-        <Button Style="{StaticResource Git.Btn}" Content="Push" Command="{Binding PushCommand}" IsEnabled="{Binding IsIdle}" ToolTip="Push (업스트림이 없으면 origin에 새로 만듦)" Margin="1,0,0,0" />
-        <Button x:Name="PushMoreBtn" Style="{StaticResource Git.Btn}" Content="▾" Padding="4,0" Click="OnPushMenu" IsEnabled="{Binding IsIdle}" Margin="0,0,1,0" ToolTip="강제 Push 등" />
+        </Button>
+        <TextBlock Text="{Binding AheadBehindText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource Brush.Accent}"
+                   ToolTip="↑ 아직 올리지 않은 커밋 · ↓ 아직 받지 않은 커밋" />
+        <TextBlock Text="{Binding ChangeCountText}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,6,0" />
         <Rectangle Style="{StaticResource Git.Divider}" />
-        <Button x:Name="StashBtn" Style="{StaticResource Git.Btn}" Content="Stash ▾" Click="OnStashMenu" IsEnabled="{Binding IsIdle}" />
-        <Button x:Name="BranchBtn" Style="{StaticResource Git.Btn}" Content="Branch ▾" Click="OnBranchMenu" IsEnabled="{Binding IsIdle}" />
-        <Rectangle Style="{StaticResource Git.Divider}" />
-        <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" Command="{Binding RefreshCommand}" ToolTip="새로 고침" Height="28" Width="28" />
 
-        <!-- 팝업 메뉴들 (툴바 버튼 아래에 열림) -->
+        <Button Style="{StaticResource Git.Btn}" Command="{Binding FetchCommand}" IsEnabled="{Binding IsIdle}"
+                ToolTip="가져오기: 원격 저장소에 새 소식이 있는지만 확인합니다. 내 파일은 바뀌지 않습니다.">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE895;" FontFamily="{DynamicResource Font.Icon}" Margin="0,0,6,0" VerticalAlignment="Center" />
+            <TextBlock Text="가져오기" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Style="{StaticResource Git.Btn}" Command="{Binding PullMergeCommand}" IsEnabled="{Binding IsIdle}" Margin="1,0,0,0"
+                ToolTip="받기: 원격 저장소의 새 커밋을 내 브랜치로 받아 합칩니다.">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE896;" FontFamily="{DynamicResource Font.Icon}" Margin="0,0,6,0" VerticalAlignment="Center" />
+            <TextBlock Text="받기" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button x:Name="PullBtn" Style="{StaticResource Git.Btn}" Content="&#xE70D;" FontFamily="{DynamicResource Font.Icon}" FontSize="9" Padding="4,0" Margin="0,0,1,0"
+                Click="OnPullMenu" IsEnabled="{Binding IsIdle}" ToolTip="받는 방식 고르기 (합치기 / 리베이스)" />
+        <Button Style="{StaticResource Git.Btn}" Command="{Binding PushCommand}" IsEnabled="{Binding IsIdle}" Margin="1,0,0,0"
+                ToolTip="올리기: 내 커밋을 원격 저장소로 보냅니다. 다른 사람과 공유됩니다.">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE898;" FontFamily="{DynamicResource Font.Icon}" Margin="0,0,6,0" VerticalAlignment="Center" />
+            <TextBlock Text="올리기" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button x:Name="PushMoreBtn" Style="{StaticResource Git.Btn}" Content="&#xE70D;" FontFamily="{DynamicResource Font.Icon}" FontSize="9" Padding="4,0" Margin="0,0,1,0"
+                Click="OnPushMenu" IsEnabled="{Binding IsIdle}" ToolTip="강제로 올리기 등 (신중하게)" />
+        <Rectangle Style="{StaticResource Git.Divider}" />
+        <Button x:Name="StashBtn" Style="{StaticResource Git.Btn}" Click="OnStashMenu" IsEnabled="{Binding IsIdle}"
+                ToolTip="임시 보관: 지금 고치던 내용을 잠깐 치워 두었다가 나중에 다시 꺼냅니다.">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE7B8;" FontFamily="{DynamicResource Font.Icon}" Margin="0,0,6,0" VerticalAlignment="Center" />
+            <TextBlock Text="임시 보관" VerticalAlignment="Center" />
+            <TextBlock Text="&#xE70D;" FontFamily="{DynamicResource Font.Icon}" FontSize="9" Margin="6,2,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" Command="{Binding RefreshCommand}" ToolTip="새로 고침" Height="28" Width="28" Margin="4,0,0,0" />
+
+        <!-- 팝업 메뉴들 -->
         <Popup x:Name="PullPopup" PlacementTarget="{Binding ElementName=PullBtn}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
           <Border Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="1"
                   CornerRadius="{DynamicResource Radius}" Padding="4" Margin="0,2,8,8">
-            <StackPanel MinWidth="170">
-              <Button Style="{StaticResource Git.Btn}" HorizontalContentAlignment="Left" Content="Pull (merge)" Command="{Binding PullMergeCommand}" Click="OnClosePopups" />
-              <Button Style="{StaticResource Git.Btn}" Content="Pull (rebase)" Command="{Binding PullRebaseCommand}" Click="OnClosePopups" />
+            <StackPanel MinWidth="250">
+              <Button Style="{StaticResource Git.Btn}" HorizontalContentAlignment="Left" Content="받기 (합치기)" Command="{Binding PullMergeCommand}" Click="OnClosePopups"
+                      ToolTip="받은 커밋을 내 커밋과 합칩니다 (기본)" />
+              <Button Style="{StaticResource Git.Btn}" Content="받기 (내 커밋을 그 위로 옮기기 · rebase)" Command="{Binding PullRebaseCommand}" Click="OnClosePopups"
+                      ToolTip="내 커밋을 받은 커밋 뒤로 옮겨 이력을 한 줄로 유지합니다" />
             </StackPanel>
           </Border>
         </Popup>
         <Popup x:Name="PushPopup" PlacementTarget="{Binding ElementName=PushMoreBtn}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
           <Border Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="1"
                   CornerRadius="{DynamicResource Radius}" Padding="4" Margin="0,2,8,8">
-            <StackPanel MinWidth="230">
-              <Button Style="{StaticResource Git.Btn}" Content="강제 Push (--force-with-lease)…" Command="{Binding PushForceWithLeaseCommand}" Click="OnClosePopups" />
+            <StackPanel MinWidth="250">
+              <Button Style="{StaticResource Git.Btn}" Content="강제로 올리기 (--force-with-lease)…" Command="{Binding PushForceWithLeaseCommand}" Click="OnClosePopups"
+                      ToolTip="원격의 이력을 내 것으로 덮어씁니다. 확인 창이 한 번 더 뜹니다." />
             </StackPanel>
           </Border>
         </Popup>
         <Popup x:Name="StashPopup" PlacementTarget="{Binding ElementName=StashBtn}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
           <Border Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="1"
                   CornerRadius="{DynamicResource Radius}" Padding="4" Margin="0,2,8,8">
-            <StackPanel MinWidth="190">
-              <Button Style="{StaticResource Git.Btn}" Content="변경을 Stash에 넣기" Command="{Binding StashPushCommand}" Click="OnClosePopups" />
-              <Button Style="{StaticResource Git.Btn}" Content="Stash 꺼내기 (pop)" Command="{Binding StashPopCommand}" Click="OnClosePopups"
-                      ToolTip="사이드바에서 고른 Stash, 없으면 가장 최근 것" />
+            <StackPanel MinWidth="260">
+              <Button Style="{StaticResource Git.Btn}" Content="지금 변경을 임시 보관하기" Command="{Binding StashPushCommand}" Click="OnClosePopups"
+                      ToolTip="수정한 파일을 되돌려 놓고 안전한 곳에 넣어 둡니다" />
+              <TextBlock Text="보관해 둔 것" Style="{StaticResource Git.SectionHeader}" Margin="8,10,0,4" />
+              <TextBlock Text="보관해 둔 내용이 없습니다" Foreground="{DynamicResource Brush.TextDisabled}" Margin="8,0,8,6">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding Stashes.Count}" Value="0">
+                        <Setter Property="Visibility" Value="Visible" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <ListBox ItemsSource="{Binding Stashes}" SelectedItem="{Binding SelectedStash, Mode=TwoWay}" Style="{StaticResource Git.List}" MaxHeight="180">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Message}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <Button Style="{StaticResource Git.Btn}" Content="고른 것 꺼내기 (없으면 가장 최근 것)" Command="{Binding StashPopCommand}" Click="OnClosePopups"
+                      ToolTip="보관해 둔 내용을 다시 파일에 적용하고 보관함에서 지웁니다" Margin="0,6,0,0" />
             </StackPanel>
           </Border>
         </Popup>
         <Popup x:Name="BranchPopup" PlacementTarget="{Binding ElementName=BranchBtn}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
           <Border Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="1"
                   CornerRadius="{DynamicResource Radius}" Padding="4" Margin="0,2,8,8">
-            <StackPanel MinWidth="240">
-              <ListBox ItemsSource="{Binding LocalBranches}" Style="{StaticResource Git.List}" MaxHeight="260"
+            <StackPanel MinWidth="280">
+              <TextBlock Text="브랜치 바꾸기 (더블클릭)" Style="{StaticResource Git.SectionHeader}" Margin="8,6,0,4" />
+              <ListBox ItemsSource="{Binding LocalBranches}" Style="{StaticResource Git.List}" MaxHeight="220"
                        ItemContainerStyle="{StaticResource Git.BranchItem}">
                 <ListBox.ItemTemplate>
                   <DataTemplate>
@@ -286,7 +694,17 @@
                   </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>
-              <Rectangle Height="1" Fill="{DynamicResource Brush.Border}" Margin="4,6" />
+              <TextBlock Text="원격 브랜치 (더블클릭하면 내 컴퓨터로 가져와 전환)" Style="{StaticResource Git.SectionHeader}" Margin="8,10,0,4" />
+              <ListBox ItemsSource="{Binding RemoteBranches}" Style="{StaticResource Git.List}" MaxHeight="120"
+                       ItemContainerStyle="{StaticResource Git.BranchItem}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.TextSecondary}" />
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <Rectangle Height="1" Fill="{DynamicResource Brush.Border}" Margin="4,8" />
+              <TextBlock Text="새 브랜치 만들기" Style="{StaticResource Git.SectionHeader}" Margin="8,0,0,4" />
               <Grid Margin="4,0,4,2">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*" />
@@ -294,7 +712,7 @@
                 </Grid.ColumnDefinitions>
                 <Border Style="{DynamicResource Foldy.InputBorder}" Height="28">
                   <Grid>
-                    <TextBlock Text="새 브랜치 이름" Foreground="{DynamicResource Brush.TextDisabled}" Margin="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock Text="새 브랜치 이름 (공백 없이)" Foreground="{DynamicResource Brush.TextDisabled}" Margin="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
                       <TextBlock.Style>
                         <Style TargetType="TextBlock">
                           <Setter Property="Visibility" Value="Collapsed" />
@@ -309,7 +727,8 @@
                     <TextBox x:Name="NewBranchBox" Text="{Binding NewBranchName, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnNewBranchKey" />
                   </Grid>
                 </Border>
-                <Button Grid.Column="1" Style="{StaticResource Git.Btn}" Content="만들기" Margin="6,0,0,0" Command="{Binding CreateBranchCommand}" Click="OnClosePopups" />
+                <Button Grid.Column="1" Style="{StaticResource Git.Btn}" Content="만들기" Margin="6,0,0,0" Command="{Binding CreateBranchCommand}" Click="OnClosePopups"
+                        ToolTip="이 이름으로 새 브랜치를 만들고 바로 그 브랜치로 이동합니다" />
               </Grid>
             </StackPanel>
           </Border>
@@ -317,189 +736,154 @@
       </StackPanel>
     </Border>
 
-    <!-- ───────── 본문 ───────── -->
-    <Grid Grid.Row="1">
+    <!-- ───────── 2. 탭: 변경 사항 | 기록 ───────── -->
+    <Border Grid.Row="1" Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal">
+        <RadioButton GroupName="GitTabs" Style="{StaticResource Git.Tab}" IsChecked="{Binding ShowLocalChanges, Mode=TwoWay}"
+                     ToolTip="고친 파일을 골라 커밋합니다">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="변경 사항" />
+            <Border Background="{DynamicResource Brush.Accent}" CornerRadius="9" MinWidth="20" Padding="6,0" Margin="8,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding HasChanges, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+              <TextBlock Text="{Binding ChangeCount}" Foreground="{DynamicResource Brush.AccentText}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            </Border>
+          </StackPanel>
+        </RadioButton>
+        <RadioButton GroupName="GitTabs" Style="{StaticResource Git.Tab}" IsChecked="{Binding IsHistoryTab, Mode=TwoWay}" Content="기록"
+                     ToolTip="지금까지의 커밋 기록을 봅니다" />
+      </StackPanel>
+    </Border>
+
+    <!-- ───────── 3. 본문: 왼쪽(목록) | 오른쪽(내용 보기) ───────── -->
+    <Grid Grid.Row="2" x:Name="Body">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="230" MinWidth="150" />
+        <ColumnDefinition x:Name="LeftColumn" Width="420" MinWidth="300" />
         <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="*" MinWidth="300" />
+        <ColumnDefinition Width="*" MinWidth="260" />
       </Grid.ColumnDefinitions>
 
-      <!-- 사이드바 -->
-      <Border Grid.Column="0" Background="{DynamicResource Brush.Surface}">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-          <StackPanel Margin="0,4,0,12">
-            <Button Style="{StaticResource Git.Btn}" Height="32" Margin="6,2" HorizontalContentAlignment="Stretch" Command="{Binding SelectLocalChangesCommand}">
-              <DockPanel LastChildFill="True" Width="190">
-                <Border DockPanel.Dock="Right" Background="{DynamicResource Brush.Accent}" CornerRadius="9" MinWidth="20" Padding="6,1" VerticalAlignment="Center"
-                        Visibility="{Binding HasChanges, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
-                  <TextBlock Text="{Binding ChangeCount}" Foreground="{DynamicResource Brush.AccentText}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                </Border>
-                <TextBlock Text="Local Changes" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" />
-              </DockPanel>
-            </Button>
-
-            <TextBlock Text="BRANCHES" Style="{StaticResource Git.SectionHeader}" />
-            <ListBox ItemsSource="{Binding LocalBranches}" Style="{StaticResource Git.List}" ItemContainerStyle="{StaticResource Git.BranchItem}"
-                     ToolTip="더블클릭: 체크아웃">
-              <ListBox.ItemTemplate>
-                <DataTemplate>
-                  <DockPanel>
-                    <TextBlock DockPanel.Dock="Right" Text="{Binding Track}" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis">
-                      <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                          <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
-                              <Setter Property="FontWeight" Value="SemiBold" />
-                              <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
-                            </DataTrigger>
-                          </Style.Triggers>
-                        </Style>
-                      </TextBlock.Style>
-                    </TextBlock>
-                  </DockPanel>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-
-            <TextBlock Text="REMOTES" Style="{StaticResource Git.SectionHeader}" />
-            <ListBox ItemsSource="{Binding RemoteBranches}" Style="{StaticResource Git.List}" ItemContainerStyle="{StaticResource Git.BranchItem}"
-                     ToolTip="더블클릭: 추적 브랜치로 체크아웃">
-              <ListBox.ItemTemplate>
-                <DataTemplate>
-                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.TextSecondary}" />
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-
-            <TextBlock Text="STASHES" Style="{StaticResource Git.SectionHeader}" />
-            <ListBox ItemsSource="{Binding Stashes}" SelectedItem="{Binding SelectedStash, Mode=TwoWay}" Style="{StaticResource Git.List}">
-              <ListBox.ItemTemplate>
-                <DataTemplate>
-                  <TextBlock Text="{Binding Message}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </StackPanel>
-        </ScrollViewer>
-      </Border>
-
-      <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" ShowsPreview="False" />
-
-      <!-- 가운데: 검색 + 그래프 + 아래 칸 -->
-      <Grid Grid.Column="2">
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="*" MinHeight="120" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="300" MinHeight="140" />
-        </Grid.RowDefinitions>
-
-        <Border Grid.Row="0" Style="{DynamicResource Foldy.InputBorder}" Margin="0,8,8,6">
-          <Grid>
-            <TextBlock Text="&#xE721;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.TextSecondary}" Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
-            <TextBlock Text="커밋 검색 (메시지·작성자·해시)" Foreground="{DynamicResource Brush.TextDisabled}" Margin="30,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+      <!-- 왼쪽 -->
+      <Grid Grid.Column="0">
+        <!-- 변경 사항 탭 -->
+        <DockPanel Margin="8,8,0,8" Visibility="{Binding ShowLocalChanges, Converter={StaticResource BoolToVis}}">
+          <!-- 아래: 커밋 메시지 + 버튼 -->
+          <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+            <Border Style="{DynamicResource Foldy.InputBorder}" Height="72">
+              <Grid>
+                <TextBlock Text="무엇을 바꿨나요?" Foreground="{DynamicResource Brush.TextDisabled}" Margin="10,8" IsHitTestVisible="False">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Visibility" Value="Collapsed" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding Text, ElementName=CommitBox}" Value="">
+                          <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+                <TextBox x:Name="CommitBox" Text="{Binding CommitMessage, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                         VerticalContentAlignment="Top" Padding="8,6" VerticalScrollBarVisibility="Auto"
+                         ToolTip="바뀐 내용을 한두 문장으로 적어 두세요. 나중에 기록에서 이 글로 찾게 됩니다." />
+              </Grid>
+            </Border>
+            <Grid Margin="0,8,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Button Grid.Column="0" Style="{StaticResource Git.PrimaryBtn}" Content="커밋" Command="{Binding CommitCommand}" IsEnabled="{Binding CanCommit}"
+                      ToolTip="{Binding CommitTooltip}" ToolTipService.ShowOnDisabled="True" MinWidth="84" Margin="0" />
+              <Button Grid.Column="1" Style="{StaticResource Git.Btn}" Content="커밋 후 올리기" Command="{Binding CommitAndPushCommand}" IsEnabled="{Binding CanCommit}"
+                      ToolTip="{Binding CommitAndPushTooltip}" ToolTipService.ShowOnDisabled="True" Background="{DynamicResource Brush.SurfaceAlt}" Margin="6,0,0,0" />
+              <CheckBox Grid.Column="2" Content="직전 커밋 고치기" IsChecked="{Binding Amend}" Foreground="{DynamicResource Brush.TextSecondary}" HorizontalAlignment="Right"
+                        VerticalContentAlignment="Center" ToolTip="새 커밋을 만들지 않고 방금 만든 커밋에 이 내용을 합칩니다 (메시지를 비우면 그대로 유지)" />
+            </Grid>
+            <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource Brush.TextSecondary}" TextWrapping="Wrap" Text="{Binding CommitDisabledReason}" FontSize="11.5">
               <TextBlock.Style>
                 <Style TargetType="TextBlock">
-                  <Setter Property="Visibility" Value="Collapsed" />
                   <Style.Triggers>
-                    <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
-                      <Setter Property="Visibility" Value="Visible" />
+                    <DataTrigger Binding="{Binding HasChanges}" Value="False">
+                      <Setter Property="Visibility" Value="Collapsed" />
                     </DataTrigger>
                   </Style.Triggers>
                 </Style>
               </TextBlock.Style>
             </TextBlock>
-            <TextBox x:Name="SearchBox" Padding="28,0,6,0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-          </Grid>
-        </Border>
+          </StackPanel>
 
-        <Border Grid.Row="1" Style="{DynamicResource Foldy.ListBorder}" Margin="0,0,8,0" ClipToBounds="True">
-          <ScrollViewer x:Name="GraphScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="True">
-            <gc:CommitGraphList x:Name="Graph" Style="{StaticResource Git.Graph}"
-                                ItemsSource="{Binding Commits}" SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
-                                ShowGraph="{Binding ShowGraph}" MaxLanes="{Binding MaxLaneCount}"
-                                ReachedEnd="OnGraphReachedEnd" />
-          </ScrollViewer>
-        </Border>
+          <!-- 위: 전체 선택 줄 -->
+          <Border DockPanel.Dock="Top" Style="{DynamicResource Foldy.ListBorder}" Padding="10,5,6,5" Margin="0,0,0,6">
+            <DockPanel LastChildFill="False">
+              <TextBlock DockPanel.Dock="Left" Text="커밋할 파일 체크" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <Button DockPanel.Dock="Right" Style="{StaticResource Git.SmallBtn}" Content="선택 해제" Command="{Binding ClearAllChangesCommand}" IsEnabled="{Binding IsIdle}"
+                      ToolTip="체크를 모두 풉니다. 파일 내용은 그대로입니다." />
+              <Button DockPanel.Dock="Right" Style="{StaticResource Git.SmallBtn}" Content="모두 선택" Command="{Binding SelectAllChangesCommand}" IsEnabled="{Binding IsIdle}"
+                      ToolTip="바뀐 파일을 모두 커밋 대상으로 체크합니다." />
+            </DockPanel>
+          </Border>
 
-        <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent" ShowsPreview="False" Margin="0,0,8,0" />
-
-        <!-- 아래 칸: Local Changes 또는 선택한 커밋 -->
-        <Grid Grid.Row="3" Margin="0,0,8,8">
-          <!-- Local Changes -->
-          <Grid Visibility="{Binding ShowLocalChanges, Converter={StaticResource BoolToVis}}">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="*" />
-              <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="8" />
-              <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Row="0" Grid.Column="0" Style="{DynamicResource Foldy.ListBorder}">
-              <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="10,4,6,2" LastChildFill="False">
-                  <TextBlock DockPanel.Dock="Left" Text="{Binding Unstaged.Count, StringFormat=Unstaged ({0})}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                  <Button DockPanel.Dock="Right" Style="{StaticResource Git.SmallBtn}" Content="모두 Stage" Command="{Binding StageAllCommand}" IsEnabled="{Binding IsIdle}" />
-                  <Button DockPanel.Dock="Right" Style="{StaticResource Git.SmallBtn}" Content="Stage ▸" Command="{Binding StageSelectedCommand}" IsEnabled="{Binding IsIdle}" ToolTip="선택한 파일을 Stage (선택이 없으면 전체)" />
-                </DockPanel>
-                <ListBox x:Name="UnstagedList" Style="{StaticResource Git.List}" ItemsSource="{Binding Unstaged}" ItemTemplate="{StaticResource Git.FileRow}"
-                         SelectionMode="Extended" SelectionChanged="OnUnstagedSelection" MouseDoubleClick="OnUnstagedDoubleClick" />
-              </DockPanel>
-            </Border>
-
-            <Border Grid.Row="0" Grid.Column="2" Style="{DynamicResource Foldy.ListBorder}">
-              <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="10,4,6,2" LastChildFill="False">
-                  <TextBlock DockPanel.Dock="Left" Text="{Binding Staged.Count, StringFormat=Staged ({0})}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                  <Button DockPanel.Dock="Right" Style="{StaticResource Git.SmallBtn}" Content="모두 Unstage" Command="{Binding UnstageAllCommand}" IsEnabled="{Binding IsIdle}" />
-                  <Button DockPanel.Dock="Right" Style="{StaticResource Git.SmallBtn}" Content="◂ Unstage" Command="{Binding UnstageSelectedCommand}" IsEnabled="{Binding IsIdle}" ToolTip="선택한 파일을 Unstage (선택이 없으면 전체)" />
-                </DockPanel>
-                <ListBox x:Name="StagedList" Style="{StaticResource Git.List}" ItemsSource="{Binding Staged}" ItemTemplate="{StaticResource Git.FileRow}"
-                         SelectionMode="Extended" SelectionChanged="OnStagedSelection" MouseDoubleClick="OnStagedDoubleClick" />
-              </DockPanel>
-            </Border>
-
-            <!-- 커밋 메시지 + 버튼 -->
-            <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,8,0,0">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <Border Style="{DynamicResource Foldy.InputBorder}" Height="76">
-                <Grid>
-                  <TextBlock Text="커밋 메시지" Foreground="{DynamicResource Brush.TextDisabled}" Margin="10,8" IsHitTestVisible="False">
-                    <TextBlock.Style>
-                      <Style TargetType="TextBlock">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding Text, ElementName=CommitBox}" Value="">
-                            <Setter Property="Visibility" Value="Visible" />
-                          </DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </TextBlock.Style>
-                  </TextBlock>
-                  <TextBox x:Name="CommitBox" Text="{Binding CommitMessage, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
-                           VerticalContentAlignment="Top" Padding="8,6" VerticalScrollBarVisibility="Auto" />
-                </Grid>
-              </Border>
-              <StackPanel Grid.Column="1" Margin="10,0,0,0" MinWidth="130">
-                <Button Style="{StaticResource Git.PrimaryBtn}" Content="Commit" Command="{Binding CommitCommand}" IsEnabled="{Binding CanCommit}" />
-                <Button Style="{StaticResource Git.Btn}" Content="Commit &amp; Push" Command="{Binding CommitAndPushCommand}" IsEnabled="{Binding CanCommit}"
-                        Background="{DynamicResource Brush.SurfaceAlt}" Margin="0,0,0,6" />
-                <CheckBox Content="Amend" IsChecked="{Binding Amend}" Foreground="{DynamicResource Brush.Text}" VerticalContentAlignment="Center"
-                          ToolTip="직전 커밋을 고칩니다 (메시지가 비어 있으면 그대로 유지)" />
+          <!-- 가운데: 그룹별 파일 목록 -->
+          <Border Style="{DynamicResource Foldy.ListBorder}">
+            <Grid>
+              <ListBox x:Name="ChangesList" Style="{StaticResource Git.List}" ItemsSource="{Binding ChangeRows}" SelectedItem="{Binding SelectedChange, Mode=TwoWay}"
+                       ItemTemplate="{StaticResource Git.ChangeRowTemplate}" ItemContainerStyle="{StaticResource Git.ChangeItem}" SelectionMode="Single" Margin="0,4" />
+              <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False" Margin="24"
+                          Visibility="{Binding ShowNoChanges, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+                <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource Font.Icon}" FontSize="32" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.Done}" />
+                <TextBlock Text="변경 사항이 없습니다. 파일을 고치면 여기에 나타납니다" Margin="0,10,0,0" TextWrapping="Wrap" TextAlignment="Center"
+                           Foreground="{DynamicResource Brush.TextSecondary}" MaxWidth="280" />
               </StackPanel>
             </Grid>
-          </Grid>
+          </Border>
+        </DockPanel>
 
-          <!-- 선택한 커밋 -->
-          <Border Style="{DynamicResource Foldy.ListBorder}" Visibility="{Binding ShowCommitDetails, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+        <!-- 기록 탭 -->
+        <Grid Margin="8,8,0,8" Visibility="{Binding ShowCommitDetails, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="120" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="210" MinHeight="120" />
+          </Grid.RowDefinitions>
+
+          <Border Grid.Row="0" Style="{DynamicResource Foldy.InputBorder}" Margin="0,0,0,6">
+            <Grid>
+              <TextBlock Text="&#xE721;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.TextSecondary}" Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+              <TextBlock Text="커밋 검색 (메시지·작성자·해시)" Foreground="{DynamicResource Brush.TextDisabled}" Margin="30,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                        <Setter Property="Visibility" Value="Visible" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <TextBox x:Name="SearchBox" Padding="28,0,6,0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+          </Border>
+
+          <Border Grid.Row="1" Style="{DynamicResource Foldy.ListBorder}" ClipToBounds="True">
+            <Grid>
+              <ScrollViewer x:Name="GraphScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="True">
+                <gc:CommitGraphList x:Name="Graph" Style="{StaticResource Git.Graph}"
+                                    ItemsSource="{Binding Commits}" SelectedItem="{Binding SelectedCommit, Mode=TwoWay}"
+                                    ShowGraph="{Binding ShowGraph}" MaxLanes="{Binding MaxLaneCount}"
+                                    ReachedEnd="OnGraphReachedEnd" />
+              </ScrollViewer>
+              <TextBlock Text="아직 커밋이 없습니다. '변경 사항' 탭에서 첫 커밋을 만들어 보세요." TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                         HorizontalAlignment="Center" Margin="24" Foreground="{DynamicResource Brush.TextSecondary}" IsHitTestVisible="False"
+                         Visibility="{Binding ShowNoHistory, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+            </Grid>
+          </Border>
+
+          <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent" ShowsPreview="False" />
+
+          <Border Grid.Row="3" Style="{DynamicResource Foldy.ListBorder}">
             <DockPanel>
               <StackPanel DockPanel.Dock="Top" Margin="12,8,12,6" DataContext="{Binding SelectedCommit}">
                 <TextBlock Text="{Binding Node.Subject}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -512,15 +896,110 @@
                 </TextBlock>
               </StackPanel>
               <Rectangle DockPanel.Dock="Top" Height="1" Fill="{DynamicResource Brush.Border}" />
-              <ListBox Style="{StaticResource Git.List}" ItemsSource="{Binding CommitFiles}" ItemTemplate="{StaticResource Git.FileRow}" Margin="0,4,0,0" />
+              <Grid>
+                <ListBox Style="{StaticResource Git.List}" ItemsSource="{Binding CommitFiles}" SelectedItem="{Binding SelectedCommitFile, Mode=TwoWay}"
+                         ItemTemplate="{StaticResource Git.FileRow}" ItemContainerStyle="{StaticResource Git.Item}" Margin="0,4,0,0" />
+                <TextBlock Text="커밋을 고르면 바뀐 파일이 보입니다. 파일을 누르면 변경 내용이 오른쪽에 나옵니다." TextWrapping="Wrap" TextAlignment="Center"
+                           VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24" Foreground="{DynamicResource Brush.TextSecondary}" IsHitTestVisible="False">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Visibility" Value="Collapsed" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedCommit}" Value="{x:Null}">
+                          <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </Grid>
             </DockPanel>
           </Border>
         </Grid>
       </Grid>
+
+      <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" ShowsPreview="False" />
+
+      <!-- 오른쪽: 변경 내용(diff) / blame -->
+      <Border Grid.Column="2" Style="{DynamicResource Foldy.ListBorder}" Margin="0,8,8,8" ClipToBounds="True">
+        <Grid>
+          <!-- 아직 아무것도 고르지 않았을 때 -->
+          <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False" Margin="24"
+                      Visibility="{Binding HasSidePanel, Converter={StaticResource InvBoolToVis}}">
+            <TextBlock Text="&#xE8A5;" FontFamily="{DynamicResource Font.Icon}" FontSize="32" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.TextDisabled}" />
+            <TextBlock Text="왼쪽에서 파일을 누르면 바뀐 내용이 여기에 보입니다" Margin="0,10,0,0" TextWrapping="Wrap" TextAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextSecondary}" MaxWidth="300" />
+            <TextBlock Text="초록은 새로 생긴 줄, 빨강은 사라진 줄입니다" Margin="0,4,0,0" TextWrapping="Wrap" TextAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextDisabled}" FontSize="11.5" MaxWidth="300" />
+          </StackPanel>
+
+          <DockPanel Visibility="{Binding HasSidePanel, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+            <!-- 머리글 -->
+            <Grid DockPanel.Dock="Top" Margin="12,8,8,6">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding PanelTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding PanelSubtitle}" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding DiffSummary}" Foreground="{DynamicResource Brush.TextSecondary}" FontFamily="{DynamicResource Font.Mono}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,8,0" VerticalAlignment="Center"
+                            Visibility="{Binding IsDiffMode, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+                  <RadioButton GroupName="DiffMode" Style="{StaticResource Git.Seg}" Content="통합 보기" IsChecked="{Binding InlineDiff, Mode=TwoWay}"
+                               ToolTip="Inline: 한 열에 지운 줄과 새 줄을 차례로 보여 줍니다" />
+                  <RadioButton GroupName="DiffMode" Style="{StaticResource Git.Seg}" Content="나란히 보기" IsChecked="{Binding SideBySide, Mode=TwoWay}"
+                               ToolTip="Side-by-side: 왼쪽에 이전, 오른쪽에 이후를 나란히 보여 줍니다" />
+                </StackPanel>
+                <Button Style="{StaticResource Git.SmallBtn}" Content="Blame" Command="{Binding ShowBlameOfDiffCommand}"
+                        ToolTip="줄마다 마지막으로 고친 사람과 커밋을 봅니다"
+                        Visibility="{Binding IsDiffMode, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+                <Button Style="{StaticResource Git.SmallBtn}" Content="변경 내용 보기" Command="{Binding ShowDiffOfBlameCommand}"
+                        ToolTip="blame 에서 변경 내용(diff) 화면으로 돌아갑니다"
+                        Visibility="{Binding IsBlameMode, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+                <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE711;" Command="{Binding ClosePanelCommand}" Height="26" Width="26" ToolTip="닫기" />
+              </StackPanel>
+            </Grid>
+            <ProgressBar DockPanel.Dock="Top" Height="2" IsIndeterminate="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource Brush.Progress}"
+                         Visibility="{Binding PanelLoading, Converter={StaticResource BoolToVis}}" />
+            <Rectangle DockPanel.Dock="Top" Height="1" Fill="{DynamicResource Brush.Border}" />
+
+            <!-- 일부만 보이는 큰 diff -->
+            <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.SurfaceAlt}" Padding="12,6"
+                    Visibility="{Binding DiffTruncated, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Git.SmallBtn}" Content="20,000줄 더 보기" Command="{Binding ShowMoreDiffCommand}" />
+                <TextBlock Text="{Binding DiffTruncatedText}" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center" />
+              </DockPanel>
+            </Border>
+
+            <Grid>
+              <!-- 통합 -->
+              <ListBox x:Name="DiffInlineList" Style="{StaticResource Git.DiffList}" ItemsSource="{Binding DiffLines}" ItemTemplate="{StaticResource Git.DiffInlineRow}"
+                       ItemContainerStyle="{StaticResource Git.DiffItem}" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                       Visibility="{Binding ShowInlineDiff, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+              <!-- 나란히 -->
+              <ListBox x:Name="DiffSideList" Style="{StaticResource Git.DiffList}" ItemsSource="{Binding SideRows}" ItemTemplate="{StaticResource Git.DiffSideRow}"
+                       ItemContainerStyle="{StaticResource Git.DiffItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch"
+                       Visibility="{Binding ShowSideBySideDiff, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+              <!-- blame -->
+              <ListBox x:Name="BlameList" Style="{StaticResource Git.DiffList}" ItemsSource="{Binding BlameRows}" ItemTemplate="{StaticResource Git.BlameRow}"
+                       ItemContainerStyle="{StaticResource Git.DiffItem}" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                       Visibility="{Binding ShowBlameList, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+              <!-- 안내 (바이너리 파일 · 오류 · 변경 없음) -->
+              <TextBlock Text="{Binding PanelMessage}" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24"
+                         Foreground="{DynamicResource Brush.TextSecondary}" MaxWidth="420"
+                         Visibility="{Binding HasPanelMessage, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+            </Grid>
+          </DockPanel>
+        </Grid>
+      </Border>
     </Grid>
 
-    <!-- ───────── 상태 줄: 진행 · 오류 ───────── -->
-    <Border Grid.Row="2" Background="{DynamicResource Brush.Surface}">
+    <!-- ───────── 4. 아래 상태 줄: 진행 · 오류 ───────── -->
+    <Border Grid.Row="3" Background="{DynamicResource Brush.Surface}">
       <StackPanel>
         <ProgressBar Height="2" IsIndeterminate="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource Brush.Progress}"
                      Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
@@ -531,8 +1010,41 @@
             <TextBlock Text="{Binding ErrorText}" Foreground="{DynamicResource Brush.Error}" TextWrapping="Wrap" VerticalAlignment="Center" />
           </DockPanel>
         </Border>
-        <TextBlock Text="{Binding ProgressText}" Style="{DynamicResource Foldy.StatusText}" Height="24" Padding="0,4,0,0" />
+        <TextBlock Text="{Binding ProgressText}" Style="{DynamicResource Foldy.StatusText}" Height="24" Padding="12,4,0,0" />
       </StackPanel>
     </Border>
+
+    <!-- 작업이 끝났다는 알림 (몇 초 뒤 사라짐) -->
+    <Border Grid.Row="2" Grid.RowSpan="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16,16,20,34" Padding="14,9"
+            CornerRadius="{DynamicResource Radius}" Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Done}" BorderThickness="1"
+            Visibility="{Binding HasToast, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Done}" Margin="0,1,8,0" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding ToastText}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+        <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE711;" Command="{Binding DismissToastCommand}" Height="22" Width="22" Margin="10,0,-6,0" ToolTip="닫기" />
+      </StackPanel>
+    </Border>
+
+    <!-- Git 이 없거나 저장소가 아닐 때: 본문 대신 안내 -->
+    <Grid Grid.RowSpan="4" Background="{DynamicResource Brush.Window}" Visibility="{Binding ShowSetup, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="440" Margin="24">
+        <StackPanel Visibility="{Binding ShowGitMissing, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+          <TextBlock Text="&#xE783;" FontFamily="{DynamicResource Font.Icon}" FontSize="36" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.Error}" />
+          <TextBlock Text="Git이 설치되어 있지 않습니다" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,12,0,0" />
+          <TextBlock Text="Foldy의 Git 기능은 Git for Windows가 있어야 동작합니다. 설치한 뒤 Foldy를 다시 시작하세요." TextWrapping="Wrap" TextAlignment="Center"
+                     Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,8,0,16" />
+          <Button Style="{StaticResource Git.PrimaryBtn}" Content="Git for Windows 설치 페이지 열기 (git-scm.com)" Click="OnInstallGit" HorizontalAlignment="Center" Padding="16,0" Margin="0" />
+        </StackPanel>
+        <StackPanel Visibility="{Binding ShowInitOffer, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+          <TextBlock Text="&#xE8A1;" FontFamily="{DynamicResource Font.Icon}" FontSize="36" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.Accent}" />
+          <TextBlock Text="이 폴더는 아직 Git 저장소가 아닙니다" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,12,0,0" />
+          <TextBlock Text="Git 저장소로 만들면 파일을 고칠 때마다 기록을 남기고, 언제든 이전 모습으로 돌아가 볼 수 있습니다." TextWrapping="Wrap" TextAlignment="Center"
+                     Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,8,0,16" />
+          <Button Style="{StaticResource Git.PrimaryBtn}" Content="여기에 Git 저장소 만들기 (git init)" Command="{Binding InitRepositoryCommand}" IsEnabled="{Binding IsIdle}"
+                  HorizontalAlignment="Center" Padding="16,0" Margin="0" ToolTip="이 폴더 안에 .git 폴더를 만듭니다. 파일은 바뀌지 않습니다." />
+          <TextBlock Text="{Binding RepoRoot}" Foreground="{DynamicResource Brush.TextDisabled}" FontSize="11.5" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,10,0,0" />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
   </Grid>
 </UserControl>

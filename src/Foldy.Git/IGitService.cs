@@ -19,6 +19,12 @@ public interface IGitService
     Task<GitResult<IReadOnlyList<GitBranch>>> GetBranchesAsync(string repo, CancellationToken ct = default);
     Task<GitResult<IReadOnlyList<GitStash>>> GetStashesAsync(string repo, CancellationToken ct = default);
 
+    /// <summary>파일 하나의 diff (unified). 이진 파일이면 IsBinary, maxLines 를 넘으면 Truncated.</summary>
+    Task<GitResult<FileDiff>> GetDiffAsync(string repo, GitDiffTarget target, int maxLines = GitDiffParser.DefaultMaxLines, CancellationToken ct = default);
+
+    /// <summary>파일 blame (git blame --porcelain). revision 이 null 이면 워킹트리 기준.</summary>
+    Task<GitResult<IReadOnlyList<BlameLine>>> GetBlameAsync(string repo, string path, string? revision = null, CancellationToken ct = default);
+
     // ── 쓰기 (저장소당 한 번에 하나) ──
     Task<GitResult> StageAsync(string repo, IReadOnlyList<string> paths, CancellationToken ct = default);
     Task<GitResult> UnstageAsync(string repo, IReadOnlyList<string> paths, CancellationToken ct = default);
@@ -34,6 +40,9 @@ public interface IGitService
 
     Task<GitResult> CreateBranchAsync(string repo, string name, string? startPoint = null, bool checkout = true, CancellationToken ct = default);
     Task<GitResult> CheckoutAsync(string repo, string branch, CancellationToken ct = default);
+
+    /// <summary>git init: 폴더를 새 저장소로 만든다.</summary>
+    Task<GitResult> InitAsync(string folder, CancellationToken ct = default);
 
     /// <summary>dubious ownership 시 [이 저장소 신뢰하기]: 전역 safe.directory 에 경로를 추가한다.</summary>
     Task<GitResult> AddSafeDirectoryAsync(string path, CancellationToken ct = default);

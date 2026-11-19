@@ -36,6 +36,12 @@ public sealed record AppSettings
     /// <summary>오류 보고서 보내기 동의. 기본은 보내지 않음.</summary>
     public bool SendCrashReports { get; init; }
 
+    /// <summary>Git 저장소 폴더에서 파일 목록 위에 Git 바를 보인다 (기본 켬).</summary>
+    public bool ShowGitBar { get; init; } = true;
+
+    /// <summary>Git 저장소 폴더에 들어가면 Git 화면 탭을 옆에 자동으로 연다 (저장소마다 세션당 한 번, 기본 끔).</summary>
+    public bool AutoOpenGitView { get; init; }
+
     public static AppSettings Migrate(AppSettings s) =>
         s.SchemaVersion switch
         {

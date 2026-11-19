@@ -149,17 +149,93 @@ public partial class ShellWindow : Window, IPaneHost
         _ => null,
     };
 
-    public void OpenGit(PaneViewModel pane, string repoRoot)
+    public void OpenGit(PaneViewModel pane, string repoRoot) => OpenGitTab(pane, repoRoot, activate: true);
+
+    /// <summary>Git 뷰 탭을 열거나 (이미 있으면) 찾아 돌려준다. activate 가 false 면 지금 보던 탭을 그대로 둔다.</summary>
+    private Foldy.Presentation.Git.GitTabViewModel OpenGitTab(PaneViewModel pane, string repoRoot, bool activate)
     {
         var existing = pane.Tabs.OfType<Foldy.Presentation.Git.GitTabViewModel>().FirstOrDefault(t => string.Equals(t.RepoRoot, repoRoot, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
         {
-            pane.ActiveTab = existing;
-            return;
+            if (activate) pane.ActiveTab = existing;
+            return existing;
         }
 
         var vm = new Foldy.Presentation.Git.GitTabViewModel(_git, repoRoot);
-        pane.AddTab(vm, activate: true, index: pane.ActiveTab is null ? null : pane.Tabs.IndexOf(pane.ActiveTab) + 1, assignColor: true);
+        pane.AddTab(vm, activate: activate, index: pane.ActiveTab is null ? null : pane.Tabs.IndexOf(pane.ActiveTab) + 1, assignColor: true);
+        return vm;
+    }
+
+    public bool ShowGitBar => _settings.ShowGitBar;
+
+    private readonly HashSet<string> _autoOpenedGit = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>설정 "Git 화면 자동 열기": 저장소마다 실행 중 한 번, 폴더 탭 옆에 (탭을 바꾸지 않고) 연다.</summary>
+    public void GitDetected(PaneViewModel pane, string repoRoot)
+    {
+        if (!_settings.AutoOpenGitView || !_autoOpenedGit.Add(repoRoot))
+        {
+            return;
+        }
+
+        OpenGitTab(pane, repoRoot, activate: false);
+    }
+
+    private bool _gitBarBusy;
+
+    /// <summary>Git 바 버튼. 받기/올리기는 화면을 옮기지 않고 백그라운드로 실행하고 결과를 상태바에 보인다.</summary>
+    public void GitBarAction(PaneViewModel pane, string repoRoot, Foldy.UI.Views.GitBarCommand command)
+    {
+        switch (command)
+        {
+            case Foldy.UI.Views.GitBarCommand.Open:
+                OpenGit(pane, repoRoot);
+                break;
+            case Foldy.UI.Views.GitBarCommand.Commit:
+                OpenGitTab(pane, repoRoot, activate: true).ShowChangesTab();
+                break;
+            default:
+                _ = RunGitBarAsync(repoRoot, command == Foldy.UI.Views.GitBarCommand.Pull);
+                break;
+        }
+    }
+
+    private async Task RunGitBarAsync(string repoRoot, bool pull)
+    {
+        if (_gitBarBusy)
+        {
+            Shell.Status = "다른 Git 작업이 진행 중입니다";
+            return;
+        }
+
+        _gitBarBusy = true;
+        var label = pull ? "받기" : "올리기";
+        Shell.Status = label + " 중…";
+        try
+        {
+            Foldy.Git.GitResult r;
+            var done = label + " 완료";
+            if (pull)
+            {
+                r = await _git.PullAsync(repoRoot, Foldy.Git.PullMode.Merge);
+            }
+            else
+            {
+                var st = await _git.GetStatusAsync(repoRoot);
+                var ahead = st.Value?.Ahead ?? 0;
+                r = await _git.PushAsync(repoRoot, setUpstream: st.Value is { HasUpstream: false }, forceWithLease: false);
+                if (ahead > 0) done += $": {ahead}개 커밋";
+            }
+
+            Shell.Status = r.Success ? done : label + " 실패: " + Foldy.Presentation.Git.GitErrorText.Describe(r).Split('\n')[0];
+        }
+        finally
+        {
+            _gitBarBusy = false;
+        }
+
+        _ = Shell.Left.ActiveFolder?.RefreshAsync();
+        _ = Shell.Right.ActiveFolder?.RefreshAsync();
     }
 
     private static Foldy.UI.Markdown.MarkdownView CreateDocumentView(MarkdownTabViewModel tab, PaneViewModel pane)
@@ -171,6 +247,36 @@ public partial class ShellWindow : Window, IPaneHost
             e.Handled = true;
         };
         return view;
+    }
+
+    /// <summary>활성 폴더 탭에서 선택한(없으면 포커스된) 파일을 Git 뷰의 blame 으로 연다.</summary>
+    private void GitBlameFocusedFile()
+    {
+        var pane = Shell.ActivePane;
+        if (pane.ActiveFolder is not { Git: { } g } folder)
+        {
+            Shell.Status = "Git 저장소 안의 폴더에서 파일을 고른 뒤 실행하세요";
+            return;
+        }
+
+        var file = folder.Selection.FirstOrDefault(i => !i.IsFolder)
+            ?? folder.Items.OfType<Foldy.Presentation.Files.FileItem>().FirstOrDefault(i => !i.IsFolder && i.Name == folder.FocusName);
+        if (file is null)
+        {
+            Shell.Status = "Blame 할 파일을 먼저 고르세요";
+            return;
+        }
+
+        var root = g.RepoRoot.TrimEnd('\\', '/');
+        if (!file.FullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        {
+            Shell.Status = "이 파일은 저장소 밖에 있습니다";
+            return;
+        }
+
+        var rel = file.FullPath[root.Length..].TrimStart('\\', '/').Replace('\\', '/');
+        var gitTab = OpenGitTab(pane, g.RepoRoot, activate: true);
+        _ = gitTab.ShowBlameAsync(rel);
     }
 
     private PaneView ActiveView => Shell.ActivePane == Shell.Left ? LeftPane : RightPane;
@@ -526,7 +632,23 @@ public partial class ShellWindow : Window, IPaneHost
         Add("folder.organize", "이 폴더 정리하기…", () => OpenOrganize(Shell.ActivePane.ActiveFolder?.Path));
         Add("folder.description", "폴더 설명 편집…", EditDescription);
         Add("view.images", "이미지만 보기 켜기/끄기", () => ActiveView.ToggleImages(), Key.I, ModifierKeys.Control | ModifierKeys.Shift);
-        Add("git.open", "Git 뷰 열기", () => { if (Shell.ActivePane.ActiveFolder?.Git is { } g) OpenGit(Shell.ActivePane, g.RepoRoot); else Shell.Status = "Git 저장소가 아닙니다"; });
+        Add("git.open", "Git 뷰 열기", () =>
+        {
+            if (Shell.ActivePane.ActiveFolder?.Git is { } g)
+            {
+                OpenGit(Shell.ActivePane, g.RepoRoot);
+            }
+            else if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 0 } p && Directory.Exists(p))
+            {
+                // 저장소가 아니면 Git 뷰가 "여기에 Git 저장소 만들기" 를 안내한다
+                OpenGit(Shell.ActivePane, p);
+            }
+            else
+            {
+                Shell.Status = "Git 저장소가 아닙니다";
+            }
+        });
+        Add("git.blame", "Git: 이 파일 Blame", GitBlameFocusedFile);
         Add("file.rename", "이름 바꾸기", () => ActiveView.BeginRename(), gesture: "F2");
         Add("file.delete", "휴지통으로 삭제", () => _ = Shell.DeleteSelectionAsync(false), gesture: "Del");
         Add("file.deletePermanent", "영구 삭제", () => _ = Shell.DeleteSelectionAsync(true), gesture: "Shift+Del");
@@ -644,6 +766,8 @@ public partial class ShellWindow : Window, IPaneHost
             BuildCommands();
             _ = Shell.Left.ActiveFolder?.RefreshAsync();
             _ = Shell.Right.ActiveFolder?.RefreshAsync();
+            LeftPane.RefreshGit();
+            RightPane.RefreshGit();
         };
         new Foldy.UI.Settings.SettingsWindow(vm) { Owner = this }.ShowDialog();
     }

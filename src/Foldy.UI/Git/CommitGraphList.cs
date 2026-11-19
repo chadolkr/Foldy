@@ -134,7 +134,13 @@ public sealed class CommitGraphList : FrameworkElement, IScrollInfo
         InvalidateScroll();
     }
 
-    private void OnSelectedChanged() => _selectedIndex = IndexOf(SelectedItem);
+    private void OnSelectedChanged()
+    {
+        _selectedIndex = IndexOf(SelectedItem);
+        // 밖(blame 의 해시 클릭 등)에서 고른 커밋도 보이는 곳으로 스크롤한다
+        if (_selectedIndex >= 0 && _viewport.Height > 0) EnsureVisible(_selectedIndex);
+        InvalidateVisual();
+    }
 
     private int IndexOf(GitCommitRow? row)
     {

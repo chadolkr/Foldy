@@ -21,6 +21,20 @@ public sealed record GitChangeItem(string Path, string? OrigPath, GitChange Chan
         _ => "",
     };
 
+    /// <summary>목록 배지 글자 (한국어): 수정 · 추가 · 삭제 · 새 파일 · 충돌 …</summary>
+    public string Label => Change switch
+    {
+        GitChange.Modified => "수정",
+        GitChange.Added => "추가",
+        GitChange.Deleted => "삭제",
+        GitChange.Renamed => "이름 변경",
+        GitChange.Copied => "복사",
+        GitChange.TypeChanged => "형식 변경",
+        GitChange.Untracked => "새 파일",
+        GitChange.Conflicted => "충돌",
+        _ => "",
+    };
+
     public string FileName
     {
         get
@@ -39,6 +53,21 @@ public sealed record GitChangeItem(string Path, string? OrigPath, GitChange Chan
             return i > 0 ? p[..i] : "";
         }
     }
+}
+
+/// <summary>변경 사항 목록의 한 줄: 그룹 머리글(스테이지됨/변경됨/새 파일) 또는 파일.</summary>
+public sealed record GitChangeRow(string? HeaderText, int Count, GitChangeItem? Item)
+{
+    public bool IsHeader => Item is null;
+
+    /// <summary>체크 상태 = 스테이지됨.</summary>
+    public bool IsChecked => Item?.IsStaged ?? false;
+
+    public string HeaderLabel => HeaderText is null ? "" : $"{HeaderText} ({Count})";
+
+    public static GitChangeRow Header(string text, int count) => new(text, count, null);
+
+    public static GitChangeRow File(GitChangeItem item) => new(null, 0, item);
 }
 
 /// <summary>그래프 목록의 한 줄: 커밋 + 레인 그리기 정보.</summary>
