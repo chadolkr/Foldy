@@ -61,29 +61,22 @@
           </StackPanel>
         </Button>
 
-        <!-- 맨 아래: 앱 공통 기능을 아이콘 한 줄로 (명령·업데이트·버그 신고·설정·도움말·더 보기). 이름은 툴팁. 사이드바를 접으면 세로로 -->
+        <!-- 맨 아래: 설정·도움말·더 보기 (모든 명령·업데이트·버그 신고는 더 보기 안). 이름은 툴팁. 사이드바를 접으면 세로로 -->
         <StackPanel DockPanel.Dock="Bottom" Margin="0,4,0,6">
           <Rectangle Height="1" Margin="10,0,10,4" Fill="{DynamicResource Brush.Border}" />
           <WrapPanel HorizontalAlignment="Center" ItemWidth="34" ItemHeight="32">
-          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnFnPalette" ToolTip="모든 명령 (Ctrl+Shift+P)" AutomationProperties.Name="모든 명령">
-            <TextBlock Style="{StaticResource SideIcon}" Text="&#xE765;" Margin="0" HorizontalAlignment="Center" />
-          </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnCheckUpdate" ToolTip="지금 새 버전 확인하고 설치" AutomationProperties.Name="업데이트">
-            <TextBlock Style="{StaticResource SideIcon}" Text="&#xE895;" Margin="0" HorizontalAlignment="Center" />
-          </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnReportBug" ToolTip="버그 신고 (앱·Windows 버전과 최근 기록을 채운 GitHub 이슈 작성 페이지)" AutomationProperties.Name="버그 신고">
-            <TextBlock Style="{StaticResource SideIcon}" Text="&#xEBE8;" Margin="0" HorizontalAlignment="Center" />
-          </Button>
           <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnSettings" ToolTip="설정 (Ctrl+,)" AutomationProperties.Name="설정">
             <TextBlock Style="{StaticResource SideIcon}" Text="&#xE713;" Margin="0" HorizontalAlignment="Center" />
           </Button>
           <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnHelp" ToolTip="도움말 (F1)" AutomationProperties.Name="도움말">
             <TextBlock Style="{StaticResource SideIcon}" Text="&#xE897;" Margin="0" HorizontalAlignment="Center" />
           </Button>
-          <Button x:Name="MoreButton" Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnMore" ToolTip="테마, 숨김 파일, 목록 간격, 정보 등" AutomationProperties.Name="더 보기">
+          <Button x:Name="MoreButton" Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnMore" ToolTip="모든 명령, 테마, 숨김 파일, 업데이트, 버그 신고, 정보 등" AutomationProperties.Name="더 보기">
             <TextBlock Style="{StaticResource SideIcon}" Text="&#xE712;" Margin="0" HorizontalAlignment="Center" />
           <Button.ContextMenu>
             <ContextMenu x:Name="MoreMenu">
+              <MenuItem Header="모든 명령…" InputGestureText="Ctrl+Shift+P" Click="OnFnPalette" />
+              <Separator />
               <MenuItem x:Name="ThemeSystem" Header="테마: 시스템 설정 따르기" Click="OnTheme" Tag="System" />
               <MenuItem x:Name="ThemeLight" Header="테마: 라이트" Click="OnTheme" Tag="Light" />
               <MenuItem x:Name="ThemeDark" Header="테마: 다크" Click="OnTheme" Tag="Dark" />
@@ -94,14 +87,7 @@
               <MenuItem x:Name="DensityNormal" Header="목록 간격: 보통" Click="OnDensity" Tag="normal" />
               <MenuItem x:Name="DensityComfortable" Header="목록 간격: 널널하게" Click="OnDensity" Tag="comfortable" />
               <Separator />
-              <MenuItem Header="템플릿으로 새 폴더…" InputGestureText="Ctrl+Shift+N" Click="OnMenuTemplate" />
-              <MenuItem Header="폴더 위저드…" Click="OnMenuWizard" />
-              <MenuItem Header="이 폴더 정리하기…" Click="OnMenuOrganize" />
               <MenuItem Header="폴더 설명 편집…" Click="OnMenuDescription" />
-              <MenuItem Header="이미지만 보기" InputGestureText="Ctrl+Shift+I" Click="OnMenuImages" />
-              <MenuItem Header="폴더 분석" Click="OnMenuAnalysis" />
-              <Separator />
-              <MenuItem Header="SFTP 서버에 연결…" InputGestureText="Ctrl+Shift+O" Click="OnSftpConnect" />
               <MenuItem Header="색인 서비스 설치 (관리자)…" Click="OnInstallIndexer" />
               <Separator />
               <MenuItem Header="설정…" InputGestureText="Ctrl+," Click="OnSettings" />
@@ -109,6 +95,7 @@
               <MenuItem Header="도움말" InputGestureText="F1" Click="OnHelp" />
               <MenuItem Header="업데이트 확인…" Click="OnCheckUpdate" />
               <MenuItem Header="버그 신고…" Click="OnReportBug" />
+              <MenuItem Header="둘러보기 (처음 안내 다시 보기)" Click="OnTour" />
               <MenuItem Header="버그 진단 모드 켜기/끄기" Click="OnToggleDiagnostic" />
               <MenuItem Header="로그 폴더 열기" Click="OnOpenLogs" />
             <MenuItem Header="Foldy 정보" Click="OnAbout" />
@@ -249,9 +236,10 @@
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="이 폴더 정리, 템플릿, 관리 방식, 바탕화면·다운로드·로그 정리" AutomationProperties.Name="정리하기">
               <Button.ContextMenu>
                 <ContextMenu>
-                  <MenuItem Header="이 폴더 정리하기…" Tag="folder.organize" Click="OnGroupMenuItem" />
                   <MenuItem Header="템플릿으로 새 폴더…" Tag="folder.fromTemplate" Click="OnGroupMenuItem" InputGestureText="Ctrl+Shift+N" />
                   <MenuItem Header="폴더 위저드…" Tag="folder.wizard" Click="OnGroupMenuItem" />
+                  <Separator />
+                  <MenuItem Header="이 폴더 정리하기…" Tag="folder.organize" Click="OnGroupMenuItem" />
                   <MenuItem Header="이 폴더 관리 방식 정하기…" Tag="folder.manage" Click="OnGroupMenuItem" />
                   <Separator />
                   <MenuItem Header="바탕화면 정리" Tag="cleanup.desktop" Click="OnGroupMenuItem" />

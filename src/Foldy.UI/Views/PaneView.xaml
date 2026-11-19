@@ -168,7 +168,7 @@
       <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="6,0,0,0">
         <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" ToolTip="새로 고침 (Ctrl+R)" Click="OnRefresh" />
         <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="폴더 트리 보이기/숨기기 (Ctrl+B)" Click="OnToggleTree" />
-        <Button x:Name="ImagesBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEB9F;" ToolTip="이미지만 보기 (Ctrl+Shift+I)" Click="OnToggleImages" />
+        <Button x:Name="ImagesBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEB9F;" ToolTip="이미지만 보기 (Ctrl+Shift+I)" Click="OnToggleImages" Visibility="Collapsed" />
         <Rectangle Width="1" Margin="4,8" Fill="{DynamicResource Brush.Border}" />
         <!-- 탭 종류에 따라 같은 자리의 터미널 아이콘이 바뀐다 (DESIGN.md): 로컬 = CMD·PowerShell·관리자, SFTP = SSH·sudo -->
         <Button x:Name="CmdBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE756;" ToolTip="명령 프롬프트로 이 폴더 열기 (Ctrl+클릭: 관리자)" AutomationProperties.Name="명령 프롬프트" Click="OnCmd" />
@@ -235,6 +235,10 @@
       <GridSplitter x:Name="PreviewSplitter" Grid.Column="2" Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                     ResizeDirection="Rows" Background="Transparent" Focusable="False" Visibility="Collapsed" />
       <Border x:Name="TreeHost" Grid.RowSpan="3" Style="{DynamicResource Foldy.ListBorder}" Padding="2,6,2,6">
+        <Grid>
+        <Button x:Name="TreeHideBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE76B;" FontSize="10" Width="22" Height="22"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,2,0" Panel.ZIndex="1"
+                ToolTip="폴더 트리 숨기기 (Ctrl+B, 도구 줄의 트리 버튼으로 다시 열기)" AutomationProperties.Name="폴더 트리 숨기기" Click="OnHideTree" />
         <TreeView x:Name="Tree" BorderThickness="0" Background="Transparent" SelectedItemChanged="OnTreeSelected"
                   VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
           <TreeView.ItemContainerStyle>
@@ -244,6 +248,7 @@
             </Style>
           </TreeView.ItemContainerStyle>
         </TreeView>
+        </Grid>
       </Border>
       <GridSplitter x:Name="Splitter" Grid.Column="1" Grid.RowSpan="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False" />
 

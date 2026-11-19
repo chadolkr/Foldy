@@ -208,17 +208,9 @@ public partial class ShellWindow : Window, IPaneHost
 
     public bool ShowGitBar => _settings.ShowGitBar;
 
-    private readonly HashSet<string> _autoOpenedGit = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>설정 "Git 화면 자동 열기": 저장소마다 실행 중 한 번, 폴더 탭 옆에 (탭을 바꾸지 않고) 연다.</summary>
+    /// <summary>저장소에 들어왔을 때. "Git 화면 자동 열기" 설정은 뺐다 (좋은 기본값 > 설정): Git 바에서 한 번에 연다.</summary>
     public void GitDetected(PaneViewModel pane, string repoRoot)
     {
-        if (!_settings.AutoOpenGitView || !_autoOpenedGit.Add(repoRoot))
-        {
-            return;
-        }
-
-        OpenGitTab(pane, repoRoot, activate: false);
     }
 
     private bool _gitBarBusy;
@@ -919,7 +911,7 @@ public partial class ShellWindow : Window, IPaneHost
             }
         });
         Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
-        Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.TreeVisible = !ActiveView.TreeVisible, Key.B, ModifierKeys.Control);
+        Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.ToggleTree(), Key.B, ModifierKeys.Control);
         Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
         Add("sidebar.pin", "지금 폴더를 자주 쓰는 폴더에 고정/해제", TogglePinCurrent);
         Add("view.themeSystem", "테마: 시스템 설정 따르기", () => SetTheme(FoldyTheme.System));
@@ -1765,6 +1757,8 @@ public partial class ShellWindow : Window, IPaneHost
             CleanupNotice.Visibility = Visibility.Visible;
         }
     }
+
+    private void OnTour(object sender, RoutedEventArgs e) => _ = FirstRunTour.RunAsync(this);
 
     private void OnFnPreview(object sender, RoutedEventArgs e) => ActiveView.TogglePreview();
 
