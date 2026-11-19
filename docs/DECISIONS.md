@@ -2,6 +2,9 @@
 
 정한 것을 짧게 남긴다: 날짜, 무엇을, 왜, 다른 안. 최근 것이 위.
 
+## 2026-11-20 · AI·Claude 폴더 템플릿
+- **결정**: 템플릿 3개 추가: Claude Code 프로젝트(CLAUDE.md, .claude/skills/이름/SKILL.md, .claude/agents, .mcp.json), Claude 스킬 하나(SKILL.md + reference.md + scripts/), AI 작업 폴더(prompts·data·outputs·evals). 공식 문서(code.claude.com/docs/en/skills) 기준: 스킬은 .claude/skills/<이름>/SKILL.md, frontmatter는 description 권장. .claude/commands는 예전 방식이라 넣지 않음. .claude·CLAUDE.md·AGENTS.md·SKILL.md가 있는 폴더는 AI 프로젝트로 보고 정리 도구가 구조를 건드리지 않는다. 단, 사용자 폴더(C:\Users\이름)의 .claude는 Claude Code 사용자 설정이라 프로젝트 표시로 보지 않는다.
+
 ## 2026-11-20 · 작업 태그
 - **결정**: 태그의 원본은 각 폴더의 숨김 .foldy.md "파일 상태 태그" 칸(사람이 읽을 수 있는 목록). 디스크·PC를 바꿔도 폴더와 함께 간다. NTFS 대체 데이터 스트림은 USB·클라우드·zip에서 사라져 쓰지 않는다. Git·AI 폴더도 같은 방식이고, Git 안에서는 .git/info/exclude로 감추며(기본), [저장소에 공유]를 켜면 함께 올린다(켤 때 한 번 안내). 쓸 수 없는 폴더만 이 PC(tags-local.json)에 둔다. 기본 태그 4개(작업 완료·반영 완료·검토 중·제출 완료), Ctrl+D = 작업 완료. 칩은 이름 뒤 남는 자리에만.
 - **왜**: 사용자 질문 "디스크가 바뀌면 DB 정보는 못 쓴다"에 대한 답. 파일 이름 우선 원칙.
