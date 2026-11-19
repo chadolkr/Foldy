@@ -70,6 +70,9 @@ public partial class App : Application
             CrashReporting.Record(ev.ExceptionObject as Exception, fatal: ev.IsTerminating);
         };
 
+        // 클라우드 드라이브(G: Google Drive for desktop)는 미리보기를 누를 때만 읽는다 (온라인 전용 파일 자동 다운로드 방지).
+        Foldy.Presentation.Preview.PreviewGuards.IsCloudVolumePath = Foldy.Platform.SystemInfo.CloudVolumes.IsCloudPath;
+
         _stallDetector = new UiStallDetector(Dispatcher, TimeSpan.FromMilliseconds(200));
         var settings = Foldy.Presentation.Persistence.AppSettings.Migrate(Foldy.Presentation.Persistence.JsonFileStore.Load(Path.Combine(DataDir, "settings.json"), () => new Foldy.Presentation.Persistence.AppSettings()));
         var theme = Options.ThemeGiven ? Options.Theme : Enum.TryParse<Foldy.UI.Theming.FoldyTheme>(settings.Theme, ignoreCase: true, out var t) ? t : Foldy.UI.Theming.FoldyTheme.System;

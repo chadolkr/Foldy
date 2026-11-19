@@ -1238,7 +1238,8 @@ public partial class PaneView : UserControl
         }
 
         var images = new ItemList(_tab.Items.Where(i => !i.IsFolder && Foldy.Platform.Imaging.ImageFormats.IsImage(i.Name)));
-        _grid.AllowContentDecode = !(_tab.Path.StartsWith(@"\\", StringComparison.Ordinal) || Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path));
+        _grid.AllowContentDecode = !(_tab.Path.StartsWith(@"\\", StringComparison.Ordinal) || Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path)
+            || Foldy.Platform.SystemInfo.CloudVolumes.IsCloudPath(_tab.Path));
         _grid.ItemsSource = images;
         Scroller.Visibility = Visibility.Collapsed;
         ImageLayer.Visibility = Visibility.Visible;

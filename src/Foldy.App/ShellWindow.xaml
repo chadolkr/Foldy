@@ -216,7 +216,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                       </Grid.ColumnDefinitions>
-                      <TextBlock Style="{StaticResource SideIcon}" Text="&#xEDA2;" VerticalAlignment="Top" Margin="0,2,0,0" />
+                      <TextBlock x:Name="DriveIcon" Style="{StaticResource SideIcon}" VerticalAlignment="Top" Margin="0,2,0,0" />
                       <StackPanel Grid.Column="1" Style="{StaticResource SideLabel}" Margin="10,0,0,0" Width="150">
                         <TextBlock Text="{Binding Display}" TextTrimming="CharacterEllipsis" />
                         <ProgressBar x:Name="Bar" Height="5" Margin="0,4,0,3" Minimum="0" Maximum="1" Value="{Binding UsedFraction, Mode=OneWay}"
@@ -231,6 +231,13 @@
                     </DataTrigger>
                     <DataTrigger Binding="{Binding HasSpace}" Value="False">
                       <Setter TargetName="Bar" Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                    <!-- 아이콘은 지역 값으로 두면 트리거가 못 바꾸므로 둘 다 트리거로 준다. 클라우드 = Google Drive for desktop 등 -->
+                    <DataTrigger Binding="{Binding Cloud}" Value="False">
+                      <Setter TargetName="DriveIcon" Property="Text" Value="&#xEDA2;" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Cloud}" Value="True">
+                      <Setter TargetName="DriveIcon" Property="Text" Value="&#xE753;" />
                     </DataTrigger>
                   </DataTemplate.Triggers>
                 </DataTemplate>

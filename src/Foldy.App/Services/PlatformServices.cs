@@ -116,7 +116,8 @@ public sealed class DriveService(DriveQueueRegistry queues) : IDriveService
             var details = await queues.ForPath(drive.Root)
                 .Enqueue(_ => Drives.Details(drive.Root), WorkPriority.SizeCalc, ct)
                 .WaitAsync(TimeSpan.FromSeconds(3), ct);
-            return drive with { Label = details.Label, FreeBytes = (long?)details.Free, TotalBytes = (long?)details.Total };
+            var cloud = CloudVolumes.Remember(drive.Root, details.Label, details.FileSystem);
+            return drive with { Label = details.Label, FreeBytes = (long?)details.Free, TotalBytes = (long?)details.Total, Cloud = cloud };
         }
         catch (Exception ex) when (ex is TimeoutException or IOException or DriveUnresponsiveException or OperationCanceledException)
         {

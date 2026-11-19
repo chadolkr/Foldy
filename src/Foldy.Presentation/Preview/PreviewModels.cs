@@ -34,7 +34,7 @@ public static class PreviewMessages
 {
     public const string NotPreviewable = "미리 볼 수 없음";
     public const string CloudOnly = "클라우드 파일 — 내려받지 않음";
-    public const string NetworkDrive = "네트워크 드라이브 — [미리보기]";
+    public const string NetworkDrive = "네트워크·클라우드 드라이브 — [미리보기]";
     public const string Loading = "불러오는 중…";
     public const string Failed = "미리 볼 수 없음 (처리기 오류)";
     public const string Folder = "폴더";
