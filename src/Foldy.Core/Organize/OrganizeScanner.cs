@@ -44,7 +44,7 @@ public static class OrganizeScanner
         return false;
     }
 
-    public const string ProjectRootReason = "이 폴더는 프로젝트 폴더(.git, .sln, package.json 등이 있음)라서 기본으로는 정리하지 않습니다. 그래도 정리하려면 위의 \"프로젝트 폴더라도 맨 위 파일만 정리\"를 켜세요.";
+    public const string ProjectRootReason = "Git 저장소·개발 프로젝트 폴더(.git, .sln, package.json 등이 있음)는 정리하지 않습니다. 파일을 옮기면 빌드나 Git 기록이 깨질 수 있어요. 프로젝트 밖의 일반 폴더에서 정리해 주세요.";
 
     /// <summary>정리하면 안 되는 폴더면 이유, 아니면 null. <paramref name="allowProject"/>면 프로젝트 폴더도 허용한다.</summary>
     public static string? CheckRoot(string root, bool allowProject = false)
