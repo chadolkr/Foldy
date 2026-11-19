@@ -238,4 +238,23 @@ public sealed class VaultTests : IDisposable
         made.Complete.Should().BeFalse("폴더 링크 안의 파일은 들어가지 않았으므로 원본을 지우면 안 된다");
         made.Skipped.Should().ContainSingle(x => x.Path.EndsWith("바로가기"));
     }
+
+    [Fact]
+    public void Locked_note_save_and_open_stay_quick_with_the_strong_key()
+    {
+        // 메모 창은 Ctrl+S와 닫을 때마다 저장한다: 강한 키(PBKDF2 60만 번)여도 기다리게 하면 안 된다
+        var path = Path.Combine(_root, "속도" + SecureZip.MemoSuffix);
+        var n = new LockedNote { Markdown = new string('가', 20_000) };
+        n.Save(path, "pw");
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        n.Markdown += "더";
+        n.Save(path, "pw");
+        var save = sw.Elapsed;
+        sw.Restart();
+        LockedNote.Load(path, "pw").Markdown.Should().EndWith("더");
+        var open = sw.Elapsed;
+        save.Should().BeLessThan(TimeSpan.FromSeconds(5), $"저장 {save.TotalMilliseconds:N0}ms");
+        open.Should().BeLessThan(TimeSpan.FromSeconds(5), $"열기 {open.TotalMilliseconds:N0}ms");
+        Console.WriteLine($"memo save {save.TotalMilliseconds:N0}ms, open {open.TotalMilliseconds:N0}ms");
+    }
 }
