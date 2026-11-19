@@ -38,6 +38,29 @@
 
 유용한 옵션: `--theme system|light|dark|retro`, `--bench-list [--step N]`, `--bench-folder <폴더>`, `--list-wpf`(비교용 기본 ListView).
 
+## 설치와 제거
+
+[Releases](https://github.com/chadolkr/Foldy/releases)에서 `Foldy-<버전>-x64.msi`(권장) 또는 `Foldy-<버전>-x64-setup.zip`을 받습니다.
+
+- MSI: 더블클릭해 설치합니다. 제거는 Windows 설정 → 앱 → 설치된 앱 → Foldy → 제거.
+- setup zip: 압축을 풀고 `Foldy 설치.cmd`를 실행합니다. 제거는 같은 폴더의 `Foldy 제거.cmd`.
+- 설치하면 빠른 파일 검색을 위한 색인 서비스(FoldyIndexer, SYSTEM 권한)가 함께 설치되고, 제거할 때 함께 지워집니다.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+Windows 실행 파일(`Foldy.exe`, `Foldy.*.dll`, `foldy-index.exe`, `foldy-update.exe`)과 MSI 설치 파일은 이 저장소의 소스에서 GitHub Actions([release.yml](.github/workflows/release.yml))로만 빌드되고, 릴리스마다 승인자가 직접 승인한 뒤에 서명됩니다.
+업데이트 정보(`update.json`)는 이와 별도로 Ed25519로 서명됩니다 ([docs/release-signing.md](docs/release-signing.md)).
+
+Team roles / 역할:
+
+- Committers and reviewers / 커미터·리뷰어: [David CHA](https://github.com/chadolkr)
+- Approvers / 승인자: [David CHA](https://github.com/chadolkr)
+
+Privacy policy / 개인정보 정책: [PRIVACY.md](PRIVACY.md). 이 프로그램은 사용자가 켜거나 직접 실행한 기능(업데이트 확인, 동의한 오류 보고, SFTP·Git 연결 등)을 빼고는 어떤 정보도 다른 네트워크 시스템으로 보내지 않습니다.
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+
 ## 라이선스
 
 [GPL-3.0-or-later](LICENSE) · 개발자 David CHA · <https://github.com/chadolkr/Foldy>

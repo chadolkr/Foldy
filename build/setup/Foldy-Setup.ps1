@@ -42,6 +42,15 @@ function Step($text) { Write-Host "  · $text" }
 
 Write-Host ''
 Write-Host ($(if ($Uninstall) { 'Foldy 제거' } else { 'Foldy 설치' })) -ForegroundColor Cyan
+if (-not $Uninstall) {
+    # 개인정보 안내 (전문: payload\PRIVACY.md, https://github.com/chadolkr/Foldy/blob/main/PRIVACY.md)
+    Write-Host ''
+    Write-Host '개인정보: Foldy는 업데이트 확인(GitHub), 동의한 경우의 오류 보고, 사용자가 연 SFTP·Git 연결 말고는'
+    Write-Host '어떤 정보도 밖으로 보내지 않습니다. 업데이트 확인과 오류 보고는 설정에서 끌 수 있습니다. 전문: PRIVACY.md'
+    Write-Host 'Privacy: Foldy sends nothing to other systems except update checks (GitHub), crash reports you agree to,'
+    Write-Host 'and SFTP/Git connections you open. Both update checks and crash reports can be turned off in Settings.'
+    Write-Host ''
+}
 
 # 실행 중인 Foldy와 서비스 정지
 Get-Process Foldy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
