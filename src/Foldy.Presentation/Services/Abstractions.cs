@@ -50,12 +50,6 @@ public interface IOpenFileService
     Task<bool> ShouldUseBuiltInMarkdownAsync(string path);
 
     void OpenWithShell(string path);
-
-    /// <summary>
-    /// 원격 파일(Google Drive 등)을 열기 전에 로컬 경로로 준비한다(필요할 때만 내려받기).
-    /// null이면 이미 다른 방법(브라우저 등)으로 열었으니 더 할 일이 없다. 로컬 경로는 그대로 돌려준다.
-    /// </summary>
-    Task<string?> PrepareAsync(string path, IProgress<FileOpProgress>? progress, CancellationToken ct) => Task.FromResult<string?>(path);
 }
 
 /// <summary>드라이브 목록 (설계서: GetLogicalDrives·GetDriveType로 즉시, 이름·용량은 나중에).</summary>
@@ -68,7 +62,7 @@ public interface IDriveService
 
 public enum DriveKind : byte { Fixed, Removable, Network, CdRom, Ram, Unknown }
 
-public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null, long? FreeBytes = null, long? TotalBytes = null, bool Offline = false)
+public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null, long? FreeBytes = null, long? TotalBytes = null, bool Offline = false, bool Cloud = false)
 {
     public string Letter => Root.TrimEnd('\\');
 

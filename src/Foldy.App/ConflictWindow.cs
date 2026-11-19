@@ -61,19 +61,6 @@ public sealed class ConflictWindow : Window
         return new Foldy.Providers.Sftp.TransferConflictDecision(action, d.ApplyToAll);
     }
 
-    /// <summary>Google Drive 전송의 충돌: 같은 창으로 묻고 결과를 변환한다.</summary>
-    public static async Task<Foldy.Providers.GoogleDrive.GDriveConflictDecision> AskGDriveAsync(Foldy.Providers.GoogleDrive.GDriveConflict c, CancellationToken ct)
-    {
-        var d = await AskAsync(new CopyIssue(0, CopyIssueKind.Conflict, c.Source, c.Dest, "", false), ct);
-        var action = d.Action switch
-        {
-            ConflictAction.Overwrite => Foldy.Providers.GoogleDrive.GDriveConflictAction.Overwrite,
-            ConflictAction.Rename => Foldy.Providers.GoogleDrive.GDriveConflictAction.Rename,
-            _ => Foldy.Providers.GoogleDrive.GDriveConflictAction.Skip,
-        };
-        return new Foldy.Providers.GoogleDrive.GDriveConflictDecision(action, d.ApplyToAll);
-    }
-
     /// <summary>UI 스레드에서 묻고 결정을 돌려준다 (작업 스레드에서 불러도 된다).</summary>
     public static Task<ConflictDecision> AskAsync(CopyIssue issue, CancellationToken ct)
     {

@@ -86,25 +86,6 @@ public class PathUtilTests
     }
 
     [Fact]
-    public void GDrive_paths()
-    {
-        PathUtil.Normalize("gdrive://Me@Gmail.com//Work//a b/").Should().Be("gdrive://me@gmail.com/Work/a b");
-        PathUtil.Normalize("gdrive://me@gmail.com").Should().Be("gdrive://me@gmail.com/");
-        PathUtil.Normalize("gdrive://me@gmail.com/a/../b").Should().BeNull();
-        PathUtil.Normalize("gdrive:///a").Should().BeNull();
-        PathUtil.Parent("gdrive://me@gmail.com/Work/a").Should().Be("gdrive://me@gmail.com/Work");
-        PathUtil.Parent("gdrive://me@gmail.com/Work").Should().Be("gdrive://me@gmail.com/");
-        PathUtil.Parent("gdrive://me@gmail.com/").Should().BeNull();
-        PathUtil.DisplayName("gdrive://me@gmail.com/").Should().Be(PathUtil.GDriveRootName);
-        PathUtil.DisplayName("gdrive://me@gmail.com/Work/r.md").Should().Be("r.md");
-        PathUtil.Segments("gdrive://me@gmail.com/Work").Select(s => s.Path).Should().Equal("gdrive://me@gmail.com/", "gdrive://me@gmail.com/Work");
-        PathUtil.Segments("gdrive://me@gmail.com/Work")[0].Name.Should().Contain("me@gmail.com");
-        PathUtil.IsRemoteUri("gdrive://x/").Should().BeTrue();
-        PathUtil.IsRemoteUri("sftp://x/").Should().BeTrue();
-        PathUtil.IsRemoteUri(@"C:\x").Should().BeFalse();
-    }
-
-    [Fact]
     public void Parent_of_root_is_null()
     {
         PathUtil.Parent(@"C:\").Should().BeNull();
