@@ -44,7 +44,6 @@ public partial class ShellWindow : Window, IPaneHost
     private readonly List<PaletteCommand> _commands = [];
     private IndexerClient? _indexer;
     private readonly SftpSessions _sftp;
-    private readonly GDriveSessions _gdrive;
     private readonly Foldy.Git.GitService _git = new();
     private Foldy.Core.Templates.TemplateLibrary? _templates;
     private Foldy.Core.Descriptions.FolderDescriptionService? _descriptions;
@@ -65,9 +64,7 @@ public partial class ShellWindow : Window, IPaneHost
         _drives = new DriveService(_queues);
         var ui = new WpfDispatcher(Dispatcher);
         _sftp = new SftpSessions();
-        _gdrive = new GDriveSessions(ConflictWindow.AskGDriveAsync);
-        Foldy.Presentation.Preview.PreviewViewModel.RemoteFetch = (p, ct) => _gdrive.Provider.FetchToCacheAsync(p, null, ct);
-        _env = new TabEnvironment(new ProviderRouter(_provider, _sftp.Provider, _gdrive.Provider), ui)
+        _env = new TabEnvironment(new ProviderRouter(_provider, _sftp.Provider), ui)
         {
             TypeName = TypeNames.Get,
             Watcher = new FolderWatchService(),
@@ -76,15 +73,13 @@ public partial class ShellWindow : Window, IPaneHost
             FolderSizes = new IndexerFolderSizes(() => _indexer),
         };
         Shell = new ShellViewModel(_env, new ShellServices(
-            new GDriveFileOperationService(
-                new SftpAwareFileOperationService(
-                    new NativeCopyFileOperationService(
-                        new ShellFileOperationService(() => OwnerHandle),
-                        options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync, ThreadsProvider = () => _settings.CopyThreads }),
-                    _sftp.Provider,
-                    new SftpTransferOptions { ResolveConflict = ConflictWindow.AskTransferAsync }),
-                _gdrive),
-            new GDriveOpenFileService(new ShellOpenFileService(), _gdrive),
+            new SftpAwareFileOperationService(
+                new NativeCopyFileOperationService(
+                    new ShellFileOperationService(() => OwnerHandle),
+                    options: new NativeCopyFileOperationOptions { ResolveConflict = ConflictWindow.AskAsync, ThreadsProvider = () => _settings.CopyThreads }),
+                _sftp.Provider,
+                new SftpTransferOptions { ResolveConflict = ConflictWindow.AskTransferAsync }),
+            new ShellOpenFileService(),
             new TerminalService(() => _settings, (p, sudo) => _sftp.OpenTerminal(p, sudo))))
         {
             Settings = _settings,
@@ -439,7 +434,6 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         _updater.Dispose();
-        _gdrive.Dispose();
         _queues.DisposeAsync().AsTask().Wait(500);
         if (_indexer is not null)
         {
@@ -689,7 +683,6 @@ public partial class ShellWindow : Window, IPaneHost
         Add("view.themeDark", "테마: 다크", () => SetTheme(FoldyTheme.Dark));
         Add("view.themeRetro", "테마: 레트로", () => SetTheme(FoldyTheme.Retro));
         Add("sftp.connect", "SFTP 서버에 연결…", ConnectSftp, Key.O, ModifierKeys.Control | ModifierKeys.Shift);
-        Add("gdrive.connect", "Google Drive 열기/연결…", ConnectGDrive);
         Add("indexer.install", "색인 서비스 설치 (관리자, 전체 드라이브 즉시 검색)", () => RunIndexerSetup(install: true));
         Add("indexer.uninstall", "색인 서비스 제거 (관리자)", () => RunIndexerSetup(install: false));
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
@@ -829,7 +822,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     private async void NewFromTemplate()
     {
-        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsRemoteUri(tab.Path))
+        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsSftp(tab.Path))
         {
             return;
         }
@@ -843,7 +836,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void OpenWizard()
     {
-        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsRemoteUri(tab.Path))
+        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsSftp(tab.Path))
         {
             return;
         }
@@ -863,7 +856,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void OpenOrganize(string? folder)
     {
-        if (string.IsNullOrEmpty(folder) || Foldy.Presentation.Navigation.PathUtil.IsRemoteUri(folder))
+        if (string.IsNullOrEmpty(folder) || Foldy.Presentation.Navigation.PathUtil.IsSftp(folder))
         {
             return;
         }
@@ -875,7 +868,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void EditDescription()
     {
-        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsRemoteUri(tab.Path))
+        if (Shell.ActivePane.ActiveFolder is not { } tab || Foldy.Presentation.Navigation.PathUtil.IsSftp(tab.Path))
         {
             return;
         }
@@ -1040,18 +1033,6 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private void OnSftpConnect(object sender, RoutedEventArgs e) => ConnectSftp();
-
-    /// <summary>Google Drive: 연결 창에서 계정을 고르거나 새로 로그인하면 그 드라이브를 새 탭으로 연다.</summary>
-    private void ConnectGDrive()
-    {
-        var dlg = new GDriveConnectWindow(_gdrive) { Owner = this };
-        if (dlg.ShowDialog() == true && dlg.Result is { } url)
-        {
-            Shell.ActivePane.NewFolderTab(url);
-        }
-    }
-
-    private void OnGDriveConnect(object sender, RoutedEventArgs e) => ConnectGDrive();
 
     private void OnMenuTemplate(object sender, RoutedEventArgs e) => NewFromTemplate();
 

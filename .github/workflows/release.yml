@@ -16,9 +16,6 @@ env:
   SIGNPATH_ENABLED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' && secrets.SIGNPATH_API_TOKEN != '' }}
   SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG || 'Foldy' }}
   SIGNPATH_POLICY_SLUG: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
-  # Google Drive OAuth 클라이언트 (docs/google-drive.md). MSBuild가 환경 변수를 속성으로 읽어 앱에 넣는다. 없으면 사용자가 직접 넣는다.
-  FoldyGoogleClientId: ${{ vars.FOLDY_GOOGLE_CLIENT_ID }}
-  FoldyGoogleClientSecret: ${{ secrets.FOLDY_GOOGLE_CLIENT_SECRET }}
 
 concurrency:
   group: release-${{ github.ref }}

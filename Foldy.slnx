@@ -24,9 +24,6 @@
     <Project Path="src/Foldy.Presentation/Foldy.Presentation.csproj">
       <Platform Project="x64" />
     </Project>
-    <Project Path="src/Foldy.Providers.GoogleDrive/Foldy.Providers.GoogleDrive.csproj">
-      <Platform Project="x64" />
-    </Project>
     <Project Path="src/Foldy.Providers.Local/Foldy.Providers.Local.csproj">
       <Platform Project="x64" />
     </Project>
@@ -57,9 +54,6 @@
       <Platform Project="x64" />
     </Project>
     <Project Path="tests/Foldy.ImageBench/Foldy.ImageBench.csproj">
-      <Platform Project="x64" />
-    </Project>
-    <Project Path="tests/Foldy.GoogleDrive.Tests/Foldy.GoogleDrive.Tests.csproj">
       <Platform Project="x64" />
     </Project>
     <Project Path="tests/Foldy.Imaging.Tests/Foldy.Imaging.Tests.csproj">
