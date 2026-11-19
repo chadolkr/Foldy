@@ -2,6 +2,19 @@
 
 정한 것을 짧게 남긴다: 날짜, 무엇을, 왜, 다른 안. 최근 것이 위.
 
+## 2026-11-20 · 0.9.0 → 0.9.1
+- **경위**: 0.9.0 태그의 릴리스 빌드가 CI에서 실패했다. 관리자 권한 러너에서 UI 자동 테스트가 띄운 Foldy가 "관리자 해제(Deelevate)"로 다시 떠서 테스트가 프로세스를 놓쳤고, 화면 자동 점검의 작업 창 캡처가 작은 화면에서 그림 밖을 잘랐다. 둘을 고치고(시험용 데이터 폴더 FOLDY_DATA_DIR이면 다시 띄우지 않음, 자르기를 그림 안으로) 같은 내용을 0.9.1로 냈다. 0.9.0은 배포되지 않았다.
+- **왜 0.9.1인가**: 이미 올라간 태그를 옮기면(강제) 기록이 꼬인다. 번호를 하나 올리는 쪽이 단순하고 안전하다.
+
+## 2026-11-19 · 테스트 자동화 방침
+- **결정**: 테스트는 최대한 자동으로. UI 자동 테스트는 FlaUI(UI Automation)로 짜서 GitHub Actions의 Windows 러너에서 돌린다(Playwright는 WPF에 못 씀). 모든 화면을 실제로 띄워 찍는 자동 점검(doc-screenshots -Strict)도 CI에서 돈다. 일반 릴리스는 자동 테스트만 통과하면 배포하고, 끝까지 자동화가 안 되는 수동 점검(UAC 클릭, 회사 프록시, 느린 보안 드라이브 등, docs/TESTING.md)은 큰 릴리스(0.9·1.0) 전이나 관련 코드가 바뀌었을 때만 돌린다.
+- **왜**: 수동 점검 때문에 자동 배포가 막히면 안 된다.
+
+## 2026-11-19 · 화면 크기: Windows 설정 따르기
+- **결정**: 기본은 Windows 설정을 따른다. 디스플레이 배율(DPI)은 원래 모니터마다 따라가고, 접근성의 "텍스트 크기"(WPF가 스스로 안 따름)는 Foldy가 읽어 창 전체를 그만큼 키우며, 바꾸면 바로 따라간다. Ctrl+= / Ctrl+-는 그 위의 개인 조정, Ctrl+0은 다시 Windows 따르기. 더 보기 → 화면 크기(100~150%)도 있다.
+- **왜**: "실버용"은 Windows에서 이미 정한 크기를 따르는 게 가장 단순하다.
+- **다른 안**: Foldy만의 큰 글씨 설정 (Windows 설정과 따로 놀아 기각, 개인 조정으로만 남김).
+
 ## 2026-11-20 · AI·Claude 폴더 템플릿
 - **결정**: 템플릿 3개 추가: Claude Code 프로젝트(CLAUDE.md, .claude/skills/이름/SKILL.md, .claude/agents, .mcp.json), Claude 스킬 하나(SKILL.md + reference.md + scripts/), AI 작업 폴더(prompts·data·outputs·evals). 공식 문서(code.claude.com/docs/en/skills) 기준: 스킬은 .claude/skills/<이름>/SKILL.md, frontmatter는 description 권장. .claude/commands는 예전 방식이라 넣지 않음. .claude·CLAUDE.md·AGENTS.md·SKILL.md가 있는 폴더는 AI 프로젝트로 보고 정리 도구가 구조를 건드리지 않는다. 단, 사용자 폴더(C:\Users\이름)의 .claude는 Claude Code 사용자 설정이라 프로젝트 표시로 보지 않는다.
 
