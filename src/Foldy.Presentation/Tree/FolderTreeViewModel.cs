@@ -73,7 +73,8 @@ public sealed partial class FolderNode : ObservableObject
             Children.Clear();
             foreach (var f in folders)
             {
-                Children.Add(new FolderNode(_provider, f.Name, Navigation.PathUtil.IsSftp(Path) ? JoinSftp(Path, f.Name) : f.Path.Value));
+                var childPath = Navigation.PathUtil.IsSftp(Path) ? JoinSftp(Path, f.Name) : f.Path.Value;
+                Children.Add(new FolderNode(_provider, f.Name, childPath, glyph: Foldy.Core.Managed.ManagedFolders.IsRoot(childPath) ? ManagedGlyph : null));
             }
 
             _loaded = true;
@@ -87,6 +88,9 @@ public sealed partial class FolderNode : ObservableObject
             IsLoading = false;
         }
     }
+
+    /// <summary>관리 방식을 정한 폴더의 트리 표시 (깃발).</summary>
+    public const string ManagedGlyph = "";
 
     private static string JoinSftp(string parent, string name) => parent.TrimEnd('/') + "/" + name;
 }

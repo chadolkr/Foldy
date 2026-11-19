@@ -341,6 +341,7 @@ public partial class PaneView : UserControl
             case nameof(FolderTabViewModel.Path):
                 UpdateNav();
                 _tree?.ShowFor(_tab!.Path);
+                _ = UpdateManagedBarAsync();
                 break;
             case nameof(FolderTabViewModel.Git):
                 UpdateGit();
@@ -401,6 +402,7 @@ public partial class PaneView : UserControl
         GitText.Text = g is null ? "" : g.Changes > 0 ? $"{g.BranchText} · 변경 {g.Changes}" : g.BranchText;
         GitChip.ToolTip = g?.RepoRoot;
         UpdateGitBar();
+        _ = UpdateManagedBarAsync();
         List.Redraw();
         if (g is not null && _host is not null && _pane is not null && !string.Equals(_gitDetectedRoot, g.RepoRoot, StringComparison.OrdinalIgnoreCase))
         {
@@ -865,6 +867,91 @@ public partial class PaneView : UserControl
         }
     }
 
+    // ───────────── 관리 방식 (.foldy.md) ─────────────
+
+    private string? _managedRoot;
+    private int _managedVersion;
+
+    /// <summary>
+    /// 지금 폴더가 관리 폴더 안이면 한 줄로 알린다: "PARA로 관리 중 · 정리할 것 3가지".
+    /// 로컬 고정 드라이브의 빠른 폴더에서만 확인한다 (느린·네트워크 드라이브는 건너뜀).
+    /// </summary>
+    private async Task UpdateManagedBarAsync()
+    {
+        var version = ++_managedVersion;
+        var path = _tab?.Path;
+        if (path is null || _tab!.Git is not null || path.Length < 3 || path[1] != ':' || _tab.IsSlowDrive
+            || Foldy.Platform.SystemInfo.Drives.TypeOf(path[..3]) != Foldy.Platform.SystemInfo.NativeDriveType.Fixed)
+        {
+            ManagedBar.Visibility = Visibility.Collapsed;
+            _managedRoot = null;
+            return;
+        }
+
+        var found = await Task.Run(() =>
+        {
+            var r = Foldy.Core.Managed.ManagedFolders.Resolve(path);
+            if (r is not { } m)
+            {
+                return ((string Root, string Name, int Count)?)null;
+            }
+
+            int count;
+            try
+            {
+                count = Foldy.Core.Managed.ManagedFolders.Suggest(m.Root, m.Method, DateTime.UtcNow).Count;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                count = 0;
+            }
+
+            return (m.Root, m.Method.Name, count);
+        });
+        if (version != _managedVersion)
+        {
+            return;
+        }
+
+        if (found is not { } f)
+        {
+            ManagedBar.Visibility = Visibility.Collapsed;
+            _managedRoot = null;
+            return;
+        }
+
+        _managedRoot = f.Root;
+        var here = string.Equals(f.Root.TrimEnd('\\'), path.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+        ManagedBarText.Text = (here ? $"{f.Name} 방법으로 관리 중" : $"{f.Name} 방법으로 관리 중 ({System.IO.Path.GetFileName(f.Root.TrimEnd('\\'))})")
+            + (f.Count > 0 ? $" · 정리할 것 {f.Count}가지" : " · 잘 정리돼 있어요");
+        ManagedBar.ToolTip = $"{f.Root}의 .foldy.md에 정한 방법을 따릅니다. Foldy는 저절로 옮기지 않고, 확인을 받은 뒤 옮겨요.";
+        ManagedBarButton.Visibility = f.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        ManagedBar.Visibility = Visibility.Visible;
+    }
+
+    private void OnManagedBarOpen(object sender, RoutedEventArgs e)
+    {
+        if (_managedRoot is not null)
+        {
+            _host?.ShowManagedSuggestions(_managedRoot);
+        }
+    }
+
+    private void OnManagedBarSettings(object sender, RoutedEventArgs e)
+    {
+        if (_managedRoot is not null)
+        {
+            _host?.ManageFolder(_managedRoot);
+        }
+    }
+
+    /// <summary>관리 방식을 바꾼 뒤 다시 확인 (호스트가 부른다).</summary>
+    public void RefreshManaged()
+    {
+        _ = UpdateManagedBarAsync();
+        List.Redraw();
+    }
+
     // ───────────── 셸 메뉴 ─────────────
 
     private void OnContextRequested(object? sender, FileListContextEventArgs e)
@@ -881,9 +968,18 @@ public partial class PaneView : UserControl
         }
         var extended = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
         // PointToScreen은 이미 장치 픽셀
+        // 폴더 하나(또는 빈 곳 = 지금 폴더)에서는 "이 폴더 관리 방식 정하기"를 맨 위에 덧붙인다 (로컬 드라이브만)
+        var target = paths.Length == 1 && e.Index >= 0 && CurrentSelection[0].IsFolder ? paths[0] : paths.Length == 0 ? _tab?.Path : null;
+        string[]? extra = target is { Length: > 2 } && target[1] == ':' ? ["이 폴더 관리 방식 정하기…"] : null;
         var verb = _host.ShellMenu.Show(
             _host.OwnerHandle, paths, (int)e.ScreenPoint.X, (int)e.ScreenPoint.Y, extended,
-            backgroundFolder: paths.Length == 0 ? _tab!.Path : null);
+            backgroundFolder: paths.Length == 0 ? _tab!.Path : null, extraItems: extra);
+        if (verb == "foldy:0" && target is not null)
+        {
+            _host.ManageFolder(target);
+            return;
+        }
+
         if (verb == "rename")
         {
             BeginRename();

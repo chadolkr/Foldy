@@ -25,6 +25,7 @@ public sealed class IconCache
     private readonly ConcurrentDictionary<string, byte> _pending = new(StringComparer.OrdinalIgnoreCase);
     private readonly BlockingQueue _queue;
     private ImageSource? _folder;
+    private ImageSource? _managed;
 
     public IconCache()
     {
@@ -43,7 +44,9 @@ public sealed class IconCache
 
         if (item.IsFolder)
         {
-            return _folder ??= Load(ShellInfo.GenericIcon("", isFolder: true));
+            _folder ??= Load(ShellInfo.GenericIcon("", isFolder: true));
+            // 관리 방식을 정한 폴더(.foldy.md가 있는 맨 위 폴더)만 작은 표시를 붙인다. 하위 폴더는 그대로.
+            return Foldy.Core.Managed.ManagedFolders.IsRoot(item.FullPath) ? _managed ??= Mark(_folder) : _folder;
         }
 
         var ext = item.Extension;
@@ -76,6 +79,31 @@ public sealed class IconCache
 
     private static bool IsLocalFixed(string path) =>
         path.Length > 2 && path[1] == ':' && Drives.TypeOf(path[..3]) == NativeDriveType.Fixed && !CloudVolumes.IsCloudPath(path) && !Foldy.Presentation.Services.DriveSpeedTracker.Shared.IsSlow(path);
+
+    /// <summary>폴더 아이콘 오른쪽 아래에 강조색 점(관리 폴더 표시).</summary>
+    private static RenderTargetBitmap? Mark(ImageSource? folder)
+    {
+        if (folder is null)
+        {
+            return null;
+        }
+
+        var w = folder.Width;
+        var h = folder.Height;
+        var dv = new System.Windows.Media.DrawingVisual();
+        using (var dc = dv.RenderOpen())
+        {
+            dc.DrawImage(folder, new Rect(0, 0, w, h));
+            var r = Math.Max(3, w * 0.22);
+            var accent = Application.Current?.TryFindResource("Brush.Accent") as Brush ?? Brushes.DarkOrange;
+            dc.DrawEllipse(accent, new Pen(Brushes.White, Math.Max(1, w / 16)), new Point(w - r, h - r), r, r);
+        }
+
+        var bmp = new RenderTargetBitmap((int)Math.Ceiling(w), (int)Math.Ceiling(h), 96, 96, PixelFormats.Pbgra32);
+        bmp.Render(dv);
+        bmp.Freeze();
+        return bmp;
+    }
 
     private static BitmapSource? Load(IntPtr hIcon)
     {

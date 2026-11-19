@@ -197,6 +197,10 @@ internal static class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DestroyMenu(IntPtr hMenu);
 
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "InsertMenuW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool InsertMenu(IntPtr hMenu, uint uPosition, uint uFlags, UIntPtr uIDNewItem, string? lpNewItem);
+
     [DllImport("user32.dll")]
     public static extern uint TrackPopupMenuEx(IntPtr hmenu, uint fuFlags, int x, int y, IntPtr hwnd, IntPtr lptpm);
 

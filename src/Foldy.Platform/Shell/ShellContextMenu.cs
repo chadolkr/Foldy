@@ -19,7 +19,10 @@ public sealed class ShellContextMenu
     private const uint CMIC_MASK_UNICODE = 0x00004000;
     private const uint CMIC_MASK_PTINVOKE = 0x20000000;
     private const uint FirstId = 1;
-    private const uint LastId = 0x7FFF;
+    private const uint LastId = 0x7EFF;
+
+    // Foldy가 맨 위에 덧붙이는 메뉴 (셸 메뉴 id와 겹치지 않는 범위)
+    private const uint ExtraFirstId = 0x7F00;
 
     private IContextMenu2? _menu2;
     private IContextMenu3? _menu3;
@@ -58,7 +61,8 @@ public sealed class ShellContextMenu
     /// 메뉴를 띄우고 고른 명령을 실행한다. 반환값: 실행한 동사(verb) 이름 또는 null.
     /// "rename"을 고르면 실행하지 않고 그대로 돌려준다 (Foldy의 이름 바꾸기 입력으로 처리).
     /// </summary>
-    public string? Show(IntPtr hwnd, IReadOnlyList<string> paths, int screenX, int screenY, bool extended, string? backgroundFolder = null)
+    /// <param name="extraItems">맨 위에 덧붙일 Foldy 메뉴. 고르면 "foldy:번호"(0부터)를 돌려준다.</param>
+    public string? Show(IntPtr hwnd, IReadOnlyList<string> paths, int screenX, int screenY, bool extended, string? backgroundFolder = null, IReadOnlyList<string>? extraItems = null)
     {
         var pidls = new List<IntPtr>();
         IntPtr folderPtr = IntPtr.Zero, menuPtr = IntPtr.Zero, hmenu = IntPtr.Zero;
@@ -88,10 +92,25 @@ public sealed class ShellContextMenu
                 return null;
             }
 
+            if (extraItems is { Count: > 0 })
+            {
+                const uint MF_BYPOSITION = 0x400, MF_STRING = 0, MF_SEPARATOR = 0x800;
+                Native.InsertMenu(hmenu, 0, MF_BYPOSITION | MF_SEPARATOR, UIntPtr.Zero, null);
+                for (var i = extraItems.Count - 1; i >= 0; i--)
+                {
+                    Native.InsertMenu(hmenu, 0, MF_BYPOSITION | MF_STRING, (UIntPtr)(ExtraFirstId + (uint)i), extraItems[i]);
+                }
+            }
+
             var cmd = Native.TrackPopupMenuEx(hmenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, screenX, screenY, hwnd, IntPtr.Zero);
             if (cmd == 0)
             {
                 return null;
+            }
+
+            if (cmd >= ExtraFirstId)
+            {
+                return "foldy:" + (cmd - ExtraFirstId);
             }
 
             var verb = Verb(menu, cmd - FirstId);

@@ -207,6 +207,17 @@
       </Border>
     </Border>
 
+    <!-- 관리 방식 바: 가장 가까운 .foldy.md를 따른다 (Git 바가 없을 때만) -->
+    <Border x:Name="ManagedBar" Grid.Row="3" Margin="8,0,8,6" Padding="10,0,4,0" Height="30" CornerRadius="{DynamicResource Radius}" Visibility="Collapsed"
+            Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+      <DockPanel LastChildFill="True">
+        <Button DockPanel.Dock="Right" x:Name="ManagedBarButton" Content="정리할 것 보기" Margin="2,3" Padding="10,0" Click="OnManagedBarOpen" />
+        <Button DockPanel.Dock="Right" Content="방식 바꾸기" Margin="2,3" Padding="10,0" Click="OnManagedBarSettings" />
+        <TextBlock Text="&#xE74C;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock x:Name="ManagedBarText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+
     <!-- 4행: 트리 | 목록 -->
     <Grid Grid.Row="4" Margin="8,0,8,8">
       <Grid.ColumnDefinitions>

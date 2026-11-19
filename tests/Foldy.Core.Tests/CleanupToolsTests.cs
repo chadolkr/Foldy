@@ -2,6 +2,7 @@ using System.IO.Compression;
 using Foldy.Core.Desktop;
 using Foldy.Core.Downloads;
 using Foldy.Core.Logs;
+using Foldy.Core.Managed;
 
 namespace Foldy.Core.Tests;
 
@@ -119,5 +120,40 @@ public sealed class CleanupToolsTests : IDisposable
         DesktopTidy.Undo(journal).Should().Be(2);
         File.Exists(doc).Should().BeTrue();
         File.Exists(pic).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Managed_folder_resolves_nearest_method_suggests_moves_and_undo_restores()
+    {
+        var root = Path.Combine(_root, "work");
+        Directory.CreateDirectory(Path.Combine(root, "1_Projects", "옛 프로젝트"));
+        Directory.CreateDirectory(Path.Combine(root, "4_Archives"));
+        var old = Now.AddDays(-200);
+        Directory.SetLastWriteTimeUtc(Path.Combine(root, "1_Projects", "옛 프로젝트"), old);
+        var loose = Make(@"work\메모.txt", "m", Now.AddDays(-1));
+        Make(Path.Combine("work", "run.exe"), "x", Now.AddDays(-1));
+
+        ManagedFolders.CannotManage(root).Should().BeNull();
+        ManagedFolders.SetMethod(root, FolderMethod.Para);
+        File.GetAttributes(Path.Combine(root, ManagedFolders.FileName)).Should().HaveFlag(FileAttributes.Hidden);
+        File.ReadAllText(Path.Combine(root, ManagedFolders.FileName)).Should().Contain("정리 방법: PARA").And.Contain("지워도 괜찮아요");
+        ManagedFolders.Resolve(Path.Combine(root, "1_Projects"))!.Value.Method.Should().Be(FolderMethod.Para, "하위 폴더는 가장 가까운 .foldy.md를 따른다");
+
+        var s = ManagedFolders.Suggest(root, FolderMethod.Para, Now);
+        var moves = s.SelectMany(x => x.Moves).ToList();
+        moves.Select(m => Path.GetRelativePath(root, m.Dst)).Should().BeEquivalentTo([Path.Combine(ManagedFolders.Inbox, "메모.txt"), Path.Combine("4_Archives", "옛 프로젝트")]);
+        moves.Should().NotContain(m => m.Src.EndsWith("run.exe", StringComparison.Ordinal), "실행 파일은 옮기지 않는다");
+
+        var journal = Path.Combine(_root, "managed.json");
+        var (done, skipped) = ManagedFolders.Apply(moves, journal);
+        done.Should().HaveCount(2);
+        skipped.Should().BeEmpty();
+        File.Exists(loose).Should().BeFalse();
+        ManagedFolders.Undo(journal).Should().Be(2);
+        File.Exists(loose).Should().BeTrue();
+        Directory.Exists(Path.Combine(root, "1_Projects", "옛 프로젝트")).Should().BeTrue();
+
+        Directory.CreateDirectory(Path.Combine(root, "repo", ".git"));
+        ManagedFolders.CannotManage(Path.Combine(root, "repo")).Should().Contain("Git");
     }
 }

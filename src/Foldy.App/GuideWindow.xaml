@@ -1,0 +1,18 @@
+<Window x:Class="Foldy.App.GuideWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="620" Height="600" MinWidth="440" MinHeight="380"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource Brush.Window}" Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}"
+        TextOptions.TextFormattingMode="Display" SnapsToDevicePixels="True" UseLayoutRounding="True">
+  <DockPanel>
+    <!-- 고르기: 지금 질문의 선택지 -->
+    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="16,10" Background="{DynamicResource Brush.Surface}">
+      <WrapPanel x:Name="Choices" HorizontalAlignment="Right" />
+    </Border>
+    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Padding="16,12">
+      <StackPanel x:Name="Messages" />
+    </ScrollViewer>
+  </DockPanel>
+</Window>

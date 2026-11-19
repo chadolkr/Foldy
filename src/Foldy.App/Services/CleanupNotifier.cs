@@ -67,7 +67,27 @@ public static class CleanupNotifier
             }
         }
 
-        if (DownloadsCleanupWindow.DefaultFolder() is { } dl)
+        // 관리 방식을 정한 폴더 (로컬 고정 드라이브만)
+        foreach (var root in Foldy.Core.Managed.ManagedFolders.KnownRoots())
+        {
+            if (root.Length < 3 || root[1] != ':' || !Directory.Exists(root) || Foldy.Presentation.Services.DriveSpeedTracker.Shared.IsSlow(root)
+                || Foldy.Platform.SystemInfo.Drives.TypeOf(root[..3]) != Foldy.Platform.SystemInfo.NativeDriveType.Fixed)
+            {
+                continue;
+            }
+
+            if (Foldy.Core.Managed.ManagedFolders.Resolve(root) is { } m)
+            {
+                var list = await Task.Run(() => Foldy.Core.Managed.ManagedFolders.Suggest(m.Root, m.Method, DateTime.UtcNow), ct);
+                var moves = list.Sum(s => s.Moves.Count);
+                if (moves >= 5)
+                {
+                    return new CleanupFinding($"\"{Path.GetFileName(root)}\" 폴더({m.Method.Name})에 정리할 것이 {list.Count:N0}가지 있어요. 어떻게 옮길지 먼저 보여 드릴게요.", "managed", root);
+                }
+            }
+        }
+
+        if (CleanupPaths.Downloads() is { } dl)
         {
             var items = await Task.Run(() =>
             {
@@ -81,10 +101,10 @@ public static class CleanupNotifier
             }
         }
 
-        var desktop = DesktopTidyWindow.DesktopFolder;
+        var desktop = CleanupPaths.Desktop;
         if (Directory.Exists(desktop))
         {
-            var moves = await Task.Run(() => Foldy.Core.Desktop.DesktopTidy.Plan(desktop, DesktopTidyWindow.ArchiveRoot, DateTime.UtcNow), ct);
+            var moves = await Task.Run(() => Foldy.Core.Desktop.DesktopTidy.Plan(desktop, CleanupPaths.DesktopArchive, DateTime.UtcNow), ct);
             if (moves.Count >= Foldy.Core.Desktop.DesktopTidy.NoticeCount)
             {
                 return new CleanupFinding($"바탕화면에 한동안 쓰지 않은 파일이 {moves.Count:N0}개 있어요. 지우지 않고 종류별로 보관해 드릴까요?", "desktop", desktop);

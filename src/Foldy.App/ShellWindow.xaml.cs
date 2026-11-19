@@ -59,6 +59,12 @@ public partial class ShellWindow : Window, IPaneHost
     {
         InitializeComponent();
         _settings = AppSettings.Migrate(JsonFileStore.Load(_settingsPath, () => new AppSettings()));
+        Foldy.Core.Managed.ManagedFolders.LoadRegistry(Path.Combine(App.DataDir, "managed-folders.json"));
+        Foldy.Core.Managed.ManagedFolders.Changed += () => Dispatcher.BeginInvoke(() =>
+        {
+            LeftPane.RefreshManaged();
+            RightPane.RefreshManaged();
+        });
         _queues = new DriveQueueRegistry(nativeIo: new NativeIoCancel(Foldy.Platform.SystemInfo.Drives.CurrentNativeThreadId, id => Foldy.Platform.SystemInfo.Drives.CancelSynchronousIo(id)));
         _provider = new LocalProvider(_queues);
         _drives = new DriveService(_queues);
@@ -1483,22 +1489,32 @@ public partial class ShellWindow : Window, IPaneHost
         var p = drive ?? Shell.ActivePane.ActiveFolder?.Path;
         var root = p is { Length: >= 2 } && p[1] == ':' ? Path.GetPathRoot(p) : null;
         root ??= Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
-        new LogCleanupWindow(root, Shell) { Owner = this }.Show();
+        _ = CleanupFlows.LogsAsync(this, root, Shell);
     }
 
     private void OpenDownloadsCleanup(string? folder)
     {
-        folder ??= DownloadsCleanupWindow.DefaultFolder();
+        folder ??= CleanupPaths.Downloads();
         if (folder is null)
         {
             Shell.Status = "다운로드 폴더를 찾지 못했습니다";
             return;
         }
 
-        new DownloadsCleanupWindow(folder, Shell) { Owner = this }.Show();
+        _ = CleanupFlows.DownloadsAsync(this, folder, Shell);
     }
 
-    private void OpenDesktopTidy() => new DesktopTidyWindow { Owner = this }.Show();
+    private void OpenDesktopTidy() => _ = CleanupFlows.DesktopAsync(this);
+
+    public void ManageFolder(string folder) => _ = CleanupFlows.SetMethodAsync(this, folder);
+
+    public void ShowManagedSuggestions(string root)
+    {
+        if (Foldy.Core.Managed.ManagedFolders.Resolve(root) is { } m)
+        {
+            _ = CleanupFlows.SuggestAsync(this, m.Root, m.Method);
+        }
+    }
 
     private DispatcherTimer? _cleanupTimer;
     private CleanupFinding? _cleanupFinding;
@@ -1539,7 +1555,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         _cleanupFinding = f;
         CleanupNoticeText.Text = f.Text;
-        CleanupNoticeButton.Content = f.Tool switch { "logs" => "로그 정리", "downloads" => "다운로드 정리", _ => "바탕화면 정리" };
+        CleanupNoticeButton.Content = f.Tool switch { "logs" => "로그 정리", "downloads" => "다운로드 정리", "managed" => "정리할 것 보기", _ => "바탕화면 정리" };
         CleanupNotice.Visibility = Visibility.Visible;
         CleanupNotifier.MarkShown();
     }
@@ -1554,6 +1570,9 @@ public partial class ShellWindow : Window, IPaneHost
                 break;
             case "downloads":
                 OpenDownloadsCleanup(_cleanupFinding.Target);
+                break;
+            case "managed":
+                ShowManagedSuggestions(_cleanupFinding.Target);
                 break;
             default:
                 OpenDesktopTidy();
