@@ -319,3 +319,18 @@ pub fn ntfs_fixed_volumes() -> Vec<String> {
     }
     out
 }
+
+/// 볼륨의 GUID 이름 `{xxxxxxxx-...}` (스냅샷 파일 이름용). 얻지 못하면 None.
+pub fn volume_guid(name: &str) -> Option<String> {
+    use windows_sys::Win32::Storage::FileSystem::GetVolumeNameForVolumeMountPointW;
+    let root: Vec<u16> = format!("{}\\", name.trim_end_matches('\\')).encode_utf16().chain([0]).collect();
+    let mut out = [0u16; 64];
+    // SAFETY: root는 NUL로 끝나는 UTF-16, out은 길이를 정확히 넘긴 지역 버퍼.
+    if unsafe { GetVolumeNameForVolumeMountPointW(root.as_ptr(), out.as_mut_ptr(), out.len() as u32) } == 0 {
+        return None;
+    }
+    let end = out.iter().position(|&c| c == 0).unwrap_or(out.len());
+    let s = String::from_utf16_lossy(&out[..end]);
+    let (a, b) = (s.find('{')?, s.find('}')?);
+    (a < b).then(|| s[a..=b].to_string())
+}

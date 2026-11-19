@@ -77,7 +77,7 @@ main에 들어간 것 (642개 시험 통과, 아직 릴리스 전):
 | --- | --- | --- |
 | M0 기반·기술검증 | 완료 | — |
 | M1 MVP | 완료 | — |
-| M2 Rust 색인·분석 DB·즉시 검색 | 완료 | 색인 영속화·Subscribe, SQLite 목록 캐시, 중복 파일 찾기(file_hash), 예약 분석 |
+| M2 Rust 색인·분석 DB·즉시 검색 | 완료 | Subscribe(폴더 변경 알림), 색인 영속화는 구현함(docs/index-persistence.md, MFT 실측 남음), SQLite 목록 캐시, 중복 파일 찾기(file_hash), 예약 분석 |
 | M3 Rust 복사 | 완료 | — (CopyThreads 연결함) |
 | M4 Git | 핵심 완료 | diff/blame·사용 흐름 개편·자동 Git 바 (진행 중, 0.2.8) |
 | M5 SFTP | 완료 | ssh-agent/Pageant (SSH.NET 미지원) |

@@ -13,4 +13,4 @@ pub mod usn;
 #[cfg(windows)]
 pub mod volume;
 
-pub use index::{Entry, Node, VolumeIndex, fold_name};
+pub use index::{Entry, Node, SnapshotError, SnapshotMeta, VolumeIndex, fold_name};

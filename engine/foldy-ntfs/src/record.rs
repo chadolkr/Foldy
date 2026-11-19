@@ -83,6 +83,8 @@ pub struct BootSector {
     pub total_sectors: u64,
     pub mft_lcn: u64,
     pub record_size: u32,
+    /// 볼륨 일련번호 (부트 섹터 0x48)
+    pub serial: u64,
 }
 
 impl BootSector {
@@ -138,7 +140,8 @@ pub fn parse_boot_sector(b: &[u8]) -> Result<BootSector, ParseError> {
     if mft_lcn == 0 || mft_lcn.checked_mul(cluster_size as u64).is_none() {
         return Err(ParseError::BadBootSector("mft lcn"));
     }
-    Ok(BootSector { bytes_per_sector: bps, cluster_size, total_sectors, mft_lcn, record_size })
+    let serial = u64_at(b, 0x48).unwrap_or(0);
+    Ok(BootSector { bytes_per_sector: bps, cluster_size, total_sectors, mft_lcn, record_size, serial })
 }
 
 /// Update Sequence Array(fixup)를 적용한다. 각 512바이트 단위의 마지막 2바이트가

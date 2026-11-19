@@ -17,11 +17,13 @@
 //!   --update-*  콘솔 모드 자동 업데이트 시험 (update/mod.rs `from_console_args`, docs/auto-update.md).
 //!               `--update-api <URL>`이 있을 때만 켜진다. 서비스 모드는 항상 켜지고 이 인자를 읽지 않는다.
 //!   --analysis-dir  분석 DB 폴더 (기본 %ProgramData%\Foldy\Analysis, 시험용. 지정하면 ACL을 건드리지 않는다)
+//!   --index-dir     색인 스냅샷 폴더 (기본 %ProgramData%\Foldy\Index, 시험용. 지정하면 ACL을 건드리지 않는다)
 
 mod acl;
 mod analysis;
 mod analysis_job;
 mod bench;
+mod persist;
 mod query;
 mod server;
 mod service;
@@ -39,10 +41,12 @@ pub(crate) struct Args {
     volumes: Option<Vec<String>>,
     scan_dirs: Vec<String>,
     bench: Option<String>,
+    bench_scan: Option<String>,
     service: bool,
     /// `--update-…` 인자 (이름, 값)
     update: Vec<(String, String)>,
     analysis_dir: Option<String>,
+    index_dir: Option<String>,
 }
 
 fn parse_args() -> Args {
@@ -60,9 +64,11 @@ fn parse_args() -> Args {
             "--volumes" => a.volumes = it.next().map(|v| v.split(',').map(|s| s.trim().trim_end_matches('\\').to_uppercase()).filter(|s| !s.is_empty()).collect()),
             "--scan-dir" => a.scan_dirs.extend(it.next()),
             "--bench" => a.bench = Some(it.next().unwrap_or_else(|| "C:".into())),
+            "--bench-scan" => a.bench_scan = it.next(),
             "--service" => a.service = true,
             x if x.starts_with("--update-") => a.update.push((x.to_string(), it.next().unwrap_or_default())),
             "--analysis-dir" => a.analysis_dir = it.next(),
+            "--index-dir" => a.index_dir = it.next(),
             _ => eprintln!("unknown argument: {x}"),
         }
     }
@@ -71,7 +77,11 @@ fn parse_args() -> Args {
 
 /// 색인 대상 슬롯을 만들고 백그라운드 구축을 시작한다.
 pub(crate) fn start_indexer(args: &Args) -> Arc<Indexer> {
-    let mut ix = Indexer { analysis_dir: args.analysis_dir.as_ref().map(std::path::PathBuf::from), ..Default::default() };
+    let mut ix = Indexer {
+        analysis_dir: args.analysis_dir.as_ref().map(std::path::PathBuf::from),
+        index_dir: args.index_dir.as_ref().map(std::path::PathBuf::from),
+        ..Default::default()
+    };
     let mut ntfs = Vec::new();
     for d in &args.scan_dirs {
         ix.volumes.push(Arc::new(VolumeSlot::new(d.trim_end_matches(['\\', '/']))));
@@ -97,6 +107,9 @@ pub(crate) fn start_indexer(args: &Args) -> Arc<Indexer> {
 
 fn main() {
     let args = parse_args();
+    if let Some(d) = &args.bench_scan {
+        std::process::exit(bench::run_scan(d));
+    }
     if let Some(v) = &args.bench {
         std::process::exit(bench::run(v));
     }
@@ -128,6 +141,7 @@ fn main() {
         let _ = tokio::signal::ctrl_c().await;
     }));
     indexer.shutdown.store(true, std::sync::atomic::Ordering::Relaxed);
+    indexer.save_all();
     // 업데이트 다운로드 중인 블로킹 스레드를 오래 기다리지 않는다
     rt.shutdown_timeout(std::time::Duration::from_secs(2));
     if let Err(e) = r {
