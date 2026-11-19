@@ -13,6 +13,9 @@ public static class ExplorerFolderMark
 {
     private const string Marker = "; Foldy";
 
+    /// <summary>표시하기 전부터 폴더에 읽기 전용 속성이 있었다는 기록. 끌 때 그 속성은 남긴다.</summary>
+    private const string KeepReadOnly = "; Foldy keep-readonly";
+
     /// <summary>이 폴더에 탐색기 표시를 하면 안 되는 이유 (null이면 해도 됨). 동기화 폴더면 미리보기 경고에도 쓴다.</summary>
     public static string? SyncWarning(string folder)
     {
@@ -51,15 +54,22 @@ public static class ExplorerFolderMark
                 return; // 사용자가 만든 것
             }
 
+            var d = new DirectoryInfo(folder);
+            bool keep;
             if (File.Exists(ini))
             {
+                keep = File.ReadAllText(ini).Contains(KeepReadOnly, StringComparison.Ordinal);
                 File.SetAttributes(ini, FileAttributes.Normal);
             }
+            else
+            {
+                keep = d.Attributes.HasFlag(FileAttributes.ReadOnly);
+            }
 
-            var exe = Environment.ProcessPath ?? "";
-            File.WriteAllText(ini, $"[.ShellClassInfo]\r\nIconResource={exe},0\r\nInfoTip={method.Name} 방법으로 관리 중 (Foldy)\r\n{Marker}\r\n", System.Text.Encoding.Unicode);
+            var exe = IconPath(Environment.ProcessPath ?? "");
+            var extra = keep ? KeepReadOnly + "\r\n" : "";
+            File.WriteAllText(ini, $"[.ShellClassInfo]\r\nIconResource={exe},0\r\nInfoTip={method.Name} 방법으로 관리 중 (Foldy)\r\n{Marker}\r\n{extra}", System.Text.Encoding.Unicode);
             File.SetAttributes(ini, FileAttributes.Hidden | FileAttributes.System);
-            var d = new DirectoryInfo(folder);
             d.Attributes |= FileAttributes.ReadOnly; // 탐색기가 desktop.ini를 읽게 하는 표시 (폴더 안 파일은 그대로 쓸 수 있음)
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -72,16 +82,42 @@ public static class ExplorerFolderMark
         var ini = Path.Combine(folder, "desktop.ini");
         try
         {
-            if (File.Exists(ini) && File.ReadAllText(ini).Contains(Marker, StringComparison.Ordinal))
+            var text = File.Exists(ini) ? File.ReadAllText(ini) : "";
+            if (text.Contains(Marker, StringComparison.Ordinal))
             {
                 File.SetAttributes(ini, FileAttributes.Normal);
                 File.Delete(ini);
-                var d = new DirectoryInfo(folder);
-                d.Attributes &= ~FileAttributes.ReadOnly;
+                if (!text.Contains(KeepReadOnly, StringComparison.Ordinal))
+                {
+                    var d = new DirectoryInfo(folder);
+                    d.Attributes &= ~FileAttributes.ReadOnly;
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
         }
+    }
+
+    /// <summary>
+    /// desktop.ini에 적을 아이콘 경로. 설치 폴더·사용자 폴더는 환경 변수로 적어서 사용자 이름이 파일에 남지 않게 한다
+    /// (폴더를 압축하거나 공유해도 경로가 따라가지 않도록).
+    /// </summary>
+    internal static string IconPath(string exe)
+    {
+        foreach (var (name, folder) in new[]
+        {
+            ("%ProgramFiles%", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)),
+            ("%LOCALAPPDATA%", Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
+            ("%USERPROFILE%", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
+        })
+        {
+            if (folder.Length > 0 && exe.StartsWith(folder.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase))
+            {
+                return name + exe[folder.TrimEnd('\\').Length..];
+            }
+        }
+
+        return exe;
     }
 }
