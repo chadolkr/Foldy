@@ -112,7 +112,7 @@ public partial class SftpConnectWindow : Window
         }
 
         ConnectButton.IsEnabled = false;
-        ConnectButton.Content = "연결 중…";
+        ConnectButton.Content = "서버에 연결하는 중…";
         try
         {
             _sessions.Remember(loc, auth);

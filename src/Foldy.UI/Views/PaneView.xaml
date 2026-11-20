@@ -53,6 +53,19 @@
         <TextBlock Text="{Binding Glyph}" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0"
                    VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" />
         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
+        <!-- 수다쟁이 Foldy: 폴더 목록을 받는 동안 (느린 서버·네트워크) 조용히 기다리게 하지 않는다 -->
+        <TextBlock Text=" · 불러오는 중…" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="12">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
       </StackPanel>
     </HierarchicalDataTemplate>
   </UserControl.Resources>

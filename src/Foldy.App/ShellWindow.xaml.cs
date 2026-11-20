@@ -1265,8 +1265,8 @@ public partial class ShellWindow : Window, IPaneHost
                 {
                     err = $"{err}\n사용자 프록시 경로: {ue}";
                 }
-                Shell.Status = err is null ? $"최신 버전입니다 ({AppVersion})" : $"업데이트를 확인하지 못했습니다: {err}";
-                if (interactive)
+                Shell.Status = err is null ? $"최신 버전이에요 ({AppVersion}). 새 버전이 나오면 알려 드릴게요" : $"업데이트를 확인하지 못했습니다: {err}";
+                if (interactive && err is not null) // 최신이면 상태 줄로만 (누를 단추를 늘리지 않는다, 원칙 1.4)
                 {
                     MessageBox.Show(this,
                         err is null ? $"Foldy {AppVersion}은(는) 최신 버전입니다."
@@ -1339,8 +1339,14 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void InstallNow()
     {
+        var version = _updater.ReadyVersion;
         if (_updater.LaunchInstaller())
         {
+            if (_updater is ServiceUpdater && version is not null)
+            {
+                UpdateProgressWindow.Show(version); // Foldy가 닫혀 있는 동안 단계를 보여 주는 작은 창 (새 Foldy가 뜨면 닫힘)
+            }
+
             Close(); // 세션 저장 후 종료, 설치가 끝나면 Foldy를 다시 띄운다
         }
         else
@@ -1945,9 +1951,12 @@ public partial class ShellWindow : Window, IPaneHost
         var tab = new Foldy.Presentation.Analysis.AnalysisTabViewModel(_analysis, path);
         tab.RecycleRequested += async (_, e) =>
         {
-            var ok = MessageBox.Show(this, $"{e.Paths.Count:N0}개 ({Foldy.Presentation.Files.FileItem.FormatBytes(e.TotalBytes)})를 휴지통으로 옮길까요?\n휴지통에서 되살릴 수 있습니다.",
-                "디스크 정리", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK
-                && await Shell.RecycleAsync(e.Paths);
+            // 휴지통은 되살릴 수 있으니 다시 묻지 않는다 (고른 것을 이미 보고 눌렀다, 원칙 1.4). 끝나면 상태 줄로 알린다
+            var ok = await Shell.RecycleAsync(e.Paths);
+            if (ok)
+            {
+                Shell.Status = $"{e.Paths.Count:N0}개 ({Foldy.Presentation.Files.FileItem.FormatBytes(e.TotalBytes)})를 휴지통으로 옮겼어요. 휴지통에서 되살릴 수 있어요";
+            }
             foreach (var item in e.Items)
             {
                 tab.MarkRecycled(item, ok);
