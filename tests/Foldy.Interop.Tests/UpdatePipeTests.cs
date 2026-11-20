@@ -194,13 +194,33 @@ public class UpdatePipeTests
         var sw = Stopwatch.StartNew();
         while (true)
         {
-            var lines = File.Exists(path) ? await File.ReadAllLinesAsync(path, Ct) : [];
+            var lines = ReadShared(path);
             if (lines.Length >= count || sw.Elapsed > TimeSpan.FromSeconds(60)) // CI는 느리다 (설치 + 재실행 지연 5초)
             {
                 return lines;
             }
 
             await Task.Delay(50, Ct);
+        }
+    }
+
+    /// <summary>
+    /// 서비스가 덧붙여 쓰는 중에도 읽는다 (쓰기 공유 허용). 열고 있는 순간과 겹치면 다음 차례에 다시 (가끔 실패하던 원인).
+    /// </summary>
+    private static string[] ReadShared(string path)
+    {
+        try
+        {
+            using var f = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var r = new StreamReader(f);
+            var text = r.ReadToEnd();
+            // 줄이 다 써지기 전(줄바꿈 전)의 마지막 조각은 아직 세지 않는다
+            var complete = text.EndsWith('\n') ? text : text[..(text.LastIndexOf('\n') + 1)];
+            return complete.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.TrimEnd('\r')).ToArray();
+        }
+        catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException or IOException)
+        {
+            return [];
         }
     }
 
