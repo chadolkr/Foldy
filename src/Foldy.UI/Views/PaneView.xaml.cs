@@ -1601,6 +1601,7 @@ public partial class PaneView : UserControl
         if (!on || _tab is null)
         {
             ImageLayer.Visibility = Visibility.Collapsed;
+            ImagesBar.Visibility = Visibility.Collapsed;
             Scroller.Visibility = Visibility.Visible;
             return;
         }
@@ -1620,6 +1621,11 @@ public partial class PaneView : UserControl
         _grid.ItemsSource = images;
         Scroller.Visibility = Visibility.Collapsed;
         ImageLayer.Visibility = Visibility.Visible;
+        ImagesBar.Visibility = Visibility.Visible;
+        var others = _tab.Items.Count - images.Count;
+        ImagesBarText.Text = images.Count == 0
+            ? $"이미지만 보는 중인데 이 폴더에는 그림이 없어요 (다른 항목 {others:N0}개)"
+            : $"이미지만 보는 중이에요 · 그림 {images.Count:N0}개 (다른 항목 {others:N0}개는 숨김)";
         EmptyPanel.Visibility = Visibility.Collapsed;
         LoadingText.Visibility = Visibility.Visible;
         LoadingText.Text = $"이미지 {images.Count:N0}개 · 스페이스: 빠른 보기 · Ctrl+휠: 크기";

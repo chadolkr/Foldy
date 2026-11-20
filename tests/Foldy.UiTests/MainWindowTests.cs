@@ -85,6 +85,30 @@ public sealed class MainWindowTests
         qs!.Close();
     }
 
+    /// <summary>
+    /// 2026-11-20 사용자 발견: "이미지만 보기"가 켜진 줄 모르고 그림 없는 폴더를 보면 파일이 사라진 것처럼 보였다.
+    /// 켜져 있으면 그 사실과 [모든 파일 보기]가 같은 자리에 보이고, 누르면 파일 목록이 돌아와야 한다.
+    /// </summary>
+    [Fact]
+    public void Images_only_mode_says_so_and_turns_off_in_place()
+    {
+        using var app = FoldyApp.Start();
+        app.Find("찾기").AsButton().Invoke();
+        var item = Retry.WhileNull(
+            () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName("이미지만 보기").And(app.By.ByControlType(ControlType.MenuItem))),
+            TimeSpan.FromSeconds(10)).Result;
+        item.Should().NotBeNull("찾기 메뉴에 이미지만 보기가 있어야 한다");
+        item!.AsMenuItem().Invoke();
+
+        var off = app.Find("모든 파일 보기");
+        off.IsOffscreen.Should().BeFalse("이미지만 보기를 끄는 단추가 목록 바로 위에 보여야 한다");
+        off.AsButton().Invoke();
+        Retry.WhileTrue(() => app.Main.FindFirstDescendant(app.By.ByName("모든 파일 보기")) is { IsOffscreen: false }, TimeSpan.FromSeconds(5));
+        var after = app.Main.FindFirstDescendant(app.By.ByName("모든 파일 보기"));
+        (after is null || after.IsOffscreen).Should().BeTrue("끄면 안내 줄이 사라져야 한다");
+        app.Main.FindFirstDescendant(app.By.ByClassName("FastFileList")).Should().NotBeNull("파일 목록이 돌아와야 한다");
+    }
+
     [Fact]
     public void First_run_tour_shows_one_step_at_a_time_with_a_single_next_button()
     {

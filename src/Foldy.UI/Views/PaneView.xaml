@@ -376,7 +376,17 @@
 
           <!-- 이미지만 보기 (Ctrl+Shift+I, 설계서 5.12) -->
           <ScrollViewer x:Name="ImageLayer" Visibility="Collapsed" CanContentScroll="True" Focusable="False"
-                        HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" />
+                        HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Margin="0,40,0,0" />
+          <!-- 이미지만 보는 중이라는 것과 끄는 단추를 같은 자리에 (켠 걸 잊으면 파일이 사라진 것처럼 보인다, 2026-11-20 사용자 발견) -->
+          <Border x:Name="ImagesBar" Visibility="Collapsed" VerticalAlignment="Top" Height="34" Margin="4,4,4,0" Padding="10,0,4,0"
+                  CornerRadius="{DynamicResource Radius}" Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Content="모든 파일 보기" Margin="2,3" Padding="12,0" MinHeight="28" Click="OnToggleImages"
+                      ToolTip="이미지만 보기 끄기 (Ctrl+Shift+I)" />
+              <TextBlock Text="&#xEB9F;" FontFamily="{DynamicResource Font.Icon}" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Accent}" />
+              <TextBlock x:Name="ImagesBarText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.Text}" />
+            </DockPanel>
+          </Border>
 
           <!-- 문서(Markdown) 탭 -->
           <ContentControl x:Name="DocumentLayer" Visibility="Collapsed" Focusable="False" />
