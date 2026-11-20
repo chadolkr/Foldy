@@ -4,7 +4,7 @@
         xmlns:vm="clr-namespace:Foldy.Presentation.Settings;assembly=Foldy.Presentation"
         Title="Foldy 설정" Width="880" Height="620" MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        Style="{DynamicResource Foldy.Window}" TextOptions.TextFormattingMode="Display">
+        Style="{DynamicResource Foldy.Window}" TextOptions.TextFormattingMode="Ideal">
   <!--
     설정 창. 색·글꼴은 모두 테마 토큰(DynamicResource)만 쓴다. 글자 크기: 본문 13, 보조 12, 소제목 15, 페이지 제목 20 (설계서 6.4).
     선택지는 칩(ListBox) 모양으로 통일한다: 기본 ComboBox는 다크/레트로 테마에서 토큰을 따르지 않기 때문.

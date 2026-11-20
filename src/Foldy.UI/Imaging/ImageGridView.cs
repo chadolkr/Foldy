@@ -87,7 +87,7 @@ public sealed class ImageGridView : FrameworkElement, IScrollInfo
         FocusVisualStyle = null;
         ClipToBounds = true;
         SnapsToDevicePixels = true;
-        TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
+        TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal); // Display는 Pretendard 한글 획을 빠뜨린다 (스·레·드 → ㅅㄹㄷ)
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.HighQuality);
 
         // 테마 토큰 (호스트가 SetValue/SetResourceReference로 바꿀 수 있다)

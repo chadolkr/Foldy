@@ -102,7 +102,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         System.Windows.Automation.AutomationProperties.SetLiveSetting(this, System.Windows.Automation.AutomationLiveSetting.Polite);
         ClipToBounds = true;
         SnapsToDevicePixels = true;
-        TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
+        TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal); // Display는 Pretendard 한글 획을 빠뜨린다 (스·레·드 → ㅅㄹㄷ)
     }
 
     public event EventHandler? SelectionChanged;
@@ -129,6 +129,9 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
 
     /// <summary>이름 끝에 붙일 작은 배지 (Git 상태 M/A/?/! 등). 글자와 색.</summary>
     public Func<object, (string Text, Brush Brush)?>? BadgeSelector { get; set; }
+
+    /// <summary>마우스를 올린 행의 설명 (예: Git 상태 뜻). null이면 툴팁 없음.</summary>
+    public Func<object, string?>? ToolTipSelector { get; set; }
 
     /// <summary>이름 뒤 작은 상태 칩 ("작업 완료" 등). 이름을 가리지 않게 남는 자리에만 그린다.</summary>
     public Func<object, IReadOnlyList<(string Text, Brush Brush)>>? ChipSelector { get; set; }
@@ -407,10 +410,12 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
                     var after = tx + ft.Width + 8;
                     if (c == 0 && BadgeSelector?.Invoke(item) is { } badge)
                     {
-                        var bt = new FormattedText(badge.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Typeface, FontSize - 1.5, badge.Brush, dpi);
-                        var bx = Math.Min(after, x + col.Width - bt.Width - 6);
-                        dc.DrawText(bt, new Point(Math.Round(bx), Math.Round(y + (rh - bt.Height) / 2)));
-                        after = bx + bt.Width + 8;
+                        var bt = new FormattedText(badge.Text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface, FontSize - 1.5, badge.Brush, dpi);
+                        if (after + bt.Width <= x + col.Width - 4) // 자리가 없으면 그리지 않는다 (이름을 덮지 않게, 설명은 툴팁)
+                        {
+                            dc.DrawText(bt, new Point(Math.Round(after), Math.Round(y + (rh - bt.Height) / 2)));
+                            after += bt.Width + 8;
+                        }
                     }
 
                     if (c == 0 && ChipSelector?.Invoke(item) is { Count: > 0 } chips)
@@ -625,6 +630,8 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         {
             _hover = i;
             InvalidateVisual();
+            var tip = ToolTipSelector is { } sel && i >= 0 && ItemsSource is { } src && i < src.Count && src[i] is { } item ? sel(item) : null;
+            ToolTip = tip; // 행이 바뀌면 설명도 바뀐다 (없으면 감춤)
         }
     }
 

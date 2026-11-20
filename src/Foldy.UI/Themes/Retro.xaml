@@ -39,7 +39,7 @@
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
     <Setter Property="FontFamily" Value="{DynamicResource Font.UI}" />
     <Setter Property="FontSize" Value="{DynamicResource Font.Size}" />
-    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" /> <!-- Display는 한글 획을 빠뜨린다 -->
     <Setter Property="UseLayoutRounding" Value="True" />
   </Style>
 

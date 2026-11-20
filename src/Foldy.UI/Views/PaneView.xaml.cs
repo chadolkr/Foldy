@@ -60,6 +60,7 @@ public partial class PaneView : UserControl
         UseColumns(_folderColumns);
         List.SortColumn = 0;
         List.IsDimmed = o => o is FileItem f && (f.IsHidden || _tab?.Git?.BadgeOf(f.FullPath) == Foldy.Core.FileSystem.GitFileStatus.Ignored);
+        List.ToolTipSelector = o => o is FileItem f && _tab?.Git is { } git ? GitExplain(git.BadgeOf(f.FullPath)) : null;
         List.BadgeSelector = GitBadge;
         List.ChipSelector = TagChips;
         Foldy.Core.Tags.FileTags.Changed += () => Dispatcher.BeginInvoke(() =>
@@ -384,16 +385,28 @@ public partial class PaneView : UserControl
             return null;
         }
 
+        // M·A·?·! 같은 Git 약자 대신 처음 봐도 아는 말로, Git 화면과 같은 말 (배워야 쓰면 실패, DECISIONS 2026-11-20). 마우스를 올리면 설명
         var (text, key) = g.BadgeOf(f.FullPath) switch
         {
-            Foldy.Core.FileSystem.GitFileStatus.Modified => ("M", "Brush.Progress"),
-            Foldy.Core.FileSystem.GitFileStatus.Added => ("A", "Brush.Done"),
-            Foldy.Core.FileSystem.GitFileStatus.Untracked => ("?", "Brush.TextSecondary"),
-            Foldy.Core.FileSystem.GitFileStatus.Conflicted => ("!", "Brush.Error"),
+            Foldy.Core.FileSystem.GitFileStatus.Modified => ("수정", "Brush.Progress"),
+            Foldy.Core.FileSystem.GitFileStatus.Added => ("추가", "Brush.Done"),
+            Foldy.Core.FileSystem.GitFileStatus.Untracked => ("새 파일", "Brush.TextSecondary"),
+            Foldy.Core.FileSystem.GitFileStatus.Conflicted => ("충돌", "Brush.Error"),
             _ => (null, null),
         };
         return text is not null && TryFindResource(key) is Brush b ? (text, b) : null;
     }
+
+    /// <summary>Git 상태 표시에 마우스를 올렸을 때의 설명 (Git을 몰라도 알 수 있게).</summary>
+    public static string? GitExplain(Foldy.Core.FileSystem.GitFileStatus s) => s switch
+    {
+        Foldy.Core.FileSystem.GitFileStatus.Modified => "수정: 마지막으로 저장한 기록(커밋) 뒤에 고친 파일이에요. 커밋하면 표시가 사라져요.",
+        Foldy.Core.FileSystem.GitFileStatus.Added => "추가: 다음 기록(커밋)에 새로 들어갈 파일이에요.",
+        Foldy.Core.FileSystem.GitFileStatus.Untracked => "새 파일: 아직 Git이 기록하지 않는 새 파일이에요. 기록하려면 Git 화면에서 추가해요.",
+        Foldy.Core.FileSystem.GitFileStatus.Conflicted => "충돌: 두 사람이 같은 곳을 고쳐서 Git이 합치지 못한 파일이에요. 열어서 어느 쪽으로 할지 정해 주세요.",
+        Foldy.Core.FileSystem.GitFileStatus.Ignored => "흐리게: Git이 기록하지 않기로 한 파일이에요(.gitignore).",
+        _ => null,
+    };
 
     private string? _gitDetectedRoot;
 
