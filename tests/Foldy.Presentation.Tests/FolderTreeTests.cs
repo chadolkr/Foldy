@@ -32,13 +32,19 @@ public class FolderTreeTests
     }
 
     [Fact]
-    public async Task Expanding_an_sftp_node_lists_through_the_sftp_provider()
+    public async Task Sftp_tree_opens_expanded_and_lists_through_the_sftp_provider()
     {
         var fake = new FakeProvider();
         var tree = new FolderTreeViewModel(fake, []);
         tree.ShowFor(Server);
         var root = tree.Roots.Single();
-        await root.LoadAsync();
+
+        // 접속하면 서버 맨 위가 저절로 펼쳐져 폴더가 보인다 (0.9.7, 사용자 요청)
+        root.IsExpanded.Should().BeTrue();
+        for (var i = 0; i < 100 && root.Children.Count < 2; i++)
+        {
+            await Task.Delay(20, TestContext.Current.CancellationToken);
+        }
 
         fake.Requests.Should().ContainSingle().Which.Should().Be(new FsPath(ProviderId.Sftp, Server));
         root.Children.Select(c => c.Path).Should().Equal(Server + "etc", Server + "home");

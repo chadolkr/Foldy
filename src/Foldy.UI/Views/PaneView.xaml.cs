@@ -408,6 +408,14 @@ public partial class PaneView : UserControl
         _ => null,
     };
 
+    private void OnSftpChip(object sender, RoutedEventArgs e)
+    {
+        if (_host is not null && _pane is not null)
+        {
+            _host.ConnectSftp(_pane);
+        }
+    }
+
     private string? _gitDetectedRoot;
 
     /// <summary>설정이 바뀐 뒤: Git 바를 다시 판단하고 자동 열기도 다시 평가한다.</summary>

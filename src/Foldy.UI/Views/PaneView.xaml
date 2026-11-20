@@ -86,31 +86,42 @@
         <Button Style="{DynamicResource Foldy.ToolButton}" Width="28" Height="28" FontSize="12" Content="&#xE710;"
                 ToolTip="새 탭 (Ctrl+T)" Click="OnNewTab" VerticalAlignment="Bottom" />
       </StackPanel>
-      <ItemsControl x:Name="DriveStrip" Grid.Column="1" VerticalAlignment="Center" Focusable="False">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <StackPanel Orientation="Horizontal" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate>
-            <!-- 드라이브 칩: 본문 글자색·13px·굵게, 테두리로 버튼임을 드러낸다 (모든 테마에서 대비 4.5:1 이상) -->
-            <Button Style="{DynamicResource Foldy.DriveChip}" Click="OnDriveClick" Tag="{Binding}">
-              <Button.ToolTip>
-                <StackPanel>
-                  <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
-                  <TextBlock Text="{Binding SpaceText}" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+        <ItemsControl x:Name="DriveStrip" VerticalAlignment="Center" Focusable="False">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <!-- 드라이브 칩: 본문 글자색·13px·굵게, 테두리로 버튼임을 드러낸다 (모든 테마에서 대비 4.5:1 이상) -->
+              <Button Style="{DynamicResource Foldy.DriveChip}" Click="OnDriveClick" Tag="{Binding}">
+                <Button.ToolTip>
+                  <StackPanel>
+                    <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SpaceText}" />
+                  </StackPanel>
+                </Button.ToolTip>
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xEDA2;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"
+                             Foreground="{DynamicResource Brush.Text}" />
+                  <TextBlock Text="{Binding Letter}" Foreground="{DynamicResource Brush.Text}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
-              </Button.ToolTip>
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xEDA2;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"
-                           Foreground="{DynamicResource Brush.Text}" />
-                <TextBlock Text="{Binding Letter}" Foreground="{DynamicResource Brush.Text}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-              </StackPanel>
-            </Button>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <!-- 드라이브 끝: SFTP 서버 (저장된 서버 고르기·새 연결). 드라이브 칩과 같은 모양 -->
+        <Button Style="{DynamicResource Foldy.DriveChip}" Click="OnSftpChip" ToolTip="SFTP 서버에 연결 (Ctrl+Shift+O): 저장된 서버를 고르거나 새로 연결해요"
+                AutomationProperties.Name="SFTP 서버에 연결">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE968;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Brush.Text}" />
+            <TextBlock Text="SFTP" Foreground="{DynamicResource Brush.Text}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
     </Grid>
 
     <!-- 활성 탭 색 띠: 탭과 내용이 이어져 보이게 (활성 패널이면 강조색 선 추가) -->

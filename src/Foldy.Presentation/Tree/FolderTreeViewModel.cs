@@ -170,6 +170,12 @@ public sealed class FolderTreeViewModel
 
         nodes.Add(new FolderNode(_provider, server + " (/)", root, glyph: "\uE968"));
         Replace(nodes);
+
+        // 접힌 채로 두면 서버에 무엇이 있는지 안 보인다: 처음 연 폴더와 / 를 한 단계 펼친다 (폴더마다 목록 한 번, 느린 서버는 각자 불러오는 중 표시)
+        foreach (var n in nodes)
+        {
+            n.IsExpanded = true;
+        }
     }
 
     private void Replace(IEnumerable<FolderNode> nodes)

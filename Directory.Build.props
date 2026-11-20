@@ -8,7 +8,7 @@
     <RepositoryUrl>https://github.com/chadolkr/Foldy</RepositoryUrl>
     <PackageProjectUrl>https://github.com/chadolkr/Foldy</PackageProjectUrl>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <Version>0.9.6</Version>
+    <Version>0.9.7</Version>
 
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>

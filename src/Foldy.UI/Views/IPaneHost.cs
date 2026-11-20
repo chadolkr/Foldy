@@ -49,6 +49,9 @@ public interface IPaneHost
 
     /// <summary>관리 폴더의 정리 제안 (대화 창).</summary>
     void ShowManagedSuggestions(string root);
+
+    /// <summary>이 패널에서 SFTP 서버에 연결한다 (탭 줄 드라이브 끝의 SFTP 버튼).</summary>
+    void ConnectSftp(PaneViewModel pane);
 }
 
 /// <summary>Git 바의 버튼.</summary>

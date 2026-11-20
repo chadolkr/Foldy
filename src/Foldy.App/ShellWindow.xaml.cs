@@ -1394,12 +1394,15 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
-    private void ConnectSftp()
+    private void ConnectSftp() => ConnectSftp(Shell.ActivePane);
+
+    /// <summary>저장된 서버 고르기·새 연결 창을 열고, 연결되면 그 패널에 새 탭으로 연다.</summary>
+    public void ConnectSftp(PaneViewModel pane)
     {
         var dlg = new SftpConnectWindow(_sftp) { Owner = this };
         if (dlg.ShowDialog() == true && dlg.Result is { } url)
         {
-            Shell.ActivePane.NewFolderTab(url);
+            pane.NewFolderTab(url);
         }
     }
 
