@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Foldy.Core.FileSystem;
 using Foldy.Presentation.Files;
 using Foldy.Presentation.Jobs;
 using Foldy.Presentation.Navigation;
@@ -387,9 +388,64 @@ public sealed partial class ShellViewModel : ObservableObject
             }
         }
 
+        // 파일이 아주 많으면: 휴지통(기본, 되살릴 수 있음)과 빨리 지우기(되살릴 수 없음) 중 고르게 한다
+        else if (AskBigDeleteAsync is not null && src.Any(Directory.Exists))
+        {
+            var count = await Task.Run(() => FastDelete.Count(src, TimeSpan.FromSeconds(2)));
+            if (count.Files >= FastDelete.AskThreshold)
+            {
+                var canFast = !src.Any(FastDelete.IsProtected);
+                switch (await AskBigDeleteAsync(new BigDeleteQuestion(src, count, canFast)))
+                {
+                    case BigDeleteChoice.Cancel:
+                        Status = "삭제를 취소했습니다";
+                        return;
+                    case BigDeleteChoice.Fast when canFast:
+                        await FastDeleteAsync(src, count);
+                        return;
+                    default:
+                        permanent = false;
+                        break;
+                }
+            }
+        }
+
         var job = StartJob($"{JobViewModel.Describe(src)} {(permanent ? "영구 삭제" : "휴지통으로")}", permanent ? Mascot.JobKind.DeletePermanent : Mascot.JobKind.Delete);
         var r = await _services.FileOps.DeleteAsync(src, recycle: !permanent, job, job.Token);
         FinishJob(job, r);
+        await RefreshFoldersAsync(src.Select(s => PathUtil.Parent(s) ?? s));
+    }
+
+    /// <summary>파일이 많은 폴더를 지우기 전에 묻는다 (UI가 연결한다). 없으면 묻지 않고 평소대로.</summary>
+    public Func<BigDeleteQuestion, Task<BigDeleteChoice>>? AskBigDeleteAsync { get; set; }
+
+    /// <summary>빨리 지우기: 휴지통을 거치지 않고 병렬로 지운다. 사용자가 되살릴 수 없다는 안내를 보고 고른 뒤에만.</summary>
+    public async Task FastDeleteAsync(IReadOnlyList<string> src, DeleteCount count)
+    {
+        var job = StartJob($"{JobViewModel.Describe(src)} 빨리 지우기", Mascot.JobKind.DeletePermanent);
+        FastDeleteResult res;
+        try
+        {
+            res = await Task.Run(() => FastDelete.Delete(src, (n, _) =>
+                job.Report(new FileOpProgress(n, Math.Max(count.Files, n + 1), $"{n:N0}개 지웠어요")), ct: job.Token));
+        }
+        catch (InvalidOperationException e)
+        {
+            FinishJob(job, FileOpResult.Fail(e.Message));
+            return;
+        }
+
+        var r = res.Canceled
+            ? FileOpResult.Canceled
+            : res.FailedCount > 0
+                ? FileOpResult.Fail($"{res.FailedCount:N0}개는 지우지 못했어요 (쓰는 중이거나 권한이 없어요): {string.Join(", ", res.Failed.Take(3).Select(PathUtil.DisplayName))}")
+                : new FileOpResult(true, false, $"{res.DeletedFiles:N0}개를 지웠어요");
+        FinishJob(job, r);
+        if (res.Canceled)
+        {
+            Status = $"중간에 멈췄어요. 이미 지운 {res.DeletedFiles:N0}개는 되살릴 수 없어요";
+        }
+
         await RefreshFoldersAsync(src.Select(s => PathUtil.Parent(s) ?? s));
     }
 

@@ -118,6 +118,7 @@ public partial class ShellWindow : Window, IPaneHost
             Settings = _settings,
             ConfirmAsync = msg => Task.FromResult(MessageBox.Show(this, msg, "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes),
             OpenSpecial = p => SecureFlows.TryOpen(this, p, Shell!),
+            AskBigDeleteAsync = q => DeleteFlows.AskBigDeleteAsync(this, q),
         };
 
         _updater = new LegacyUpdateSource(new AppUpdater(AppVersion));
@@ -359,6 +360,11 @@ public partial class ShellWindow : Window, IPaneHost
         if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown && _hadSettings)
         {
             FirstRunTour.MarkShown(); // 업데이트: 설정이 이미 있으니 처음 설정을 묻지 않는다
+            _ = EnsureQuickSearchHotkeyAsync(null); // 묻지 않고 등록만, 겹칠 때만 알린다
+        }
+        else if (FirstRunTour.Shown)
+        {
+            _ = EnsureQuickSearchHotkeyAsync(null);
         }
         else if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown)
         {
@@ -366,7 +372,8 @@ public partial class ShellWindow : Window, IPaneHost
             {
                 await Task.Delay(1500);
                 await FirstRunTour.FirstRunAsync(this, SetUiScale,
-                    t => SetTheme(t switch { "light" => FoldyTheme.Light, "dark" => FoldyTheme.Dark, _ => FoldyTheme.System }));
+                    t => SetTheme(t switch { "light" => FoldyTheme.Light, "dark" => FoldyTheme.Dark, _ => FoldyTheme.System }),
+                    w => EnsureQuickSearchHotkeyAsync(w));
             }, DispatcherPriority.ApplicationIdle);
         }
 
@@ -738,6 +745,13 @@ public partial class ShellWindow : Window, IPaneHost
             return result;
         }
 
+        if (msg == GlobalHotkey.WmHotkey && wParam.ToInt32() == GlobalHotkey.QuickSearchId)
+        {
+            handled = true;
+            Dispatcher.BeginInvoke(ShowQuickSearch);
+            return IntPtr.Zero;
+        }
+
         if (msg == WM_DEVICECHANGE)
         {
             Dispatcher.BeginInvoke(RefreshDrives);
@@ -981,6 +995,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("indexer.install", "색인 서비스 설치 (관리자, 전체 드라이브 즉시 검색)", () => RunIndexerSetup(install: true));
         Add("indexer.uninstall", "색인 서비스 제거 (관리자)", () => RunIndexerSetup(install: false));
         Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
+        Add("app.quickSearch", "빠른 검색 (기능·파일)", ShowQuickSearch, Key.Space, ModifierKeys.Control, inText: true);
         Add("app.help", "도움말 (사용 설명서)", ShowHelp, Key.F1, inText: true);
         Add("app.tour", "둘러보기 (처음 안내 다시 보기)", () => _ = FirstRunTour.RunAsync(this));
         Add("app.settings", "설정…", ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
@@ -1068,6 +1083,7 @@ public partial class ShellWindow : Window, IPaneHost
 
             _commands.Clear();
             BuildCommands();
+            _ = EnsureQuickSearchHotkeyAsync(null); // 단축키를 바꿨으면 다시 등록 (겹치면 알림)
             _ = Shell.Left.ActiveFolder?.RefreshAsync();
             _ = Shell.Right.ActiveFolder?.RefreshAsync();
             LeftPane.RefreshGit();
@@ -1481,6 +1497,254 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     // ───────────── 팔레트 ─────────────
+
+    // ───────────── 빠른 검색 (Ctrl+Space) ─────────────
+
+    private QuickSearchWindow? _quickSearch;
+    private IReadOnlyList<Foldy.Core.QuickSearch.StartApp>? _startApps;
+
+    /// <summary>
+    /// 빠른 검색 창 (macOS Spotlight처럼): 계산·단위 변환, 앱(시작 메뉴), Windows 설정, 자주 쓰는/최근 폴더, Foldy 기능, 파일.
+    /// 다른 프로그램을 쓰는 중에도 단축키로 열린다(전역 단축키). 파일은 색인이 있으면 모든 드라이브, 없으면 지금 폴더 안.
+    /// </summary>
+    private void ShowQuickSearch()
+    {
+        if (_quickSearch is { IsLoaded: true })
+        {
+            _quickSearch.Activate();
+            return;
+        }
+
+        _startApps ??= Foldy.Core.QuickSearch.SystemCatalog.LoadStartApps();
+        var scope = Shell.ActivePane.ActiveFolder?.Path;
+        var footer = (_search.IsIndexed ? "파일은 모든 드라이브에서 찾아요." : "파일은 지금 폴더 안에서 찾아요 (색인을 켜면 모든 드라이브).")
+            + " Enter 열기 · Ctrl+Enter 들어 있는 폴더 · Esc 닫기";
+        _quickSearch = BuildQuickSearch(scope, footer);
+        _quickSearch.Closed += (_, _) => _quickSearch = null;
+        _quickSearch.Show();
+    }
+
+    private QuickSearchWindow BuildQuickSearch(string? scope, string footer) => new(
+        QuickSearchInstant,
+        (q, ct) => _search.SearchAsync(Foldy.Core.QuickSearch.QuickIntent.Normalize(q), scope, ct),
+        f => new QuickSearchWindow.Hit(
+            "파일",
+            f.Kind == Foldy.Core.FileSystem.FsKind.Folder ? "\uE8B7" : "\uE8A5",
+            f.Name,
+            Path.GetDirectoryName(f.Path.Value) ?? "",
+            () => { BringToFront(); _ = Shell.OpenAsync(Shell.ActivePane, new Foldy.Presentation.Files.FileItem(f)); },
+            () => RevealInFoldy(f.Path.Value),
+            Preview: () => QuickSearchWindow.FilePreview(f)),
+        footer,
+        _settings.Animations);
+
+    /// <summary>바로 찾는 것: 계산·단위 변환, 앱, Windows 설정, 폴더(고정·최근), Foldy 기능. 빈 칸이면 자주 쓰는 것.</summary>
+    private IEnumerable<QuickSearchWindow.Hit> QuickSearchInstant(string q)
+    {
+        var m = new QuickMatcher(Foldy.Core.QuickSearch.QuickIntent.Normalize(q));
+        if (Foldy.Core.QuickSearch.QuickCalc.Answer(q) is { } ans)
+        {
+            yield return new QuickSearchWindow.Hit(ans.Kind, "\uE8EF", ans.Display, "Enter로 결과 복사", () =>
+            {
+                try
+                {
+                    Clipboard.SetText(ans.Copy);
+                    ShowStatus($"{ans.Copy} 복사했어요");
+                }
+                catch (System.Runtime.InteropServices.ExternalException)
+                {
+                }
+            }, Score: 200);
+        }
+
+        // 폴더: 고정·최근 (빈 칸이면 고정 폴더를 먼저 보여 준다)
+        foreach (var f in _quick.Pinned.Concat(_quick.Recent).DistinctBy(f => f.Path, StringComparer.OrdinalIgnoreCase))
+        {
+            var s = q.Length == 0 ? (_quick.IsPinned(f.Path) ? 1 : 0) : m.Score(f.Name);
+            if (s > 0)
+            {
+                var path = f.Path;
+                yield return new QuickSearchWindow.Hit("폴더", "\uE8B7", f.Name, path,
+                    () => { BringToFront(); OpenInPane(Shell.ActivePane, path, newTab: false); }, () => RevealInFoldy(path), q.Length == 0 ? 0 : s + 5);
+            }
+        }
+
+        if (q.Length == 0)
+        {
+            foreach (var c in QuickSearchCommands(""))
+            {
+                yield return CommandHit(c, 0);
+            }
+
+            yield break;
+        }
+
+        foreach (var a in _startApps ?? [])
+        {
+            if (m.Score(a.Name) is > 0 and var s)
+            {
+                var lnk = a.ShortcutPath;
+                yield return new QuickSearchWindow.Hit("앱", "\uE7AC", a.Name, "앱 실행", () => StartShell(lnk), Score: s + 10);
+            }
+        }
+
+        foreach (var p in Foldy.Core.QuickSearch.SystemCatalog.SettingsPages)
+        {
+            var s = Math.Max(m.Score(p.Title), m.Score(p.Keywords) / 2);
+            if (s > 0)
+            {
+                var uri = p.Uri;
+                yield return new QuickSearchWindow.Hit("설정", "\uE713", p.Title, "Windows 설정", () => StartShell(uri), Score: s);
+            }
+        }
+
+        var sentence = Foldy.Core.QuickSearch.QuickIntent.IsSentence(q);
+        foreach (var c in QuickSearchCommands(q))
+        {
+            var hit = CommandHit(c, Foldy.Core.QuickSearch.QuickIntent.Score(c.Id, c.Title, q) + 2);
+            // 말하듯 물으면 대답하듯: "이걸 할까요?" (Enter면 그 기능의 대화 창이 이어서 한 단계씩 물어본다)
+            yield return sentence ? hit with { Detail = "이걸 할까요? Enter를 누르면 시작해요" } : hit;
+        }
+    }
+
+    private sealed class QuickMatcher(string q)
+    {
+        public int Score(string title) => Foldy.Core.QuickSearch.QuickSearchMatch.Score(title, q);
+    }
+
+    private QuickSearchWindow.Hit CommandHit(PaletteCommand c, int score) =>
+        new("기능", "\uE945", c.Title, c.Gesture.Length > 0 ? $"Foldy 기능 · {c.Gesture}" : "Foldy 기능", () => { BringToFront(); c.Run(); }, Score: score);
+
+    /// <summary>빠른 검색의 기능 찾기: 이름에 들어 있거나, 띄어 쓴 낱말이 모두 들어 있거나, 초성(ㅅㅈ → 설정)이 맞는 명령.</summary>
+    private IEnumerable<PaletteCommand> QuickSearchCommands(string q)
+    {
+        var all = _commands.Where(c => c.Id != "app.quickSearch").GroupBy(c => c.Title).Select(g => g.First()).ToList();
+        if (q.Length == 0)
+        {
+            string[] starters = ["app.settings", "analysis.open", "app.help"];
+            return starters.Select(id => all.FirstOrDefault(c => c.Id == id)).OfType<PaletteCommand>();
+        }
+
+        return all.Where(c => Foldy.Core.QuickSearch.QuickIntent.Score(c.Id, c.Title, q) > 0);
+    }
+
+    private void StartShell(string target)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(target) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
+        {
+            BringToFront();
+            ShowStatus($"열 수 없어요: {ex.Message}");
+        }
+    }
+
+    /// <summary>들어 있는 폴더를 Foldy에서 연다.</summary>
+    private void RevealInFoldy(string path)
+    {
+        BringToFront();
+        if (Path.GetDirectoryName(path.TrimEnd('\\')) is { } parent)
+        {
+            OpenInPane(Shell.ActivePane, parent, newTab: false);
+        }
+    }
+
+    private void BringToFront()
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Activate();
+    }
+
+    private bool _hotkeyAsking;
+
+    /// <summary>
+    /// 빠른 검색 전역 단축키를 등록한다. 다른 프로그램·입력기와 겹치면 조용히 넘어가지 않고 알리고 다른 키를 고르게 한다
+    /// (처음 설정이면 그 창에서, 아니면 작은 대화 창). 시험용 실행(FOLDY_DATA_DIR)에서는 등록하지 않는다.
+    /// </summary>
+    private async Task EnsureQuickSearchHotkeyAsync(GuideWindow? w)
+    {
+        const string id = "app.quickSearch";
+        var hwnd = OwnerHandle;
+        if (_hotkeyAsking || hwnd == IntPtr.Zero || App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null
+            || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 })
+        {
+            return;
+        }
+
+        GlobalHotkey.Unregister(hwnd, GlobalHotkey.QuickSearchId);
+        var g = _keyMap.GetGesture(id);
+        if (!_settings.QuickSearchGlobal || g is null)
+        {
+            return;
+        }
+
+        if (!GlobalHotkey.ConflictsWithInputMethod(g) && GlobalHotkey.Register(hwnd, GlobalHotkey.QuickSearchId, g))
+        {
+            w?.Say($"하나 더! 어느 프로그램을 쓰다가도 {g}를 누르면 빠른 검색이 열려요. 파일·앱·설정·Foldy 기능을 한 번에 찾아요.");
+            return;
+        }
+
+        _hotkeyAsking = true;
+        var own = w is null;
+        w ??= new GuideWindow("빠른 검색 단축키") { Owner = this };
+        try
+        {
+            if (own)
+            {
+                w.Show();
+            }
+
+            var ch = await HotkeyFlows.ChooseAsync(w, hwnd, g);
+            if (ch.Gesture is null)
+            {
+                ShowStatus($"빠른 검색 단축키({g})가 다른 프로그램과 겹쳐서 Foldy 창 안에서만 써요. 설정 → 단축키에서 바꿀 수 있어요.");
+                return;
+            }
+
+            if (!ch.Global)
+            {
+                _settings = _settings with { QuickSearchGlobal = false };
+                SaveSettings();
+                return;
+            }
+
+            if (ch.Gesture != g)
+            {
+                _keyMap.SetGesture(id, ch.Gesture);
+                try
+                {
+                    _keyMap.Save();
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Log.Warning(ex, "단축키 저장 실패");
+                }
+
+                _commands.Clear();
+                BuildCommands();
+            }
+
+            GlobalHotkey.Register(hwnd, GlobalHotkey.QuickSearchId, ch.Gesture);
+            if (own && !w.IsClosed)
+            {
+                await w.AskAsync(null, ("ok", "좋아요"));
+            }
+        }
+        finally
+        {
+            _hotkeyAsking = false;
+            if (own && !w.IsClosed)
+            {
+                w.Close();
+            }
+        }
+    }
 
     private void ShowPalette()
     {
@@ -2033,6 +2297,17 @@ public partial class ShellWindow : Window, IPaneHost
     private void ApplySidebar()
     {
         SidebarColumn.Width = new GridLength(SidebarExpanded ? _sidebarWidth : 48);
+        // 폴더 트리 버튼과 같은 규칙: 켜져 있으면 눌린 배경, 툴팁은 누르면 일어날 일
+        if (SidebarExpanded)
+        {
+            SidebarToggleMark.SetResourceReference(Border.BackgroundProperty, "Brush.Selection");
+        }
+        else
+        {
+            SidebarToggleMark.ClearValue(Border.BackgroundProperty);
+        }
+
+        SidebarToggle.ToolTip = (SidebarExpanded ? "사이드바 접기" : "사이드바 펼치기") + " (Ctrl+Shift+B) · 오른쪽 가장자리를 끌어도 돼요";
         UpdatePinnedEmpty();
     }
 

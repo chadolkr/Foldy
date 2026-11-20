@@ -51,6 +51,39 @@ public sealed class MainWindowTests
     }
 
     [Fact]
+    public void Quick_search_opens_and_calculates()
+    {
+        using var app = FoldyApp.Start();
+        // 찾기 메뉴의 "빠른 검색"으로 연다 (키보드 입력은 함께 도는 다른 테스트와 겹칠 수 있다. Ctrl+Space 키는 같은 명령).
+        // 바깥을 누르면 닫히는 창이라, 시험 PC가 바빠서 포커스가 흔들리면 다시 연다.
+        AutomationElement? answer = null;
+        Window? qs = null;
+        for (var attempt = 0; attempt < 3 && answer is null; attempt++)
+        {
+            try
+            {
+                app.Find("찾기").AsButton().Invoke();
+                var item = Retry.WhileNull(
+                    () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName("빠른 검색 (파일·앱·설정·기능·계산)").And(app.By.ByControlType(ControlType.MenuItem))),
+                    TimeSpan.FromSeconds(10)).Result;
+                item.Should().NotBeNull("찾기 메뉴에 빠른 검색이 있어야 한다");
+                item!.AsMenuItem().Invoke();
+                qs = app.FindWindow("Foldy 빠른 검색", 15);
+                Thread.Sleep(500);
+                qs.FindFirstDescendant(app.By.ByControlType(ControlType.Edit))!.AsTextBox().Text = "12*3+4"; // 입력 칸에 바로 (키보드 포커스와 무관)
+                answer = Retry.WhileNull(() => qs.FindFirstDescendant(app.By.ByName("12*3+4 = 40")), TimeSpan.FromSeconds(5)).Result;
+            }
+            catch (Exception e) when (e is InvalidOperationException or System.Runtime.InteropServices.COMException or FlaUI.Core.Exceptions.ElementNotAvailableException)
+            {
+                Thread.Sleep(1000);
+            }
+        }
+
+        answer.Should().NotBeNull("계산 결과가 가장 알맞은 것으로 바로 보여야 한다");
+        qs!.Close();
+    }
+
+    [Fact]
     public void First_run_tour_shows_one_step_at_a_time_with_a_single_next_button()
     {
         using var app = FoldyApp.Start(skipTour: false);

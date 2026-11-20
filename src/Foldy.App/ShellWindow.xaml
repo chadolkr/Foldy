@@ -52,12 +52,15 @@
     <!-- 공통 사이드바: 자주 쓰는 폴더·최근 폴더·드라이브·도구·설정 (접으면 아이콘만) -->
     <Border x:Name="Sidebar" Grid.RowSpan="4" Style="{DynamicResource Foldy.Sidebar}">
       <DockPanel>
-        <!-- 맨 위: 접기/펼치기 -->
-        <Button DockPanel.Dock="Top" Style="{DynamicResource Foldy.SideItem}" Margin="4,6,4,2" Click="OnToggleSidebar"
-                ToolTip="사이드바 접기/펼치기 (Ctrl+Shift+B) · 오른쪽 가장자리를 끌어도 돼요" AutomationProperties.Name="사이드바 접기/펼치기">
+        <!-- 맨 위: 접기/펼치기. 폴더 트리 버튼과 같은 패널 아이콘·같은 켜짐 표시(눌린 배경). 옆에 Foldy 앱 아이콘 -->
+        <Button x:Name="SidebarToggle" DockPanel.Dock="Top" Style="{DynamicResource Foldy.SideItem}" Margin="4,6,4,2" Click="OnToggleSidebar"
+                ToolTip="사이드바 접기 (Ctrl+Shift+B) · 오른쪽 가장자리를 끌어도 돼요" AutomationProperties.Name="사이드바 접기/펼치기">
           <StackPanel Orientation="Horizontal">
-            <TextBlock Style="{StaticResource SideIcon}" Text="&#xE700;" />
-            <TextBlock Style="{StaticResource SideName}" Text="Foldy" FontWeight="SemiBold" />
+            <Border x:Name="SidebarToggleMark" Width="28" Height="28" Margin="-5,0,-5,0" CornerRadius="4" Background="{DynamicResource Brush.Selection}">
+              <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8A0;" HorizontalAlignment="Center" />
+            </Border>
+            <Image Source="pack://application:,,,/Foldy.UI;component/Assets/foldy-32.png" Width="20" Height="20" Margin="14,0,0,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+            <TextBlock Style="{StaticResource SideName}" Margin="6,0,0,0" Text="Foldy" FontWeight="SemiBold" />
           </StackPanel>
         </Button>
 
@@ -229,6 +232,7 @@
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="파일 검색, 폴더 분석, 두 창 비교, 이미지만 보기" AutomationProperties.Name="찾기">
               <Button.ContextMenu>
                 <ContextMenu>
+                  <MenuItem Header="빠른 검색 (파일·앱·설정·기능·계산)" Tag="app.quickSearch" Click="OnGroupMenuItem" InputGestureText="Ctrl+Space" />
                   <MenuItem Header="파일 이름 검색" Tag="search.focus" Click="OnGroupMenuItem" InputGestureText="Ctrl+F" />
                   <MenuItem Header="폴더 분석 (무엇이 공간을 차지하나)" Tag="analysis.open" Click="OnGroupMenuItem" />
                   <MenuItem Header="두 창 비교·맞추기" Tag="compare.panes" Click="OnGroupMenuItem" />

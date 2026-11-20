@@ -93,3 +93,9 @@ public interface IFileTypeNames
 {
     string GetTypeName(FsEntry entry);
 }
+
+/// <summary>파일이 많은 곳을 지우기 전에 사용자에게 묻는 내용.</summary>
+public sealed record BigDeleteQuestion(IReadOnlyList<string> Paths, Foldy.Core.FileSystem.DeleteCount Count, bool CanFast);
+
+/// <summary>휴지통으로(되살릴 수 있음, 기본) · 빨리 지우기(되살릴 수 없음) · 그만두기.</summary>
+public enum BigDeleteChoice { Recycle, Fast, Cancel }

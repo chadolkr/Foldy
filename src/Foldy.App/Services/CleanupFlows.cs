@@ -582,7 +582,7 @@ public static class FirstRunTour
     /// 처음 실행: 먼저 보기 편하게(글자 크기·밝기)를 한 장씩 고르고 — 고르는 즉시 화면에 반영돼 바로 보인다 — 그다음 둘러보기.
     /// 업데이트로 다시 켤 때는 설정이 이미 있으므로 묻지 않는다.
     /// </summary>
-    public static async Task FirstRunAsync(Window owner, Action<double> setScale, Action<string> setTheme)
+    public static async Task FirstRunAsync(Window owner, Action<double> setScale, Action<string> setTheme, Func<GuideWindow, Task>? hotkeyStep = null)
     {
         var w = new GuideWindow("Foldy 시작하기") { Owner = owner, Width = 720, Height = 640, FontSize = 18 }; // 처음 안내는 글씨를 크게
         w.Show();
@@ -626,6 +626,16 @@ public static class FirstRunTour
 
             setTheme(c);
             w.Say("바꿨어요. 마음에 들면 [이대로 좋아요]를 눌러 주세요.");
+        }
+
+        // 빠른 검색 단축키(Ctrl+Space)가 다른 프로그램과 겹치는지 여기서 확인하고, 겹치면 이 자리에서 고른다
+        if (hotkeyStep is not null)
+        {
+            await hotkeyStep(w);
+            if (w.IsClosed)
+            {
+                return;
+            }
         }
 
         w.Close();

@@ -570,6 +570,32 @@ public partial class ShellWindow
             g.Close();
         });
 
+        await DocSceneAsync("bigdelete", async () =>
+        {
+            var g = (GuideWindow)DocOpen(new GuideWindow(Services.DeleteFlows.Title));
+            _ = Services.DeleteFlows.RunAsync(g, new Foldy.Presentation.Services.BigDeleteQuestion(
+                [@"D:\프로젝트\node_modules"], new Foldy.Core.FileSystem.DeleteCount(182_406, 1_240_000_000, false), true));
+            await DocShotDialogAsync("bigdelete", g, 500);
+            g.Close();
+        });
+
+        // 빠른 검색 (Ctrl+Space): 바로 찾는 것(기능·설정), 파일(냄새 잘 맡는 개), 계산·단위 변환
+        foreach (var (scene, query, wait) in new[] { ("quicksearch", "보고서", 1500), ("quicksearch-settings", "디스", 600), ("quicksearch-calc", "32평", 600), ("quicksearch-talk", "다운로드 정리해줘", 900) })
+        {
+            await DocSceneAsync(scene, async () =>
+            {
+                _startApps ??= [];
+                var qs = BuildQuickSearch(Shell.ActivePane.ActiveFolder?.Path, "파일은 지금 폴더 안에서 찾아요. Enter 열기 · Ctrl+Enter 들어 있는 폴더 · Esc 닫기");
+                qs.KeepOpen = true;
+                ThemeManager.Attach(qs);
+                qs.Show();
+                qs.SetQuery(query);
+                await DocShotDialogAsync(scene, qs, wait);
+                qs.KeepOpen = false;
+                qs.Close();
+            });
+        }
+
         await DocSceneAsync("tour", async () =>
         {
             var g = (GuideWindow)DocOpen(new GuideWindow("Foldy 둘러보기") { Height = 480, EchoChoices = false });
