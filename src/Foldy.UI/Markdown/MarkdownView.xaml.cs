@@ -587,16 +587,17 @@ public partial class MarkdownView : UserControl
     }
 
     private bool ConfirmExecutable(string path) =>
-        MessageBox.Show(Window.GetWindow(this)!,
+        Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this),
+            "링크 열기",
             MarkdownLinks.IsExecutable(path)
-                ? $"문서의 링크가 실행 파일을 가리킵니다.\n\n{path}\n\n실행할까요?"
-                : $"문서의 링크가 이 파일을 엽니다.\n\n{path}\n\n믿을 수 있는 문서일 때만 열어 주세요. 열까요?",
-            "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+                ? $"문서의 링크가 실행 파일을 가리켜요.\n\n{path}\n\n믿을 수 있는 문서일 때만 실행해 주세요. 실행할까요?"
+                : $"문서의 링크가 이 파일을 열어요.\n\n{path}\n\n믿을 수 있는 문서일 때만 열어 주세요. 열까요?",
+            MarkdownLinks.IsExecutable(path) ? "실행" : "열기", danger: true);
 
     private bool ConfirmNetwork(string path) =>
-        MessageBox.Show(Window.GetWindow(this)!,
-            $"문서의 링크가 다른 컴퓨터(네트워크 위치)를 가리킵니다.\n\n{path}\n\n열면 Windows가 그 컴퓨터에 내 로그인 정보를 보냅니다. 믿을 수 있는 곳일 때만 열어 주세요. 열까요?",
-            "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), "링크 열기",
+            $"문서의 링크가 다른 컴퓨터(네트워크 위치)를 가리켜요.\n\n{path}\n\n열면 Windows가 그 컴퓨터에 내 로그인 정보를 보내요. 믿을 수 있는 곳일 때만 열어 주세요. 열까요?",
+            "열기", danger: true);
 
     private void ShellOpen(string target)
     {

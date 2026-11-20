@@ -588,6 +588,15 @@ public partial class ShellWindow
             await Task.CompletedTask;
         });
 
+        // Foldy 확인 창 (Windows 기본 메시지 상자 대신, 테마를 따른다)
+        await DocSceneAsync("dialog", async () =>
+        {
+            var d = DocOpen(Foldy.UI.Dialogs.FoldyDialog.Preview("휴지통 비우기", "휴지통의 1,284개 항목(3.2 GB)을 영구 삭제할까요?\n\n비우면 되살릴 수 없어요.",
+                Foldy.UI.Dialogs.DialogKind.Danger, ["비우기", "그만두기"], 1));
+            await DocShotDialogAsync("dialog", d, 500);
+            d.Close();
+        });
+
         await DocSceneAsync("bigdelete", async () =>
         {
             var g = (GuideWindow)DocOpen(new GuideWindow(Services.DeleteFlows.Title));

@@ -1020,8 +1020,7 @@ public partial class PaneView : UserControl
         }
 
         var on = TagShareToggle.IsChecked == true;
-        if (on && MessageBox.Show(Window.GetWindow(this), "태그(.foldy.md)를 저장소에 함께 올리면 같이 쓰는 사람에게 보이고, 공개 저장소면 누구나 볼 수 있어요. 켤까요?",
-                "태그 공유", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        if (on && !Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), "태그 공유", "태그(.foldy.md)를 저장소에 함께 올리면 같이 쓰는 사람에게 보이고, 공개 저장소면 누구나 볼 수 있어요. 켤까요?", "공유 켜기", "켜지 않기", danger: true))
         {
             TagShareToggle.IsChecked = false;
             return;

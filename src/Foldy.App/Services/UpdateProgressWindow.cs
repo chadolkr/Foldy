@@ -30,7 +30,8 @@ internal static class UpdateProgressWindow
             }
 
             Directory.CreateDirectory(dir);
-            var painter = new Foldy.UI.Mascot.MascotPainter(Foldy.UI.Mascot.MascotPalette.Default);
+            // 지금 테마 색으로 (어두운 테마에서 이름표 글자가 보이게)
+            var painter = new Foldy.UI.Mascot.MascotPainter(Foldy.UI.Mascot.MascotPalette.Resolve(System.Windows.Application.Current?.MainWindow, retro: false));
             const double width = 300, scale = 1.5;
             void Render(string prefix, Foldy.Presentation.Mascot.MascotScene scene, Foldy.Presentation.Mascot.MascotFinish finish, int frames, double seconds, double progress = 1)
             {
@@ -63,6 +64,17 @@ internal static class UpdateProgressWindow
     /// <summary>진행 창을 띄운다. 실패해도 업데이트에는 영향이 없다 (창만 안 보인다).</summary>
     public static void Show(string version, string? animDir = null)
     {
+        // Foldy 테마 색 그대로 (밝게·어둡게·레트로, 강조색). 사용자: "확인 창·진행 창 디자인이 본 프로그램과 다르다"
+        string Hex(string key, string fallback) =>
+            System.Windows.Application.Current?.TryFindResource(key) is System.Windows.Media.SolidColorBrush b
+                ? $"#{b.Color.R:X2}{b.Color.G:X2}{b.Color.B:X2}" : fallback;
+        var bg = Hex("Brush.Window", "#FFFFFF");
+        var colors = new[]
+        {
+            "-Bg", bg, "-Surface", Hex("Brush.Surface", "#F7F7F8"), "-Fg", Hex("Brush.Text", "#1C1C1F"), "-Fg2", Hex("Brush.TextSecondary", "#6B6B73"),
+            "-Accent", Hex("Brush.Accent", "#F28C1B"), "-AccentText", Hex("Brush.AccentText", "#FFFFFF"), "-Border", Hex("Brush.Border", "#CFCFD4"),
+            "-Dark", IsDark(bg) ? "1" : "0",
+        };
         try
         {
             var dir = Path.Combine(Path.GetTempPath(), "Foldy");
@@ -76,7 +88,7 @@ internal static class UpdateProgressWindow
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            foreach (var a in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script, "-Version", version, "-Log", LogPath, "-Since", since.ToString(System.Globalization.CultureInfo.InvariantCulture), "-OldPid", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), "-Anim", animDir ?? "" })
+            foreach (var a in (string[])["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script, "-Version", version, "-Log", LogPath, "-Since", since.ToString(System.Globalization.CultureInfo.InvariantCulture), "-OldPid", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), "-Anim", animDir ?? "", .. colors])
             {
                 psi.ArgumentList.Add(a);
             }
@@ -87,6 +99,12 @@ internal static class UpdateProgressWindow
         {
             Serilog.Log.Warning(ex, "업데이트 진행 창을 띄우지 못함");
         }
+    }
+
+    private static bool IsDark(string hex)
+    {
+        var c = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+        return (0.299 * c.R) + (0.587 * c.G) + (0.114 * c.B) < 128;
     }
 
     /// <summary>업데이트 기록 한 줄을 화면 문구로 (테스트용으로 C#에도 같은 규칙을 둔다). null이면 바꾸지 않음.</summary>
@@ -121,13 +139,18 @@ internal static class UpdateProgressWindow
     }
 
     private const string Script = """
-        param([string]$Version, [string]$Log, [long]$Since, [int]$OldPid, [string]$Anim = "")
+        param([string]$Version, [string]$Log, [long]$Since, [int]$OldPid, [string]$Anim = "",
+              [string]$Bg = "#FFFFFF", [string]$Surface = "#F7F7F8", [string]$Fg = "#1C1C1F", [string]$Fg2 = "#6B6B73",
+              [string]$Accent = "#F28C1B", [string]$AccentText = "#FFFFFF", [string]$Border = "#CFCFD4", [string]$Dark = "0")
         Add-Type -AssemblyName System.Windows.Forms
         Add-Type -AssemblyName System.Drawing
+        Add-Type -Namespace FoldyUp -Name Dwm -MemberDefinition '[DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr h, int a, ref int v, int s);'
         [System.Windows.Forms.Application]::EnableVisualStyles()
+        function C([string]$h) { [System.Drawing.ColorTranslator]::FromHtml($h) }
         $f = New-Object System.Windows.Forms.Form
         $f.Text = "Foldy 업데이트"
-        # 연주·우진 농구 그림 (Foldy가 닫히기 전에 그려 둔 것): 설치 중엔 패스, 끝나면 3점슛 → 하이파이브
+        $f.BackColor = C $Bg; $f.ForeColor = C $Fg
+        # 연주·우진 농구 그림 (Foldy가 닫히기 전에 그려 둔 것): 설치 중엔 드리블·패스, 끝나면 레이업 → 하이파이브
         $work = @(); $donePics = @()
         if ($Anim -and (Test-Path $Anim)) {
             $work = @(Get-ChildItem -Path $Anim -Filter "work_*.png" | Sort-Object Name | ForEach-Object { [System.Drawing.Image]::FromFile($_.FullName) })
@@ -135,27 +158,45 @@ internal static class UpdateProgressWindow
         }
         $picH = 0
         if ($work.Count -gt 0) { $picH = $work[0].Height + 8 }
-        $f.Width = 520; $f.Height = 210 + $picH
+        $f.ClientSize = New-Object System.Drawing.Size(520, (176 + $picH))
         $f.StartPosition = "CenterScreen"; $f.TopMost = $true
         $f.FormBorderStyle = "FixedDialog"; $f.MaximizeBox = $false; $f.MinimizeBox = $false
         $f.Font = New-Object System.Drawing.Font("Malgun Gothic", 12)
+        # 어두운 테마면 제목줄도 어둡게 (Foldy 창과 같게)
+        $f.Add_HandleCreated({ if ($Dark -eq "1") { $v = 1; [void][FoldyUp.Dwm]::DwmSetWindowAttribute($f.Handle, 20, [ref]$v, 4) } })
         $title = New-Object System.Windows.Forms.Label
         $title.Text = "Foldy $Version(으)로 업데이트하고 있어요"
-        $title.Font = New-Object System.Drawing.Font("Malgun Gothic", 13, [System.Drawing.FontStyle]::Bold)
-        $title.SetBounds(20, 16, 470, 30)
+        $title.Font = New-Object System.Drawing.Font("Malgun Gothic", 14, [System.Drawing.FontStyle]::Bold)
+        $title.ForeColor = C $Fg
+        $title.SetBounds(24, 18, 472, 32)
         $msg = New-Object System.Windows.Forms.Label
         $msg.Text = "Foldy가 닫히기를 기다리는 중이에요… 끝나면 Foldy가 저절로 다시 열려요."
-        $msg.SetBounds(20, 54 + $picH, 470, 60)
-        $bar = New-Object System.Windows.Forms.ProgressBar
-        $bar.Style = "Marquee"; $bar.SetBounds(20, 118 + $picH, 470, 14)
+        $msg.ForeColor = C $Fg2
+        $msg.SetBounds(24, 58 + $picH, 472, 52)
+        # 진행 막대: Foldy 강조색으로 왔다 갔다 (Windows 기본 초록 막대 대신)
+        $track = New-Object System.Windows.Forms.Panel
+        $track.BackColor = C $Border; $track.SetBounds(24, 118 + $picH, 472, 6)
+        $runner = New-Object System.Windows.Forms.Panel
+        $runner.BackColor = C $Accent; $runner.SetBounds(0, 0, 120, 6)
+        $track.Controls.Add($runner)
+        $script:rx = 0; $script:rdir = 1
+        $barTimer = New-Object System.Windows.Forms.Timer
+        $barTimer.Interval = 30
+        $barTimer.Add_Tick({
+            $script:rx += 8 * $script:rdir
+            if ($script:rx -gt (472 - 120)) { $script:rdir = -1 } elseif ($script:rx -lt 0) { $script:rdir = 1 }
+            $runner.Left = $script:rx
+        })
+        $barTimer.Start()
         $close = New-Object System.Windows.Forms.Button
-        $close.Text = "닫기"; $close.SetBounds(400, 140 + $picH, 90, 32); $close.Visible = $false
+        $close.Text = "닫기"; $close.SetBounds(392, 132 + $picH, 104, 36); $close.Visible = $false
+        $close.FlatStyle = "Flat"; $close.BackColor = C $Accent; $close.ForeColor = C $AccentText; $close.FlatAppearance.BorderSize = 0
         $close.Add_Click({ $f.Close() })
-        $f.Controls.AddRange(@($title, $msg, $bar, $close))
+        $f.Controls.AddRange(@($title, $msg, $track, $close))
         $pic = $null
         if ($work.Count -gt 0) {
             $pic = New-Object System.Windows.Forms.PictureBox
-            $pic.SizeMode = "CenterImage"; $pic.SetBounds(20, 50, 470, $picH - 4); $pic.Image = $work[0]
+            $pic.SizeMode = "CenterImage"; $pic.SetBounds(24, 54, 472, $picH - 4); $pic.Image = $work[0]; $pic.BackColor = C $Bg
             $f.Controls.Add($pic)
             $script:k = 0; $script:finishing = $false; $script:d = 0
             $animTimer = New-Object System.Windows.Forms.Timer  # $Anim(매개변수)와 이름이 겹치면 문자열이 된다
@@ -193,14 +234,14 @@ internal static class UpdateProgressWindow
             $new = Get-Process -Name Foldy -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $OldPid -and $_.StartTime -gt $start }
             if ($new) { $done = $true }
             if ($done) {
-                $timer.Stop(); $msg.Text = "다 됐어요! 새 Foldy가 열려요."; $bar.Visible = $false
+                $timer.Stop(); $msg.Text = "다 됐어요! 새 Foldy가 열려요."; $track.Visible = $false; $barTimer.Stop()
                 if ($pic -and $donePics.Count -gt 0) { $script:finishing = $true } else { $f.Close() }  # 3점슛 → 하이파이브 뒤에 닫힘
                 return
             }
-            if ($failed) { $timer.Stop(); $bar.Visible = $false; $close.Visible = $true; if ($animTimer) { $animTimer.Stop() }; return }
+            if ($failed) { $timer.Stop(); $track.Visible = $false; $barTimer.Stop(); $close.Visible = $true; if ($animTimer) { $animTimer.Stop() }; return }
             if (((Get-Date) - $start).TotalMinutes -gt 5) {
                 $msg.Text = "생각보다 오래 걸리고 있어요. 이 창을 닫고 잠시 뒤 Foldy를 직접 열어 보세요."
-                $timer.Stop(); $bar.Visible = $false; $close.Visible = $true
+                $timer.Stop(); $track.Visible = $false; $barTimer.Stop(); $close.Visible = $true
             }
         })
         $timer.Start()

@@ -64,14 +64,14 @@ public sealed class SftpSessions
             var msg = changed
                 ? $"⚠ {c.Host}:{c.Port} 서버의 호스트 키가 저장된 것과 다릅니다.\n중간자 공격일 수 있습니다.\n\n{c.KeyType}\n{c.FingerprintSha256}\n\n서버 관리자에게 키가 바뀐 게 맞는지 확인한 뒤에만 \"확인\"을 누르세요."
                 : $"{c.Host}:{c.Port} 서버에 처음 연결합니다.\n\n{c.KeyType}\n{c.FingerprintSha256}\n\n이 키를 known_hosts에 저장하고 연결할까요?\n(아니요: 이번만 연결)";
-            var r = MessageBox.Show(Application.Current.MainWindow, msg, "Foldy · 호스트 키 확인",
-                changed ? MessageBoxButton.OKCancel : MessageBoxButton.YesNoCancel,
-                changed ? MessageBoxImage.Warning : MessageBoxImage.Question,
-                MessageBoxResult.Cancel); // Enter 한 번에 바뀐 키를 믿지 않도록 기본은 취소
-            return r switch
+            // Enter 한 번에 바뀐 키를 믿지 않도록 기본 단추는 [연결하지 않기]
+            string[] buttons = changed ? ["확인했어요, 연결", "연결하지 않기"] : ["저장하고 연결", "이번만 연결", "연결하지 않기"];
+            var r = Foldy.UI.Dialogs.FoldyDialog.Show(Application.Current.MainWindow, "호스트 키 확인", msg.Replace("\"확인\"", "[확인했어요, 연결]", StringComparison.Ordinal).Replace("(아니요: 이번만 연결)", "", StringComparison.Ordinal).TrimEnd(),
+                changed ? Foldy.UI.Dialogs.DialogKind.Danger : Foldy.UI.Dialogs.DialogKind.Question, buttons, defaultIndex: buttons.Length - 1, cancelIndex: buttons.Length - 1);
+            return (changed, r) switch
             {
-                MessageBoxResult.Yes or MessageBoxResult.OK => HostKeyDecision.AcceptAndSave,
-                MessageBoxResult.No => HostKeyDecision.AcceptOnce,
+                (_, 0) => HostKeyDecision.AcceptAndSave,
+                (false, 1) => HostKeyDecision.AcceptOnce,
                 _ => HostKeyDecision.Reject,
             };
         });

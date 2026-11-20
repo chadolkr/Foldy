@@ -312,8 +312,7 @@ public partial class MemoWindow : Window
     {
         if (_dirty && !Save())
         {
-            var r = MessageBox.Show(this, "저장하지 못했어요. 그래도 닫을까요? 고친 내용은 사라져요.", "메모", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
-            if (r != MessageBoxResult.Yes)
+            if (!Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "메모", "저장하지 못했어요. 그래도 닫을까요? 고친 내용은 사라져요.", "닫기 (고친 내용 버리기)", "닫지 않기", danger: true))
             {
                 e.Cancel = true;
                 return;

@@ -43,7 +43,7 @@ public static class SecureFlows
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
             {
-                MessageBox.Show(owner, "메모를 열지 못했어요: " + ex.Message, "메모", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Foldy.UI.Dialogs.FoldyDialog.Info(owner, "메모", "메모를 열지 못했어요: " + ex.Message, Foldy.UI.Dialogs.DialogKind.Warning);
             }
 
             return true;

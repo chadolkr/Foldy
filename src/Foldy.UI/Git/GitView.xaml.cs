@@ -51,7 +51,7 @@ public partial class GitView : UserControl
         if (Vm is { Confirm: null } vm)
         {
             vm.Confirm = message => Task.FromResult(
-                MessageBox.Show(Window.GetWindow(this), message, "Git", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes);
+                Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), "Git", message, "계속하기", danger: true));
         }
     }
 

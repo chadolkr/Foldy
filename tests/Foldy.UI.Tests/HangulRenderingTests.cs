@@ -41,6 +41,17 @@ public class HangulRenderingTests
         offenders.Should().BeEmpty("Display 방식은 Pretendard 한글 획을 빠뜨린다 (스·레·드 → ㅅㄹㄷ). Ideal을 쓴다");
     }
 
+    /// <summary>확인 창은 Foldy 테마를 따르는 FoldyDialog만 쓴다 (Windows 기본 메시지 상자는 모양이 달라 보인다, 2026-11-20 사용자).</summary>
+    [Fact]
+    public void No_windows_message_boxes()
+    {
+        var offenders = SourceFiles()
+            .Where(f => File.ReadLines(f).Any(l => l.Contains("MessageBox.Show", StringComparison.Ordinal) && !l.TrimStart().StartsWith("//", StringComparison.Ordinal)))
+            .Select(f => Path.GetRelativePath(Root(), f))
+            .ToList();
+        offenders.Should().BeEmpty("확인 창은 Foldy.UI.Dialogs.FoldyDialog를 쓴다");
+    }
+
     [Fact]
     public void Screen_text_is_stored_as_composed_hangul()
     {

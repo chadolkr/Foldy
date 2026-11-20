@@ -116,7 +116,7 @@ public partial class ShellWindow : Window, IPaneHost
             new TerminalService(() => _settings, (p, sudo) => _sftp.OpenTerminal(p, sudo))))
         {
             Settings = _settings,
-            ConfirmAsync = msg => Task.FromResult(MessageBox.Show(this, msg, "Foldy", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes),
+            ConfirmAsync = msg => Task.FromResult(Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "확인", msg, "지울게요", danger: true)), // SFTP 삭제처럼 되살릴 수 없는 일
             OpenSpecial = p => SecureFlows.TryOpen(this, p, Shell!),
             AskBigDeleteAsync = q => DeleteFlows.AskBigDeleteAsync(this, q),
         };
@@ -149,6 +149,11 @@ public partial class ShellWindow : Window, IPaneHost
             }
         });
         ThemeManager.Attach(this);
+        Foldy.UI.Dialogs.FoldyDialog.Decorate = w =>
+        {
+            ThemeManager.Attach(w);
+            App.ApplyScale(w);
+        };
 
         var session = JsonFileStore.Load(_sessionPath, () => new SessionState());
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -1268,11 +1273,10 @@ public partial class ShellWindow : Window, IPaneHost
                 Shell.Status = err is null ? $"최신 버전이에요 ({AppVersion}). 새 버전이 나오면 알려 드릴게요" : $"업데이트를 확인하지 못했습니다: {err}";
                 if (interactive && err is not null) // 최신이면 상태 줄로만 (누를 단추를 늘리지 않는다, 원칙 1.4)
                 {
-                    MessageBox.Show(this,
-                        err is null ? $"Foldy {AppVersion}은(는) 최신 버전입니다."
-                            : err.Contains(AppUpdater.MissingVerifier, StringComparison.Ordinal) ? $"업데이트를 확인하지 못했습니다.\n\n{err}"
-                            : $"업데이트를 확인하지 못했습니다.\n\n{err}\n\n인터넷·프록시 연결을 확인한 뒤 다시 시도해 주세요.",
-                        "Foldy 업데이트", MessageBoxButton.OK, err is null ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                    Foldy.UI.Dialogs.FoldyDialog.Info(this, "Foldy 업데이트",
+                        err.Contains(AppUpdater.MissingVerifier, StringComparison.Ordinal) ? $"업데이트를 확인하지 못했어요.\n\n{err}"
+                            : $"업데이트를 확인하지 못했어요.\n\n{err}\n\n인터넷·프록시 연결을 확인한 뒤 다시 해 주세요.",
+                        Foldy.UI.Dialogs.DialogKind.Warning);
                 }
 
                 return;
@@ -1282,8 +1286,7 @@ public partial class ShellWindow : Window, IPaneHost
         UpdateUpdateButton();
         var v = _updater.ReadyVersion;
         Shell.Status = $"Foldy {v} 업데이트가 준비됐습니다";
-        if (interactive && MessageBox.Show(this, $"Foldy {v}이(가) 준비됐습니다 (현재 {AppVersion}).\n지금 Foldy를 닫고 설치할까요?",
-                "Foldy 업데이트", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        if (interactive && Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "Foldy 업데이트", $"Foldy {v}이(가) 준비됐어요 (지금 {AppVersion}).\n지금 Foldy를 닫고 설치할까요? 1분쯤 뒤에 다시 열려요.", "지금 설치", "나중에"))
         {
             OnInstallUpdate(this, new RoutedEventArgs());
         }
@@ -1357,7 +1360,7 @@ public partial class ShellWindow : Window, IPaneHost
                 : "업데이트 설치가 취소됐습니다. 관리자 권한 창에서 [예]를 눌러야 설치됩니다.";
             Shell.Status = why;
             UpdateUpdateButton();
-            MessageBox.Show(this, why, "Foldy 업데이트", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Foldy.UI.Dialogs.FoldyDialog.Info(this, "Foldy 업데이트", why, Foldy.UI.Dialogs.DialogKind.Warning);
         }
     }
 
@@ -2259,8 +2262,7 @@ public partial class ShellWindow : Window, IPaneHost
         Log.Information("진단 모드 꺼짐");
         Diagnostics.DiagnosticMode.Apply(null);
         UpdateDiagnosticIndicator();
-        if (MessageBox.Show(this, "진단 기록을 개발자에게 오류 보고서로 보낼까요?\n\n최근 기록과 앱·Windows 버전이 들어가며, 파일 경로와 사용자 이름은 지웁니다. GitHub 공개 이슈로 올라갑니다.",
-                "버그 진단 모드", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        if (Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "버그 진단 모드", "진단 기록을 개발자에게 오류 보고서로 보낼까요?\n\n최근 기록과 앱·Windows 버전이 들어가며, 파일 경로와 사용자 이름은 지웁니다. GitHub 공개 이슈로 올라갑니다.", "보내기", "보내지 않기"))
         {
             Foldy.Reporting.CrashReporting.Record(new DiagnosticReport("사용자 진단 기록 (버그 진단 모드)"), fatal: false);
             _ = SendReportsAsync();
@@ -2300,7 +2302,7 @@ public partial class ShellWindow : Window, IPaneHost
         var index = Path.Combine(src, "index.md");
         if (!File.Exists(index))
         {
-            MessageBox.Show(this, "설명서 파일을 찾을 수 없습니다.\n" + index, "도움말", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Foldy.UI.Dialogs.FoldyDialog.Info(this, "도움말", "설명서 파일을 찾을 수 없어요.\n" + index, Foldy.UI.Dialogs.DialogKind.Warning);
             return;
         }
 
@@ -2583,8 +2585,7 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        if (MessageBox.Show(this, $"휴지통의 {i.Items:N0}개 항목({Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)})을 영구 삭제할까요?\n\n되살릴 수 없습니다.",
-                "휴지통 비우기", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+        if (!Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "휴지통 비우기", $"휴지통의 {i.Items:N0}개 항목({Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)})을 영구 삭제할까요?\n\n비우면 되살릴 수 없어요.", "비우기", danger: true))
         {
             return;
         }
