@@ -133,6 +133,8 @@ struct Inner {
     m: Machine,
     st: UpdateState,
     check_requested: bool,
+    /// 설치 요청을 받았다: 설치 직전에 최신 버전을 한 번 더 확인한다
+    refresh_before_install: bool,
     watch: Option<StartWatch>,
     /// 업데이트 폴더 보안 설정이 실패함: 확인·다운로드·설치를 하지 않는다
     unsafe_dir: bool,
@@ -180,7 +182,7 @@ impl UpdateService {
         Arc::new(UpdateService {
             cfg,
             host,
-            inner: Mutex::new(Inner { m: Machine::default(), st: UpdateState::default(), check_requested: false, watch: None, unsafe_dir: false }),
+            inner: Mutex::new(Inner { m: Machine::default(), st: UpdateState::default(), check_requested: false, refresh_before_install: false, watch: None, unsafe_dir: false }),
             kick: Notify::new(),
         })
     }
@@ -231,7 +233,12 @@ impl UpdateService {
             MsgType::InstallWhenIdle => match decode_body::<InstallWhenIdle>(body) {
                 Ok(req) => {
                     let session = choose_session(req.session_id, pipe_session, self.host.active_console_session());
-                    let r = self.lock().m.request_install(InstallRequest { relaunch: req.relaunch, session_id: session });
+                    let mut g = self.lock();
+                    let r = g.m.request_install(InstallRequest { relaunch: req.relaunch, session_id: session });
+                    if r.is_ok() {
+                        g.refresh_before_install = true; // 설치 직전에 최신인지 한 번 더 (중간 버전을 거치지 않게)
+                    }
+                    drop(g);
                     match r {
                         Ok(()) => {
                             self.kick.notify_one();
@@ -311,6 +318,10 @@ impl UpdateService {
             if std::mem::take(&mut self.lock().check_requested) {
                 let s = self.clone();
                 let _ = tokio::task::spawn_blocking(move || s.check_blocking()).await;
+            }
+            if std::mem::take(&mut self.lock().refresh_before_install) {
+                let s = self.clone();
+                let _ = tokio::task::spawn_blocking(move || s.refresh_blocking()).await;
             }
             if self.lock().m.install.is_some() {
                 self.clone().install().await;
@@ -468,6 +479,51 @@ impl UpdateService {
             self.prune(&g.st, &r.path);
         }
         g.m.finish_check(checked);
+        self.save(&g);
+    }
+
+    /// 설치 직전 확인: 준비된 것보다 새 버전이 나왔으면 받아서 그것으로 설치한다 (1.0 → 1.3을 1.1·1.2를 거치지 않고 한 번에).
+    pub fn refresh_blocking(&self) {
+        let (mut st, channel) = {
+            let mut g = self.lock();
+            if g.unsafe_dir || !g.m.begin_refresh() {
+                return;
+            }
+            let mut st = g.st.clone();
+            st.etag = None; // 지난 확인의 "바뀐 것 없음"에 기대지 않고 지금 최신을 본다
+            (st, Self::channel(&g.st))
+        };
+        let result = {
+            let _bg = win::BackgroundPriority::enter();
+            self.run_check(&mut st, channel)
+        };
+        let mut g = self.lock();
+        g.st.etag = st.etag;
+        g.st.etag_channel = st.etag_channel;
+        g.st.last_check_unix = st.last_check_unix;
+        let checked = match result {
+            Ok(Outcome::Ready(p)) => match p.manifest.asset(PackageKind::Msi) {
+                Some(a) if p.mandatory || !g.st.is_skipped(&p.version) => Ok(Checked::Ready(Ready {
+                    version: p.version.clone(),
+                    path: p.path.clone(),
+                    asset: a.clone(),
+                    mandatory: p.mandatory,
+                    notes: p.notes.clone(),
+                })),
+                _ => Ok(Checked::Nothing),
+            },
+            Ok(_) => Ok(Checked::Nothing),
+            Err(e) => Err(e.to_string()),
+        };
+        let before = g.m.ready.as_ref().map(|r| r.version.clone());
+        g.m.finish_refresh(checked);
+        if let Some(r) = g.m.ready.as_ref()
+            && before.as_ref() != Some(&r.version)
+        {
+            self.log(&format!("설치 직전 확인: 더 새 버전 {}으로 바로 설치합니다", r.version));
+            let keep = r.path.clone();
+            self.prune(&g.st, &keep);
+        }
         self.save(&g);
     }
 

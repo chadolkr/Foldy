@@ -98,6 +98,28 @@ impl Machine {
         true
     }
 
+    /// 설치 직전에 한 번 더 확인 (사용자 요청 2026-11-21: 버전 차이가 크면 중간 버전을 거치지 말고 최신으로 한 번에).
+    /// 설치를 기다리는 중에도 허락한다. 결과가 "새것 없음"이어도 이미 준비된 업데이트는 버리지 않는다(<see cref="finish_refresh"/>).
+    pub fn begin_refresh(&mut self) -> bool {
+        if self.phase.busy() {
+            return false;
+        }
+        self.phase = Phase::Checking;
+        self.progress = (0, 0);
+        true
+    }
+
+    /// 설치 직전 확인의 결과: 더 새 버전이 준비됐으면 그것으로 바꾸고, 그 밖에는 이미 준비된 것을 그대로 쓴다.
+    pub fn finish_refresh(&mut self, r: Result<Checked, String>) {
+        if let Ok(Checked::Ready(newer)) = r
+            && self.ready.as_ref().is_none_or(|old| newer.version > old.version)
+        {
+            self.ready = Some(newer);
+        }
+        self.last_error = None;
+        self.phase = if self.ready.is_some() { Phase::ReadyToInstall } else { Phase::Idle };
+    }
+
     pub fn on_progress(&mut self, done: u64, total: u64) {
         if matches!(self.phase, Phase::Checking | Phase::Downloading) {
             self.phase = Phase::Downloading;
@@ -333,6 +355,33 @@ mod tests {
         m.install_succeeded();
         assert_eq!(m.phase, Phase::Idle);
         assert!(m.ready.is_none());
+    }
+
+    #[test]
+    fn refresh_before_install_switches_to_the_latest_version() {
+        let mut m = Machine::default();
+        m.begin_check();
+        m.finish_check(Ok(Checked::Ready(ready("1.2.3"))));
+        m.request_install(REQ).unwrap();
+        // 설치를 기다리는 동안에도 한 번 더 확인한다: 그사이 1.2.5가 나왔으면 그것으로 한 번에
+        assert!(m.begin_refresh());
+        m.finish_refresh(Ok(Checked::Ready(ready("1.2.5"))));
+        let (r, _) = m.take_install().unwrap();
+        assert_eq!(r.version, Version::new(1, 2, 5));
+    }
+
+    #[test]
+    fn refresh_keeps_the_ready_update_when_nothing_newer_or_offline() {
+        for result in [Ok(Checked::Nothing), Ok(Checked::NotModified), Err("인터넷 없음".to_string()), Ok(Checked::Ready(ready("1.2.2")))] {
+            let mut m = Machine::default();
+            m.begin_check();
+            m.finish_check(Ok(Checked::Ready(ready("1.2.3"))));
+            m.request_install(REQ).unwrap();
+            assert!(m.begin_refresh());
+            m.finish_refresh(result);
+            let (r, _) = m.take_install().unwrap();
+            assert_eq!(r.version, Version::new(1, 2, 3), "새것이 없거나 확인 못 해도 준비된 것으로 설치한다");
+        }
     }
 
     #[test]

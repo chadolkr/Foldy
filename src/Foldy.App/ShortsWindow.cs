@@ -23,14 +23,14 @@ internal sealed class ShortsWindow : Window
     /// <summary>장면 목록 (다국어 준비: 문구는 여기만).</summary>
     public static readonly Scene[] Scenes =
     [
-        new("main.png", 0.55, 0.4, 1.7, 2.1, "끌어다 놓으면 복사 끝", "두 창 사이로 끌거나 F5 · 이동은 F6"),
-        new("quicksearch.png", 0.38, 0.32, 1.0, 1.2, "Ctrl+Space 한 번이면 다 찾아요", "파일·앱·설정·계산까지, 말하듯 써도 돼요"),
-        new("analysis.png", 0.72, 0.3, 1.5, 1.9, "용량 범인을 한눈에", "큰 상자가 큰 폴더 · 지워도 되는 것만 골라 줘요"),
-        new("guide.png", 0.45, 0.25, 1.05, 1.3, "쌓인 바탕화면, 한 번에 정리", "'바탕화면 보관' 폴더에 달별·종류별로 · 되돌리기 한 번이면 원래대로"),
-        new("organize.png", 0.5, 0.33, 1.3, 1.6, "어지러운 폴더도 종류·날짜별로 정리", "지금과 정리 후를 먼저 보여 줘요 · 지우지 않고 되돌릴 수 있어요"),
-        new("memo.png", 0.72, 0.18, 1.0, 1.3, "비밀번호는 잠긴 메모에", "5분 동안 안 쓰면 저절로 잠겨요"),
-        new("template-picker.png", 0.78, 0.3, 1.2, 1.5, "폴더 구조를 클릭 한 번에", "Java·PARA·Claude 프로젝트 등 · 미리 보고 만들어요"),
-        new("git-changes.png", 0.5, 0.35, 1.5, 1.8, "프로젝트 폴더면 Git이 저절로", "받기·올리기·커밋을 버튼으로"),
+        new("main.png", 0.62, 0.38, 1.65, 1.95, "끌어다 놓으면 복사 끝", "두 창 사이로 끌거나 F5 · 이동은 F6"),
+        new("quicksearch.png", 0.45, 0.3, 1.70, 2.00, "Ctrl+Space 한 번이면 다 찾아요", "파일·앱·설정·계산까지, 말하듯 써도 돼요"),
+        new("analysis.png", 0.8, 0.28, 1.65, 1.90, "용량 범인을 한눈에", "큰 상자가 큰 폴더 · 지워도 되는 것만 골라 줘요"),
+        new("guide.png", 0.5, 0.22, 1.70, 1.95, "쌓인 바탕화면, 한 번에 정리", "'바탕화면 보관' 폴더에 달별·종류별로 · 되돌리기 한 번이면 원래대로"),
+        new("organize.png", 0.55, 0.3, 1.65, 1.90, "어지러운 폴더도 종류·날짜별로 정리", "지금과 정리 후를 먼저 보여 줘요 · 지우지 않고 되돌릴 수 있어요"),
+        new("memo.png", 0.72, 0.17, 1.75, 2.05, "비밀번호는 잠긴 메모에", "5분 동안 안 쓰면 저절로 잠겨요"),
+        new("template-picker.png", 0.76, 0.28, 1.65, 1.90, "폴더 구조를 클릭 한 번에", "Java·PARA·Claude 프로젝트 등 · 미리 보고 만들어요"),
+        new("git-changes.png", 0.55, 0.32, 1.65, 1.90, "프로젝트 폴더면 Git이 저절로", "받기·올리기·커밋을 버튼으로"),
     ];
 
     public const string EndTitle = "이제 시작해 볼까요?";
@@ -40,6 +40,9 @@ internal sealed class ShortsWindow : Window
 
     private readonly Grid _stage = new() { ClipToBounds = true };
     private readonly Image _image = new() { Stretch = Stretch.Fill };
+    private readonly MatrixTransform _move = new();
+    private readonly TranslateTransform _tapMove = new();
+    private readonly ScaleTransform _tapScale = new();
     private readonly Ellipse _tap = new() { Width = 46, Height = 46, StrokeThickness = 4, IsHitTestVisible = false };
     private readonly TextBlock _title = new() { FontSize = 26, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
     private readonly TextBlock _sub = new() { FontSize = 16, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 8, 0, 0) };
@@ -47,7 +50,6 @@ internal sealed class ShortsWindow : Window
     private readonly Button _skip = new() { Content = "건너뛰기", MinHeight = 34, MinWidth = 88, Padding = new Thickness(12, 2, 12, 2) };
     private readonly Button _start = new() { Content = "시작하기", MinHeight = 44, MinWidth = 160, FontSize = 17, IsDefault = true, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 18, 0, 0) };
     private readonly Canvas _canvas = new();
-    private readonly DispatcherTimer _clock;
     private readonly string _imageDir;
     private int _index;
     private TimeSpan _elapsed;
@@ -124,13 +126,19 @@ internal sealed class ShortsWindow : Window
         };
         _stage.Cursor = Cursors.Hand;
         PreviewKeyDown += OnKey;
-        _clock = new DispatcherTimer(TimeSpan.FromMilliseconds(33), DispatcherPriority.Render, (_, _) => Tick(), Dispatcher);
+        // 움직임은 화면을 새로 그릴 때마다(모니터 주사율) 변환만 바꾼다: 배치를 다시 하지 않아 끊기지 않는다
+        _image.RenderTransform = _move;
+        RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.Linear);
+        _image.CacheMode = new BitmapCache { RenderAtScale = 2 };
+        _tap.RenderTransform = new TransformGroup { Children = { _tapScale, _tapMove } };
+        _tap.Width = _tap.Height = 40;
+        _tapScale.CenterX = _tapScale.CenterY = 20;
         Loaded += (_, _) =>
         {
             Go(0);
-            _clock.Start();
+            CompositionTarget.Rendering += OnFrame;
         };
-        Closed += (_, _) => _clock.Stop();
+        Closed += (_, _) => CompositionTarget.Rendering -= OnFrame;
         if (App.UiScale > 1.001)
         {
             Width *= Math.Min(App.UiScale, 1.15);
@@ -164,6 +172,14 @@ internal sealed class ShortsWindow : Window
         }
 
         _image.Source = _bitmap;
+        if (_bitmap is not null)
+        {
+            _image.Width = _bitmap.PixelWidth / 2.0; // 캡처는 2배로 찍혀 있다: 원래 크기로 두고 변환으로만 확대
+            _image.Height = _bitmap.PixelHeight / 2.0;
+        }
+
+        // 장면이 바뀔 때 부드럽게 (0.35초 동안 서서히 나타남)
+        _canvas.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350)));
         _image.Opacity = end ? 0.25 : 1;
         Render();
     }
@@ -218,6 +234,8 @@ internal sealed class ShortsWindow : Window
         e.Handled = true;
     }
 
+    private void OnFrame(object? sender, EventArgs e) => Tick();
+
     private void Tick()
     {
         var now = DateTime.UtcNow;
@@ -242,7 +260,14 @@ internal sealed class ShortsWindow : Window
         {
             var track = (Border)_bars.Children[i];
             var fill = (Border)track.Child;
-            fill.Width = track.Width * (i < _index ? 1 : i == _index ? (_index == Scenes.Length ? 1 : u) : 0);
+            fill.Width = track.Width;
+            var amount = i < _index ? 1 : i == _index ? (_index == Scenes.Length ? 1 : u) : 0;
+            if (fill.RenderTransform is not ScaleTransform st)
+            {
+                fill.RenderTransform = st = new ScaleTransform(0, 1);
+            }
+
+            st.ScaleX = amount;
         }
 
         var w = _canvas.ActualWidth;
@@ -253,45 +278,28 @@ internal sealed class ShortsWindow : Window
             return;
         }
 
-        var scene = _index < Scenes.Length ? Scenes[_index] : new Scene("main.png", 0.5, 0.5, 1, 1, "", "");
-        var iw = _bitmap.PixelWidth / 2.0; // 캡처는 2배로 찍혀 있다
+        var end = _index >= Scenes.Length;
+        var scene = end ? new Scene("main.png", 0.5, 0.5, 1, 1, "", "") : Scenes[_index];
+        var iw = _bitmap.PixelWidth / 2.0;
         var ih = _bitmap.PixelHeight / 2.0;
         var ease = u * u * (3 - (2 * u));
-        var cover = Math.Max(w / iw, h / ih);
-        var fit = Math.Min(w / iw, h / ih);
-        var baseScale = iw / ih > 3 ? h * 0.4 / ih : Math.Max(fit, cover * 0.55); // 넓은 화면은 너무 잘리지 않게 (위아래 여백 허용), 긴 띠(농구 장면)는 크게 보이며 옆으로 흐른다
-        var s = baseScale * (scene.ZoomFrom + ((scene.ZoomTo - scene.ZoomFrom) * ease));
+        // 확대: 장면마다 정한 배율(원래 크기 대비, 글씨가 잘 보이게). 마지막 장은 전체가 흐릿하게 보이게 맞춤
+        var s = end ? Math.Min(w / iw, h / ih) : scene.ZoomFrom + ((scene.ZoomTo - scene.ZoomFrom) * ease);
         var dw = iw * s;
         var dh = ih * s;
-        var fx = iw / ih > 3 ? Lerp(0.15, 0.85, ease) : scene.FocusX;
-        var left = Math.Clamp((w / 2) - (fx * dw), Math.Min(0, w - dw), Math.Max(0, w - dw));
-        var top = Math.Clamp((h / 2) - (scene.FocusY * dh), Math.Min(0, h - dh), Math.Max(0, h - dh));
-        if (dw <= w)
-        {
-            left = (w - dw) / 2;
-        }
-
-        if (dh <= h)
-        {
-            top = (h - dh) / 2;
-        }
-
-        _image.Width = dw;
-        _image.Height = dh;
-        Canvas.SetLeft(_image, left);
-        Canvas.SetTop(_image, top);
+        var left = dw <= w ? (w - dw) / 2 : Math.Clamp((w / 2) - (scene.FocusX * dw), w - dw, 0);
+        var top = dh <= h ? (h - dh) / 2 : Math.Clamp((h / 2) - (scene.FocusY * dh), h - dh, 0);
+        _move.Matrix = new Matrix(s, 0, 0, s, left, top);
 
         // 누를 곳에서 동그라미가 톡톡 (1.4초마다 커지며 흐려진다)
-        var showTap = _index < Scenes.Length && iw / ih <= 3;
-        _tap.Visibility = showTap ? Visibility.Visible : Visibility.Collapsed;
-        if (showTap)
+        _tap.Visibility = end ? Visibility.Collapsed : Visibility.Visible;
+        if (!end)
         {
             var phase = (_elapsed.TotalSeconds % 1.4) / 1.4;
-            var size = 30 + (phase * 36);
-            _tap.Width = _tap.Height = size;
+            _tapScale.ScaleX = _tapScale.ScaleY = 0.75 + (phase * 0.9);
             _tap.Opacity = 1 - phase;
-            Canvas.SetLeft(_tap, left + (scene.FocusX * dw) - (size / 2));
-            Canvas.SetTop(_tap, top + (scene.FocusY * dh) - (size / 2));
+            _tapMove.X = left + (scene.FocusX * dw) - 20;
+            _tapMove.Y = top + (scene.FocusY * dh) - 20;
         }
     }
 
