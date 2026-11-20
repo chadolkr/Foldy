@@ -26,7 +26,8 @@ internal sealed class ShortsWindow : Window
         new("main.png", 0.55, 0.4, 1.7, 2.1, "끌어다 놓으면 복사 끝", "두 창 사이로 끌거나 F5 · 이동은 F6"),
         new("quicksearch.png", 0.38, 0.32, 1.0, 1.2, "Ctrl+Space 한 번이면 다 찾아요", "파일·앱·설정·계산까지, 말하듯 써도 돼요"),
         new("analysis.png", 0.72, 0.3, 1.5, 1.9, "용량 범인을 한눈에", "큰 상자가 큰 폴더 · 지워도 되는 것만 골라 줘요"),
-        new("guide.png", 0.45, 0.25, 1.05, 1.3, "쌓인 바탕화면, 대화로 정리해요", "버리지 않고 보관해요 · 되돌리기 한 번이면 원래대로"),
+        new("guide.png", 0.45, 0.25, 1.05, 1.3, "쌓인 바탕화면, 한 번에 정리", "'바탕화면 보관' 폴더에 달별·종류별로 · 되돌리기 한 번이면 원래대로"),
+        new("organize.png", 0.5, 0.33, 1.3, 1.6, "어지러운 폴더도 종류·날짜별로 정리", "지금과 정리 후를 먼저 보여 줘요 · 지우지 않고 되돌릴 수 있어요"),
         new("memo.png", 0.72, 0.18, 1.0, 1.3, "비밀번호는 잠긴 메모에", "5분 동안 안 쓰면 저절로 잠겨요"),
         new("template-picker.png", 0.78, 0.3, 1.2, 1.5, "폴더 구조를 클릭 한 번에", "Java·PARA·Claude 프로젝트 등 · 미리 보고 만들어요"),
         new("git-changes.png", 0.5, 0.35, 1.5, 1.8, "프로젝트 폴더면 Git이 저절로", "받기·올리기·커밋을 버튼으로"),
@@ -69,7 +70,7 @@ internal sealed class ShortsWindow : Window
 
         for (var i = 0; i <= Scenes.Length; i++)
         {
-            var track = new Border { Width = 30, Height = 5, CornerRadius = new CornerRadius(2.5), Margin = new Thickness(3, 0, 3, 0), ClipToBounds = true };
+            var track = new Border { Width = 26, Height = 5, CornerRadius = new CornerRadius(2.5), Margin = new Thickness(3, 0, 3, 0), ClipToBounds = true };
             track.SetResourceReference(Border.BackgroundProperty, "Brush.Border");
             var fill = new Border { HorizontalAlignment = HorizontalAlignment.Left, Width = 0, CornerRadius = new CornerRadius(2.5) };
             fill.SetResourceReference(Border.BackgroundProperty, "Brush.Accent");
