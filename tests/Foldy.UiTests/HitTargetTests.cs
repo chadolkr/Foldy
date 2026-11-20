@@ -18,13 +18,30 @@ public sealed partial class HitTargetTests
         using var app = FoldyApp.Start();
         Thread.Sleep(1500);
         var scale = GetDpiForSystem() / 96.0; // UI Automation 좌표는 화면 픽셀
-        var small = app.Main.FindAllDescendants(app.By.ByControlType(ControlType.Button))
+        // 시험 PC가 바쁘면 시작 직후 배치가 바뀌는 중일 수 있어, 깨끗해질 때까지 최대 10초 다시 잰다
+        List<string> small = [];
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        do
+        {
+            small = Measure(app, scale);
+            if (small.Count == 0)
+            {
+                break;
+            }
+
+            Thread.Sleep(500);
+        }
+        while (sw.Elapsed < TimeSpan.FromSeconds(10));
+
+        small.Should().BeEmpty("작은 버튼: " + string.Join(", ", small));
+    }
+
+    private static List<string> Measure(FoldyApp app, double scale) =>
+        app.Main.FindAllDescendants(app.By.ByControlType(ControlType.Button))
             .Where(b => !b.IsOffscreen && b.Properties.ClassName.ValueOrDefault is not ("RepeatButton" or "Thumb") && b.Parent?.ControlType != ControlType.ScrollBar)
             .Select(b => (b.Name, R: b.BoundingRectangle, Cls: b.Properties.ClassName.ValueOrDefault, Id: b.Properties.AutomationId.ValueOrDefault))
             .Where(x => x.R.Width > 0 && x.R.Height > 0 && (x.R.Width / scale < Min - 0.5 || x.R.Height / scale < Min - 0.5))
             .Select(x => $"'{x.Name}' [{x.Cls}/{x.Id}] ({x.R.Width / scale:0}×{x.R.Height / scale:0})")
             .Distinct()
             .ToList();
-        small.Should().BeEmpty("작은 버튼: " + string.Join(", ", small));
-    }
 }

@@ -42,8 +42,10 @@ public sealed class MainWindowTests
         using var app = FoldyApp.Start();
         app.Main.Patterns.Window.Pattern.SetWindowVisualState(WindowVisualState.Normal);
         app.Main.Patterns.Transform.Pattern.Resize(1366, 728);
-        Thread.Sleep(1500);
-        foreach (var name in new[] { "찾기", "정리하기", "지키기", "연결하기", "휴지통" })
+        string[] names = ["찾기", "정리하기", "지키기", "연결하기", "휴지통"];
+        // 시험 PC가 바쁘면 다시 배치되는 데 시간이 걸린다: 최대 15초 기다린다
+        Retry.WhileTrue(() => names.Any(n => app.Find(n).IsOffscreen), TimeSpan.FromSeconds(15));
+        foreach (var name in names)
         {
             var e = app.Find(name);
             e.IsOffscreen.Should().BeFalse($"1366×768에서 '{name}'이 스크롤 밖으로 밀리면 안 된다");

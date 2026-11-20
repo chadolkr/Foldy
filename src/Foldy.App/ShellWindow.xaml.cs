@@ -907,7 +907,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("terminal.cmd", "명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, false));
         Add("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, true));
         Add("view.hidden", "숨김 파일 보기 켜기/끄기", ToggleHidden, Key.H, ModifierKeys.Control);
-        Add("analysis.open", "폴더 분석 (현재 폴더)", OpenAnalysis);
+        Add("analysis.open", "폴더 분석 (디스크·폴더 고르기)", () => _ = AskAnalysisTargetAsync());
         Add("compare.panes", "두 창 비교·맞추기", () =>
         {
             if (Shell.Left.ActiveFolder?.Path is { Length: > 2 } l && Shell.Right.ActiveFolder?.Path is { Length: > 2 } r && !Foldy.Presentation.Navigation.PathUtil.IsSftp(l) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(r))
@@ -1865,12 +1865,73 @@ public partial class ShellWindow : Window, IPaneHost
 
     private Foldy.Analysis.AnalysisCoordinator? _analysis;
 
-    private void OnMenuAnalysis(object sender, RoutedEventArgs e) => OpenAnalysis();
+    private void OnMenuAnalysis(object sender, RoutedEventArgs e) => _ = AskAnalysisTargetAsync();
 
-    private void OpenAnalysis()
+    /// <summary>
+    /// 폴더 분석할 곳을 한 번에 고른다 (사용자 요청 2026-11-20): 디스크마다 단추(남은 공간과 함께), 지금 폴더, 다른 폴더 고르기.
+    /// 빠른 검색·찾기 메뉴·명령 목록 어디서 열어도 같다. 사이드바 드라이브의 오른쪽 클릭 "분석"은 그 드라이브를 바로 연다.
+    /// </summary>
+    private async Task AskAnalysisTargetAsync()
+    {
+        var w = new GuideWindow("폴더 분석") { Owner = this };
+        w.Show();
+        try
+        {
+            w.Say("어디를 분석할까요? 무엇이 공간을 차지하는지 큰 상자 그림으로 보여 드려요.");
+            var choices = new List<(string Id, string Label)>();
+            foreach (var d in DriveInfo.GetDrives())
+            {
+                try
+                {
+                    if (d.IsReady && d.DriveType is DriveType.Fixed or DriveType.Removable)
+                    {
+                        var name = d.Name.TrimEnd('\\');
+                        var label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? name : $"{name} {d.VolumeLabel}";
+                        choices.Add((d.RootDirectory.FullName, $"{label} ({Foldy.Presentation.Files.FileItem.FormatBytes(d.AvailableFreeSpace)} 남음)"));
+                    }
+                }
+                catch (IOException)
+                {
+                }
+            }
+
+            var here = Shell.ActivePane.ActiveFolder?.Path;
+            if (!string.IsNullOrEmpty(here) && here.Length > 3 && here[1] == ':')
+            {
+                choices.Add((here, $"지금 폴더 ({Path.GetFileName(here.TrimEnd('\\'))})"));
+            }
+
+            choices.Add(("pick", "다른 폴더 고르기…"));
+            choices.Add(("cancel", "그만두기"));
+            var c = await w.AskAsync(null, [.. choices]);
+            string? target = c;
+            if (c == "pick")
+            {
+                var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "분석할 폴더를 고르세요", InitialDirectory = here ?? "" };
+                target = dlg.ShowDialog(w) == true ? dlg.FolderName : null;
+            }
+
+            if (target is null || target is "cancel" || target == GuideWindow.ClosedChoice)
+            {
+                return;
+            }
+
+            w.Close();
+            OpenAnalysis(target);
+        }
+        finally
+        {
+            if (!w.IsClosed)
+            {
+                w.Close();
+            }
+        }
+    }
+
+    private void OpenAnalysis(string? target = null)
     {
         var pane = Shell.ActivePane;
-        var path = pane.ActiveFolder?.Path;
+        var path = target ?? pane.ActiveFolder?.Path;
         if (string.IsNullOrEmpty(path) || path.Length < 2 || path[1] != ':')
         {
             Shell.Status = "폴더 분석은 로컬 드라이브에서만 할 수 있습니다";
