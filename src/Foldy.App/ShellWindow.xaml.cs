@@ -1517,7 +1517,9 @@ public partial class ShellWindow : Window, IPaneHost
 
         _startApps ??= Foldy.Core.QuickSearch.SystemCatalog.LoadStartApps();
         var scope = Shell.ActivePane.ActiveFolder?.Path;
-        var footer = (_search.IsIndexed ? "파일은 모든 드라이브에서 찾아요." : "파일은 지금 폴더 안에서 찾아요 (색인을 켜면 모든 드라이브).")
+        var footer = (_search.IsIndexed
+                ? "파일은 모든 드라이브에서 찾아요."
+                : $"⚠ 색인 서비스에 연결되지 않아 파일은 지금 폴더({Path.GetFileName(scope?.TrimEnd('\\') ?? "")}) 안에서만 찾아요. 아래 상태 줄의 \"검색\"을 확인해 주세요.")
             + " Enter 열기 · Ctrl+Enter 들어 있는 폴더 · Esc 닫기";
         _quickSearch = BuildQuickSearch(scope, footer);
         _quickSearch.Closed += (_, _) => _quickSearch = null;

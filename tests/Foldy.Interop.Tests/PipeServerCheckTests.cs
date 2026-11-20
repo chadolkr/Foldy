@@ -31,4 +31,24 @@ public class PipeServerCheckTests
         await wait;
         Assert.True(PipeServerCheck.IsTrusted(client.SafePipeHandle));
     }
+
+    [Fact]
+    public void Missing_service_has_no_process_id() =>
+        Assert.Null(PipeServerCheck.ServiceProcessId("Foldy.NoSuchService." + Guid.NewGuid().ToString("N")));
+
+    /// <summary>
+    /// 0.9.3 회귀: 보통 권한의 Foldy가 SYSTEM 서비스의 계정을 읽지 못해 진짜 색인 서비스를 거절했다.
+    /// 이 PC에 서비스가 돌고 있으면(개발 PC) 실제로 연결돼야 한다. CI처럼 서비스가 없으면 건너뛴다.
+    /// </summary>
+    [Fact]
+    public async Task Installed_service_is_trusted_when_it_is_running()
+    {
+        if (PipeServerCheck.ServiceProcessId(PipeServerCheck.ServiceName) is null)
+        {
+            return;
+        }
+
+        await using var client = await IndexerClient.TryConnectAsync(timeout: TimeSpan.FromSeconds(10), ct: TestContext.Current.CancellationToken);
+        Assert.NotNull(client);
+    }
 }
