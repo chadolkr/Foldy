@@ -121,6 +121,9 @@ public sealed class BreadcrumbBar : Border
             {
                 Content = segs[i].Name,
                 Padding = new Thickness(6, 2, 6, 2),
+                MinHeight = 28, // 누르는 곳은 넉넉하게
+                MinWidth = 28,
+                VerticalAlignment = VerticalAlignment.Stretch,
                 Cursor = Cursors.Hand,
                 ToolTip = target,
                 Focusable = false,

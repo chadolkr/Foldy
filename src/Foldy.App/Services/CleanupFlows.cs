@@ -567,6 +567,94 @@ public static class FirstRunTour
 
     public static bool Shown => File.Exists(Stamp);
 
+    public static void MarkShown()
+    {
+        try
+        {
+            File.WriteAllText(Stamp, DateTime.UtcNow.ToString("O"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    /// <summary>
+    /// 처음 실행: 먼저 보기 편하게(글자 크기·밝기)를 한 장씩 고르고 — 고르는 즉시 화면에 반영돼 바로 보인다 — 그다음 둘러보기.
+    /// 업데이트로 다시 켤 때는 설정이 이미 있으므로 묻지 않는다.
+    /// </summary>
+    public static async Task FirstRunAsync(Window owner, Action<double> setScale, Action<string> setTheme)
+    {
+        var w = new GuideWindow("Foldy 시작하기") { Owner = owner, Width = 720, Height = 640, FontSize = 18 }; // 처음 안내는 글씨를 크게
+        w.Show();
+        w.EchoChoices = false;
+        w.Say("안녕하세요! Foldy예요 👋 먼저 보기 편하게 맞춰 볼게요. 누르면 바로 바뀌니까 보면서 고르세요. 나중에 언제든 바꿀 수 있어요.");
+        // 글자 크기는 실제 파일 목록 모양으로 보여 주고 고르게 한다
+        foreach (var (label, scale) in new[] { ("보통", 1.0), ("크게", 1.15), ("아주 크게", 1.3), ("가장 크게", 1.5) })
+        {
+            w.ShowContent(SampleList(label, scale));
+        }
+        while (true)
+        {
+            var c = await w.AskAsync("글자 크기는 어떤가요?",
+                ("1.0", "보통"), ("1.15", "크게"), ("1.3", "아주 크게"), ("1.5", "가장 크게"), ("next", "이대로 좋아요"));
+            if (c == GuideWindow.ClosedChoice)
+            {
+                return;
+            }
+
+            if (c == "next")
+            {
+                break;
+            }
+
+            setScale(double.Parse(c, System.Globalization.CultureInfo.InvariantCulture));
+            w.Say($"{(c switch { "1.0" => "보통", "1.15" => "크게", "1.3" => "아주 크게", _ => "가장 크게" })}로 바꿨어요. 마음에 들면 [이대로 좋아요]를 눌러 주세요.");
+        }
+
+        while (true)
+        {
+            var c = await w.AskAsync("화면 밝기는요?", ("light", "밝게"), ("dark", "어둡게"), ("system", "Windows 따라가기"), ("next", "이대로 좋아요"));
+            if (c == GuideWindow.ClosedChoice)
+            {
+                return;
+            }
+
+            if (c == "next")
+            {
+                break;
+            }
+
+            setTheme(c);
+            w.Say("바꿨어요. 마음에 들면 [이대로 좋아요]를 눌러 주세요.");
+        }
+
+        w.Close();
+        await RunAsync(owner);
+    }
+
+    /// <summary>파일 목록 세 줄짜리 견본 (그 크기에서 실제로 어떻게 보이는지).</summary>
+    internal static System.Windows.Controls.Border SampleList(string label, double scale)
+    {
+        var panel = new System.Windows.Controls.StackPanel();
+        panel.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontWeight = FontWeights.SemiBold, FontSize = 14, Margin = new Thickness(0, 0, 0, 4) });
+        foreach (var (glyph, name, size) in new[] { ("\uE8B7", "사진", ""), ("\uE8A5", "2026_사업계획서.pptx", "8.2 MB"), ("\uE8A5", "회의록_최종_v2.docx", "1.2 MB") })
+        {
+            var row = new System.Windows.Controls.DockPanel { LastChildFill = true, Width = 300, Margin = new Thickness(0, 1, 0, 1) };
+            var sz = new System.Windows.Controls.TextBlock { Text = size, FontSize = 12.5, Opacity = 0.7 };
+            System.Windows.Controls.DockPanel.SetDock(sz, System.Windows.Controls.Dock.Right);
+            row.Children.Add(sz);
+            var icon = new System.Windows.Controls.TextBlock { Text = glyph, FontSize = 13, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center };
+            icon.SetResourceReference(System.Windows.Controls.TextBlock.FontFamilyProperty, "Font.Icon");
+            row.Children.Add(icon);
+            row.Children.Add(new System.Windows.Controls.TextBlock { Text = name, FontSize = 12.5 });
+            panel.Children.Add(row);
+        }
+
+        var box = new System.Windows.Controls.Border { Child = panel, LayoutTransform = new System.Windows.Media.ScaleTransform(scale, scale) };
+        box.SetResourceReference(System.Windows.Controls.TextBlock.FontFamilyProperty, "Font.UI");
+        return box;
+    }
+
     public static async Task RunAsync(Window owner)
     {
         try

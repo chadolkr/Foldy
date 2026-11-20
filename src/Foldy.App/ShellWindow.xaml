@@ -54,7 +54,7 @@
       <DockPanel>
         <!-- 맨 위: 접기/펼치기 -->
         <Button DockPanel.Dock="Top" Style="{DynamicResource Foldy.SideItem}" Margin="4,6,4,2" Click="OnToggleSidebar"
-                ToolTip="사이드바 접기/펼치기 (Ctrl+Shift+B)" AutomationProperties.Name="사이드바 접기/펼치기">
+                ToolTip="사이드바 접기/펼치기 (Ctrl+Shift+B) · 오른쪽 가장자리를 끌어도 돼요" AutomationProperties.Name="사이드바 접기/펼치기">
           <StackPanel Orientation="Horizontal">
             <TextBlock Style="{StaticResource SideIcon}" Text="&#xE700;" />
             <TextBlock Style="{StaticResource SideName}" Text="Foldy" FontWeight="SemiBold" />
@@ -115,7 +115,7 @@
           <StackPanel>
             <!-- 자주 쓰는 폴더 (고정) -->
             <DockPanel Style="{StaticResource SideHeaderRow}">
-              <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="26" Height="24" FontSize="11" Margin="0,8,8,0"
+              <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="32" Height="32" FontSize="12" Margin="0,4,6,0"
                       Content="&#xE718;" ToolTip="지금 폴더를 자주 쓰는 폴더에 고정" AutomationProperties.Name="지금 폴더 고정" Click="OnPinCurrent" />
               <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="자주 쓰는 폴더" />
             </DockPanel>
@@ -147,14 +147,14 @@
             <!-- 최근 폴더 (자동) -->
             <StackPanel x:Name="RecentSection" Style="{StaticResource SideLabel}">
               <DockPanel>
-                <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="26" Height="24" FontSize="11" Margin="0,8,8,0"
+                <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="32" Height="32" FontSize="12" Margin="0,4,6,0"
                         Content="&#xE74D;" ToolTip="최근 폴더 지우기" AutomationProperties.Name="최근 폴더 지우기" Click="OnClearRecent" />
                 <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="최근 폴더" />
               </DockPanel>
               <ItemsControl x:Name="RecentList" Focusable="False">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate DataType="{x:Type sb:QuickFolder}">
-                    <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideFolder" Tag="{Binding}" ToolTip="{Binding Path}" AutomationProperties.Name="{Binding Name}" MinHeight="26">
+                    <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideFolder" Tag="{Binding}" ToolTip="{Binding Path}" AutomationProperties.Name="{Binding Name}" MinHeight="32">
                       <Button.ContextMenu>
                         <ContextMenu>
                           <MenuItem Header="자주 쓰는 폴더에 고정" Click="OnPinFolder" Tag="{Binding}" />
@@ -232,7 +232,7 @@
                   <MenuItem Header="파일 이름 검색" Tag="search.focus" Click="OnGroupMenuItem" InputGestureText="Ctrl+F" />
                   <MenuItem Header="폴더 분석 (무엇이 공간을 차지하나)" Tag="analysis.open" Click="OnGroupMenuItem" />
                   <MenuItem Header="두 창 비교·맞추기" Tag="compare.panes" Click="OnGroupMenuItem" />
-                  <MenuItem Header="이미지만 보기" Tag="view.images" Click="OnGroupMenuItem" InputGestureText="Ctrl+Shift+I" />
+                  <MenuItem Header="이미지만 보기" Tag="view.images" Click="OnGroupMenuItem" InputGestureText="Ctrl+Shift+I" IsCheckable="False" />
                 </ContextMenu>
               </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
@@ -311,15 +311,21 @@
       </DockPanel>
     </Border>
 
+    <!-- 사이드바 오른쪽 가장자리: 끌어서 넓히고 줄이기 (아주 좁히면 아이콘만, 다시 끌면 펼침). 파일 탐색기의 탐색 창과 같은 방식 -->
+    <GridSplitter x:Name="SidebarSplitter" Grid.Column="0" Grid.RowSpan="4" Width="9" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                  Background="Transparent" ResizeBehavior="CurrentAndNext" ResizeDirection="Columns" Cursor="SizeWE" Focusable="False"
+                  ToolTip="끌어서 사이드바 너비 조절 (아주 좁히면 아이콘만)" DragCompleted="OnSidebarDragged" />
+
     <!-- 좌우 패널 (각 패널 = 폴더 트리 | 파일 목록) -->
     <Grid x:Name="PanesGrid" Grid.Column="1">
       <Grid.ColumnDefinitions>
         <ColumnDefinition x:Name="LeftColumn" Width="*" MinWidth="320" />
-        <ColumnDefinition Width="4" />
+        <ColumnDefinition Width="9" />
         <ColumnDefinition x:Name="RightColumn" Width="*" MinWidth="320" />
       </Grid.ColumnDefinitions>
       <views:PaneView x:Name="LeftPane" />
-      <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="{DynamicResource Brush.Border}" Focusable="False" />
+      <Rectangle Grid.Column="1" Width="1" HorizontalAlignment="Center" Fill="{DynamicResource Brush.Border}" />
+      <GridSplitter Grid.Column="1" Width="9" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False" Cursor="SizeWE" ToolTip="끌어서 두 창 너비 조절" />
       <views:PaneView x:Name="RightPane" Grid.Column="2" />
     </Grid>
 
@@ -399,6 +405,7 @@
           <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Margin" Value="0,0,6,0" />
             <Setter Property="Padding" Value="6,3" />
+            <Setter Property="MinHeight" Value="32" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
           </Style>
         </UniformGrid.Resources>

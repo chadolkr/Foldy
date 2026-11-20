@@ -43,6 +43,7 @@ public partial class PaneView : UserControl
     {
         InitializeComponent();
         ApplySystemTerminalIcons();
+        Loaded += (_, _) => UpdateTreeButton();
         SizeChanged += (_, _) => FitToolbar();
         _folderColumns.AddRange([
             // 좁은 패널: 유형은 이름 왼쪽 아이콘으로만 보이고, 남는 폭은 모두 이름에 준다.
@@ -1441,10 +1442,21 @@ public partial class PaneView : UserControl
         TreeVisible = !TreeVisible;
     }
 
-    private void OnHideTree(object sender, RoutedEventArgs e)
+
+    /// <summary>트리 버튼은 켜고 끄기를 한 자리에서: 켜져 있으면 눌린 모양, 툴팁은 누르면 일어날 일.</summary>
+    private void UpdateTreeButton()
     {
-        _treeManual = true;
-        TreeVisible = false;
+        var on = TreeHost.Visibility == Visibility.Visible;
+        if (on)
+        {
+            TreeBtn.SetResourceReference(BackgroundProperty, "Brush.Selection");
+        }
+        else
+        {
+            TreeBtn.ClearValue(BackgroundProperty);
+        }
+
+        TreeBtn.ToolTip = on ? "폴더 트리 숨기기 (Ctrl+B)" : "폴더 트리 보이기 (Ctrl+B)";
     }
 
     // 좁은 창에서 트리를 저절로 숨겼는지 (넓어지면 다시 보인다). 사용자가 직접 켜고 끄면 그 뒤로는 손대지 않는다.
@@ -1470,6 +1482,7 @@ public partial class PaneView : UserControl
             TreeColumn.Width = new GridLength(value ? _treeWidth : 0);
             TreeHost.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
             Splitter.Visibility = TreeHost.Visibility;
+            UpdateTreeButton();
         }
     }
 
@@ -1536,6 +1549,9 @@ public partial class PaneView : UserControl
     private Foldy.UI.Imaging.ImageGridView? _grid;
 
     private void OnToggleImages(object sender, RoutedEventArgs e) => ToggleImages();
+
+    /// <summary>지금 "이미지만 보기"가 켜져 있는지 (메뉴의 체크 표시).</summary>
+    public bool ImagesOn => _tab?.ImagesOnly == true;
 
     public void ToggleImages()
     {

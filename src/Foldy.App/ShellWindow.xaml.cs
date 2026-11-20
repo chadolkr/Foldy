@@ -58,6 +58,7 @@ public partial class ShellWindow : Window, IPaneHost
     public ShellWindow()
     {
         InitializeComponent();
+        _hadSettings = File.Exists(_settingsPath); // 설정이 이미 있으면 처음 설치가 아니라 업데이트 (묻지 않고 알리기만)
         _settings = AppSettings.Migrate(JsonFileStore.Load(_settingsPath, () => new AppSettings()));
         Foldy.UI.Markdown.MarkdownView.WriteInFoldy = path =>
         {
@@ -354,12 +355,18 @@ public partial class ShellWindow : Window, IPaneHost
 
         RefreshDrives();
         StartContextHints();
-        if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown)
+        NoticeIfUpdated();
+        if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown && _hadSettings)
+        {
+            FirstRunTour.MarkShown(); // 업데이트: 설정이 이미 있으니 처음 설정을 묻지 않는다
+        }
+        else if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown)
         {
             _ = Dispatcher.InvokeAsync(async () =>
             {
                 await Task.Delay(1500);
-                await FirstRunTour.RunAsync(this);
+                await FirstRunTour.FirstRunAsync(this, SetUiScale,
+                    t => SetTheme(t switch { "light" => FoldyTheme.Light, "dark" => FoldyTheme.Dark, _ => FoldyTheme.System }));
             }, DispatcherPriority.ApplicationIdle);
         }
 
@@ -1693,6 +1700,16 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (sender is FrameworkElement { ContextMenu: { } menu } b)
         {
+            // 켜고 끄는 항목은 지금 상태를 체크로 보여 준다 (켠 곳에서 끈다)
+            foreach (var mi in menu.Items.OfType<MenuItem>())
+            {
+                if (mi.Tag is "view.images")
+                {
+                    mi.IsChecked = ActiveView.ImagesOn;
+                    mi.Header = ActiveView.ImagesOn ? "이미지만 보기 끄기" : "이미지만 보기";
+                }
+            }
+
             menu.PlacementTarget = b;
             menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Right;
             menu.IsOpen = true;
@@ -1989,10 +2006,51 @@ public partial class ShellWindow : Window, IPaneHost
         set => SetValue(SidebarExpandedProperty, value);
     }
 
+    private double _sidebarWidth = 216;
+    private readonly bool _hadSettings;
+
+    /// <summary>업데이트하고 처음 켰을 때 한 줄로 알린다 (설정은 그대로, 묻지 않음).</summary>
+    private void NoticeIfUpdated()
+    {
+        var stamp = Path.Combine(App.DataDir, "last-version.txt");
+        try
+        {
+            var before = File.Exists(stamp) ? File.ReadAllText(stamp).Trim() : null;
+            if (before != AppVersion)
+            {
+                File.WriteAllText(stamp, AppVersion);
+                if (_hadSettings && before is not null)
+                {
+                    Shell.Status = $"Foldy {AppVersion}로 업데이트했어요. 설정은 그대로예요. 바뀐 점은 도움말(F1)에 있어요.";
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
     private void ApplySidebar()
     {
-        SidebarColumn.Width = new GridLength(SidebarExpanded ? 216 : 48);
+        SidebarColumn.Width = new GridLength(SidebarExpanded ? _sidebarWidth : 48);
         UpdatePinnedEmpty();
+    }
+
+    /// <summary>가장자리를 끌어 놓았을 때: 아주 좁으면 아이콘만(접기), 아니면 그 너비로 펼친다.</summary>
+    private void OnSidebarDragged(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
+        var w = SidebarColumn.ActualWidth;
+        if (w < 120)
+        {
+            SidebarExpanded = false;
+        }
+        else
+        {
+            _sidebarWidth = Math.Clamp(w, 180, 360);
+            SidebarExpanded = true;
+        }
+
+        ApplySidebar();
     }
 
     private void UpdatePinnedEmpty()

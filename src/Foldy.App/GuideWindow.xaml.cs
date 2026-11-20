@@ -182,7 +182,7 @@ public partial class GuideWindow : Window
         Choices.Children.Clear();
         foreach (var (id, label) in choices)
         {
-            var b = new Button { Content = label, MinWidth = 80, Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(6, 0, 0, 0) };
+            var b = new Button { Content = label, MinWidth = 88, MinHeight = 38, FontSize = FontSize, Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(6, 3, 0, 3) }; // 안내창 단추는 크게
             b.Click += (_, _) =>
             {
                 Choices.Children.Clear();

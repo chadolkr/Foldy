@@ -23,8 +23,8 @@
                      VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource Brush.Text}" />
           <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                      Foreground="{DynamicResource Brush.Text}" FontSize="{DynamicResource Font.Size}" />
-          <Button x:Name="CloseBtn" Grid.Column="2" Style="{DynamicResource Foldy.ToolButton}" Width="22" Height="22" FontSize="9"
-                  Margin="4,0,0,0" Content="&#xE711;" ToolTip="탭 닫기 (Ctrl+W)" Click="OnCloseTab" Tag="{Binding}" Opacity="0" />
+          <Button x:Name="CloseBtn" Grid.Column="2" Style="{DynamicResource Foldy.ToolButton}" Width="28" Height="28" FontSize="10"
+                  Margin="4,0,0,0" Content="&#xE711;" ToolTip="탭 닫기 (Ctrl+W)" Click="OnCloseTab" Tag="{Binding}" Opacity="0.45" />
         </Grid>
       </Border>
       <DataTemplate.Triggers>
@@ -127,6 +127,8 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" Margin="0,0,6,0">
+        <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="폴더 트리 숨기기 (Ctrl+B)"
+                AutomationProperties.Name="폴더 트리 보이기/숨기기" Click="OnToggleTree" Margin="0,0,6,0" />
         <Button x:Name="BackBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72B;" ToolTip="뒤로 (Alt+←)" Click="OnBack" />
         <Button x:Name="ForwardBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72A;" ToolTip="앞으로 (Alt+→)" Click="OnForward" />
         <Button x:Name="UpBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74A;" ToolTip="위로 (Alt+↑)" Click="OnUp" />
@@ -167,7 +169,6 @@
       </Border>
       <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="6,0,0,0">
         <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" ToolTip="새로 고침 (Ctrl+R)" Click="OnRefresh" />
-        <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="폴더 트리 보이기/숨기기 (Ctrl+B)" Click="OnToggleTree" />
         <Button x:Name="ImagesBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEB9F;" ToolTip="이미지만 보기 (Ctrl+Shift+I)" Click="OnToggleImages" Visibility="Collapsed" />
         <Rectangle Width="1" Margin="4,8" Fill="{DynamicResource Brush.Border}" />
         <!-- 탭 종류에 따라 같은 자리의 터미널 아이콘이 바뀐다 (DESIGN.md): 로컬 = CMD·PowerShell·관리자, SFTP = SSH·sudo -->
@@ -238,7 +239,7 @@
     <Grid Grid.Row="4" Margin="8,0,8,8">
       <Grid.ColumnDefinitions>
         <ColumnDefinition x:Name="TreeColumn" Width="200" MinWidth="0" MaxWidth="520" />
-        <ColumnDefinition x:Name="SplitColumn" Width="6" />
+        <ColumnDefinition x:Name="SplitColumn" Width="10" />
         <ColumnDefinition Width="*" MinWidth="200" />
       </Grid.ColumnDefinitions>
       <!-- 미리보기(F3)는 목록 위쪽에: 목록 폭을 줄이지 않아 파일명이 잘리지 않는다 -->
@@ -248,25 +249,75 @@
         <RowDefinition Height="*" MinHeight="120" />
       </Grid.RowDefinitions>
       <Border x:Name="PreviewHost" Grid.Column="2" Grid.Row="0" Style="{DynamicResource Foldy.ListBorder}" ClipToBounds="True" Visibility="Collapsed" />
-      <GridSplitter x:Name="PreviewSplitter" Grid.Column="2" Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+      <GridSplitter x:Name="PreviewSplitter" Grid.Column="2" Grid.Row="1" Height="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                     ResizeDirection="Rows" Background="Transparent" Focusable="False" Visibility="Collapsed" />
       <Border x:Name="TreeHost" Grid.RowSpan="3" Style="{DynamicResource Foldy.ListBorder}" Padding="2,6,2,6">
         <Grid>
-        <Button x:Name="TreeHideBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE76B;" FontSize="10" Width="22" Height="22"
-                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,2,0" Panel.ZIndex="1"
-                ToolTip="폴더 트리 숨기기 (Ctrl+B, 도구 줄의 트리 버튼으로 다시 열기)" AutomationProperties.Name="폴더 트리 숨기기" Click="OnHideTree" />
         <TreeView x:Name="Tree" BorderThickness="0" Background="Transparent" SelectedItemChanged="OnTreeSelected"
                   VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
           <TreeView.ItemContainerStyle>
             <Style TargetType="TreeViewItem">
               <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
               <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+              <!-- 펼치기 화살표를 넉넉하게 (기본 16px은 맞추기 어렵다): 28×28, 줄 전체 높이 28 -->
+              <Setter Property="Template">
+                <Setter.Value>
+                  <ControlTemplate TargetType="TreeViewItem">
+                    <StackPanel>
+                      <Grid MinHeight="28">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="28" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="Expander" Width="28" Height="28" Focusable="False" ClickMode="Press"
+                                      IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                      AutomationProperties.Name="펼치기/접기">
+                          <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                              <Border Background="Transparent">
+                                <TextBlock x:Name="Arrow" Text="&#xE76C;" FontFamily="{DynamicResource Font.Icon}" FontSize="10"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" />
+                              </Border>
+                              <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                  <Setter TargetName="Arrow" Property="Text" Value="&#xE70D;" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                  <Setter TargetName="Arrow" Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                                </Trigger>
+                              </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                          </ToggleButton.Template>
+                        </ToggleButton>
+                        <Border x:Name="Bd" Grid.Column="1" Padding="2,0" CornerRadius="4" Background="Transparent" VerticalAlignment="Stretch">
+                          <ContentPresenter x:Name="PART_Header" ContentSource="Header" VerticalAlignment="Center" />
+                        </Border>
+                      </Grid>
+                      <ItemsPresenter x:Name="ItemsHost" Margin="14,0,0,0" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsExpanded" Value="False">
+                        <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed" />
+                      </Trigger>
+                      <Trigger Property="HasItems" Value="False">
+                        <Setter TargetName="Expander" Property="Visibility" Value="Hidden" />
+                      </Trigger>
+                      <Trigger Property="IsSelected" Value="True">
+                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Selection}" />
+                      </Trigger>
+                      <Trigger SourceName="Bd" Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}" />
+                      </Trigger>
+                    </ControlTemplate.Triggers>
+                  </ControlTemplate>
+                </Setter.Value>
+              </Setter>
             </Style>
           </TreeView.ItemContainerStyle>
         </TreeView>
         </Grid>
       </Border>
-      <GridSplitter x:Name="Splitter" Grid.Column="1" Grid.RowSpan="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False" />
+      <GridSplitter x:Name="Splitter" Grid.Column="1" Grid.RowSpan="3" Width="10" HorizontalAlignment="Stretch" Background="Transparent" Focusable="False" />
 
       <Border x:Name="ContentHost" Grid.Column="2" Grid.Row="2" Style="{DynamicResource Foldy.ListBorder}" ClipToBounds="True">
         <Grid>

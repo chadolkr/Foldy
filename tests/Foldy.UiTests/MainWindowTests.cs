@@ -54,6 +54,14 @@ public sealed class MainWindowTests
     public void First_run_tour_shows_one_step_at_a_time_with_a_single_next_button()
     {
         using var app = FoldyApp.Start(skipTour: false);
+
+        // 처음 설치: 먼저 보기 편하게(글자 크기·밝기)를 묻는다
+        var setup = app.FindWindow("Foldy 시작하기", 20);
+        app.Find("크게", setup).AsButton().Invoke();
+        app.Find("이대로 좋아요", setup).AsButton().Invoke();
+        app.Find("Windows 따라가기", setup); // 두 번째 장: 밝기
+        app.Find("이대로 좋아요", setup).AsButton().Invoke();
+
         var tour = app.FindWindow("Foldy 둘러보기", 20);
         app.Find("둘러보기", tour).AsButton().Invoke();
         for (var step = 1; step <= 4; step++)

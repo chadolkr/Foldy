@@ -556,6 +556,20 @@ public partial class ShellWindow
             m.Close();
         });
 
+        await DocSceneAsync("setup", async () =>
+        {
+            var g = (GuideWindow)DocOpen(new GuideWindow("Foldy 시작하기") { Width = 720, Height = 640, FontSize = 18, EchoChoices = false });
+            g.Say("안녕하세요! Foldy예요 👋 먼저 보기 편하게 맞춰 볼게요. 누르면 바로 바뀌니까 보면서 고르세요.");
+            foreach (var (label, scale) in new[] { ("보통", 1.0), ("크게", 1.15), ("아주 크게", 1.3), ("가장 크게", 1.5) })
+            {
+                g.ShowContent(FirstRunTour.SampleList(label, scale));
+            }
+
+            _ = g.AskAsync("글자 크기는 어떤가요?", ("1.0", "보통"), ("1.15", "크게"), ("1.3", "아주 크게"), ("1.5", "가장 크게"), ("next", "이대로 좋아요"));
+            await DocShotDialogAsync("setup", g, 600);
+            g.Close();
+        });
+
         await DocSceneAsync("tour", async () =>
         {
             var g = (GuideWindow)DocOpen(new GuideWindow("Foldy 둘러보기") { Height = 480, EchoChoices = false });
