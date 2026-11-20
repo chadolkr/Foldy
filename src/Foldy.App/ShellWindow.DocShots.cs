@@ -625,10 +625,15 @@ public partial class ShellWindow
 
         await DocSceneAsync("tour", async () =>
         {
-            var g = (GuideWindow)DocOpen(new GuideWindow("Foldy 둘러보기") { Height = 480, EchoChoices = false });
-            g.Say("2 / 5");
-            _ = g.AskAsync("왼쪽 사이드바의 도구는 네 묶음이에요. 🔍 찾기: 파일 이름 검색(Ctrl+F), 무엇이 공간을 차지하는지 보는 폴더 분석.", ("next", "다음"), ("skip", "그만 보기"));
-            await DocShotDialogAsync("tour", g, 500);
+            // 쇼츠처럼 보는 짧은 소개: 두 번째 장면(Ctrl+Space)을 중간쯤에서
+            var g = (ShortsWindow)DocOpen(new ShortsWindow());
+            await DocSettleAsync(300);
+            for (var i = ShortsWindow.Scenes.Length; i >= 0; i--)
+            {
+                g.Go(i); // 장면마다 (화면 점검용 tour-0 … tour-N, 문서에는 tour = 두 번째 장면)
+                await DocShotDialogAsync(i == 1 ? "tour" : $"tour-{i}", g, 2500);
+            }
+
             g.Close();
         });
 

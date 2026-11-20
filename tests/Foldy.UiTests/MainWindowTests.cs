@@ -110,7 +110,7 @@ public sealed class MainWindowTests
     }
 
     [Fact]
-    public void First_run_tour_shows_one_step_at_a_time_with_a_single_next_button()
+    public void First_run_setup_then_short_video_intro_that_can_be_skipped()
     {
         using var app = FoldyApp.Start(skipTour: false);
 
@@ -121,16 +121,10 @@ public sealed class MainWindowTests
         app.Find("Windows 따라가기", setup); // 두 번째 장: 밝기
         app.Find("이대로 좋아요", setup).AsButton().Invoke();
 
-        var tour = app.FindWindow("Foldy 둘러보기", 20);
-        app.Find("둘러보기", tour).AsButton().Invoke();
-        for (var step = 1; step <= 4; step++)
-        {
-            var next = app.Find("다음", tour);
-            Thread.Sleep(300);
-            tour.FindAllDescendants(app.By.ByName("다음").And(app.By.ByControlType(ControlType.Button))).Length.Should().Be(1, $"{step}번째 장: [다음]은 하나만 (말풍선으로 쌓이면 안 된다)");
-            next.AsButton().Invoke();
-        }
-
-        app.Find("시작하기", tour).AsButton().Invoke();
+        // 이어서 쇼츠처럼 보는 짧은 소개: 저절로 넘어가고 [건너뛰기]로 언제든 끝낸다
+        var shorts = app.FindWindow("Foldy 짧은 소개", 20);
+        app.Find("건너뛰기", shorts).AsButton().Invoke();
+        Retry.WhileTrue(() => app.App.GetAllTopLevelWindows(app.Automation).Any(w => w.Title == "Foldy 짧은 소개"), TimeSpan.FromSeconds(5));
+        app.App.GetAllTopLevelWindows(app.Automation).Any(w => w.Title == "Foldy 짧은 소개").Should().BeFalse("건너뛰기로 닫혀야 한다");
     }
 }
