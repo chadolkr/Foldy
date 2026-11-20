@@ -26,6 +26,7 @@ public sealed partial class MascotPainter
             case MascotScene.TossBin: ShotScene(3); break;
             case MascotScene.OutOfBounds: ShotScene(4); break;
             case MascotScene.Dunk: DunkScene(); break;
+            case MascotScene.Layup: DunkScene(layup: true); break;
             case MascotScene.HighFive: HighFiveScene(); break;
             case MascotScene.Search: SearchScene(); break;
             case MascotScene.Practice: PracticeScene(); break;
@@ -662,9 +663,13 @@ public sealed partial class MascotPainter
         }
     }
 
-    // ───────────────────────── 이동 마무리: 속공 앨리웁 덩크 ─────────────────────────
+    // ───────────────────────── 이동 마무리: 속공 앨리웁 덩크 / 업데이트 마무리: 패스 받아 레이업 ─────────────────────────
 
-    private void DunkScene()
+    /// <param name="layup">
+    /// 레이업 (업데이트 완료, 사용자 요청 2026-11-20): 연주가 가슴 높이로 패스하고, 우진이 받아 한 손으로 살짝 올려
+    /// 림 위에서 떨어뜨리는 2점슛. 림을 잡지 않으니 림이 흔들리지 않는다.
+    /// </param>
+    private void DunkScene(bool layup = false)
     {
         var xs = RimX - 16;
         var x0 = Math.Max(16, xs - 190);
@@ -674,7 +679,9 @@ public sealed partial class MascotPainter
         var yx = T < yRunEnd ? Lerp(x0, xs - 34, Seg(T, 0, yRunEnd)) : Lerp(xs - 34, xs - 22, Smooth(Seg(T, 0.7, 0.82)));
         var running = T < 0.4;
         var lift = 11 * Bump(T, 0.38, 0.68);
-        var catchPt = new Point(wx + 7.5, Ground - 34 - (11 * Bump(0.55, 0.38, 0.68)));
+        var catchPt = layup
+            ? new Point(wx + 7.5, Ground - 24) // 가슴 높이 패스
+            : new Point(wx + 7.5, Ground - 34 - (11 * Bump(0.55, 0.38, 0.68)));
         var hit = new Point(RimX, RimY + 2);
 
         Point? ball;
@@ -685,7 +692,12 @@ public sealed partial class MascotPainter
         }
         else if (T < 0.55)
         {
-            ball = Arc(Chest(yx, 1, 0), catchPt, Seg(T, 0.28, 0.55), 11);
+            ball = Arc(Chest(yx, 1, 0), catchPt, Seg(T, 0.28, 0.55), layup ? 4 : 11);
+        }
+        else if (layup && T < 0.63)
+        {
+            // 한 손으로 높이 올려 림 위로 (부드러운 포물선)
+            ball = Arc(new Point(wx + 9, Ground - 36 - lift), new Point(RimX - 1, RimY - 5), Seg(T, 0.55, 0.63), 3);
         }
         else if (T < 0.63)
         {
@@ -693,7 +705,7 @@ public sealed partial class MascotPainter
         }
         else if (T < 0.72)
         {
-            ball = new Point(RimX, Lerp(RimY + 2, RimY + 8.5, Seg(T, 0.63, 0.72)));
+            ball = new Point(RimX, Lerp(layup ? RimY - 5 : RimY + 2, RimY + 8.5, Seg(T, 0.63, 0.72)));
         }
         else
         {
@@ -701,7 +713,7 @@ public sealed partial class MascotPainter
             ball = new Point(RimX - (Seg(T, 0.86, 1) * 8), Lerp(RimY + 8.5, Ground - 4.2, d * d) - (Bump(T, 0.86, 1.0) * 6));
         }
 
-        var wiggle = T > 0.6 ? Math.Sin(T * 100) * 7 * (1 - Seg(T, 0.6, 0.95)) : 0;
+        var wiggle = !layup && T > 0.6 ? Math.Sin(T * 100) * 7 * (1 - Seg(T, 0.6, 0.95)) : 0; // 레이업은 림을 잡지 않는다
         Arc3();
         HoopBack();
         if (ball is { } b)
@@ -716,12 +728,16 @@ public sealed partial class MascotPainter
         Point? wf = T switch
         {
             < 0.28 => null,
+            < 0.55 when layup => new Point(8, -22), // 가슴 앞에서 받기
+            < 0.7 when layup => new Point(10, -40), // 한 손 들어 올리기
             < 0.7 => new Point(10, -36),
             _ => new Point(Lerp(6.5, 12.5, raise), Lerp(-14, -31, raise)),
         };
         Point? wb = T switch
         {
             < 0.28 => null,
+            < 0.55 when layup => new Point(6, -20),
+            < 0.7 when layup => null,
             < 0.7 => new Point(6, -33),
             _ => new Point(-6, -14),
         };

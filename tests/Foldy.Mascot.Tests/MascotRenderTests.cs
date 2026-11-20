@@ -31,6 +31,7 @@ public class MascotRenderTests
         ("copy-unknown-progress", F(MascotScene.Dribble, finish: MascotFinish.ThreePointer)),
         ("done-copy-3pointer", F(MascotScene.Score, finish: MascotFinish.ThreePointer, progress: 1)),
         ("done-move-dunk", F(MascotScene.Dunk, finish: MascotFinish.Dunk, progress: 1)),
+        ("done-update-layup", F(MascotScene.Layup, finish: MascotFinish.Dunk, progress: 1)),
         ("move-progress-060", F(MascotScene.Dribble, progress: 0.6, finish: MascotFinish.Dunk, seed: 9)),
         ("delete-progress-050", F(MascotScene.Dribble, progress: 0.5, finish: MascotFinish.BinToss, seed: 6)),
         ("done-delete-bin-hit", F(MascotScene.TossBin, outcome: TossOutcome.Hit, finish: MascotFinish.BinToss, progress: 1)),

@@ -570,6 +570,24 @@ public partial class ShellWindow
             g.Close();
         });
 
+        // 업데이트 진행 창에 쓰는 농구 그림: 미리 그린 장면이 실제로 만들어지는지 (CI 화면 점검에서도 확인)
+        await DocSceneAsync("update-anim", async () =>
+        {
+            var dir = UpdateProgressWindow.RenderFrames() ?? throw new InvalidOperationException("업데이트 진행 창 그림을 만들지 못함");
+            foreach (var (from, to) in new[] { ("work_20.png", "update-anim-work.png"), ("done_24.png", "update-anim-done.png") })
+            {
+                var src = Path.Combine(dir, from);
+                if (!File.Exists(src))
+                {
+                    throw new FileNotFoundException("업데이트 진행 창 그림이 없음", src);
+                }
+
+                File.Copy(src, Path.Combine(_docOut, to), overwrite: true);
+            }
+
+            await Task.CompletedTask;
+        });
+
         await DocSceneAsync("bigdelete", async () =>
         {
             var g = (GuideWindow)DocOpen(new GuideWindow(Services.DeleteFlows.Title));

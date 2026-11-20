@@ -52,6 +52,8 @@ public enum MascotScene
     Hold,
     /// <summary>오류: 슛이 림에 맞고 튕겨 나온다.</summary>
     Miss,
+    /// <summary>업데이트 완료: 연주가 달려가는 우진에게 패스, 우진이 받아서 레이업 2점슛 → 하이파이브.</summary>
+    Layup,
 }
 
 /// <summary>작업이 끝날 때의 마무리 종류 (코트 모양과 100% 위치가 달라진다).</summary>

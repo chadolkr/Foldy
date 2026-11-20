@@ -19,6 +19,7 @@
     { "id": "Shoot",       "loopSeconds": 1.8, "loop": true,  "description": "점프슛 반복 (Git push), 위치는 바퀴마다 바뀜" },
     { "id": "Score",       "loopSeconds": 1.6, "loop": false, "description": "복사 완료: 3점 라인 밖에서 길고 높은 3점슛 성공, 하이파이브" },
     { "id": "Dunk",        "loopSeconds": 1.7, "loop": false, "description": "이동 완료: 속공, 연주의 앨리웁 패스를 우진이 덩크, 하이파이브" },
+    { "id": "Layup",       "loopSeconds": 1.8, "loop": false, "description": "업데이트 완료: 연주의 패스를 받은 우진이 레이업 2점슛, 하이파이브" },
     { "id": "HighFive",    "loopSeconds": 1.2, "loop": false, "description": "완료: 달려와 하이파이브" },
     { "id": "TossBin",     "loopSeconds": 1.8, "loop": false, "description": "삭제 완료: 사이드라인 너머 코트 옆 휴지통에 던짐 (실패하면 빗나가 튕김)" },
     { "id": "OutOfBounds", "loopSeconds": 1.9, "loop": false, "description": "영구 삭제 완료: 경기장 밖으로 멀리 던져 버림" },

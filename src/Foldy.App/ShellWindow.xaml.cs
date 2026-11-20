@@ -1344,7 +1344,8 @@ public partial class ShellWindow : Window, IPaneHost
         {
             if (_updater is ServiceUpdater && version is not null)
             {
-                UpdateProgressWindow.Show(version); // Foldy가 닫혀 있는 동안 단계를 보여 주는 작은 창 (새 Foldy가 뜨면 닫힘)
+                // Foldy가 닫혀 있는 동안 단계를 보여 주는 작은 창 (새 Foldy가 뜨면 닫힘). 애니메이션을 켰으면 연주·우진도 함께
+                UpdateProgressWindow.Show(version, _settings.Animations ? UpdateProgressWindow.RenderFrames() : null);
             }
 
             Close(); // 세션 저장 후 종료, 설치가 끝나면 Foldy를 다시 띄운다
