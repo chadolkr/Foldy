@@ -71,8 +71,14 @@
           <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnSettings" ToolTip="설정 (Ctrl+,)" AutomationProperties.Name="설정">
             <TextBlock Style="{StaticResource SideIcon}" Text="&#xE713;" Margin="0" HorizontalAlignment="Center" />
           </Button>
-          <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnHelp" ToolTip="도움말 (F1)" AutomationProperties.Name="도움말">
+          <Button x:Name="HelpButton" Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnHelpButton" ToolTip="도움말: 짧은 소개 보기 · 사용 설명서 (F1)" AutomationProperties.Name="도움말">
             <TextBlock Style="{StaticResource SideIcon}" Text="&#xE897;" Margin="0" HorizontalAlignment="Center" />
+            <Button.ContextMenu>
+              <ContextMenu x:Name="HelpMenu">
+                <MenuItem Header="짧은 소개 보기 (영상처럼, 45초)" Click="OnShorts" />
+                <MenuItem Header="사용 설명서" InputGestureText="F1" Click="OnHelp" />
+              </ContextMenu>
+            </Button.ContextMenu>
           </Button>
           <Button x:Name="MoreButton" Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Center" Padding="0" Margin="1" Click="OnMore" ToolTip="모든 명령, 테마, 숨김 파일, 업데이트, 버그 신고, 정보 등" AutomationProperties.Name="더 보기">
             <TextBlock Style="{StaticResource SideIcon}" Text="&#xE712;" Margin="0" HorizontalAlignment="Center" />

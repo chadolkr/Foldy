@@ -362,16 +362,25 @@ public partial class ShellWindow : Window, IPaneHost
         RefreshDrives();
         StartContextHints();
         NoticeIfUpdated();
-        if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown && _hadSettings)
+        var quiet = App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null;
+        if (quiet)
         {
-            FirstRunTour.MarkShown(); // 업데이트: 설정이 이미 있으니 처음 설정을 묻지 않는다
+            // 성능 측정·화면 캡처: 아무것도 묻거나 보여 주지 않는다
+        }
+        else if (_hadSettings || FirstRunTour.Shown)
+        {
+            // 업데이트·다시 설치: 설정은 그대로라 묻지 않는다. 이 버전에서 아직 안 봤으면 짧은 소개만 (사용자 요청 2026-11-21)
             _ = EnsureQuickSearchHotkeyAsync(null); // 묻지 않고 등록만, 겹칠 때만 알린다
+            if (!FirstRunTour.ShownForThisVersion)
+            {
+                _ = Dispatcher.InvokeAsync(async () =>
+                {
+                    await Task.Delay(1500);
+                    await FirstRunTour.RunAsync(this);
+                }, DispatcherPriority.ApplicationIdle);
+            }
         }
-        else if (FirstRunTour.Shown)
-        {
-            _ = EnsureQuickSearchHotkeyAsync(null);
-        }
-        else if (!App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && !FirstRunTour.Shown)
+        else
         {
             _ = Dispatcher.InvokeAsync(async () =>
             {
@@ -2227,6 +2236,16 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnFnPreview(object sender, RoutedEventArgs e) => ActiveView.TogglePreview();
 
     private void OnHelp(object sender, RoutedEventArgs e) => ShowHelp();
+
+    /// <summary>? 단추: 짧은 소개(쇼츠)와 사용 설명서를 고르는 메뉴 (사용자 요청 2026-11-21).</summary>
+    private void OnHelpButton(object sender, RoutedEventArgs e)
+    {
+        HelpMenu.PlacementTarget = HelpButton;
+        HelpMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+        HelpMenu.IsOpen = true;
+    }
+
+    private void OnShorts(object sender, RoutedEventArgs e) => _ = FirstRunTour.RunAsync(this);
 
     private void OnReportBug(object sender, RoutedEventArgs e) => App.OpenBugReport();
 

@@ -23,7 +23,7 @@ public sealed class FoldyApp : IDisposable
         File.WriteAllText(Path.Combine(Sample, "메모.txt"), "시험");
         if (skipTour)
         {
-            File.WriteAllText(Path.Combine(_data, "tour-shown.txt"), "test");
+            File.WriteAllText(Path.Combine(_data, "tour-shown.txt"), "always"); // 시험: 짧은 소개를 띄우지 않는다
         }
 
         var psi = new ProcessStartInfo(Exe!) { UseShellExecute = false };

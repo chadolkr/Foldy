@@ -567,11 +567,67 @@ public static class FirstRunTour
 
     public static bool Shown => File.Exists(Stamp);
 
+    private static string CurrentVersion => typeof(FirstRunTour).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
+    /// <summary>
+    /// 이 버전에서 짧은 소개를 이미 봤나. 사용자 요청(2026-11-21): 다시 설치하거나 업데이트한 뒤 처음 켤 때도 보인다.
+    /// 기록은 "버전|시각". 버전이 다르면(업데이트) 다시, 같은 버전이라도 Foldy.exe가 기록보다 나중에 설치됐으면(다시 설치) 다시.
+    /// "always"는 시험용(늘 본 것으로).
+    /// </summary>
+    public static bool ShownForThisVersion => ShownFor(ReadStamp(), CurrentVersion, ExeInstalledUtc());
+
+    public static bool ShownFor(string? stamp, string version, DateTime? exeInstalledUtc)
+    {
+        if (stamp is null)
+        {
+            return false;
+        }
+
+        if (stamp.Trim() == "always")
+        {
+            return true;
+        }
+
+        var parts = stamp.Trim().Split('|');
+        if (parts.Length < 2 || parts[0] != version)
+        {
+            return false; // 예전 기록(날짜만)이거나 다른 버전 → 업데이트 뒤 처음
+        }
+
+        return !(exeInstalledUtc is { } t
+            && DateTime.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var seen)
+            && t > seen.ToUniversalTime().AddMinutes(1)); // 본 뒤에 다시 설치됨
+    }
+
+    private static string? ReadStamp()
+    {
+        try
+        {
+            return File.Exists(Stamp) ? File.ReadAllText(Stamp) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static DateTime? ExeInstalledUtc()
+    {
+        try
+        {
+            return Environment.ProcessPath is { } exe ? File.GetCreationTimeUtc(exe) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     public static void MarkShown()
     {
         try
         {
-            File.WriteAllText(Stamp, DateTime.UtcNow.ToString("O"));
+            File.WriteAllText(Stamp, $"{CurrentVersion}|{DateTime.UtcNow:O}");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -667,13 +723,7 @@ public static class FirstRunTour
 
     public static async Task RunAsync(Window owner)
     {
-        try
-        {
-            File.WriteAllText(Stamp, DateTime.UtcNow.ToString("O"));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-        }
+        MarkShown();
 
         // 쇼츠처럼 보는 짧은 소개 (글 대신 실제 화면이 움직이며 한 줄씩, 사용자 요청 2026-11-21)
         var w = new ShortsWindow();
