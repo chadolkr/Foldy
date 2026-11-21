@@ -574,7 +574,7 @@ public partial class ShellWindow
         await DocSceneAsync("update-anim", async () =>
         {
             var dir = UpdateProgressWindow.RenderFrames() ?? throw new InvalidOperationException("업데이트 진행 창 그림을 만들지 못함");
-            foreach (var (from, to) in new[] { ("work_20.png", "update-anim-work.png"), ("done_24.png", "update-anim-done.png") })
+            foreach (var (from, to) in new[] { ("work_120.png", "update-anim-work.png"), ("done_024.png", "update-anim-done.png") })
             {
                 var src = Path.Combine(dir, from);
                 if (!File.Exists(src))

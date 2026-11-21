@@ -83,6 +83,10 @@ public sealed partial class MascotPainter
     {
         PlayKind.FakeShot => s < 0.35 ? 0.45 * (s / 0.35) : (s < 0.6 ? 0.45 + (0.03 * Seg(s, 0.35, 0.6)) : 0.48 + (0.52 * Smooth(Seg(s, 0.6, 1)))),
         PlayKind.ChangeDirection => s < 0.3 ? -0.1 * Smooth(s / 0.3) : -0.1 + (1.1 * Smooth(Seg(s, 0.3, 1))),
+        // 헤지테이션: 반쯤 가서 멈칫(거의 서 있음) → 확 치고 나간다
+        PlayKind.Hesitation => s < 0.35 ? 0.4 * Smooth(s / 0.35) : (s < 0.6 ? 0.4 + (0.04 * Seg(s, 0.35, 0.6)) : 0.44 + (0.56 * Seg(s, 0.6, 1))),
+        // 스텝백: 앞으로 → 뒤로 한 발 → 다시 앞으로
+        PlayKind.StepBack => s < 0.45 ? 0.6 * Smooth(s / 0.45) : (s < 0.62 ? 0.6 - (0.18 * Smooth(Seg(s, 0.45, 0.62))) : 0.42 + (0.58 * Smooth(Seg(s, 0.62, 1)))),
         _ => (0.7 * Smooth(s)) + (0.3 * s),
     };
 
@@ -337,6 +341,69 @@ public sealed partial class MascotPainter
                         ball = new Point(x[h] + (f * 7.5), Ground - 27.5 - lift[h]);
                         fh[h] = new Point(9, -34);
                         bh[h] = new Point(5, -31);
+                    }
+
+                    break;
+                }
+
+            case PlayKind.EuroStep:
+                {
+                    // 공을 가슴에 모으고 크게 두 번 엇갈려 딛기 (두 번 뛰어오름)
+                    ball = CarryBall(h, f);
+                    if (s is > 0.3 and < 0.78)
+                    {
+                        var hop1 = Bump(s, 0.3, 0.52);
+                        var hop2 = Bump(s, 0.54, 0.78);
+                        lift[h] = 4.5 * Math.Max(hop1, hop2);
+                        crouch[h] = 0.35 * (1 - Math.Max(hop1, hop2));
+                        x[h] += f * 5 * (hop1 - hop2); // 한 번은 앞으로 비켜, 한 번은 되돌아
+                        running[h] = false;
+                        fh[h] = ChestHandF;
+                        bh[h] = ChestHandB;
+                        ball = new Point(x[h] + (f * 6), Ground - 13 - lift[h]);
+                    }
+
+                    break;
+                }
+
+            case PlayKind.Hesitation:
+                {
+                    ball = CarryBall(h, f);
+                    if (s is > 0.35 and < 0.6)
+                    {
+                        running[h] = false; // 멈칫: 몸을 세우고 높게 낮게 드리블
+                        crouch[h] = 0.15;
+                    }
+
+                    break;
+                }
+
+            case PlayKind.StepBack:
+                {
+                    ball = CarryBall(h, f);
+                    if (s is > 0.45 and < 0.62)
+                    {
+                        lift[h] = 3.5 * Bump(s, 0.45, 0.62);
+                        running[h] = false;
+                        fh[h] = ChestHandF;
+                        bh[h] = ChestHandB;
+                        ball = new Point(x[h] + (f * 6), Ground - 13 - lift[h]);
+                    }
+
+                    break;
+                }
+
+            case PlayKind.NoLookPass:
+                {
+                    // 다른 쪽을 보며 (고개를 돌린 채) 동료에게 패스
+                    if (s is > 0.2 and < 0.62)
+                    {
+                        face[h] = -f;
+                    }
+
+                    if (!Fly(h, p, 0.35, 0.55, 4, false))
+                    {
+                        ball = CarryBall(s < 0.35 ? h : p, f);
                     }
 
                     break;

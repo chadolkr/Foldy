@@ -42,14 +42,16 @@ internal static class UpdateProgressWindow
                     var bmp = Foldy.UI.Mascot.MascotBitmap.RenderVector(painter, width, frame, Math.Clamp(t / seconds, 0, 1), t, scale);
                     var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
                     enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
-                    using var fs = File.Create(Path.Combine(dir, $"{prefix}_{i:00}.png"));
+                    using var fs = File.Create(Path.Combine(dir, $"{prefix}_{i:000}.png"));
                     enc.Save(fs);
                 }
             }
 
             var catalog = Foldy.UI.Mascot.MascotView.SceneCatalog;
-            // 설치하는 동안: 코트에서 1:1처럼 드리블 기술(크로스오버·스핀·페이크)과 패스를 주고받는다 (실제 시간 8초, 0.1초마다 한 장)
-            Render("work", Foldy.Presentation.Mascot.MascotScene.Dribble, Foldy.Presentation.Mascot.MascotFinish.Dunk, 80, 8, progress: -1);
+            // 설치하는 동안: 드리블 기술 15가지(크로스오버·유로 스텝·스텝백·노룩 패스…)를 한 바퀴 다 (같은 동작이 거의 다시 나오지 않게, 0.1초마다 한 장).
+            // 한 바퀴 시간에 딱 맞춰 그려서 다시 처음으로 이어져도 끊기지 않는다 (사용자: "같은 동작이 반복돼서 지루하다")
+            var loop = Foldy.Presentation.Mascot.PlayPlan.Create(4, Foldy.Presentation.Mascot.PlaySet.All).TotalDuration;
+            Render("work", Foldy.Presentation.Mascot.MascotScene.Dribble, Foldy.Presentation.Mascot.MascotFinish.Dunk, (int)Math.Round(loop * 10), loop, progress: -1);
             // 끝: 연주의 패스를 받은 우진이 레이업 2점슛 → 하이파이브 (사용자 요청)
             Render("done", Foldy.Presentation.Mascot.MascotScene.Layup, Foldy.Presentation.Mascot.MascotFinish.Dunk, 40, Math.Max(1.5, catalog.Get(Foldy.Presentation.Mascot.MascotScene.Layup).LoopSeconds));
             return dir;
@@ -153,11 +155,13 @@ internal static class UpdateProgressWindow
         # 연주·우진 농구 그림 (Foldy가 닫히기 전에 그려 둔 것): 설치 중엔 드리블·패스, 끝나면 레이업 → 하이파이브
         $work = @(); $donePics = @()
         if ($Anim -and (Test-Path $Anim)) {
-            $work = @(Get-ChildItem -Path $Anim -Filter "work_*.png" | Sort-Object Name | ForEach-Object { [System.Drawing.Image]::FromFile($_.FullName) })
-            $donePics = @(Get-ChildItem -Path $Anim -Filter "done_*.png" | Sort-Object Name | ForEach-Object { [System.Drawing.Image]::FromFile($_.FullName) })
+            # 그림은 경로만 모아 두고 보여 줄 때 한 장씩 읽는다 (수백 장이라 메모리를 아낀다)
+            $work = @(Get-ChildItem -Path $Anim -Filter "work_*.png" | Sort-Object Name | ForEach-Object { $_.FullName })
+            $donePics = @(Get-ChildItem -Path $Anim -Filter "done_*.png" | Sort-Object Name | ForEach-Object { $_.FullName })
         }
         $picH = 0
-        if ($work.Count -gt 0) { $picH = $work[0].Height + 8 }
+        function Show-Frame([string]$path) { $img = [System.Drawing.Image]::FromFile($path); $old = $pic.Image; $pic.Image = $img; if ($old) { $old.Dispose() } }
+        if ($work.Count -gt 0) { $first = [System.Drawing.Image]::FromFile($work[0]); $picH = $first.Height + 8 }
         $f.ClientSize = New-Object System.Drawing.Size(520, (176 + $picH))
         $f.StartPosition = "CenterScreen"; $f.TopMost = $true
         $f.FormBorderStyle = "FixedDialog"; $f.MaximizeBox = $false; $f.MinimizeBox = $false
@@ -196,17 +200,17 @@ internal static class UpdateProgressWindow
         $pic = $null
         if ($work.Count -gt 0) {
             $pic = New-Object System.Windows.Forms.PictureBox
-            $pic.SizeMode = "CenterImage"; $pic.SetBounds(24, 54, 472, $picH - 4); $pic.Image = $work[0]; $pic.BackColor = C $Bg
+            $pic.SizeMode = "CenterImage"; $pic.SetBounds(24, 54, 472, $picH - 4); $pic.Image = $first; $pic.BackColor = C $Bg
             $f.Controls.Add($pic)
             $script:k = 0; $script:finishing = $false; $script:d = 0
             $animTimer = New-Object System.Windows.Forms.Timer  # $Anim(매개변수)와 이름이 겹치면 문자열이 된다
             $animTimer.Interval = 100
             $animTimer.Add_Tick({
                 if ($script:finishing) {
-                    if ($script:d -lt $donePics.Count) { $pic.Image = $donePics[$script:d]; $script:d++ }
+                    if ($script:d -lt $donePics.Count) { Show-Frame $donePics[$script:d]; $script:d++ }
                     else { $animTimer.Stop(); $f.Close() }
                 } else {
-                    $script:k = ($script:k + 1) % $work.Count; $pic.Image = $work[$script:k]
+                    $script:k = ($script:k + 1) % $work.Count; Show-Frame $work[$script:k]
                 }
             })
             $animTimer.Start()

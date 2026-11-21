@@ -25,6 +25,14 @@ public enum PlayKind
     FakeShot,
     /// <summary>방향 전환.</summary>
     ChangeDirection,
+    /// <summary>유로 스텝: 공을 가슴에 모으고 크게 두 번 엇갈려 딛는다.</summary>
+    EuroStep,
+    /// <summary>헤지테이션: 멈칫하며 속도를 죽였다가 갑자기 치고 나간다.</summary>
+    Hesitation,
+    /// <summary>스텝백: 앞으로 가다가 뒤로 한 발 물러나 거리를 만든다.</summary>
+    StepBack,
+    /// <summary>노룩 패스: 다른 쪽을 보며 동료에게 패스.</summary>
+    NoLookPass,
 }
 
 /// <summary>어떤 장면이 쓸 동작 묶음.</summary>
@@ -66,7 +74,7 @@ public sealed class PlayPlan
     public double TotalDistance { get; }
 
     /// <summary>공이 상대에게 넘어가는 동작인가 (드리블 담당이 바뀐다).</summary>
-    public static bool Transfers(PlayKind k) => k is PlayKind.BouncePass or PlayKind.AlleyOop or PlayKind.CutToBasket;
+    public static bool Transfers(PlayKind k) => k is PlayKind.BouncePass or PlayKind.AlleyOop or PlayKind.CutToBasket or PlayKind.NoLookPass;
 
     public static IReadOnlyList<PlayKind> Library(PlaySet set) => set switch
     {
@@ -74,10 +82,11 @@ public sealed class PlayPlan
         [
             PlayKind.Crossover, PlayKind.BehindBack, PlayKind.BetweenLegs, PlayKind.SpinMove,
             PlayKind.ChangeDirection, PlayKind.FakeShot, PlayKind.GiveAndGo, PlayKind.BouncePass,
+            PlayKind.Hesitation, PlayKind.StepBack,
         ],
         PlaySet.Passing =>
         [
-            PlayKind.GiveAndGo, PlayKind.BouncePass, PlayKind.AlleyOop, PlayKind.CutToBasket, PlayKind.ScreenRoll,
+            PlayKind.GiveAndGo, PlayKind.BouncePass, PlayKind.AlleyOop, PlayKind.CutToBasket, PlayKind.ScreenRoll, PlayKind.NoLookPass,
         ],
         _ => Enum.GetValues<PlayKind>(),
     };
@@ -100,6 +109,7 @@ public sealed class PlayPlan
         pos[n] = pos[0];
 
         var plays = new PlayKind[n];
+        var used = new HashSet<PlayKind>();
         var holders = new int[n + 1];
         holders[0] = (int)(rng.Next() & 1);
         for (var i = 0; i < n; i++)
@@ -118,8 +128,20 @@ public sealed class PlayPlan
                 cand = filtered;
             }
 
+            // 한 바퀴 안에서 아직 안 나온 기술을 먼저 (사용자: "같은 동작이 반복돼서 지루하다") — 다 나온 뒤에야 다시 쓴다
             var list = cand.ToList();
+            var fresh = list.Where(k => !used.Contains(k)).ToList();
+            if (fresh.Count > 0)
+            {
+                list = fresh;
+            }
+
             plays[i] = list[(int)(rng.Next() % (ulong)list.Count)];
+            used.Add(plays[i]);
+            if (used.Count >= lib.Count)
+            {
+                used.Clear();
+            }
             holders[i + 1] = Transfers(plays[i]) ? 1 - holders[i] : holders[i];
         }
 
