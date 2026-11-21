@@ -793,7 +793,11 @@ This program will not transfer any information to other networked systems unless
 
 ## 왜 오픈소스인가요
 
-오랫동안 오픈소스에서 많은 것을 얻기만 했어요. 이제는 저도 작은 보탬이 되고 싶어 Foldy를 GPL-3.0으로 공개합니다.
+> 저는 오픈소스 덕분에 여기까지 올 수 있었습니다. Foldy는 그 고마움을 갚는 저의 작은 방법입니다. 누구나 차별 없이, 행복해지기를 바랍니다.
+>
+> — David CHA
+
+그래서 Foldy는 GPL-3.0으로 공개합니다.
 쓰다가 불편한 점이나 아이디어가 있으면 언제든 [이슈](https://github.com/chadolkr/Foldy/issues)와 PR로 함께해 주세요.
 
 ## 라이선스
