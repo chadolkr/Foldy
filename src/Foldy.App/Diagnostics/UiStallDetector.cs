@@ -29,6 +29,7 @@ public sealed class UiStallDetector : IDisposable
     private void Loop()
     {
         var reported = false;
+        var lastLoop = Stopwatch.GetTimestamp();
         while (!_cts.IsCancellationRequested)
         {
             _dispatcher.BeginInvoke(DispatcherPriority.Send, () => Interlocked.Exchange(ref _lastPong, Stopwatch.GetTimestamp()));
@@ -36,6 +37,19 @@ public sealed class UiStallDetector : IDisposable
             {
                 return;
             }
+
+            // 이 감시 스레드도 0.1초 기다렸는데 몇 초가 지났다면 PC가 잠자기·최대 절전에서 깨어난 것: UI 멈춤이 아니다
+            // (깨어난 뒤 "1487865ms 응답 없음" 같은 잘못된 경고가 남던 문제)
+            var now = Stopwatch.GetTimestamp();
+            if (Stopwatch.GetElapsedTime(lastLoop, now) > TimeSpan.FromSeconds(5))
+            {
+                Interlocked.Exchange(ref _lastPong, now);
+                lastLoop = now;
+                reported = false;
+                continue;
+            }
+
+            lastLoop = now;
 
             var since = Stopwatch.GetElapsedTime(Interlocked.Read(ref _lastPong));
             if (since > _threshold + TimeSpan.FromMilliseconds(100))
