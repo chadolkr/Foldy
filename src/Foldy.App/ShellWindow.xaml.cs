@@ -630,6 +630,14 @@ public partial class ShellWindow : Window, IPaneHost
         _indexerRetry?.Stop();
         Log.Information("색인 서비스 연결됨");
         StartCleanupChecks();
+        // AI 연결 제안: 켠 뒤 잠시 있다가 한 번 (화면이 자리 잡은 뒤)
+        var aiOnce = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+        aiOnce.Tick += (_, _) =>
+        {
+            aiOnce.Stop();
+            MaybeSuggestAi();
+        };
+        aiOnce.Start();
         await _search.RefreshStateAsync();
         if (_indexer is not null)
         {
@@ -2308,6 +2316,63 @@ public partial class ShellWindow : Window, IPaneHost
 
     private DispatcherTimer? _cleanupTimer;
     private CleanupFinding? _cleanupFinding;
+    private DispatcherTimer? _aiSuggestHide;
+
+    /// <summary>
+    /// AI 연결 제안 (2026-11-21 사용자 결정): 실행할 때 확인 창으로 묻지 않고, 이 PC에 AI 앱이 있는데 아직 연결 안 했을 때만 창 위 한 줄.
+    /// [연결하기] [나중에] [다시 묻지 않기]. 그냥 두면 저절로 사라지고, [나중에]는 다음 실행에 다시, [다시 묻지 않기]는 설정에서 되돌린다.
+    /// 시험 실행·문서 캡처에서는 띄우지 않는다.
+    /// </summary>
+    private void MaybeSuggestAi()
+    {
+        if (!_settings.AiSuggest || App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null
+            || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 } || CleanupNotice.Visibility == Visibility.Visible)
+        {
+            return;
+        }
+
+        var app = Foldy.Core.Mcp.McpClientConfig.SuggestTarget(
+            Foldy.Core.Mcp.McpClientConfig.Known(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
+            Foldy.Core.Mcp.McpClientConfig.IsConnected);
+        if (app is null)
+        {
+            return;
+        }
+
+        _hintKey = null;
+        _cleanupFinding = new CleanupFinding(Foldy.Core.Mcp.FoldyMcpTools.SuggestLine(app, Random.Shared.Next()), "ai", "");
+        CleanupNoticeText.Text = _cleanupFinding.Text;
+        CleanupNoticeButton.Content = "연결하기";
+        CleanupNoticeClose.Content = "나중에";
+        CleanupNoticeNever.Visibility = Visibility.Visible;
+        CleanupNotice.Visibility = Visibility.Visible;
+
+        // 그냥 두면 저절로 사라진다 (누를 것을 강요하지 않는다)
+        _aiSuggestHide?.Stop();
+        _aiSuggestHide = new DispatcherTimer(TimeSpan.FromSeconds(45), DispatcherPriority.Background, (_, _) =>
+        {
+            _aiSuggestHide?.Stop();
+            if (_cleanupFinding?.Tool == "ai" && !CleanupNotice.IsMouseOver)
+            {
+                CleanupNotice.Visibility = Visibility.Collapsed;
+            }
+        }, Dispatcher);
+        _aiSuggestHide.Start();
+    }
+
+    private void OnNoticeNever(object sender, RoutedEventArgs e)
+    {
+        CleanupNotice.Visibility = Visibility.Collapsed;
+        if (_cleanupFinding?.Tool == "ai")
+        {
+            _settings = _settings with { AiSuggest = false };
+            SaveSettings();
+            Shell.Status = "AI 연결 제안을 다시 띄우지 않아요. 설정 → 일반 → AI 연결에서 되돌릴 수 있어요";
+        }
+    }
 
     /// <summary>백그라운드 정리 확인을 시작한다: 시작 3분 뒤 한 번, 그 뒤 6시간마다. 알림은 일주일에 한 번까지.</summary>
     private void StartCleanupChecks()
@@ -2343,6 +2408,8 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void ShowCleanupNotice(CleanupFinding f)
     {
+        CleanupNoticeNever.Visibility = Visibility.Collapsed;
+        CleanupNoticeClose.Content = "닫기";
         _hintKey = null;
         _cleanupFinding = f;
         CleanupNoticeText.Text = f.Text;
@@ -2356,6 +2423,9 @@ public partial class ShellWindow : Window, IPaneHost
         CleanupNotice.Visibility = Visibility.Collapsed;
         switch (_cleanupFinding?.Tool)
         {
+            case "ai":
+                OpenMcp();
+                break;
             case "logs":
                 OpenLogCleanup(_cleanupFinding.Target);
                 break;

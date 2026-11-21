@@ -244,6 +244,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsDirty))]
     private bool _slowCrawl = true;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private bool _aiSuggest = true;
+
     public bool CopyThreadsManualEnabled => !CopyThreadsAuto;
 
     public IRelayCommand ApplyCommand { get; }
@@ -282,6 +286,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         CleanupNotices = CleanupNotices,
         KeepPreviousVersions = KeepPreviousVersions,
         SlowCrawl = SlowCrawl,
+        AiSuggest = AiSuggest,
     };
 
     /// <summary>편집한 단축키 (재지정만 저장하려면 Save를 호출).</summary>
@@ -351,6 +356,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         CleanupNotices = s.CleanupNotices;
         KeepPreviousVersions = s.KeepPreviousVersions;
         SlowCrawl = s.SlowCrawl;
+        AiSuggest = s.AiSuggest;
         AutoOpenGitView = s.AutoOpenGitView;
         _loading = false;
         RefreshKeys();

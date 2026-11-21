@@ -14,6 +14,14 @@ Claude 같은 AI 앱이 Foldy를 통해 사용자 PC의 파일을 찾고 폴더�
 - 프로젝트 파악: `read_folder_note`(폴더 설명)와 `get_file_tags`(진행 중·완료)로 "어디까지 했지?" 정리.
 - AI 코딩 도구(Claude Code·Codex·Cursor 등)에서 작업 폴더 밖 문서(회의록·사양서) 찾기.
 
+## 사용자에게 보여 주는 예시
+
+"이렇게 물어보세요" 예시는 `FoldyMcpTools.Examples` 한 곳에 두고 AI 연결 화면(누르면 복사)·README·도움말에 같은 것을 쓴다. 도구 하나 이상으로 답할 수 있는 것만 넣는다.
+
+## 연결 제안 한 줄
+
+이 PC에 AI 앱이 있고 그중 어느 것도 연결하지 않았으면(`McpClientConfig.SuggestTarget`), Foldy를 켜고 8초 뒤 창 위에 한 줄(`FoldyMcpTools.SuggestLine`, 무엇을 할 수 있는지 예시 하나를 담고 실행마다 돌아감): Claude Desktop에게 "작년 견적서 찾아 줘"라고 하면 Foldy가 내 PC에서 찾아 줘요. 읽기만 해요. [연결하기] [나중에] [다시 묻지 않기]. 45초 동안 그냥 두면 저절로 사라진다. [나중에]는 다음 실행에 다시, [다시 묻지 않기]는 설정 `AiSuggest=false`(설정 → 일반 → AI 연결에서 되돌림). 확인 창으로 묻지 않고, 첫 화면에 아이콘도 두지 않는다(더 보기·Ctrl+Space "AI 연결"). 시험 실행·문서 캡처에서는 띄우지 않는다.
+
 ## 어떻게 붙나 (사용자는 버튼 하나)
 
 - Foldy → 더 보기(⋯) → **AI 연결 (MCP)…**, 또는 Ctrl+Space에서 "AI 연결".

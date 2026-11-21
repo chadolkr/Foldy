@@ -61,6 +61,16 @@ public static class McpClientConfig
         ];
     }
 
+    /// <summary>
+    /// 연결을 제안할 AI 앱 이름: 이 PC에 깔린 앱이 있고 그중 어느 것도 아직 연결하지 않았을 때 첫 번째. 아니면 null
+    /// (하나라도 연결했으면 더 묻지 않는다, 사용자 2026-11-21).
+    /// </summary>
+    public static string? SuggestTarget(IReadOnlyList<McpClientApp> apps, Func<McpClientApp, bool> connected)
+    {
+        var installed = apps.Where(a => a.Installed).ToList();
+        return installed.Count == 0 || installed.Any(connected) ? null : installed[0].Name;
+    }
+
     private static string? StoreDesktopDir(string local)
     {
         try

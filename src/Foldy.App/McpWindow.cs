@@ -52,6 +52,33 @@ public sealed class McpWindow : Window
         stack.Children.Add(Text("Claude 같은 AI에게 \"작년 견적서 찾아 줘\", \"D 드라이브에서 큰 폴더가 뭐야?\"라고 물으면 Foldy가 바로 찾아 줘요. " +
             "AI는 읽기만 하고, 옮기거나 지우지 않아요. 내 계정으로 볼 수 있는 것만 보여요.", 15, secondary: true, margin: new Thickness(0, 6, 0, 16)));
 
+        // 연결하면 무엇을 할 수 있나: 예시를 누르면 복사 (사용자 2026-11-21: "무엇을 할 수 있는지 안내해 주자")
+        stack.Children.Add(Section("연결하면 이렇게 물어보세요 (누르면 복사)"));
+        var asks = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
+        foreach (var (ask, what) in FoldyMcpTools.Examples)
+        {
+            var b = new Button { Margin = new Thickness(0, 0, 8, 8), Padding = new Thickness(12, 6, 12, 6), ToolTip = what, HorizontalContentAlignment = HorizontalAlignment.Left };
+            var inner = new StackPanel();
+            inner.Children.Add(new TextBlock { Text = "“" + ask + "”", FontSize = 15 });
+            inner.Children.Add(Text(what, 12, secondary: true));
+            b.Content = inner;
+            System.Windows.Automation.AutomationProperties.SetName(b, ask);
+            b.Click += (_, _) =>
+            {
+                try
+                {
+                    Clipboard.SetText(ask);
+                    Say($"\"{ask}\"를 복사했어요. AI 앱에 붙여 넣어 보세요.");
+                }
+                catch (System.Runtime.InteropServices.ExternalException)
+                {
+                }
+            };
+            asks.Children.Add(b);
+        }
+
+        stack.Children.Add(asks);
+
         // 1) AI 앱 고르기 + 단추 하나
         stack.Children.Add(Section("이 PC에 있는 AI 앱"));
         var installed = apps.Where(a => a.Installed).ToList();

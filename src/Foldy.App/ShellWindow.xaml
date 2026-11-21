@@ -348,7 +348,8 @@
     <!-- 정리 알림: 로그·다운로드가 많이 쌓였을 때 한 줄 (주 1회까지) -->
     <Border x:Name="CleanupNotice" Grid.Row="1" Grid.Column="1" Margin="8,0,8,6" Style="{DynamicResource Foldy.ListBorder}" Padding="10,5" Visibility="Collapsed">
       <DockPanel LastChildFill="True">
-        <Button DockPanel.Dock="Right" Content="닫기" Padding="8,2" Margin="6,0,0,0" Click="OnCleanupNoticeClose" />
+        <Button DockPanel.Dock="Right" x:Name="CleanupNoticeNever" Content="다시 묻지 않기" Padding="8,2" Margin="6,0,0,0" Click="OnNoticeNever" Visibility="Collapsed" />
+        <Button DockPanel.Dock="Right" x:Name="CleanupNoticeClose" Content="닫기" Padding="8,2" Margin="6,0,0,0" Click="OnCleanupNoticeClose" />
         <Button DockPanel.Dock="Right" x:Name="CleanupNoticeButton" Padding="10,2" Margin="12,0,0,0" Click="OnCleanupNoticeOpen" />
         <TextBlock Text="&#xE946;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" Margin="0,0,8,0" />
         <TextBlock x:Name="CleanupNoticeText" VerticalAlignment="Center" TextWrapping="Wrap" />

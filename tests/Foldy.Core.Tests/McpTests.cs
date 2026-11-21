@@ -249,3 +249,25 @@ public sealed class McpClientConfigTests : IDisposable
         Assert.DoesNotContain(apps, a => a.Name.Contains("ChatGPT", StringComparison.Ordinal)); // 원격 MCP만 받는 앱은 PC 안 Foldy를 밖에 열어야 해서 하지 않는다
     }
 }
+
+public sealed class McpSuggestTests
+{
+    private static McpClientApp A(string n, bool installed) => new(n, n + ".json", McpConfigFormat.McpServers, installed);
+
+    [Fact]
+    public void Suggests_only_when_an_ai_app_is_installed_and_none_is_connected()
+    {
+        McpClientConfig.SuggestTarget([A("Claude Desktop", false), A("Codex", false)], _ => false).Should().BeNull(); // AI 앱이 없으면 안 보임
+        McpClientConfig.SuggestTarget([A("Claude Desktop", false), A("Codex", true)], _ => false).Should().Be("Codex");
+        McpClientConfig.SuggestTarget([A("Claude Desktop", true), A("Codex", true)], a => a.Name == "Codex").Should().BeNull(); // 하나라도 연결했으면 묻지 않음
+    }
+
+    [Fact]
+    public void Suggestion_line_carries_an_example_and_rotates()
+    {
+        var lines = Enumerable.Range(0, FoldyMcpTools.Examples.Count).Select(i => FoldyMcpTools.SuggestLine("Claude Desktop", i)).ToList();
+        lines.Should().OnlyContain(l => l.StartsWith("Claude Desktop에게 \"", StringComparison.Ordinal) && l.Contains("읽기만", StringComparison.Ordinal));
+        lines.Distinct().Should().HaveCount(FoldyMcpTools.Examples.Count);
+        FoldyMcpTools.SuggestLine("Codex", -7).Should().Contain("Codex에게"); // 음수 씨앗도 안전
+    }
+}

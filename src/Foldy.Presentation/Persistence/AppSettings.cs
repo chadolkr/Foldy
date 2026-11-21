@@ -57,6 +57,9 @@ public sealed record AppSettings
     /// <summary>AI 연결(MCP): AI 앱이 Foldy로 파일을 찾고 폴더를 볼 수 있게 한다 (기본 끔, "AI에 연결"을 누르면 켜진다). 읽기 전용.</summary>
     public bool McpEnabled { get; init; }
 
+    /// <summary>AI 앱이 있는데 아직 연결 안 했으면 창 위 한 줄로 제안 (기본 켬, [다시 묻지 않기]로 끔).</summary>
+    public bool AiSuggest { get; init; } = true;
+
     /// <summary>색인이 없는 드라이브(네트워크·회사 드라이브·Google Drive 등)도 천천히 모아 빠른 찾기에 넣는다 (기본 켬).</summary>
     public bool SlowCrawl { get; init; } = true;
 

@@ -45,6 +45,27 @@ public sealed class FoldyMcpHost
 /// </summary>
 public static class FoldyMcpTools
 {
+    /// <summary>AI에게 이렇게 물어보세요 (AI 연결 화면·도움말·README에 같은 예시). 도구 하나 이상으로 답할 수 있는 것만.</summary>
+    public static readonly IReadOnlyList<(string Ask, string What)> Examples =
+    [
+        ("작년 견적서 찾아 줘", "이름으로 파일 찾기 (회사 드라이브·Google Drive 포함)"),
+        ("D 드라이브에서 공간을 많이 차지하는 폴더가 뭐야?", "큰 폴더부터 짚어 보기"),
+        ("다운로드 폴더에 뭐가 있는지 정리해서 알려 줘", "폴더 안 보기"),
+        ("이 프로젝트 폴더 설명 읽어 줘", "Foldy에 적어 둔 폴더 설명"),
+        ("보고서 폴더에서 아직 검토 중인 파일 알려 줘", "파일 상태 태그"),
+        ("드라이브 남은 공간과 색인 상태 알려 줘", "드라이브 상태"),
+    ];
+
+    /// <summary>
+    /// 연결 제안 한 줄: 무엇을 할 수 있는지 예시 하나를 담는다 (사용자 2026-11-21: "연결하기 물을 때 알려 줘야지"). 예시는 실행마다 돌아가며.
+    /// 예: Claude Desktop에게 "작년 견적서 찾아 줘"라고 하면 Foldy가 찾아 줘요. 읽기만 해요.
+    /// </summary>
+    public static string SuggestLine(string app, int seed)
+    {
+        var (ask, _) = Examples[(int)((uint)seed % (uint)Examples.Count)];
+        return $"{app}에게 \"{ask}\"라고 하면 Foldy가 내 PC에서 찾아 줘요. 읽기만 해요.";
+    }
+
     public const string Instructions =
         "Foldy는 Windows 파일 관리자예요. 이 서버로 사용자의 PC에서 파일을 아주 빨리 찾고(드라이브 전체 색인, 회사 드라이브·Google Drive 포함), " +
         "폴더 안을 보고, 어느 폴더가 큰지, 폴더 설명과 파일 상태 태그를 읽을 수 있어요. 모두 읽기 전용이고, 사용자 권한으로 볼 수 있는 것만 나와요. " +
