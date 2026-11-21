@@ -182,6 +182,13 @@ $MFT 파싱 순서:
 - 폴더 분석 DB(`%ProgramData%\Foldy\Analysis`): SYSTEM·Administrators·서비스 계정 + **분석을 요청한 사용자만 읽기**(0.9.22, 예전 Interactive 읽기 제거). 사용자마다 처음 한 번만 권한을 쓴다.
 - 검색 결과는 파이프로 연결한 사용자 기준으로 거른다(다른 사용자 프로필 숨김).
 
+## 개발자 정리
+
+- 지워도 되는 폴더 찾기(`Foldy.Core/Cleanup/RebuildableFolders`): 고른 폴더 안을 훑되 찾은 폴더 안으로는 들어가지 않는다. 종류마다 옆 표시 파일(package.json·.csproj·Cargo.toml…)·안 표시 파일(.venv의 pyvenv.cfg)을 확인해 오진을 막는다. 크기는 색인(부모 폴더의 FolderSizes)에서, 없으면 직접 더한다. .git은 CanRebuild=false: 기본 미선택, index·HEAD 시각으로 최근 사용을 보고 경고. 지우기는 휴지통(ShellViewModel.RecycleAsync).
+- 파일을 쓰는 프로그램(`Foldy.Platform/SystemInfo/FileLockers`): Restart Manager(RmStartSession → RmRegisterResources → RmGetList). 작업이 실패하면 ShellViewModel.FindLockers로 이름을 받아 작업 줄·상태 줄에 붙인다. 강제 종료는 하지 않는다.
+- 개발 캐시 정리(`Foldy.Core/Cleanup/DevCaches` + `DevCleanupFlows`): PATH에서 도구를 찾고(Store의 python 바로 가기 제외) 폴더 크기를 잰 뒤 공식 명령을 고정 인자로 실행(.cmd는 cmd.exe /d /c). 10분 넘으면 멈춘다.
+- 넣지 않는 것: 레지스트리 청소·시스템 트윅·핸들 강제 해제 (DECISIONS 2026-11-21).
+
 ## AI 연결 (MCP 서버)
 
 Foldy.exe --mcp가 공식 MCP 사양(stdio)으로 도는 서버. AI 앱(Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code)이 띄우고, 읽기 전용 도구 6개(파일 찾기, 폴더 보기, 폴더 크기, 폴더 설명, 파일 태그, 드라이브 상태)를 쓴다. 사용자는 "AI 연결" 화면의 [AI에 연결] 한 번으로 그 앱 설정에 Foldy를 넣는다. 자세한 것은 [mcp.md](mcp.md).

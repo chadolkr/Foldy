@@ -248,6 +248,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsDirty))]
     private bool _aiSuggest = true;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private string _rebuildableExtra = "";
+
     public bool CopyThreadsManualEnabled => !CopyThreadsAuto;
 
     public IRelayCommand ApplyCommand { get; }
@@ -287,6 +291,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         KeepPreviousVersions = KeepPreviousVersions,
         SlowCrawl = SlowCrawl,
         AiSuggest = AiSuggest,
+        RebuildableExtra = RebuildableExtra,
     };
 
     /// <summary>편집한 단축키 (재지정만 저장하려면 Save를 호출).</summary>
@@ -357,6 +362,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         KeepPreviousVersions = s.KeepPreviousVersions;
         SlowCrawl = s.SlowCrawl;
         AiSuggest = s.AiSuggest;
+        RebuildableExtra = s.RebuildableExtra;
         AutoOpenGitView = s.AutoOpenGitView;
         _loading = false;
         RefreshKeys();

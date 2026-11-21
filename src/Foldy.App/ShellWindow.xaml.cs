@@ -1128,6 +1128,8 @@ public partial class ShellWindow : Window, IPaneHost
         Add("cleanup.logs", "로그 정리 (현재 드라이브)", () => OpenLogCleanup(null));
         Add("cleanup.downloads", "다운로드 정리", () => OpenDownloadsCleanup(null));
         Add("cleanup.desktop", "바탕화면 정리", OpenDesktopTidy);
+        Add("cleanup.rebuildable", "지워도 되는 폴더 찾기 (node_modules·bin/obj·__history·.git 등)", () => OpenRebuildable(Shell.ActivePane.ActiveFolder?.Path));
+        Add("cleanup.devcache", "개발 캐시 정리 (npm·NuGet·pip·Docker)", () => _ = DevCleanupFlows.DevCachesAsync(this));
         Add("memo.new", "새 메모 (.md, 지금 폴더에)", () =>
         {
             if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
@@ -2186,6 +2188,10 @@ public partial class ShellWindow : Window, IPaneHost
             {
                 OpenDownloadsCleanup(null);
             }
+            else if (tool == "rebuildable")
+            {
+                OpenRebuildable(path);
+            }
         };
         tab.OpenRequested += (_, e) =>
         {
@@ -2297,6 +2303,41 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private void OpenDesktopTidy() => _ = CleanupFlows.DesktopAsync(this);
+
+    /// <summary>지워도 되는 폴더 찾기: 사용자가 고른(지금 보는) 폴더 안에서만. 크기는 색인으로 바로, 없으면 직접 더한다.</summary>
+    private void OpenRebuildable(string? folder)
+    {
+        if (string.IsNullOrEmpty(folder) || Foldy.Presentation.Navigation.PathUtil.IsSftp(folder) || !Directory.Exists(folder))
+        {
+            Shell.Status = "찾을 폴더(내 PC·네트워크 폴더)를 먼저 열어 주세요";
+            return;
+        }
+
+        var extra = _settings.RebuildableExtra.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var client = _indexer;
+        long? IndexSize(string dir)
+        {
+            // 색인이 있으면 부모 폴더의 크기 목록에서 바로 (폴더를 다시 읽지 않는다)
+            if (client is not { IsFaulted: false } || Path.GetDirectoryName(dir) is not { } parent)
+            {
+                return null;
+            }
+
+            try
+            {
+                var r = client.FolderSizesAsync(parent).GetAwaiter().GetResult();
+                return r.Status == Foldy.Indexer.Client.FolderSizesStatus.Ok
+                    && r.Entries.FirstOrDefault(e => e.IsDir && string.Equals(e.Name, Path.GetFileName(dir), StringComparison.OrdinalIgnoreCase)) is { } hit
+                    ? (long)hit.Size : null;
+            }
+            catch (Exception ex) when (ex is IOException or Foldy.Indexer.Client.ProtocolException or OperationCanceledException or TimeoutException)
+            {
+                return null;
+            }
+        }
+
+        _ = DevCleanupFlows.RebuildableAsync(this, folder, Shell, extra, IndexSize);
+    }
 
     public void ShowVersions(string file) => _ = SecureFlows.VersionsAsync(this, file, Shell);
 

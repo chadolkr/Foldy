@@ -269,6 +269,9 @@
                   <MenuItem Header="바탕화면 정리" Tag="cleanup.desktop" Click="OnGroupMenuItem" />
                   <MenuItem Header="다운로드 정리" Tag="cleanup.downloads" Click="OnGroupMenuItem" />
                   <MenuItem Header="로그 정리" Tag="cleanup.logs" Click="OnGroupMenuItem" />
+                  <Separator />
+                  <MenuItem Header="지워도 되는 폴더 찾기 (이 폴더 안)…" Tag="cleanup.rebuildable" Click="OnGroupMenuItem" />
+                  <MenuItem Header="개발 캐시 정리…" Tag="cleanup.devcache" Click="OnGroupMenuItem" />
                 </ContextMenu>
               </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">

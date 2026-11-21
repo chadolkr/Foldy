@@ -292,6 +292,8 @@
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
         <Button DockPanel.Dock="Right" Style="{StaticResource An.Button}" Content="다운로드 정리" Command="{Binding OpenToolCommand}" CommandParameter="downloads" Margin="4,0,0,0"
                 ToolTip="다운로드 폴더에서 이미 설치한 프로그램의 설치 파일, 중복 파일, 이미 푼 압축 파일, 오래된 파일 찾기" />
+        <Button DockPanel.Dock="Right" Style="{StaticResource An.Button}" Content="지워도 되는 폴더" Command="{Binding OpenToolCommand}" CommandParameter="rebuildable" Margin="4,0,0,0"
+                ToolTip="지금 보는 폴더 안에서 node_modules·bin/obj·__pycache__·__history·.git처럼 다시 만들 수 있는 폴더를 크기 순으로 찾기 (고른 것만 휴지통으로)" />
         <Button DockPanel.Dock="Right" Style="{StaticResource An.Button}" Content="로그 정리" Command="{Binding OpenToolCommand}" CommandParameter="logs" Margin="12,0,0,0"
                 ToolTip="이 드라이브의 오래된 *.log 파일을 월별 zip으로 묶어 공간 줄이기" />
         <TextBlock DockPanel.Dock="Right" Text="{Binding Status}" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center" Margin="12,0,0,0" />

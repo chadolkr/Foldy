@@ -1,0 +1,140 @@
+using Foldy.Core.Cleanup;
+
+namespace Foldy.Core.Tests;
+
+public sealed class RebuildableFoldersTests : IDisposable
+{
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "foldy-junk-" + Guid.NewGuid().ToString("N"));
+    private static readonly DateTime Now = new(2026, 11, 21, 0, 0, 0, DateTimeKind.Utc);
+
+    public RebuildableFoldersTests() => Directory.CreateDirectory(_root);
+
+    public void Dispose()
+    {
+        foreach (var f in Directory.EnumerateFileSystemEntries(_root, "*", SearchOption.AllDirectories))
+        {
+            File.SetAttributes(f, FileAttributes.Normal);
+        }
+
+        Directory.Delete(_root, true);
+    }
+
+    private string Make(string rel, string? file = null, int bytes = 10)
+    {
+        var d = Path.Combine(_root, rel);
+        Directory.CreateDirectory(d);
+        if (file is not null)
+        {
+            File.WriteAllBytes(Path.Combine(d, file), new byte[bytes]);
+        }
+
+        return d;
+    }
+
+    private static void Age(string dir, int days) => Directory.SetLastWriteTimeUtc(dir, Now.AddDays(-days));
+
+    [Fact]
+    public void Finds_only_folders_next_to_their_project_files()
+    {
+        Make(@"web", "package.json");
+        Age(Make(@"web\node_modules\left-pad", "index.js", 1000), 100);
+        Make(@"web\node_modules\a\node_modules\b", "x.js"); // node_modules 안의 node_modules는 따로 세지 않는다
+        Age(Path.Combine(_root, @"web\node_modules"), 100);
+        Make(@"app", "App.csproj");
+        Age(Make(@"app\bin\Debug", "App.dll", 500), 200);
+        Age(Path.Combine(_root, @"app\bin"), 200);
+        Make(@"photos\build", "사진.jpg"); // 그냥 "build"라는 이름의 폴더는 건드리지 않는다
+        Make(@"py\.venv", "아무거나.txt"); // pyvenv.cfg가 없으면 가상 환경이 아니다
+
+        var found = RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now);
+        found.Select(f => Path.GetRelativePath(_root, f.Path)).Should().BeEquivalentTo([@"web\node_modules", @"app\bin"]);
+        found[0].Size.Should().BeGreaterThan(found[1].Size, "큰 것부터");
+        found.Should().OnlyContain(f => f.Selected, "오래 안 쓴 다시 만들 수 있는 폴더는 기본으로 고른다");
+    }
+
+    [Fact]
+    public void Git_is_never_preselected_and_recent_git_gets_a_red_warning()
+    {
+        var old = Make(@"백업\옛프로젝트\.git", "HEAD");
+        File.SetLastWriteTimeUtc(Path.Combine(old, "HEAD"), Now.AddDays(-400));
+        Directory.SetLastWriteTimeUtc(old, Now.AddDays(-400));
+        var fresh = Make(@"지금프로젝트\.git", "HEAD");
+        File.SetLastWriteTimeUtc(Path.Combine(fresh, "HEAD"), Now.AddDays(-50));
+        File.WriteAllText(Path.Combine(fresh, "index"), "x");
+        File.SetLastWriteTimeUtc(Path.Combine(fresh, "index"), Now.AddDays(-2));
+        Make(@"백업\옛프로젝트\__history", "Unit1.pas.~1~");
+
+        var found = RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now);
+        var gits = found.Where(f => f.Kind.Name == ".git").ToList();
+        gits.Should().HaveCount(2).And.OnlyContain(g => !g.Selected && g.Warning != null);
+        gits.Single(g => g.Path == fresh).Warning.Should().Contain("2일 전에도 쓴");
+        found.Should().Contain(f => f.Kind.Name == "__history", "Delphi 편집기 사본은 옆 파일 없이도 찾는다");
+    }
+
+    [Fact]
+    public void Recently_used_folders_are_found_but_not_preselected()
+    {
+        Make(@"web", "package.json");
+        Make(@"web\node_modules", "a.js"); // 방금 바뀜
+        RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, DateTime.UtcNow).Single().Selected.Should().BeFalse();
+    }
+
+    [Fact]
+    public void User_added_names_are_matched_by_name_and_bad_names_ignored()
+    {
+        Make(@"a\.cache", "x");
+        var kinds = RebuildableFolders.With([" .cache ", "..", "a|b", "node_modules"]);
+        kinds.Count(k => k.Name == "node_modules").Should().Be(1);
+        kinds.Should().NotContain(k => k.Name == ".." || k.Name == "a|b");
+        RebuildableFolders.Scan(_root, kinds, Now).Should().ContainSingle(f => f.Kind.Name == ".cache");
+    }
+
+    [Fact]
+    public void Index_size_is_used_when_given()
+    {
+        Make(@"rs", "Cargo.toml");
+        Make(@"rs\target", "x");
+        RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now, _ => 123_456).Single().Size.Should().Be(123_456);
+    }
+}
+
+public sealed class DevCachesTests : IDisposable
+{
+    private readonly string _bin = Path.Combine(Path.GetTempPath(), "foldy-devbin-" + Guid.NewGuid().ToString("N"));
+
+    public DevCachesTests() => Directory.CreateDirectory(_bin);
+
+    public void Dispose() => Directory.Delete(_bin, true);
+
+    [Fact]
+    public void Only_installed_tools_with_a_cache_are_offered()
+    {
+        File.WriteAllText(Path.Combine(_bin, "npm.cmd"), "");
+        File.WriteAllText(Path.Combine(_bin, "docker.exe"), "");
+        File.WriteAllText(Path.Combine(_bin, "dotnet.exe"), "");
+        var found = DevCaches.Find(_bin, s => s, d => d.Contains(@"LOCALAPPDATA%\npm-cache", StringComparison.Ordinal) ? 5_000 : 0);
+        found.Select(c => c.Kind.Id).Should().Equal("npm", "docker"); // NuGet은 캐시가 비어서 빠진다, Docker는 크기를 몰라도 보인다
+        found[0].Size.Should().Be(5_000, "npm 캐시 폴더 두 곳 중 있는 것만 더한다");
+    }
+
+    [Fact]
+    public void Commands_are_the_official_ones_and_cmd_files_go_through_cmd()
+    {
+        var npm = new DevCache(DevCaches.Kinds.Single(k => k.Id == "npm"), @"C:\Program Files\nodejs\npm.cmd", 1);
+        var (file, args) = DevCaches.Command(npm, @"C:\Windows\System32\cmd.exe");
+        file.Should().EndWith("cmd.exe");
+        args.Should().Equal("/d", "/c", @"C:\Program Files\nodejs\npm.cmd", "cache", "clean", "--force");
+
+        DevCaches.Kinds.Single(k => k.Id == "docker").Args.Should().Equal(["builder", "prune", "--force"], "Docker는 빌드 캐시만: 이미지·컨테이너·볼륨은 건드리지 않는다");
+        DevCaches.Kinds.Should().NotContain(k => k.Args.Contains("system") || k.Args.Contains("--all") || k.Args.Contains("-a"));
+    }
+
+    [Fact]
+    public void Store_python_stub_is_not_taken_for_python()
+    {
+        var store = Path.Combine(_bin, "WindowsApps");
+        Directory.CreateDirectory(store);
+        File.WriteAllText(Path.Combine(store, "python.exe"), "");
+        DevCaches.FindOnPath(["python.exe"], store).Should().BeNull();
+    }
+}

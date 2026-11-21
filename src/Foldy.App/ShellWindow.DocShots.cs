@@ -631,6 +631,28 @@ public partial class ShellWindow
             g.Close();
         });
 
+        // 지워도 되는 폴더 찾기 (가짜 경로·크기: 문서용)
+        await DocSceneAsync("rebuildable", async () =>
+        {
+            var g = (GuideWindow)DocOpen(new GuideWindow("지워도 되는 폴더 찾기") { Width = 760, Height = 620 });
+            Foldy.Core.Cleanup.RebuildableKind K(string n) => Foldy.Core.Cleanup.RebuildableFolders.Defaults.First(k => k.Name == n);
+            var now = DateTime.UtcNow;
+            var items = new[]
+            {
+                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\쇼핑몰\node_modules", K("node_modules"), 1_840_000_000, now.AddDays(-120), true, null),
+                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\사내도구\bin", K("bin"), 620_000_000, now.AddDays(-200), true, null),
+                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\백업_2024\.git", K(".git"), 410_000_000, now.AddDays(-400), false, "지우면 Git 기록(커밋·브랜치)이 없어져요. 다른 곳에 원본이 있을 때만 지우세요"),
+                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\백업_2024\__history", K("__history"), 96_000_000, now.AddDays(-400), true, null),
+                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\쇼핑몰\.git", K(".git"), 52_000_000, now.AddDays(-1), false, "1일 전에도 쓴 Git 기록이에요. 지금 쓰는 프로젝트라면 지우지 마세요"),
+            };
+            g.Say(@"D:\프로젝트 안에서 다시 만들 수 있는 폴더를 찾았어요: 5개(2.8 GB). 큰 것부터 보여 드릴게요. 최근 30일 안에 쓴 것과 .git은 골라 두지 않았어요.");
+            _ = g.PickAsync("휴지통으로 보낼 폴더를 골라 주세요 (휴지통에서 되살릴 수 있어요).",
+                items.Select(f => (f, $"{Foldy.Presentation.Files.FileItem.FormatBytes(f.Size)}  ·  {Path.GetRelativePath(@"D:\프로젝트", f.Path)}  ·  {f.Kind.Why}", f.Selected)), f => f.Warning,
+                ("recycle", "휴지통으로"), ("skip", "그대로 두기"));
+            await DocShotDialogAsync("rebuildable", g, 600);
+            g.Close();
+        });
+
         // 빠른 검색 (Ctrl+Space): 바로 찾는 것(기능·설정), 파일(냄새 잘 맡는 개), 계산·단위 변환
         foreach (var (scene, query, wait) in new[] { ("quicksearch", "보고서", 1500), ("quicksearch-settings", "디스", 600), ("quicksearch-calc", "32평", 600), ("quicksearch-talk", "다운로드 정리해줘", 900) })
         {

@@ -258,6 +258,10 @@
           <TextBlock Text="AI 연결" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="AI 앱이 있으면 연결을 한 줄로 제안하기" IsChecked="{Binding AiSuggest, Mode=TwoWay}" />
           <TextBlock Text="Claude 같은 AI 앱이 이 PC에 있는데 아직 Foldy와 연결하지 않았으면, Foldy를 켤 때 창 위에 한 줄로 알려 줘요. 연결은 더 보기 → AI 연결 (MCP)에서 언제든 할 수 있어요." Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="지워도 되는 폴더 찾기" Style="{StaticResource Settings.Section}" />
+          <TextBlock Text="기본 목록(node_modules, bin·obj, target, __pycache__, .venv, dist·build, __history, .git 등)에 더할 폴더 이름 (쉼표로 구분)" Style="{StaticResource Settings.Hint}" />
+          <TextBox Style="{StaticResource Settings.TextBox}" Text="{Binding RebuildableExtra, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="더할 폴더 이름" />
+          <TextBlock Text="더한 이름은 옆에 프로젝트 파일이 없어도 이름만으로 찾아요. 찾은 것은 고른 뒤에만 휴지통으로 가요." Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="정리 알림" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="로그·다운로드가 많이 쌓이면 알려 주기" IsChecked="{Binding CleanupNotices, Mode=TwoWay}" />
           <TextBlock Text="색인으로 가볍게 확인하고, 정리할 게 많을 때만 한 줄로 알려 줍니다 (일주일에 한 번까지). 저절로 지우지는 않습니다." Style="{StaticResource Settings.Hint}" />

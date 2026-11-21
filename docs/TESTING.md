@@ -28,6 +28,7 @@
 | M14 | 업데이트 진행 창 (기록 문구는 자동: `UpdateProgressTextTests`) | 설치본에서 [재시작하고 업데이트] / 다른 Foldy 창을 하나 더 띄운 채로 누르기 | 작은 창이 단계를 보이고 새 Foldy가 뜨면 닫힘 / "다른 Foldy 창을 모두 닫아 주세요" |
 | M15 | 회사 드라이브 살살 모으기 (알고리즘은 자동: `SlowCrawlerTests`) | 회사 PC에서 Foldy를 켜 두고 K: 옆 "색인 중 · N개"가 늘어나는지, 다 모은 뒤 다른 사람이 만든 파일이 Ctrl+Space로 찾히는지(폴더 시각 갱신), 직접 만든 파일이 바로 찾히는지(변경 알림), 보안 프로그램 경고가 없는지, 복사 중엔 멈추는지 | 모두 그렇다. 안 되면 결정 기록에 적고 조정 |
 | M16 | AI 연결 (프로토콜·설정 파일은 자동: `McpServerTests`, `McpClientConfigTests`) | 더 보기 → AI 연결 → Claude Desktop 체크 → [AI에 연결] → Claude Desktop 다시 켜기 → "C 드라이브에서 보고서 찾아 줘" / "AI 연결 켜기" 끄고 다시 묻기 / 체크 풀고 [AI에 연결] | Foldy 도구로 찾아 답함 / "꺼져 있어요" / 설정 파일에서 foldy만 빠짐, .foldy-backup 있음 |
+| M17 | 개발자 정리 (판별·명령은 자동: `RebuildableFoldersTests`, `DevCachesTests`, `FileLockersTests`) | 실제 프로젝트 폴더에서 정리하기 → 지워도 되는 폴더 찾기 / Excel로 연 파일을 Delete / 정리하기 → 개발 캐시 정리에서 npm만 정리 | node_modules·bin이 크기 순, .git은 체크 안 됨·빨간 글씨 / 작업 창에 "Microsoft Excel이(가) 쓰고 있어요" / npm 캐시가 줄고 다음 npm install이 정상 |
 | M12 | 빨리 지우기 (엔진은 자동: `FastDeleteTests`) | 파일 1만 개 시험 폴더 → Delete → [빨리 지우기] → 확인 / 중간에 [취소] | 기본 단추가 휴지통·그만두기, 빠르게 지워짐, 취소하면 멈추고 남은 것은 그대로 |
 
 ## 기록

@@ -315,7 +315,7 @@ public sealed partial class ShellViewModel : ObservableObject
         var r = move
             ? await _services.FileOps.MoveAsync(src, dest, job, job.Token)
             : await _services.FileOps.CopyAsync(src, dest, job, job.Token);
-        FinishJob(job, r);
+        FinishJob(job, r, src);
         await RefreshFoldersAsync([dest, .. src.Select(s => PathUtil.Parent(s) ?? s)]);
     }
 
@@ -329,7 +329,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         var job = StartJob($"{JobViewModel.Describe(paths)} 휴지통으로", Mascot.JobKind.Delete);
         var r = await _services.FileOps.DeleteAsync(paths, recycle: true, job, job.Token);
-        FinishJob(job, r);
+        FinishJob(job, r, paths);
         await RefreshFoldersAsync(paths.Select(s => PathUtil.Parent(s) ?? s));
         return r.Succeeded;
     }
@@ -344,7 +344,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         var job = StartJob($"{JobViewModel.Describe(paths)} 영구 삭제", Mascot.JobKind.DeletePermanent);
         var r = await _services.FileOps.DeleteAsync(paths, recycle: false, job, job.Token);
-        FinishJob(job, r);
+        FinishJob(job, r, paths);
         await RefreshFoldersAsync(paths.Select(s => PathUtil.Parent(s) ?? s));
         return r.Succeeded;
     }
@@ -412,7 +412,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         var job = StartJob($"{JobViewModel.Describe(src)} {(permanent ? "영구 삭제" : "휴지통으로")}", permanent ? Mascot.JobKind.DeletePermanent : Mascot.JobKind.Delete);
         var r = await _services.FileOps.DeleteAsync(src, recycle: !permanent, job, job.Token);
-        FinishJob(job, r);
+        FinishJob(job, r, src);
         await RefreshFoldersAsync(src.Select(s => PathUtil.Parent(s) ?? s));
     }
 
@@ -440,7 +440,7 @@ public sealed partial class ShellViewModel : ObservableObject
             : res.FailedCount > 0
                 ? FileOpResult.Fail($"{res.FailedCount:N0}개는 지우지 못했어요 (쓰는 중이거나 권한이 없어요): {string.Join(", ", res.Failed.Take(3).Select(PathUtil.DisplayName))}")
                 : new FileOpResult(true, false, $"{res.DeletedFiles:N0}개를 지웠어요");
-        FinishJob(job, r);
+        FinishJob(job, r, res.FailedCount > 0 ? res.Failed : null);
         if (res.Canceled)
         {
             Status = $"중간에 멈췄어요. 이미 지운 {res.DeletedFiles:N0}개는 되살릴 수 없어요";
@@ -504,7 +504,13 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <summary>끝난 작업이 작업 창에 남아 있는 시간 (마스코트 마무리 장면이 끝날 만큼). 실패한 작업은 닫을 때까지 남는다.</summary>
     public static TimeSpan FinishedJobLinger { get; set; } = TimeSpan.FromSeconds(6);
 
-    private void FinishJob(JobViewModel job, FileOpResult r)
+    /// <summary>
+    /// 파일을 쓰고 있는 프로그램 이름을 찾는다 (앱이 Windows Restart Manager로 연결한다, 사용자 2026-11-21 "누가 이 파일을 쓰고 있나요?").
+    /// 없으면(시험 등) 찾지 않는다. 묻기만 하고 프로그램을 끄지 않는다.
+    /// </summary>
+    public static Func<IReadOnlyList<string>, string?>? FindLockers { get; set; }
+
+    private void FinishJob(JobViewModel job, FileOpResult r, IReadOnlyList<string>? sources = null)
     {
         job.Complete(r);
         Status = r.Succeeded ? r.Error ?? "" : r.Aborted ? "취소됨" : $"{job.Title}: {r.Error}";
@@ -512,6 +518,33 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             _ = RemoveLaterAsync(job);
         }
+
+        // 실패했으면 누가 그 파일을 쓰고 있는지 알려 준다
+        if (!r.Aborted && !r.Succeeded && sources is { Count: > 0 } && FindLockers is { } find)
+        {
+            _ = ExplainLockAsync(job, sources, find);
+        }
+    }
+
+    private async Task ExplainLockAsync(JobViewModel job, IReadOnlyList<string> sources, Func<IReadOnlyList<string>, string?> find)
+    {
+        string? who;
+        try
+        {
+            who = await Task.Run(() => find(sources));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return;
+        }
+
+        if (who is null)
+        {
+            return;
+        }
+
+        job.Detail = $"{job.Detail} · {who}";
+        Status = $"{job.Title}: {who}";
     }
 
     // 작업 창은 지금 하는 일만 보여 준다: 끝난 작업은 잠깐 뒤 사라지고, 비면 창도 접힌다

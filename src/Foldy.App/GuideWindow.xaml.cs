@@ -70,10 +70,27 @@ public partial class GuideWindow : Window
     }
 
     /// <summary>목록을 보여 주고 고르게 한다 (체크 상자). 그 아래 선택지로 무엇을 할지 묻는다.</summary>
-    public async Task<(string Choice, IReadOnlyList<T> Picked)> PickAsync<T>(string text, IEnumerable<(T Item, string Label, bool Selected)> items, params (string Id, string Label)[] choices)
+    public Task<(string Choice, IReadOnlyList<T> Picked)> PickAsync<T>(string text, IEnumerable<(T Item, string Label, bool Selected)> items, params (string Id, string Label)[] choices) =>
+        PickAsync(text, items, null, choices);
+
+    /// <summary>고르기 + 항목마다 빨간 글씨 경고 (예: 최근에 쓴 .git). <paramref name="warning"/>이 null을 주면 경고 없음.</summary>
+    public async Task<(string Choice, IReadOnlyList<T> Picked)> PickAsync<T>(string text, IEnumerable<(T Item, string Label, bool Selected)> items, Func<T, string?>? warning, params (string Id, string Label)[] choices)
     {
         Say(text);
-        var rows = items.Select(i => (i.Item, Box: new CheckBox { Content = new TextBlock { Text = i.Label, TextWrapping = TextWrapping.Wrap }, IsChecked = i.Selected, Margin = new Thickness(0, 2, 0, 2) })).ToList();
+        object Content(T item, string label)
+        {
+            var label1 = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap };
+            if (warning?.Invoke(item) is not { Length: > 0 } w)
+            {
+                return label1;
+            }
+
+            var red = new TextBlock { Text = "⚠ " + w, TextWrapping = TextWrapping.Wrap, FontSize = 13 };
+            red.SetResourceReference(TextBlock.ForegroundProperty, "Brush.Error");
+            return new StackPanel { Children = { label1, red } };
+        }
+
+        var rows = items.Select(i => (i.Item, Box: new CheckBox { Content = Content(i.Item, i.Label), IsChecked = i.Selected, Margin = new Thickness(0, 2, 0, 2) })).ToList();
         var panel = new StackPanel();
         var toggle = new TextBlock { Margin = new Thickness(0, 0, 0, 4) };
         var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("모두 고르기 / 모두 풀기"));
