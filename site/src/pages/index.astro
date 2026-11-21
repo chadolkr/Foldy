@@ -1,0 +1,10 @@
+---
+import Base from '../layouts/Base.astro';
+import Landing from '../components/Landing.astro';
+import { locales, defaultLocale } from '../i18n';
+
+const locale = locales.find((l) => l.path === defaultLocale)!;
+---
+<Base locale={locale}>
+  <Landing locale={locale} />
+</Base>

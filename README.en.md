@@ -52,6 +52,14 @@ Download from [Releases](https://github.com/chadolkr/Foldy/releases).
 
 Installing also adds a background **index service** (FoldyIndexer, runs as SYSTEM) for instant name search; it is removed when you uninstall. It indexes the whole PC, but search results only show your own folders and shared folders.
 
+## Why open source?
+
+> Open source is how I got this far. Foldy is my small way of saying thank you. I hope everyone, without discrimination, finds happiness.
+>
+> — David CHA
+
+That is why Foldy is released under GPL-3.0. If something bugs you or you have an idea, [open an issue](https://github.com/chadolkr/Foldy/issues) or send a pull request.
+
 ## More
 
 - Full Korean manual: [README.md](README.md) and the in-app help (F1)

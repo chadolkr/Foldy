@@ -1,0 +1,294 @@
+---
+import { Image } from 'astro:assets';
+import { locales, localeHref, type Locale } from '../i18n';
+import { getLatestRelease, RELEASES_URL, REPO } from '../lib/release';
+import Icon from './Icon.astro';
+
+// 화면 사진은 저장소의 docs/images에서 바로 가져온다 (앱 README와 같은 그림).
+import main from '../../../docs/images/main.png';
+import quicksearch from '../../../docs/images/quicksearch.png';
+import quicksearchCalc from '../../../docs/images/quicksearch-calc.png';
+import quicksearchTalk from '../../../docs/images/quicksearch-talk.png';
+import analysis from '../../../docs/images/analysis.png';
+import guide from '../../../docs/images/guide.png';
+import paraOrganize from '../../../docs/images/para-organize.png';
+import paraTemplate from '../../../docs/images/para-template.png';
+import mcp from '../../../docs/images/mcp.png';
+import appIcon from '../../../assets/icons/png/foldy-128.png';
+
+const images = { main, quicksearch, quicksearchCalc, quicksearchTalk, analysis, guide, paraOrganize, paraTemplate, mcp };
+type ImgKey = keyof typeof images;
+const img = (k: string) => images[k as ImgKey];
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = locale.dict;
+const release = await getLatestRelease();
+const repoUrl = `https://github.com/${REPO}`;
+const lines = (s: string) => s.split('\n');
+---
+
+<a class="skip" href="#main">{t.nav.skip}</a>
+
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="#">
+      <Image src={appIcon} alt="" width={32} height={32} />
+      <span>Foldy</span>
+    </a>
+    <nav aria-label="Foldy">
+      <a href="#features">{t.nav.features}</a>
+      <a href="#safety">{t.nav.safety}</a>
+      <a href="#install">{t.nav.install}</a>
+      <a href="#faq">{t.nav.faq}</a>
+      <a href={repoUrl} rel="noopener">{t.nav.github}</a>
+    </nav>
+    <details class="lang">
+      <summary aria-label={t.nav.language}><Icon name="globe" /><span>{locale.name}</span></summary>
+      <ul>
+        {locales.map((l) => (
+          <li><a href={localeHref(l.path)} hreflang={l.htmlLang} lang={l.htmlLang} aria-current={l.path === locale.path ? 'page' : undefined}>{l.name}</a></li>
+        ))}
+      </ul>
+    </details>
+    <a class="btn btn-small" href={release.msiUrl}>{t.nav.download}</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <Image class="hero-icon" src={appIcon} alt="" width={88} height={88} loading="eager" />
+      <h1>{lines(t.hero.title).map((l, i) => (i ? <><br />{l}</> : l))}</h1>
+      <p class="hero-sub">{t.hero.sub}</p>
+      <p class="hero-lead">{t.hero.lead}</p>
+      <div class="hero-actions">
+        <a class="btn btn-big" href={release.msiUrl}>
+          <Icon name="download" />
+          <span>{t.hero.download}</span>
+        </a>
+        <a class="btn btn-ghost btn-big" href="#features">{t.hero.secondary}</a>
+      </div>
+      <p class="hero-req">
+        {release.version && <span class="pill">{t.hero.versionPrefix} {release.version}</span>}
+        {t.hero.requirements}
+      </p>
+    </div>
+    <div class="wrap">
+      <figure class="shot shot-hero">
+        <Image src={main} alt={t.hero.imageAlt} widths={[800, 1600]} sizes="(max-width: 1160px) 100vw, 1120px" loading="eager" />
+      </figure>
+      {t.shotsNote && <p class="shots-note">{t.shotsNote}</p>}
+    </div>
+  </section>
+
+  <section class="highlights" aria-label="Foldy">
+    <div class="wrap highlight-grid">
+      {t.highlights.map((h) => (
+        <div class="highlight">
+          <strong>{h.value}</strong>
+          <span>{h.label}</span>
+          <small>{h.note}</small>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section id="features" class="section">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">{t.features.eyebrow}</p>
+        <h2>{t.features.title}</h2>
+        <p class="section-lead">{t.features.lead}</p>
+        <ol class="toc">
+          {t.features.items.map((f, i) => (
+            <li><a href={`#${f.id}`}><span class="num">{i + 1}</span>{f.kicker}</a></li>
+          ))}
+        </ol>
+      </header>
+
+      {t.features.items.map((f, i) => (
+        <article id={f.id} class:list={['feature', { flip: i % 2 === 1 }]}>
+          <div class="feature-text">
+            <p class="kicker"><span class="num">{i + 1}</span>{f.kicker}<kbd>{f.key}</kbd></p>
+            <h3>{lines(f.title).map((l, j) => (j ? <><br />{l}</> : l))}</h3>
+            <p class="feature-summary">{f.summary}</p>
+            <dl class="points">
+              {f.points.map((p) => (
+                <div>
+                  <dt><Icon name="check" />{p.title}</dt>
+                  <dd>{p.text}</dd>
+                </div>
+              ))}
+            </dl>
+            <p class="note"><Icon name="info" />{f.note}</p>
+          </div>
+          <div class="feature-media">
+            <figure class="shot">
+              <a href={img(f.img).src} title={t.zoom}><Image src={img(f.img)} alt={f.imgAlt} widths={[600, 1200]} sizes="(max-width: 900px) 100vw, 560px" /></a>
+            </figure>
+            {f.extra.length > 0 && (
+              <div class:list={['extra', { single: f.extra.length === 1 }]}>
+                {f.extra.map((e) => (
+                  <figure class="shot shot-small">
+                    <a href={img(e.img).src} title={t.zoom}><Image src={img(e.img)} alt={e.alt} widths={[400, 800]} sizes="(max-width: 900px) 50vw, 280px" /></a>
+                  </figure>
+                ))}
+              </div>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="section section-tint">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">{t.more.eyebrow}</p>
+        <h2>{t.more.title}</h2>
+        <p class="section-lead">{t.more.lead}</p>
+      </header>
+      <ul class="card-grid">
+        {t.more.items.map((m) => (
+          <li class="card">
+            <span class="card-icon"><Icon name={m.icon} /></span>
+            <h3>{m.title}</h3>
+            <p>{m.text}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section id="ai" class="section">
+    <div class="wrap feature flip">
+      <div class="feature-text">
+        <p class="eyebrow">{t.ai.eyebrow}</p>
+        <h2>{t.ai.title}</h2>
+        <p class="feature-summary">{t.ai.lead}</p>
+        <p class="apps">{t.ai.apps}</p>
+        <p class="examples-title">{t.ai.examplesTitle}</p>
+        <ul class="examples">
+          {t.ai.examples.map((e) => <li>{e}</li>)}
+        </ul>
+        <ul class="ticks">
+          {t.ai.points.map((p) => <li><Icon name="check" />{p}</li>)}
+        </ul>
+        <p class="note"><Icon name="info" />{t.ai.footnote}</p>
+      </div>
+      <div class="feature-media">
+        <figure class="shot">
+          <a href={img(t.ai.img).src} title={t.zoom}><Image src={img(t.ai.img)} alt={t.ai.imgAlt} widths={[600, 1200]} sizes="(max-width: 900px) 100vw, 560px" /></a>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="safety" class="section section-tint">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">{t.safety.eyebrow}</p>
+        <h2>{t.safety.title}</h2>
+      </header>
+      <ul class="card-grid card-grid-4">
+        {t.safety.items.map((s, i) => (
+          <li class="card">
+            <span class="card-icon"><Icon name={['offline', 'disk', 'eyeoff', 'code'][i]} /></span>
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+          </li>
+        ))}
+      </ul>
+      <p class="center"><a class="link" href={`${repoUrl}/blob/main/PRIVACY.md`}>{t.safety.link} →</a></p>
+    </div>
+  </section>
+
+  <section id="why" class="section">
+    <div class="wrap narrow center why">
+      <p class="eyebrow">{t.why.eyebrow}</p>
+      <blockquote>
+        <p>“{t.why.quote}”</p>
+        <footer>{t.why.by}</footer>
+      </blockquote>
+      <p class="section-lead">{t.why.text}</p>
+      <a class="link" href={`${repoUrl}/issues`}>{t.why.link} →</a>
+    </div>
+  </section>
+
+  <section id="install" class="section section-tint">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">{t.install.eyebrow}</p>
+        <h2>{t.install.title}</h2>
+      </header>
+      <ol class="steps">
+        {t.install.steps.map((s, i) => (
+          <li>
+            <span class="step-num">{i + 1}</span>
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+          </li>
+        ))}
+      </ol>
+      <div class="install-box">
+        <a class="btn btn-big" href={release.msiUrl}>
+          <Icon name="download" />
+          <span>{t.hero.download}</span>
+        </a>
+        <p class="hero-req">
+          {release.version && <span class="pill">{t.hero.versionPrefix} {release.version}</span>}
+          {t.hero.requirements}
+        </p>
+        <p class="warn"><Icon name="shield" />{t.install.warning}</p>
+        <p class="muted">{t.install.uninstall}</p>
+        <a class="link" href={`${repoUrl}/releases`}>{t.install.allReleases} →</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="section">
+    <div class="wrap narrow">
+      <header class="section-head">
+        <h2>{t.faq.title}</h2>
+      </header>
+      <div class="faq">
+        {t.faq.items.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-tint cta">
+    <div class="wrap center">
+      <Image src={appIcon} alt="" width={64} height={64} />
+      <h2>{t.cta.title}</h2>
+      <p class="section-lead">{t.cta.text}</p>
+      <a class="btn btn-big" href={release.msiUrl}>
+        <Icon name="download" />
+        <span>{t.hero.download}</span>
+      </a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <div>
+      <p><strong>Foldy</strong> · {t.footer.made} · {t.footer.license}</p>
+      <p class="muted">{t.footer.note}</p>
+    </div>
+    <nav aria-label="Foldy links">
+      <a href={repoUrl}>{t.footer.source}</a>
+      <a href={`${repoUrl}/blob/main/PRIVACY.md`}>{t.footer.privacy}</a>
+      <a href={`${repoUrl}/issues`}>{t.footer.issues}</a>
+      <a href={RELEASES_URL}>{t.nav.download}</a>
+    </nav>
+  </div>
+</footer>
