@@ -109,6 +109,7 @@
               <MenuItem Header="설정 파일 열기" Click="OnOpenSettings" />
               <MenuItem Header="도움말" InputGestureText="F1" Click="OnHelp" />
               <MenuItem Header="업데이트 확인…" Click="OnCheckUpdate" />
+              <MenuItem Header="AI 연결 (MCP)…" Click="OnMcp" />
               <MenuItem Header="버그 신고…" Click="OnReportBug" />
               <MenuItem Header="둘러보기 (처음 안내 다시 보기)" Click="OnTour" />
               <MenuItem Header="버그 진단 모드 켜기/끄기" Click="OnToggleDiagnostic" />

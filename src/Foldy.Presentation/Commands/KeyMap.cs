@@ -256,6 +256,7 @@ public sealed class KeyMap
         new("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", null),
         new("view.hidden", "숨김 파일 보기 켜기/끄기", "Ctrl+H"),
         new("analysis.open", "폴더 분석", null),
+        new("ai.connect", "AI 연결 (MCP)", null),
         new("view.preview", "미리보기 창 보이기/숨기기", "F3"),
         new("view.tree", "폴더 트리 보이기/숨기기", "Ctrl+B"),
         new("view.sidebar", "사이드바 접기/펼치기", "Ctrl+Shift+B"),

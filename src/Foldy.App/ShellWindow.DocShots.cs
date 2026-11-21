@@ -597,6 +597,22 @@ public partial class ShellWindow
             d.Close();
         });
 
+        // AI 연결 (MCP): 문서용이라 가짜 경로·가짜 앱 상태 (사용자 PC의 경로가 나오지 않게, 설정 파일도 건드리지 않는다)
+        await DocSceneAsync("mcp", async () =>
+        {
+            Foldy.Core.Mcp.McpClientApp Fake(string name, Foldy.Core.Mcp.McpConfigFormat f, bool installed) => new(name, $@"C:\Users\나\{name}.json", f, installed);
+            var apps = new[]
+            {
+                Fake("Claude Desktop", Foldy.Core.Mcp.McpConfigFormat.McpServers, true),
+                Fake("Claude Code", Foldy.Core.Mcp.McpConfigFormat.McpServersStdio, true),
+                Fake("Codex", Foldy.Core.Mcp.McpConfigFormat.CodexToml, true),
+                Fake("Gemini CLI", Foldy.Core.Mcp.McpConfigFormat.McpServers, false),
+            };
+            var w = (McpWindow)DocOpen(new McpWindow(apps, @"C:\Program Files\Foldy\Foldy.exe", () => true, _ => { }, a => a.Name == "Claude Desktop", preview: true) { Height = 900 });
+            await DocShotDialogAsync("mcp", w, 600);
+            w.Close();
+        });
+
         await DocSceneAsync("bigdelete", async () =>
         {
             var g = (GuideWindow)DocOpen(new GuideWindow(Services.DeleteFlows.Title));

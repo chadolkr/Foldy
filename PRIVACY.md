@@ -11,6 +11,8 @@ Foldy will not transfer any information to other networked systems unless specif
 | SFTP·SSH, Git 원격 / SFTP, SSH, Git remotes | 사용자가 지정한 서버 / Servers you specify | 사용자가 요청한 파일·명령 / Only the files and commands you request | 사용하지 않으면 연결하지 않음 / No connection unless you use it |
 
 - 색인 서비스(FoldyIndexer)가 만드는 파일 이름 색인은 이 컴퓨터에만 저장되며 밖으로 보내지 않습니다.
+- 색인이 없는 드라이브(네트워크·클라우드 드라이브)를 Foldy가 천천히 모은 파일 목록도 이 컴퓨터의 사용자 폴더(%LOCALAPPDATA%\Foldy\crawl)에만 둡니다.
+- AI 연결(MCP)은 기본으로 꺼져 있습니다. 켜면 사용자가 연결한 AI 앱(예: Claude Desktop)이 이 컴퓨터 안에서 Foldy에 파일 이름·폴더 내용·폴더 설명을 물을 수 있고, Foldy는 그 앱에만 답합니다(인터넷에 열지 않음, 읽기 전용, 사용자 권한 안에서만). AI 앱이 받은 결과를 어떻게 처리하는지는 그 앱의 개인정보 정책을 따릅니다.
   The file-name index built by the FoldyIndexer service stays on this computer and is never uploaded.
 - 광고, 사용 통계, 추적 기능은 없습니다. / There are no ads, analytics or tracking.
 - 제거하면 프로그램과 서비스가 함께 지워집니다 (README의 제거 방법 참고). / Uninstalling removes the program and the service.

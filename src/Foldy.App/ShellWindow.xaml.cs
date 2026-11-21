@@ -891,6 +891,24 @@ public partial class ShellWindow : Window, IPaneHost
         RightColumn.Width = new GridLength(1 - ratio, GridUnitType.Star);
     }
 
+    /// <summary>AI 연결 화면 (MCP). 켜고 끄기는 이 창의 설정에 바로 저장한다.</summary>
+    private void OpenMcp()
+    {
+        var roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var w = new McpWindow(Foldy.Core.Mcp.McpClientConfig.Known(roaming, local, home), Services.McpRunner.ExePath, () => _settings.McpEnabled, on =>
+        {
+            _settings = _settings with { McpEnabled = on };
+            SaveSettings();
+        })
+        { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        ThemeManager.Attach(w);
+        w.ShowDialog();
+    }
+
+    private void OnMcp(object sender, RoutedEventArgs e) => OpenMcp();
+
     private void SaveSettings()
     {
         Shell.Settings = _settings;
@@ -1078,6 +1096,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, true));
         Add("view.hidden", "숨김 파일 보기 켜기/끄기", ToggleHidden, Key.H, ModifierKeys.Control);
         Add("analysis.open", "폴더 분석 (디스크·폴더 고르기)", () => _ = AskAnalysisTargetAsync());
+        Add("ai.connect", "AI 연결 (Claude 등에서 Foldy로 파일 찾기)", OpenMcp);
         Add("compare.panes", "두 창 비교·맞추기", () =>
         {
             if (Shell.Left.ActiveFolder?.Path is { Length: > 2 } l && Shell.Right.ActiveFolder?.Path is { Length: > 2 } r && !Foldy.Presentation.Navigation.PathUtil.IsSftp(l) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(r))

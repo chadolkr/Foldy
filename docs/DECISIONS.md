@@ -2,6 +2,13 @@
 
 정한 것을 짧게 남긴다: 날짜, 무엇을, 왜, 다른 안. 최근 것이 위.
 
+## 2026-11-21 · AI 연결(MCP 서버) (0.9.23, 사용자 요청 · 기능 동결 예외)
+- **경위**: "MCP 서버를 제공하면 활용도가 있을까?" → "MCP 서버를 만들고 설정과 스펙을 보여 주는 기능을 추가하고 쇼츠와 설명서 등 문서에 반영하자." "사용자가 MCP를 알고 AI에 접속 정보를 직접 넣어야 하나?" "Claude, Codex, ChatGPT, Gemini 등도 넣어야 하나?"
+- **결정**: Foldy.exe --mcp가 공식 MCP 사양(stdio)으로 도는 서버. 별도 실행 파일·설치 변경 없이 Foldy.exe 하나. 처음 버전은 **읽기 전용 도구 6개**(find_files, list_folder, folder_sizes, read_folder_note, get_file_tags, drive_status), annotations(readOnlyHint 등). 쓰기 도구는 넣는다면 Foldy 확인 창을 거치게.
+- **연결은 버튼 하나**: "AI 연결" 화면에서 깔린 AI 앱만 체크 목록으로, [AI에 연결]이 그 앱의 설정 파일에 Foldy를 넣는다(백업, foldy 항목만). Claude Desktop·Claude Code·Codex·Gemini CLI·Cursor·VS Code. **ChatGPT는 제외**: 원격(인터넷) MCP만 받아 PC 안 Foldy를 외부에 열어야 한다.
+- **안전**: 기본 꺼짐(연결하면 켜짐), 사용자 권한 그대로(색인도 연결한 사용자 기준), 전체 경로만, 네트워크로 열지 않음. 화면에서 도구 목록(이름·설명·입력값)을 Swagger처럼 보여 준다. 도구 정의는 서버와 화면이 같은 코드를 쓴다.
+- **문서**: docs/mcp.md(설계·형식·보안·시험), README·도움말·PRIVACY·쇼츠 장면.
+
 ## 2026-11-21 · 폴더 분석 DB는 요청한 사용자만 읽기 (0.9.22, 사용자 승인)
 - **경위**: 보안 점검에서 %ProgramData%\Foldy\Analysis를 로그온한 모든 사용자(Interactive)가 읽을 수 있어, 같은 PC의 다른 계정도 폴더 이름·크기를 볼 수 있다는 점이 나왔다. 사용자: "고쳐도 성능에 영향은 없지?" → 고치기로.
 - **결정**: Interactive 읽기를 빼고, SYSTEM·Administrators·서비스 계정 + Foldy에서 분석을 요청한(파이프로 연결한) 사용자만 읽기. 서비스가 그 사용자를 기억해, 사용자마다 처음 한 번만 폴더 권한을 다시 쓴다(이미 있는 DB 파일에도 이어짐). 그 뒤 요청에는 드는 비용이 없고, 분석·찾기 속도는 그대로.

@@ -33,6 +33,15 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        if (e.Args.Contains("--mcp", StringComparer.OrdinalIgnoreCase))
+        {
+            // AI 앱이 띄운 MCP 서버: 창·로그인 확인·관리자 해제 없이 stdin/stdout으로만 (docs/mcp.md)
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var code = Services.McpRunner.Run();
+            Shutdown(code);
+            return;
+        }
+
         Options = AppOptions.Parse(e.Args);
         if (Options.DocShots is not null)
         {

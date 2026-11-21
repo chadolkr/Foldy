@@ -54,6 +54,9 @@ public sealed record AppSettings
     /// <summary>빠른 검색 단축키를 다른 프로그램을 쓰는 중에도 받는다 (기본 켬). 끄면 Foldy 창 안에서만.</summary>
     public bool QuickSearchGlobal { get; init; } = true;
 
+    /// <summary>AI 연결(MCP): AI 앱이 Foldy로 파일을 찾고 폴더를 볼 수 있게 한다 (기본 끔, "AI에 연결"을 누르면 켜진다). 읽기 전용.</summary>
+    public bool McpEnabled { get; init; }
+
     /// <summary>색인이 없는 드라이브(네트워크·회사 드라이브·Google Drive 등)도 천천히 모아 빠른 찾기에 넣는다 (기본 켬).</summary>
     public bool SlowCrawl { get; init; } = true;
 
