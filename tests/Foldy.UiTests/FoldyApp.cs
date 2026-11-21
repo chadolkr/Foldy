@@ -28,6 +28,7 @@ public sealed class FoldyApp : IDisposable
 
         var psi = new ProcessStartInfo(Exe!) { UseShellExecute = false };
         psi.Environment["FOLDY_DATA_DIR"] = _data;
+        psi.Environment["FOLDY_LANGUAGE"] = "ko"; // 시험은 한국어 화면 기준 (CI는 영어 Windows)
         psi.ArgumentList.Add(openPath ?? Sample);
         App = Application.Launch(psi);
         Automation = new UIA3Automation();

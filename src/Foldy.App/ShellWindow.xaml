@@ -1,6 +1,7 @@
 <Window x:Class="Foldy.App.ShellWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Foldy.UI.Localization;assembly=Foldy.UI"
         xmlns:views="clr-namespace:Foldy.UI.Views;assembly=Foldy.UI"
         xmlns:mascot="clr-namespace:Foldy.UI.Mascot;assembly=Foldy.UI"
         xmlns:jobs="clr-namespace:Foldy.Presentation.Jobs;assembly=Foldy.Presentation"
@@ -123,11 +124,38 @@
 
         <ScrollViewer x:Name="SidebarScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" ScrollChanged="OnSidebarScrollChanged">
           <StackPanel>
+            <!-- 대표 기능 넷: 한 번에 닿게 맨 위에 (사용자 2026-11-21, 조사 "Foldy 대표 기능 고르기"). 나머지는 아래 도구 묶음에 -->
+            <Button Style="{DynamicResource Foldy.SideItem}" Tag="app.quickSearch" Click="OnGroupMenuItem" ToolTip="{loc:T side.find.tip}" AutomationProperties.Name="{loc:T side.find}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE721;" />
+                <TextBlock Style="{StaticResource SideName}" Text="{loc:T side.find}" />
+                <TextBlock Style="{StaticResource SideName}" Text="Ctrl+Space" FontSize="11" Opacity="0.6" Margin="8,0,0,0" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Style="{DynamicResource Foldy.SideItem}" Tag="analysis.open" Click="OnGroupMenuItem" ToolTip="{loc:T side.space.tip}" AutomationProperties.Name="{loc:T side.space}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xEDA2;" />
+                <TextBlock Style="{StaticResource SideName}" Text="{loc:T side.space}" />
+              </StackPanel>
+            </Button>
+            <Button Style="{DynamicResource Foldy.SideItem}" Tag="cleanup.wizard" Click="OnGroupMenuItem" ToolTip="{loc:T side.tidy.tip}" AutomationProperties.Name="{loc:T side.tidy}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8CB;" />
+                <TextBlock Style="{StaticResource SideName}" Text="{loc:T side.tidy}" />
+              </StackPanel>
+            </Button>
+            <Button Style="{DynamicResource Foldy.SideItem}" Tag="folder.fromTemplate" Click="OnGroupMenuItem" ToolTip="{loc:T side.template.tip}" AutomationProperties.Name="{loc:T side.template}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8F4;" />
+                <TextBlock Style="{StaticResource SideName}" Text="{loc:T side.template}" />
+              </StackPanel>
+            </Button>
+
             <!-- 자주 쓰는 폴더 (고정) -->
             <DockPanel Style="{StaticResource SideHeaderRow}">
               <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="32" Height="32" FontSize="12" Margin="0,4,6,0"
                       Content="&#xE718;" ToolTip="지금 폴더를 자주 쓰는 폴더에 고정" AutomationProperties.Name="지금 폴더 고정" Click="OnPinCurrent" />
-              <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="자주 쓰는 폴더" />
+              <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="{loc:T side.pinned}" />
             </DockPanel>
             <TextBlock x:Name="PinnedEmpty" Margin="14,2,10,4" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"
                        Text="핀 버튼으로 지금 폴더를 고정하세요." />
@@ -159,7 +187,7 @@
               <DockPanel>
                 <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="32" Height="32" FontSize="12" Margin="0,4,6,0"
                         Content="&#xE74D;" ToolTip="최근 폴더 지우기" AutomationProperties.Name="최근 폴더 지우기" Click="OnClearRecent" />
-                <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="최근 폴더" />
+                <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="{loc:T side.recent}" />
               </DockPanel>
               <ItemsControl x:Name="RecentList" Focusable="False">
                 <ItemsControl.ItemTemplate>
@@ -183,7 +211,7 @@
             </StackPanel>
 
             <!-- 드라이브와 남은 공간 -->
-            <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="드라이브" Visibility="{Binding SidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVis}}" />
+            <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="{loc:T side.drives}" Visibility="{Binding SidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVis}}" />
             <ItemsControl x:Name="SideDrives" Focusable="False">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type svc:DriveItem}">
@@ -239,7 +267,7 @@
             </ItemsControl>
 
             <!-- 도구: 네 묶음. 누르면 그 묶음의 기능 메뉴가 열린다 (사이드바가 한 화면에 들어가도록) -->
-            <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="도구" Visibility="{Binding SidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVis}}" />
+            <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="{loc:T side.tools}" Visibility="{Binding SidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVis}}" />
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="파일 검색, 폴더 분석, 두 창 비교, 이미지만 보기" AutomationProperties.Name="찾기">
               <Button.ContextMenu>
                 <ContextMenu>
@@ -252,7 +280,7 @@
               </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE721;" />
-                <TextBlock Style="{StaticResource SideName}" Text="찾기" />
+                <TextBlock Style="{StaticResource SideName}" Text="{loc:T side.group.find}" />
               </StackPanel>
             </Button>
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="이 폴더 정리, 템플릿, 관리 방식, 바탕화면·다운로드·로그 정리" AutomationProperties.Name="정리하기">
@@ -276,7 +304,7 @@
               </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8CB;" />
-                <TextBlock Style="{StaticResource SideName}" Text="정리하기" />
+                <TextBlock Style="{StaticResource SideName}" Text="{loc:T side.group.tidy}" />
               </StackPanel>
             </Button>
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="잠긴 메모, 암호 걸기, 금고, 휴지통" AutomationProperties.Name="지키기">
@@ -293,7 +321,7 @@
               </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE72E;" />
-                <TextBlock Style="{StaticResource SideName}" Text="지키기" />
+                <TextBlock Style="{StaticResource SideName}" Text="{loc:T side.group.protect}" />
               </StackPanel>
             </Button>
             <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideGroup" ToolTip="SFTP·SSH, Git, 터미널" AutomationProperties.Name="연결하기">
@@ -307,7 +335,7 @@
               </Button.ContextMenu>
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SideIcon}" Text="&#xE71B;" />
-                <TextBlock Style="{StaticResource SideName}" Text="연결하기" />
+                <TextBlock Style="{StaticResource SideName}" Text="{loc:T side.group.connect}" />
               </StackPanel>
             </Button>
             <Grid>
@@ -351,7 +379,7 @@
     <!-- 정리 알림: 로그·다운로드가 많이 쌓였을 때 한 줄 (주 1회까지) -->
     <Border x:Name="CleanupNotice" Grid.Row="1" Grid.Column="1" Margin="8,0,8,6" Style="{DynamicResource Foldy.ListBorder}" Padding="10,5" Visibility="Collapsed">
       <DockPanel LastChildFill="True">
-        <Button DockPanel.Dock="Right" x:Name="CleanupNoticeNever" Content="다시 묻지 않기" Padding="8,2" Margin="6,0,0,0" Click="OnNoticeNever" Visibility="Collapsed" />
+        <Button DockPanel.Dock="Right" x:Name="CleanupNoticeNever" Content="{loc:T suggest.never}" Padding="8,2" Margin="6,0,0,0" Click="OnNoticeNever" Visibility="Collapsed" />
         <Button DockPanel.Dock="Right" x:Name="CleanupNoticeClose" Content="닫기" Padding="8,2" Margin="6,0,0,0" Click="OnCleanupNoticeClose" />
         <Button DockPanel.Dock="Right" x:Name="CleanupNoticeButton" Padding="10,2" Margin="12,0,0,0" Click="OnCleanupNoticeOpen" />
         <TextBlock Text="&#xE946;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" Margin="0,0,8,0" />

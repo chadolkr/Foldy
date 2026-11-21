@@ -24,6 +24,32 @@ public interface IUpdateSource : IDisposable
     bool LaunchInstaller();
 }
 
+/// <summary>Store(MSIX) 판: 업데이트는 Microsoft Store가 하므로 아무것도 하지 않는다.</summary>
+public sealed class StoreUpdateSource : IUpdateSource
+{
+    public string? ReadyVersion => null;
+
+    public string? LastError => null;
+
+    public event Action? Changed
+    {
+        add { }
+        remove { }
+    }
+
+    public void Start(TimeSpan firstDelay)
+    {
+    }
+
+    public Task<bool> CheckAsync(CancellationToken ct) => Task.FromResult(false);
+
+    public bool LaunchInstaller() => false;
+
+    public void Dispose()
+    {
+    }
+}
+
 /// <summary>기존 <see cref="AppUpdater"/>(관리자 권한 설치 스크립트)를 <see cref="IUpdateSource"/>로 감싼다.</summary>
 public sealed class LegacyUpdateSource(AppUpdater inner) : IUpdateSource
 {

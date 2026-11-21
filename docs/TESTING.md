@@ -7,6 +7,8 @@
 - 클라우드(Linux) 세션에서는 Windows 경로·셸을 전제로 한 테스트가 실패한다. 그 결과로 판단하지 말고 CI(Windows) 결과를 본다.
 - 2026-11-19 기준 820개 이상 (Core: 정리 규칙·로그 zip·다운로드·바탕화면·관리 방식·금고/잠금 암호화·zip slip·이전 버전 보관, Interop: 색인·업데이트 파이프, Templates, UI 등).
 
+- 다국어: `LocalizationTests`(키·자리 표시자·남은 한국어, 언어 고르기). UI 시험은 FOLDY_LANGUAGE=ko로 돈다(CI는 영어 Windows). 영어 화면 확인은 `FOLDY_LANGUAGE=en build/doc-screenshots.ps1 -Out <dir>`.
+
 ## 수동 점검표 (릴리스 전에 Windows에서)
 
 자동으로 하기 어려운 것만 남긴다. 일반 릴리스(0.x.y)는 자동 테스트만 통과하면 배포하고, 이 점검표는 큰 릴리스(0.9·1.0) 전이나 관련 코드가 바뀌었을 때만 돌린다. 결과는 아래 기록에 날짜와 함께 적는다. 자동으로 옮길 수 있게 되면 테스트로 옮기고 여기서 지운다.
