@@ -1,4 +1,4 @@
-# 코드 서명 (SignPath Foundation)
+# 코드 서명 (SignPath Foundation — 2026-11-19 보류, 재신청 대비 기록)
 
 Windows 실행 파일과 MSI는 SignPath Foundation의 오픈소스 무료 인증서로 Authenticode 서명한다.
 업데이트 정보(`update.json`)의 Ed25519 서명은 이와 별개다 ([release-signing.md](release-signing.md)).
