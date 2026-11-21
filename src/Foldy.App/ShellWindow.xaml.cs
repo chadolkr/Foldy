@@ -689,7 +689,10 @@ public partial class ShellWindow : Window, IPaneHost
         _crawler.Start();
     }
 
-    /// <summary>모을 드라이브: 준비된 드라이브 중 색인 서비스가 다루지 않는 것 (네트워크, NTFS가 아님, 클라우드 가상 드라이브). 이동식·CD는 뺀다.</summary>
+    /// <summary>
+    /// 모을 드라이브: 준비된 드라이브 중 색인 서비스가 다루지 않는 것 (네트워크, NTFS가 아님, 클라우드 가상 드라이브, USB·SD 카드). CD만 뺀다.
+    /// (2026-11-21 사용자: "D: 색인 기다리는 중이라는데 언제 되지?" → exFAT SD 카드가 목록에서 빠져 있어 영원히 기다리는 중으로 보였다)
+    /// </summary>
     private List<string> CrawlDrives()
     {
         var list = new List<string>();
@@ -697,7 +700,7 @@ public partial class ShellWindow : Window, IPaneHost
         {
             try
             {
-                if (!d.IsReady || d.DriveType is DriveType.CDRom or DriveType.Removable or DriveType.NoRootDirectory or DriveType.Unknown)
+                if (!d.IsReady || d.DriveType is DriveType.CDRom or DriveType.NoRootDirectory or DriveType.Unknown)
                 {
                     continue;
                 }
@@ -707,7 +710,7 @@ public partial class ShellWindow : Window, IPaneHost
                     continue;
                 }
 
-                if (d.DriveType == DriveType.Network || !string.Equals(d.DriveFormat, "NTFS", StringComparison.OrdinalIgnoreCase) || _search.LastStatus is not null)
+                if (d.DriveType is DriveType.Network or DriveType.Removable || !string.Equals(d.DriveFormat, "NTFS", StringComparison.OrdinalIgnoreCase) || _search.LastStatus is not null)
                 {
                     list.Add(d.Name);
                 }
@@ -793,7 +796,13 @@ public partial class ShellWindow : Window, IPaneHost
                 : c.Complete ? $"색인 완료 · {Math.Max(0, c.Found):N0}개" : "색인 쉬는 중";
         }
 
-        return _crawler is null ? "색인 없음 · 폴더 안에서만" : "색인 기다리는 중";
+        if (_crawler is null || d.Kind == DriveKind.CdRom)
+        {
+            return "색인 없음 · 폴더 안에서만";
+        }
+
+        // 한 번에 한 드라이브씩 모은다: 무엇을 기다리는지 말한다
+        return _crawler.Current() is { } now ? $"색인 차례 기다리는 중 · {now.Drive.TrimEnd('\\')} 다음" : "색인 곧 시작";
     }
 
     /// <summary>진단용: Windows 서비스 FoldyIndexer의 상태 (없음/실행 중/중지됨 …).</summary>

@@ -334,6 +334,15 @@ public sealed class SlowCrawler : IDisposable
         }
     }
 
+    /// <summary>지금 모으고 있는 드라이브 (없으면 null). 한 번에 하나씩 모은다.</summary>
+    public CrawlStatus? Current()
+    {
+        lock (_gate)
+        {
+            return _status.Values.FirstOrDefault(s => s.Running);
+        }
+    }
+
     public CrawlStatus? StatusOf(string drive)
     {
         lock (_gate)
