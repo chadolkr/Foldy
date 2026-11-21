@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- WixUI 기본 문구 덮어쓰기: 환영 화면에 SYSTEM 색인 서비스 안내를 넣는다 -->
+<!-- WixUI 기본 문구 덮어쓰기 (2026-11-22: 짧은 소개처럼 쉬운 말로). 한국어 먼저, 영어 한 줄. 언어별 MSI는 다국어를 마치면 나눈다 (DECISIONS) -->
 <WixLocalization Culture="en-us" Codepage="949" xmlns="http://wixtoolset.org/schemas/v4/wxl">
-  <String Id="WelcomeDlgDescription" Value="The Setup Wizard will install [ProductName] on your computer.&#xD;&#xA;&#xD;&#xA;NOTICE: this also installs a background indexing service (FoldyIndexer) that runs as SYSTEM, to power instant file-name search. It starts with Windows (delayed) and is removed when you uninstall Foldy.&#xD;&#xA;&#xD;&#xA;[ProductName] 설치 시 빠른 파일 검색을 위한 SYSTEM 권한 백그라운드 색인 서비스(FoldyIndexer)가 함께 설치됩니다.&#xD;&#xA;&#xD;&#xA;Click Next to continue or Cancel to exit the Setup Wizard." Overridable="yes" />
+  <String Id="WelcomeDlgTitle" Value="{\WixUI_Font_Bigger}Foldy를 설치할게요" Overridable="yes" />
+  <String Id="WelcomeDlgDescription" Value="빠르고 똑똑한 파일 관리자, 오프라인에서도.&#xD;&#xA;&#xD;&#xA;빠른 찾기를 위해 색인 서비스(FoldyIndexer)가 함께 설치되고, Foldy를 지우면 같이 지워져요. 검색 결과에는 내 폴더와 공용 폴더만 나와요.&#xD;&#xA;&#xD;&#xA;A fast, smart file manager, even offline. Also installs the FoldyIndexer service for instant search.&#xD;&#xA;&#xD;&#xA;다음을 누르세요. / Click Next." Overridable="yes" />
+  <String Id="ExitDialogTitle" Value="{\WixUI_Font_Bigger}설치가 끝났어요" Overridable="yes" />
+  <String Id="ExitDialogDescription" Value="시작 메뉴에서 Foldy를 여세요. 처음 켜면 글자 크기를 맞추고 짧은 소개를 보여 드려요.&#xD;&#xA;&#xD;&#xA;어디서든 Ctrl+Space로 무엇이든 찾을 수 있어요.&#xD;&#xA;&#xD;&#xA;Open Foldy from the Start menu. Press Ctrl+Space anywhere to find anything." Overridable="yes" />
 </WixLocalization>

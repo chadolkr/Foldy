@@ -60,6 +60,9 @@ public sealed record AppSettings
     /// <summary>AI 앱이 있는데 아직 연결 안 했으면 창 위 한 줄로 제안 (기본 켬, [다시 묻지 않기]로 끔).</summary>
     public bool AiSuggest { get; init; } = true;
 
+    /// <summary>화면 언어: auto(Windows 언어) 또는 ko·en·es·ja·zh-Hans. 바꾸면 다시 켤 때 적용.</summary>
+    public string Language { get; init; } = "auto";
+
     /// <summary>바탕화면 파일이 많으면 시작할 때 한 줄로 정리를 제안 (기본 켬, [다시 묻지 않기]로 끔).</summary>
     public bool DesktopSuggest { get; init; } = true;
 

@@ -23,29 +23,34 @@ internal sealed class ShortsWindow : Window
     /// <summary>장면 목록 (다국어 준비: 문구는 여기만).</summary>
     public static readonly Scene[] Scenes =
     [
-        // 순서는 사이드바 맨 위 대표 기능 넷과 같게 (사용자 2026-11-21): ① 무엇이든 찾기 ② 공간 늘리기 ③ 바탕화면, 다운로드, 폴더 정리 ④ 템플릿으로 폴더 만들기, 그다음 나머지
+        // 순서는 사이드바 맨 위 대표 기능 넷과 같게 (사용자 2026-11-21). 글은 언어 파일(assets/i18n)의 tour.*
         // ① 무엇이든 찾기 (Ctrl+Space)
-        new("quicksearch.png", 0.3, 0.24, 1.6, 1.9, "어디서든 Ctrl+Space, 치는 순간 찾아요", "Spotlight처럼 · 217만 개 파일 중에서도 0.003초 · Enter로 열기"),
-        new("quicksearch-settings.png", 0.3, 0.3, 1.8, 2.1, "Windows 설정·앱도 바로", "'디스'만 쳐도 디스플레이 설정 · 앱은 이름으로 실행"),
-        new("quicksearch-calc.png", 0.3, 0.3, 1.8, 2.1, "계산·단위 변환도 바로", "32평 = 105.79㎡ · Enter로 결과 복사"),
-        new("quicksearch-talk.png", 0.3, 0.3, 1.8, 2.1, "말하듯 써도 알아들어요", "'다운로드 정리해줘' → Foldy 기능이 바로 시작"),
+        S("quicksearch.png", 0.3, 0.24, 1.6, 1.9, "tour.qs"),
+        S("quicksearch-settings.png", 0.3, 0.3, 1.8, 2.1, "tour.qs2"),
+        S("quicksearch-calc.png", 0.3, 0.3, 1.8, 2.1, "tour.qs3"),
+        S("quicksearch-talk.png", 0.3, 0.3, 1.8, 2.1, "tour.qs4"),
         // ② 공간 늘리기
-        new("analysis.png", 0.8, 0.28, 1.65, 1.90, "용량 범인을 한눈에", "큰 상자가 큰 폴더 · 지워도 되는 것만 골라 줘요"),
-        new("rebuildable.png", 0.45, 0.45, 1.5, 1.75, "개발 찌꺼기 폴더, 크기 순으로 한 번에", "node_modules·bin·__history 등 · .git은 경고 · 휴지통으로 되살릴 수 있어요"),
+        S("analysis.png", 0.8, 0.28, 1.65, 1.90, "tour.space"),
+        S("rebuildable.png", 0.45, 0.45, 1.5, 1.75, "tour.junk"),
         // ③ 바탕화면, 다운로드, 폴더 정리 (PARA로)
-        new("guide.png", 0.5, 0.22, 1.70, 1.95, "쌓인 바탕화면, 한 번에 정리", "'바탕화면 보관' 폴더에 달별·종류별로 · 되돌리기 한 번이면 원래대로"),
-        new("para-organize.png", 0.55, 0.32, 1.6, 1.85, "뒤죽박죽 폴더도 PARA 네 칸으로", "정리 후 모습을 먼저 보여 줘요 · 끝난 프로젝트는 보관으로 · 되돌릴 수 있어요"),
-        // ④ 템플릿으로 폴더 만들기 (PARA 네 칸)
-        new("para-template.png", 0.7, 0.3, 1.6, 1.85, "폴더 틀을 클릭 한 번에", "PARA 네 칸 · 업종별 프로젝트 단계(PMBOK·IT 개발·건설 설계) · 칸마다 무엇을 넣는지까지"),
+        S("guide.png", 0.5, 0.22, 1.70, 1.95, "tour.desk"),
+        S("para-organize.png", 0.55, 0.32, 1.6, 1.85, "tour.para"),
+        // ④ 템플릿으로 폴더 만들기
+        S("para-template.png", 0.7, 0.3, 1.6, 1.85, "tour.tpl"),
         // 그 밖의 좋은 기능
-        new("main.png", 0.62, 0.38, 1.65, 1.95, "끌어다 놓으면 복사 끝", "두 창 사이로 끌거나 F5 · 이동은 F6"),
-        new("mcp.png", 0.35, 0.25, 1.55, 1.80, "AI에게 물어보면 Foldy가 찾아요", "Claude·Codex 등에 [AI에 연결] 한 번 · \"작년 견적서 찾아 줘\" · 읽기만 해요"),
-        new("memo.png", 0.72, 0.17, 1.75, 2.05, "비밀번호는 잠긴 메모에", "5분 동안 안 쓰면 저절로 잠겨요"),
-        new("git-changes.png", 0.55, 0.32, 1.65, 1.90, "프로젝트 폴더면 Git이 저절로", "받기·올리기·커밋을 버튼으로"),
+        S("main.png", 0.62, 0.38, 1.65, 1.95, "tour.copy"),
+        S("mcp.png", 0.35, 0.25, 1.55, 1.80, "tour.ai"),
+        S("memo.png", 0.72, 0.17, 1.75, 2.05, "tour.memo"),
+        S("git-changes.png", 0.55, 0.32, 1.65, 1.90, "tour.git"),
     ];
 
-    public const string EndTitle = Foldy.Core.Branding.Tagline; // 마지막 장: 한 줄 소개 (사용자 2026-11-21)
-    public const string EndSub = Foldy.Core.Branding.TaglineSub + " · 모르는 게 있으면 F1 · 이 소개는 ? → 짧은 소개 보기에서 다시 볼 수 있어요";
+    private static Scene S(string image, double fx, double fy, double zf, double zt, string key) =>
+        new(image, fx, fy, zf, zt, Foldy.Core.Localization.Loc.T(key + ".t"), Foldy.Core.Localization.Loc.T(key + ".s"));
+
+    /// <summary>마지막 장: 한 줄 소개 (사용자 2026-11-21).</summary>
+    public static string EndTitle => Foldy.Core.Branding.Tagline;
+
+    public static string EndSub => Foldy.Core.Branding.TaglineSub + " · " + Foldy.Core.Localization.Loc.T("tour.end.s");
 
     private static readonly TimeSpan SceneLength = TimeSpan.FromSeconds(5.5);
 

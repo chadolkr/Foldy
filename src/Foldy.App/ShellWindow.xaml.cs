@@ -2466,8 +2466,8 @@ public partial class ShellWindow : Window, IPaneHost
         _hintKey = null;
         _cleanupFinding = new CleanupFinding(Foldy.Core.Mcp.FoldyMcpTools.SuggestLine(app, Random.Shared.Next()), "ai", "");
         CleanupNoticeText.Text = _cleanupFinding.Text;
-        CleanupNoticeButton.Content = "연결하기";
-        CleanupNoticeClose.Content = "나중에";
+        CleanupNoticeButton.Content = Foldy.Core.Localization.Loc.T("suggest.connect");
+        CleanupNoticeClose.Content = Foldy.Core.Localization.Loc.T("suggest.later");
         CleanupNoticeNever.Visibility = Visibility.Visible;
         CleanupNotice.Visibility = Visibility.Visible;
 
@@ -2520,12 +2520,12 @@ public partial class ShellWindow : Window, IPaneHost
         string tool, text, target;
         if (Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(n, _settings.DesktopSuggest, _settings.DesktopSuggestAfterUtc, now))
         {
-            (tool, target, text) = ("desktop-start", desktop, $"바탕화면에 파일이 {n:N0}개 있어요. 종류별로 정리해 드릴까요? 지우지 않고, 되돌릴 수 있어요.");
+            (tool, target, text) = ("desktop-start", desktop, Foldy.Core.Localization.Loc.F("suggest.desktop", n));
         }
         else if (CleanupPaths.Downloads() is { } dl && Foldy.Core.Desktop.DesktopTidy.CountLoose(dl) is var m
                  && Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(m, _settings.DesktopSuggest, _settings.DownloadsSuggestAfterUtc, now))
         {
-            (tool, target, text) = ("downloads-start", dl, $"다운로드 폴더에 파일이 {m:N0}개 있어요. 이미 설치한 설치 파일·중복을 골라 정리해 드릴까요?");
+            (tool, target, text) = ("downloads-start", dl, Foldy.Core.Localization.Loc.F("suggest.downloads", m));
         }
         else
         {
@@ -2535,8 +2535,8 @@ public partial class ShellWindow : Window, IPaneHost
         _hintKey = null;
         _cleanupFinding = new CleanupFinding(text, tool, target);
         CleanupNoticeText.Text = _cleanupFinding.Text;
-        CleanupNoticeButton.Content = "정리하기";
-        CleanupNoticeClose.Content = "나중에";
+        CleanupNoticeButton.Content = Foldy.Core.Localization.Loc.T("suggest.tidy");
+        CleanupNoticeClose.Content = Foldy.Core.Localization.Loc.T("suggest.later");
         CleanupNoticeNever.Visibility = Visibility.Visible;
         CleanupNotice.Visibility = Visibility.Visible;
         AutoHideNotice(tool);
@@ -2593,7 +2593,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void ShowCleanupNotice(CleanupFinding f)
     {
         CleanupNoticeNever.Visibility = Visibility.Collapsed;
-        CleanupNoticeClose.Content = "닫기";
+        CleanupNoticeClose.Content = Foldy.Core.Localization.Loc.T("common.close");
         _hintKey = null;
         _cleanupFinding = f;
         CleanupNoticeText.Text = f.Text;

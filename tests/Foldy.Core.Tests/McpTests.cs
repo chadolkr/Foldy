@@ -265,9 +265,20 @@ public sealed class McpSuggestTests
     [Fact]
     public void Suggestion_line_carries_an_example_and_rotates()
     {
-        var lines = Enumerable.Range(0, FoldyMcpTools.Examples.Count).Select(i => FoldyMcpTools.SuggestLine("Claude Desktop", i)).ToList();
-        lines.Should().OnlyContain(l => l.StartsWith("Claude Desktop에게 \"", StringComparison.Ordinal) && l.Contains("읽기만", StringComparison.Ordinal));
-        lines.Distinct().Should().HaveCount(FoldyMcpTools.Examples.Count);
-        FoldyMcpTools.SuggestLine("Codex", -7).Should().Contain("Codex에게"); // 음수 씨앗도 안전
+        var before = Foldy.Core.Localization.Loc.Current;
+        Foldy.Core.Localization.Loc.Use("ko");
+        try
+        {
+            var lines = Enumerable.Range(0, FoldyMcpTools.Examples.Count).Select(i => FoldyMcpTools.SuggestLine("Claude Desktop", i)).ToList();
+            lines.Should().OnlyContain(l => l.StartsWith("Claude Desktop에게 \"", StringComparison.Ordinal) && l.Contains("읽기만", StringComparison.Ordinal));
+            lines.Distinct().Should().HaveCount(FoldyMcpTools.Examples.Count);
+            FoldyMcpTools.SuggestLine("Codex", -7).Should().Contain("Codex에게"); // 음수 씨앗도 안전
+            Foldy.Core.Localization.Loc.Use("en");
+            FoldyMcpTools.SuggestLine("Codex", 0).Should().StartWith("Ask Codex \"Find last year's quotes\"");
+        }
+        finally
+        {
+            Foldy.Core.Localization.Loc.Use(before);
+        }
     }
 }
