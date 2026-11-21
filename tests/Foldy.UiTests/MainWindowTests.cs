@@ -86,6 +86,33 @@ public sealed class MainWindowTests
     }
 
     /// <summary>
+    /// 2026-11-21 사용자: "양쪽 탐색기에 현재 폴더 위치가 표시되어야". 트리가 지금 폴더까지 펼쳐지고 그 폴더가 강조된다.
+    /// </summary>
+    [Fact]
+    public void Folder_tree_follows_the_current_folder()
+    {
+        var repo = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(FoldyApp.Exe ?? ".")!, "..", "..", "..", "..", "..", ".."));
+        var target = Path.Combine(repo, "docs", "images"); // 숨김 폴더를 거치지 않는 곳
+        using var app = FoldyApp.Start(openPath: target);
+        AutomationElement? Selected() => app.Main.FindAllDescendants(app.By.ByControlType(ControlType.TreeItem))
+            .FirstOrDefault(t => t.Name == "images" && t.Patterns.SelectionItem.TryGetPattern(out var s) && s.IsSelected.Value);
+
+        var hit = Retry.WhileNull(Selected, TimeSpan.FromSeconds(8)).Result;
+        if (hit is null)
+        {
+            // 좁은 화면에서 트리가 접혀 있으면 펴 본다 (펴는 순간 따라가야 한다)
+            app.Main.Focus();
+            FlaUI.Core.Input.Keyboard.TypeSimultaneously(FlaUI.Core.WindowsAPI.VirtualKeyShort.CONTROL, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_B);
+            hit = Retry.WhileNull(Selected, TimeSpan.FromSeconds(10)).Result;
+        }
+
+        hit.Should().NotBeNull("트리에서 지금 폴더(images)가 펼쳐져 강조돼야 한다: " + string.Join(", ",
+            app.Main.FindAllDescendants(app.By.ByControlType(ControlType.TreeItem)).Select(t => t.Name + (t.Patterns.SelectionItem.TryGetPattern(out var s) && s.IsSelected.Value ? "*" : ""))));
+        Retry.WhileTrue(() => hit!.IsOffscreen, TimeSpan.FromSeconds(5));
+        hit!.IsOffscreen.Should().BeFalse("강조된 폴더가 보이게 스크롤돼야 한다");
+    }
+
+    /// <summary>
     /// 2026-11-20 사용자 발견: "이미지만 보기"가 켜진 줄 모르고 그림 없는 폴더를 보면 파일이 사라진 것처럼 보였다.
     /// 켜져 있으면 그 사실과 [모든 파일 보기]가 같은 자리에 보이고, 누르면 파일 목록이 돌아와야 한다.
     /// </summary>

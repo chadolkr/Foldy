@@ -282,6 +282,7 @@
           <TreeView.ItemContainerStyle>
             <Style TargetType="TreeViewItem">
               <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+              <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
               <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
               <!-- 펼치기 화살표를 넉넉하게 (기본 16px은 맞추기 어렵다): 28×28, 줄 전체 높이 28 -->
               <Setter Property="Template">

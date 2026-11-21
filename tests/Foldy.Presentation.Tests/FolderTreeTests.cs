@@ -50,6 +50,48 @@ public class FolderTreeTests
         root.Children.Select(c => c.Path).Should().Equal(Server + "etc", Server + "home");
     }
 
+    [Fact]
+    public async Task Tree_follows_the_current_folder_expanding_parents_and_highlighting_it()
+    {
+        // 사용자 2026-11-21: "양쪽 탐색기에 현재 폴더 위치가 표시되어야": 주소 입력·Ctrl+Space 등 어떻게 옮겨도 트리가 따라간다
+        var fake = new LocalTreeProvider();
+        var tree = new FolderTreeViewModel(fake, [new DriveItem(@"X:\", DriveKind.Fixed)]);
+        var chain = await tree.RevealAsync(@"X:\프로젝트\2026\보고서");
+        chain.Select(n => n.Path).Should().Equal(@"X:\", @"X:\프로젝트", @"X:\프로젝트\2026", @"X:\프로젝트\2026\보고서");
+        chain.Take(3).Should().OnlyContain(n => n.IsExpanded);
+        chain[^1].IsSelected.Should().BeTrue();
+
+        // 다른 곳으로 옮기면 강조도 옮겨 간다
+        var next = await tree.RevealAsync(@"X:\프로젝트");
+        next[^1].IsSelected.Should().BeTrue();
+        chain[^1].IsSelected.Should().BeFalse();
+
+        // 트리에 없는 곳(숨김 폴더 등)은 아무것도 강조하지 않는다
+        await tree.RevealAsync(@"X:\없는폴더\a");
+        next[^1].IsSelected.Should().BeFalse();
+        FolderTreeViewModel.Under(@"X:\프로젝트2", @"X:\프로젝트").Should().BeFalse("이름이 앞부분만 같은 폴더는 아래가 아니다");
+        FolderTreeViewModel.Same(@"X:\프로젝트\", @"x:\프로젝트").Should().BeTrue();
+    }
+
+    private sealed class LocalTreeProvider : IFileSystemProvider
+    {
+        private static readonly Dictionary<string, string[]> Dirs = new(StringComparer.OrdinalIgnoreCase)
+        {
+            [@"X:\"] = ["프로젝트", "사진"],
+            [@"X:\프로젝트"] = ["2025", "2026"],
+            [@"X:\프로젝트\2026"] = ["보고서"],
+        };
+
+        public ProviderId Id => ProviderId.Local;
+
+        public async IAsyncEnumerable<IReadOnlyList<FsEntry>> ListBatchedAsync(FsPath path, [EnumeratorCancellation] CancellationToken ct)
+        {
+            await Task.Yield();
+            var names = Dirs.TryGetValue(path.Value.Length > 3 ? path.Value.TrimEnd('\\') : path.Value, out var n) ? n : [];
+            yield return [.. names.Select(x => new FsEntry(x, FsPath.Local(Path.Combine(path.Value, x)), FsKind.Folder, 0, null, default, default, FileAttributes.Directory, null))];
+        }
+    }
+
     private sealed class FakeProvider : IFileSystemProvider
     {
         public List<FsPath> Requests { get; } = [];

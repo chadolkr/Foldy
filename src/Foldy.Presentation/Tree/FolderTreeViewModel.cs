@@ -19,6 +19,13 @@ public sealed partial class FolderNode : ObservableObject
     [ObservableProperty]
     private bool _isLoading;
 
+    /// <summary>지금 패널이 보고 있는 폴더 (트리에서 강조).</summary>
+    [ObservableProperty]
+    private bool _isSelected;
+
+    /// <summary>하위 폴더를 아직 안 불러왔으면 불러온다 (이미 불러왔으면 바로 끝).</summary>
+    public Task EnsureLoadedAsync() => _loaded ? Task.CompletedTask : LoadAsync();
+
     public FolderNode(IFileSystemProvider? provider, string name, string path, bool isPlaceholder = false, string? glyph = null)
     {
         _provider = provider;
@@ -34,6 +41,9 @@ public sealed partial class FolderNode : ObservableObject
     public string Name { get; }
 
     public string Path { get; }
+
+    /// <summary>트리 항목의 화면 낭독기 이름 (폴더 이름).</summary>
+    public override string ToString() => Name;
 
     /// <summary>Segoe Fluent Icons 글리프.</summary>
     public string Glyph { get; }
@@ -187,6 +197,94 @@ public sealed class FolderTreeViewModel
         }
     }
 
+    private int _revealVersion;
+    private FolderNode? _selected;
+
+    /// <summary>
+    /// 패널의 지금 폴더를 트리에서 찾아 위 폴더들을 펼치고 그 폴더를 강조한다 (사용자 2026-11-21: "양쪽 탐색기에 현재 폴더 위치가 표시되어야").
+    /// 폴더 목록은 펼칠 때처럼 비동기로 불러온다(느린 드라이브도 화면을 막지 않음). 더 새 요청이 오면 그만둔다.
+    /// 돌려주는 것: 뿌리부터 그 폴더까지의 노드 (화면이 스크롤해 보이게 할 때 쓴다). 트리에 없는 곳이면 빈 목록.
+    /// </summary>
+    public async Task<IReadOnlyList<FolderNode>> RevealAsync(string? path)
+    {
+        var version = ++_revealVersion;
+        if (string.IsNullOrEmpty(path))
+        {
+            Select(null);
+            return [];
+        }
+
+        // 가장 깊이 맞는 뿌리 (문서·바탕 화면 같은 즐겨찾기가 드라이브보다 가깝다)
+        var node = Roots.Where(r => Under(path, r.Path)).OrderByDescending(r => r.Path.TrimEnd('\\', '/').Length).FirstOrDefault();
+        var chain = new List<FolderNode>();
+        while (node is not null)
+        {
+            chain.Add(node);
+            if (Same(node.Path, path))
+            {
+                break;
+            }
+
+            await node.EnsureLoadedAsync();
+            if (version != _revealVersion)
+            {
+                return [];
+            }
+
+            node.IsExpanded = true;
+            node = node.Children.FirstOrDefault(c => !string.IsNullOrEmpty(c.Path) && Under(path, c.Path));
+        }
+
+        if (version != _revealVersion)
+        {
+            return [];
+        }
+
+        Select(chain.Count > 0 && Same(chain[^1].Path, path) ? chain[^1] : null);
+        return chain;
+    }
+
+    private void Select(FolderNode? node)
+    {
+        if (ReferenceEquals(_selected, node))
+        {
+            return;
+        }
+
+        if (_selected is not null)
+        {
+            _selected.IsSelected = false;
+        }
+
+        _selected = node;
+        if (node is not null)
+        {
+            node.IsSelected = true;
+        }
+    }
+
+    private static string Norm(string p) => p.Length > 3 || Navigation.PathUtil.IsSftp(p) ? p.TrimEnd('\\', '/') : p;
+
+    public static bool Same(string a, string b) => string.Equals(Norm(a), Norm(b), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>path가 folder 자신이거나 그 아래인가.</summary>
+    public static bool Under(string path, string folder)
+    {
+        if (Same(path, folder))
+        {
+            return true;
+        }
+
+        var f = folder.TrimEnd('\\', '/');
+        if (!path.StartsWith(f, StringComparison.OrdinalIgnoreCase) || path.Length <= f.Length)
+        {
+            return false;
+        }
+
+        var c = path[f.Length];
+        return c is '\\' or '/';
+    }
+
     public void SetDrives(IEnumerable<DriveItem> drives)
     {
         if (_local.Count == 0)
@@ -194,6 +292,9 @@ public sealed class FolderTreeViewModel
             _local.AddRange(Roots); // 즐겨찾기 (생성자에서 넣은 것)
         }
 
+        // 드라이브 목록은 색인 상태 글 등으로 자주 다시 온다: 같은 드라이브는 그 노드를 그대로 써서 펼친 상태·강조를 지킨다
+        // (예전에는 매번 새 노드로 바꿔 트리가 저절로 접혔다)
+        var old = _local.Where(n => n.Path.Length == 3 && n.Path[1] == ':').ToList();
         _local.RemoveAll(n => n.Path.Length == 3 && n.Path[1] == ':');
 
         foreach (var d in drives)
@@ -205,10 +306,11 @@ public sealed class FolderTreeViewModel
                 DriveKind.CdRom => "",
                 _ => "",
             };
-            _local.Add(new FolderNode(_provider, d.Display, d.Root, glyph: glyph));
+            var keep = old.FirstOrDefault(n => string.Equals(n.Path, d.Root, StringComparison.OrdinalIgnoreCase) && n.Name == d.Display && n.Glyph == glyph);
+            _local.Add(keep ?? new FolderNode(_provider, d.Display, d.Root, glyph: glyph));
         }
 
-        if (SftpRoot is null)
+        if (SftpRoot is null && !Roots.SequenceEqual(_local))
         {
             Replace(_local);
         }

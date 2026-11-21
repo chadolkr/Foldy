@@ -193,6 +193,7 @@ public partial class PaneView : UserControl
 
         UpdateTabVisuals();
         _tree?.ShowFor(_tab?.Path); // SFTP 탭이면 그 서버의 폴더 트리
+        _ = RevealInTreeAsync(_tab?.Path);
 
         if (tab is not null and not FolderTabViewModel and not SearchTabViewModel && _host is not null && _pane is not null)
         {
@@ -357,6 +358,7 @@ public partial class PaneView : UserControl
             case nameof(FolderTabViewModel.Path):
                 UpdateNav();
                 _tree?.ShowFor(_tab!.Path);
+                _ = RevealInTreeAsync(_tab!.Path);
                 // 다른 폴더·드라이브로 가면 미리보기는 닫는다 (보던 파일과 상관없는 곳, 사용자 요청 2026-11-21). F3으로 다시 켠다
                 if (PreviewVisible)
                 {
@@ -1515,6 +1517,10 @@ public partial class PaneView : UserControl
             TreeHost.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
             Splitter.Visibility = TreeHost.Visibility;
             UpdateTreeButton();
+            if (value)
+            {
+                _ = Dispatcher.BeginInvoke(() => _ = RevealInTreeAsync(_tab?.Path), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
     }
 
@@ -1542,10 +1548,112 @@ public partial class PaneView : UserControl
         }
     }
 
+    /// <summary>
+    /// 트리가 지금 폴더를 따라가게: 위 폴더를 펼치고 그 폴더를 강조해 보이게 스크롤한다 (양쪽 패널 각자, 주소 입력·Ctrl+Space·탭·드라이브 바꾸기 모두).
+    /// 트리가 접혀 있으면 하지 않는다(보일 때 다시). 폴더 목록은 비동기라 느린 드라이브도 화면을 막지 않는다.
+    /// </summary>
+    private async Task RevealInTreeAsync(string? path)
+    {
+        if (_tree is null || TreeColumnHidden())
+        {
+            return;
+        }
+
+        IReadOnlyList<FolderNode> chain;
+        try
+        {
+            chain = await _tree.RevealAsync(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException)
+        {
+            return;
+        }
+
+        if (chain.Count == 0 || !Foldy.Presentation.Tree.FolderTreeViewModel.Same(chain[^1].Path, _tab?.Path ?? ""))
+        {
+            return;
+        }
+
+        // 가상화된 트리: 단계마다 그 항목을 만들어 가며 내려가서 마지막 것을 보이게
+        _revealing = true;
+        try
+        {
+            ItemsControl parent = Tree;
+            TreeViewItem? item = null;
+            foreach (var node in chain)
+            {
+                parent.UpdateLayout();
+                item = parent.ItemContainerGenerator.ContainerFromItem(node) as TreeViewItem;
+                if (item is null && FindPanel(parent) is { } panel && parent.Items.IndexOf(node) is var i and >= 0)
+                {
+                    panel.BringIndexIntoViewPublic(i);
+                    parent.UpdateLayout();
+                    item = parent.ItemContainerGenerator.ContainerFromItem(node) as TreeViewItem;
+                }
+
+                if (item is null)
+                {
+                    return;
+                }
+
+                if (!ReferenceEquals(node, chain[^1]))
+                {
+                    item.IsExpanded = true;
+                    item.ApplyTemplate();
+                }
+
+                parent = item;
+            }
+
+            if (item is not null)
+            {
+                item.BringIntoView();
+                await Dispatcher.InvokeAsync(item.BringIntoView, System.Windows.Threading.DispatcherPriority.Loaded); // 펼친 뒤 자리가 잡히면 한 번 더
+            }
+        }
+        finally
+        {
+            _revealing = false;
+        }
+    }
+
+    private bool _revealing;
+
+    private bool TreeColumnHidden() => TreeHost.Visibility != Visibility.Visible;
+
+    private static VirtualizingStackPanel? FindPanel(DependencyObject root)
+    {
+        if (root is VirtualizingStackPanel v)
+        {
+            return v;
+        }
+
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is TreeViewItem)
+            {
+                continue; // 그 아래 단계의 패널은 건너뛴다
+            }
+
+            if (FindPanel(child) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
     private void OnTreeSelected(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         if (e.NewValue is FolderNode n && !string.IsNullOrEmpty(n.Path))
         {
+            if (_revealing || Foldy.Presentation.Tree.FolderTreeViewModel.Same(n.Path, _tab?.Path ?? ""))
+            {
+                return; // 지금 폴더를 따라 강조한 것: 다시 이동하지 않는다
+            }
+
             if (_tab is null)
             {
                 _pane?.NewFolderTab(n.Path);
