@@ -146,4 +146,25 @@ public sealed class SlowCrawlerTests : IDisposable
         c.CrawlOnce(_root, TestContext.Current.CancellationToken);
         Assert.True(sw.Elapsed >= TimeSpan.FromMilliseconds(31 * 10), "폴더마다 최소 10ms는 쉬어야 한다");
     }
+
+    [Fact]
+    public void Overflowed_drive_is_rescanned_soon_even_right_after_a_crawl()
+    {
+        // 변경 알림이 넘치면(Error) 1시간을 기다리지 않고 곧 다시 모은다
+        Make(@"a\처음.txt");
+        using var c = new SlowCrawler(_store, () => [_root]);
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Make(@"a\알림놓침.txt");
+        c.MarkDirty(_root);
+        Assert.True(c.IsDirty(_root));
+        c.Start();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (!c.StoreFor(_root).Search("알림놓침", 10).Any() && sw.Elapsed < TimeSpan.FromSeconds(20))
+        {
+            Thread.Sleep(50);
+        }
+
+        Assert.Single(c.StoreFor(_root).Search("알림놓침", 10));
+        Assert.False(c.IsDirty(_root));
+    }
 }

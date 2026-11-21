@@ -245,6 +245,30 @@ public sealed class SlowCrawler : IDisposable
     private readonly Dictionary<string, CrawlStore> _stores = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, FileSystemWatcher> _watchers = new(StringComparer.OrdinalIgnoreCase);
 
+    // 변경 알림이 넘치거나 끊긴 드라이브: 1시간을 기다리지 않고 곧 다시 모은다 (바뀐 폴더만 읽어서 가볍다)
+    private readonly HashSet<string> _dirty = new(StringComparer.OrdinalIgnoreCase);
+    private readonly AutoResetEvent _kick = new(false);
+
+    /// <summary>변경 알림이 넘쳤을 때처럼, 이 드라이브를 곧 다시 모으라고 표시한다 (시험에서도 쓴다).</summary>
+    public void MarkDirty(string drive)
+    {
+        lock (_gate)
+        {
+            _dirty.Add(Root(drive));
+        }
+
+        _kick.Set();
+    }
+
+    /// <summary>곧 다시 모아야 하는 드라이브인가 (시험·진단용).</summary>
+    public bool IsDirty(string drive)
+    {
+        lock (_gate)
+        {
+            return _dirty.Contains(Root(drive));
+        }
+    }
+
     public CrawlStore StoreFor(string drive)
     {
         lock (_gate)
@@ -297,7 +321,7 @@ public sealed class SlowCrawler : IDisposable
                 store.NoteRemoved(e.OldFullPath);
                 Added(e.FullPath);
             };
-            w.Error += (_, _) => { }; // 알림이 넘치거나 끊겨도 다음에 다시 모을 때 메워진다
+            w.Error += (_, _) => MarkDirty(root); // 알림이 넘치거나 끊기면(SMB·Google Drive에서 생길 수 있다) 곧 다시 모아 메운다
             w.EnableRaisingEvents = true;
             lock (_gate)
             {
@@ -341,7 +365,13 @@ public sealed class SlowCrawler : IDisposable
 
                 var store = StoreFor(d);
                 Watch(Root(d));
-                if (store.CompletedUtc is { } done && DateTime.UtcNow - done < RescanAfter)
+                bool dirty;
+                lock (_gate)
+                {
+                    dirty = _dirty.Remove(Root(d));
+                }
+
+                if (!dirty && store.CompletedUtc is { } done && DateTime.UtcNow - done < RescanAfter)
                 {
                     if (StatusOf(d) is null)
                     {
@@ -355,7 +385,7 @@ public sealed class SlowCrawler : IDisposable
                 did = true;
             }
 
-            if (_cts.Token.WaitHandle.WaitOne(did ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1)))
+            if (WaitHandle.WaitAny([_cts.Token.WaitHandle, _kick], did ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1)) == 0)
             {
                 return;
             }
@@ -680,5 +710,6 @@ public sealed class SlowCrawler : IDisposable
         _cts.Cancel();
         _thread?.Join(1000);
         _cts.Dispose();
+        _kick.Dispose();
     }
 }
