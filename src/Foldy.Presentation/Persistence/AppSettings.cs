@@ -66,6 +66,9 @@ public sealed record AppSettings
     /// <summary>[나중에]를 누르면 이때까지 다시 묻지 않는다 (7일 뒤).</summary>
     public DateTime? DesktopSuggestAfterUtc { get; init; }
 
+    /// <summary>다운로드 폴더 제안의 [나중에] (7일 뒤). 켜고 끄기는 <see cref="DesktopSuggest"/>를 함께 쓴다.</summary>
+    public DateTime? DownloadsSuggestAfterUtc { get; init; }
+
     /// <summary>"지워도 되는 폴더 찾기"에 더할 폴더 이름 (쉼표로, 예: "Temp, .cache"). 기본 목록(node_modules 등)에 더해진다.</summary>
     public string RebuildableExtra { get; init; } = "";
 

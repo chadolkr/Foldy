@@ -1131,6 +1131,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("cleanup.logs", "로그 정리 (현재 드라이브)", () => OpenLogCleanup(null));
         Add("cleanup.downloads", "다운로드 정리", () => OpenDownloadsCleanup(null));
         Add("cleanup.desktop", "바탕화면 정리", OpenDesktopTidy);
+        Add("cleanup.wizard", "바탕화면, 다운로드, 폴더 정리 (정리 도우미)", () => _ = OpenTidyWizardAsync());
         Add("cleanup.rebuildable", "지워도 되는 폴더 찾기 (node_modules·bin/obj·__history·.git 등)", () => OpenRebuildable(Shell.ActivePane.ActiveFolder?.Path));
         Add("cleanup.devcache", "개발 캐시 정리 (npm·NuGet·pip·Docker)", () => _ = DevCleanupFlows.DevCachesAsync(this));
         Add("memo.new", "새 메모 (.md, 지금 폴더에)", () =>
@@ -1409,6 +1410,82 @@ public partial class ShellWindow : Window, IPaneHost
         {
             _ = tab.RefreshAsync();
         }
+    }
+
+    /// <summary>
+    /// 정리 위저드 (사용자 2026-11-21: "정리한다고 하면 대화형으로 위저드 스타일로 따라만 하면 쉽게"):
+    /// ① 어디를 정리할까요? (바탕화면 · 다운로드 · 지금 폴더 · 다른 폴더) → 바탕화면·다운로드는 원래의 대화형 정리로 이어지고,
+    /// ② 폴더는 "어떻게 나눌까요?" (종류별 · 날짜별 · PARA 네 칸) → ③ 정리 후 모습을 먼저 보여 주는 창(계획을 미리 만들어 둠) → 사용자가 [정리하기]. 되돌리기 가능, 지우는 것 없음.
+    /// </summary>
+    private async Task OpenTidyWizardAsync()
+    {
+        var w = new GuideWindow("정리 도우미") { Owner = this };
+        w.Show();
+        var here = Shell.ActivePane.ActiveFolder?.Path;
+        var canHere = !string.IsNullOrEmpty(here) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(here) && Directory.Exists(here);
+        w.Say("어디를 정리할까요? 지우는 건 없고, 정리 후 모습을 먼저 보여 드려요. 마음에 안 들면 되돌리기 한 번이면 원래대로예요.");
+        var choices = new List<(string, string)> { ("desktop", "바탕화면"), ("downloads", "다운로드 폴더") };
+        if (canHere)
+        {
+            var name = Path.GetFileName(here!.TrimEnd('\\'));
+            choices.Add(("here", $"지금 보는 폴더 ({(name.Length > 0 ? name : here)})"));
+        }
+
+        choices.Add(("pick", "다른 폴더 고르기…"));
+        var where = await w.AskAsync(null, [.. choices]);
+        string? folder = null;
+        switch (where)
+        {
+            case "desktop":
+                w.Close();
+                OpenDesktopTidy(); // 원래의 대화형 바탕화면 정리 (종류별 보관, 되돌리기)
+                return;
+            case "downloads":
+                w.Close();
+                OpenDownloadsCleanup(null); // 원래의 대화형 다운로드 정리 (종류마다 하나씩 물어봄)
+                return;
+            case "here":
+                folder = here;
+                break;
+            case "pick":
+                var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "정리할 폴더를 고르세요", InitialDirectory = canHere ? here! : "" };
+                folder = dlg.ShowDialog(w) == true ? dlg.FolderName : null;
+                break;
+            default:
+                return;
+        }
+
+        if (string.IsNullOrEmpty(folder))
+        {
+            w.Close();
+            return;
+        }
+
+        var how = await w.AskAsync($"{folder}을(를) 어떻게 나눌까요?",
+            ("type", "종류별 (문서·사진·영상·압축…)"), ("date", "날짜별 (2026\\2026-11)"), ("para", "PARA 네 칸 (프로젝트·영역·자료·보관)"));
+        if (how == GuideWindow.ClosedChoice)
+        {
+            return;
+        }
+
+        w.Say("정리 후 모습을 만들어서 보여 드릴게요. 확인하고 [정리하기]를 누르면 옮겨요.");
+        await Task.Delay(400);
+        w.Close();
+        var org = new Foldy.Presentation.Templates.OrganizeViewModel(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates);
+        org.SelectedMode = org.Modes.First(m => m.Mode == how switch
+        {
+            "date" => Foldy.Core.Organize.OrganizeMode.ByDate,
+            "para" => Foldy.Core.Organize.OrganizeMode.ByTemplate,
+            _ => Foldy.Core.Organize.OrganizeMode.ByType,
+        });
+        if (how == "para")
+        {
+            org.SelectedTemplate = org.Templates.FirstOrDefault(t => t.Id == "para") ?? org.SelectedTemplate;
+        }
+
+        _ = org.PlanCommand.ExecuteAsync(null); // 창이 열리면 바로 정리 후 모습이 보이게
+        Foldy.UI.Templates.TemplateDialogs.ShowOrganize(this, org);
+        _ = Shell.RefreshFoldersAsync([folder]);
     }
 
     private void OpenOrganize(string? folder)
@@ -2416,11 +2493,11 @@ public partial class ShellWindow : Window, IPaneHost
             SaveSettings();
             Shell.Status = "AI 연결 제안을 다시 띄우지 않아요. 설정 → 일반 → AI 연결에서 되돌릴 수 있어요";
         }
-        else if (_cleanupFinding?.Tool == "desktop-start")
+        else if (_cleanupFinding?.Tool is "desktop-start" or "downloads-start")
         {
             _settings = _settings with { DesktopSuggest = false };
             SaveSettings();
-            Shell.Status = "바탕화면 정리 제안을 다시 띄우지 않아요. 설정 → 일반 → 정리 알림에서 되돌릴 수 있어요";
+            Shell.Status = "바탕화면·다운로드 정리 제안을 다시 띄우지 않아요. 설정 → 일반 → 정리 알림에서 되돌릴 수 있어요";
         }
     }
 
@@ -2436,21 +2513,33 @@ public partial class ShellWindow : Window, IPaneHost
             return false;
         }
 
+        // 바탕화면 먼저, 아니면 다운로드 (사용자 2026-11-21: "바탕화면과 다운로드 폴더는 20개 초과하면 안내") — 한 번에 하나만
+        var now = DateTime.UtcNow;
         var desktop = CleanupPaths.Desktop;
         var n = Directory.Exists(desktop) ? Foldy.Core.Desktop.DesktopTidy.CountLoose(desktop) : 0;
-        if (!Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(n, _settings.DesktopSuggest, _settings.DesktopSuggestAfterUtc, DateTime.UtcNow))
+        string tool, text, target;
+        if (Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(n, _settings.DesktopSuggest, _settings.DesktopSuggestAfterUtc, now))
+        {
+            (tool, target, text) = ("desktop-start", desktop, $"바탕화면에 파일이 {n:N0}개 있어요. 종류별로 정리해 드릴까요? 지우지 않고, 되돌릴 수 있어요.");
+        }
+        else if (CleanupPaths.Downloads() is { } dl && Foldy.Core.Desktop.DesktopTidy.CountLoose(dl) is var m
+                 && Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(m, _settings.DesktopSuggest, _settings.DownloadsSuggestAfterUtc, now))
+        {
+            (tool, target, text) = ("downloads-start", dl, $"다운로드 폴더에 파일이 {m:N0}개 있어요. 이미 설치한 설치 파일·중복을 골라 정리해 드릴까요?");
+        }
+        else
         {
             return false;
         }
 
         _hintKey = null;
-        _cleanupFinding = new CleanupFinding($"바탕화면에 파일이 {n:N0}개 있어요. 종류별로 정리해 드릴까요? 지우지 않고, 되돌릴 수 있어요.", "desktop-start", desktop);
+        _cleanupFinding = new CleanupFinding(text, tool, target);
         CleanupNoticeText.Text = _cleanupFinding.Text;
         CleanupNoticeButton.Content = "정리하기";
         CleanupNoticeClose.Content = "나중에";
         CleanupNoticeNever.Visibility = Visibility.Visible;
         CleanupNotice.Visibility = Visibility.Visible;
-        AutoHideNotice("desktop-start");
+        AutoHideNotice(tool);
         return true;
     }
 
@@ -2524,6 +2613,9 @@ public partial class ShellWindow : Window, IPaneHost
             case "desktop-start":
                 OpenDesktopTidy();
                 break;
+            case "downloads-start":
+                OpenDownloadsCleanup(_cleanupFinding.Target);
+                break;
             case "logs":
                 OpenLogCleanup(_cleanupFinding.Target);
                 break;
@@ -2542,10 +2634,12 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnCleanupNoticeClose(object sender, RoutedEventArgs e)
     {
         CleanupNotice.Visibility = Visibility.Collapsed;
-        if (_cleanupFinding?.Tool == "desktop-start")
+        if (_cleanupFinding?.Tool is "desktop-start" or "downloads-start")
         {
             // [나중에]: 7일 뒤에 다시
-            _settings = _settings with { DesktopSuggestAfterUtc = DateTime.UtcNow.AddDays(7) };
+            _settings = _cleanupFinding.Tool == "desktop-start"
+                ? _settings with { DesktopSuggestAfterUtc = DateTime.UtcNow.AddDays(7) }
+                : _settings with { DownloadsSuggestAfterUtc = DateTime.UtcNow.AddDays(7) };
             SaveSettings();
             return;
         }

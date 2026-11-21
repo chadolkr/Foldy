@@ -123,6 +123,33 @@
 
         <ScrollViewer x:Name="SidebarScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" ScrollChanged="OnSidebarScrollChanged">
           <StackPanel>
+            <!-- 대표 기능 넷: 한 번에 닿게 맨 위에 (사용자 2026-11-21, 조사 "Foldy 대표 기능 고르기"). 나머지는 아래 도구 묶음에 -->
+            <Button Style="{DynamicResource Foldy.SideItem}" Tag="app.quickSearch" Click="OnGroupMenuItem" ToolTip="파일·앱·Windows 설정·Foldy 기능을 한 칸에서 (어디서든 Ctrl+Space)" AutomationProperties.Name="무엇이든 찾기">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE721;" />
+                <TextBlock Style="{StaticResource SideName}" Text="무엇이든 찾기" />
+                <TextBlock Style="{StaticResource SideName}" Text="Ctrl+Space" FontSize="11" Opacity="0.6" Margin="8,0,0,0" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Style="{DynamicResource Foldy.SideItem}" Tag="analysis.open" Click="OnGroupMenuItem" ToolTip="폴더 분석: 무엇이 공간을 차지하는지 보고 지워도 되는 것만 골라 비우기" AutomationProperties.Name="공간 늘리기">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xEDA2;" />
+                <TextBlock Style="{StaticResource SideName}" Text="공간 늘리기" />
+              </StackPanel>
+            </Button>
+            <Button Style="{DynamicResource Foldy.SideItem}" Tag="cleanup.wizard" Click="OnGroupMenuItem" ToolTip="정리 도우미: 어디를 · 어떻게 고르면 정리 후 모습을 먼저 보여 줘요 (지우지 않고, 되돌릴 수 있어요)" AutomationProperties.Name="바탕화면, 다운로드, 폴더 정리">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8CB;" />
+                <TextBlock Style="{StaticResource SideName}" Text="바탕화면, 다운로드, 폴더 정리" />
+              </StackPanel>
+            </Button>
+            <Button Style="{DynamicResource Foldy.SideItem}" Tag="folder.fromTemplate" Click="OnGroupMenuItem" ToolTip="PARA·업종별 프로젝트 단계 같은 폴더 틀을 미리 보고 한 번에 만들기 (Ctrl+Shift+N)" AutomationProperties.Name="템플릿으로 폴더 만들기">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SideIcon}" Text="&#xE8F4;" />
+                <TextBlock Style="{StaticResource SideName}" Text="템플릿으로 폴더 만들기" />
+              </StackPanel>
+            </Button>
+
             <!-- 자주 쓰는 폴더 (고정) -->
             <DockPanel Style="{StaticResource SideHeaderRow}">
               <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Width="32" Height="32" FontSize="12" Margin="0,4,6,0"
