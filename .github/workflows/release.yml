@@ -110,6 +110,26 @@ jobs:
           ./build/installer/build-msi.ps1 -SkipPayload -Version $v -OutDir artifacts/release
           if ($LASTEXITCODE -ne 0) { throw 'MSI 빌드 실패' }
 
+      # Store 판(MSIX): 같은 payload를 감싼다. 서명은 Store가 하므로 여기서는 하지 않고, Release가 아닌 워크플로 아티팩트로만 올린다.
+      # Identity는 저장소 변수(Partner Center → Product identity). 없으면 시험용 값으로 만든다 (docs/store.md).
+      - name: Store MSIX
+        continue-on-error: true   # 첫 실제 빌드로 검증될 때까지 릴리스를 막지 않는다
+        shell: pwsh
+        env:
+          FOLDY_STORE_IDENTITY_NAME: ${{ vars.FOLDY_STORE_IDENTITY_NAME }}
+          FOLDY_STORE_PUBLISHER: ${{ vars.FOLDY_STORE_PUBLISHER }}
+          FOLDY_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.FOLDY_STORE_PUBLISHER_DISPLAY_NAME }}
+        run: |
+          ./build/store/make-msix.ps1 -Version '${{ steps.ver.outputs.version }}' -OutDir artifacts/store
+
+      - name: Upload Store MSIX
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: foldy-store-msix
+          path: artifacts/store/*.msix
+          if-no-files-found: error
+
       # ── 코드 서명 2: MSI ──
       - name: Upload MSI for signing
         id: up-msi

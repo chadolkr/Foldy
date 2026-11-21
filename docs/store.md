@@ -1,5 +1,26 @@
 # Microsoft Store 출시 계획
 
+## 결정 (2026-11-21): 같은 소스에서 두 가지를 만든다
+
+- **Store 판 (MSIX)**: 개인 사용자용. Microsoft가 서명하고 Store가 업데이트한다. 색인 서비스 없이 폴백 검색.
+- **설치본 (MSI·setup zip)**: 회사·오프라인 PC용 (Store 판은 설치할 때 인터넷과 Store가 필요하다). Certum 인증서로 서명, 업데이트는 지금처럼 update.json.
+- 실행 파일은 같다. 앱이 패키지로 실행되는지(`AppPackage.IsPackaged`, `GetCurrentPackageFullName`)를 보고 자체 업데이트·서비스 설치를 끈다.
+- release.yml이 태그마다 둘 다 만든다. MSIX는 워크플로 아티팩트 `foldy-store-msix`로 올라가고, Partner Center에 제출한다.
+
+### 지금 상태
+- 구현: `build/store/make-msix.ps1`, `AppxManifest.template.xml`, release.yml의 "Store MSIX" 단계(첫 실제 빌드로 검증될 때까지 실패해도 릴리스는 계속), 앱의 Store 판 분기.
+- 필요한 저장소 변수(Partner Center → 앱 → Product identity에서 복사): `FOLDY_STORE_IDENTITY_NAME`, `FOLDY_STORE_PUBLISHER`(CN=…), `FOLDY_STORE_PUBLISHER_DISPLAY_NAME`. 없으면 시험용 값으로 만들어 Store에 낼 수 없다.
+- 로컬 시험: `./build/setup/make-setup.ps1` 다음 `./build/store/make-msix.ps1 -Version x.y.z -TestCert`.
+
+## Certum 서명 (설치본)
+
+1. shop.certum.eu → **Open Source Code Signing in the Cloud** (€49) 구매.
+2. My account → Data security products → 활성화: 신분증 이름 그대로 입력, 자동 본인 확인(메일 링크 + 신분증·카메라) 또는 신분증 스캔, 주소 입력, 프로젝트 주소(GitHub). 본인 명의 공과금 고지서가 필요할 수 있다.
+3. 휴대폰에 SimplySign 앱 설치, 클라우드에 키 생성, SimplySign 계정 연결 후 발급 요청.
+4. 발급되면 노트북에 SimplySign Desktop을 설치해 로그인 확인.
+5. 그다음 CI 연결(우리 작업): Windows 러너에 SimplySign Desktop을 설치하고 휴대폰 앱의 일회용 코드 원천(TOTP 시드)을 GitHub 시크릿으로 둬 자동 로그인 → `signtool`로 payload와 MSI 서명. 공식 지원 방식이 아니어서 막히면 노트북에서 서명하는 스크립트로 대신한다. 서명 비밀은 사용자가 직접 시크릿에 넣는다(대화나 저장소에 남기지 않음).
+
+
 조사일 2026-11-21. 무료 오픈소스 서명(SignPath Foundation)이 보류된 뒤, 설치 경고 없이 배포할 길로 Store를 준비한다.
 
 ## Store에 올리는 두 방법

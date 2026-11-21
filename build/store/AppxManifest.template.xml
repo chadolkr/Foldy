@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Foldy Store 판(MSIX) 매니페스트. build/store/make-msix.ps1이 {{…}}를 채운다 (docs/store.md).
+  Identity Name·Publisher·PublisherDisplayName은 Partner Center → 앱 → Product identity 값과 같아야 Store가 받는다.
+  색인 서비스(SYSTEM)는 넣지 않는다: localSystemServices·packagedServices는 Store에서 대부분 승인되지 않는 제한 기능이다.
+-->
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap rescap">
+  <Identity Name="{{IdentityName}}" Publisher="{{Publisher}}" Version="{{Version}}" ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>Foldy</DisplayName>
+    <PublisherDisplayName>{{PublisherDisplayName}}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="ko-KR" />
+    <Resource Language="en-US" />
+  </Resources>
+  <Applications>
+    <Application Id="Foldy" Executable="Foldy.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Foldy"
+                          Description="빠르고 똑똑한 파일 관리자, 오프라인에서도"
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png"
+                          Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

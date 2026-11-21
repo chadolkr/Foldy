@@ -1670,6 +1670,13 @@ public partial class ShellWindow : Window, IPaneHost
 
     private async void RunIndexerSetup(bool install)
     {
+        if (install && Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
+        {
+            // Store 판에는 SYSTEM 서비스를 넣지 않는다 (docs/store.md)
+            Shell.Status = "Store 판은 색인 서비스 없이 폴더를 직접 훑어 검색해요. 드라이브 전체 즉시 검색은 GitHub의 설치본(MSI)에서 쓸 수 있어요.";
+            return;
+        }
+
         var exe = Path.Combine(AppContext.BaseDirectory, "foldy-index.exe");
         if (install && !File.Exists(exe))
         {
