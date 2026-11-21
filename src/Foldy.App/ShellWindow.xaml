@@ -191,6 +191,7 @@
                       <StackPanel>
                         <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding SpaceText}" />
+                        <TextBlock Text="{Binding IndexText}" />
                       </StackPanel>
                     </Button.ToolTip>
                     <Button.ContextMenu>
@@ -211,6 +212,9 @@
                         <ProgressBar x:Name="Bar" Height="5" Margin="0,4,0,3" Minimum="0" Maximum="1" Value="{Binding UsedFraction, Mode=OneWay}"
                                      Foreground="{DynamicResource Brush.Progress}" Background="{DynamicResource Brush.Border}" BorderThickness="0" />
                         <TextBlock Text="{Binding SpaceText}" FontSize="11.5" Foreground="{DynamicResource Brush.TextSecondary}" TextTrimming="CharacterEllipsis" />
+                        <!-- 빠른 찾기(색인) 상태: 드라이브마다 한눈에 (사용자 2026-11-21) -->
+                        <TextBlock x:Name="IndexLine" Text="{Binding IndexText}" FontSize="11.5" Foreground="{DynamicResource Brush.TextSecondary}" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding HasIndexText, Converter={StaticResource BoolToVis}}" />
                       </StackPanel>
                     </Grid>
                   </Button>

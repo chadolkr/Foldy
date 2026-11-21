@@ -67,8 +67,11 @@ public partial class PreviewPane : UserControl
         if (_vm is not { } vm)
         {
             ClearViews();
+            EmptyPanel.Visibility = Visibility.Visible;
             return;
         }
+
+        EmptyPanel.Visibility = vm.Status == PreviewStatus.Empty ? Visibility.Visible : Visibility.Collapsed;
 
         InfoText.Text = string.Join(" · ", new[] { vm.SizeText, vm.ModifiedText }.Where(s => s.Length > 0));
         HeaderBar.Visibility = vm.Status == PreviewStatus.Empty ? Visibility.Collapsed : Visibility.Visible;

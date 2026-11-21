@@ -23,8 +23,12 @@ internal sealed class ShortsWindow : Window
     /// <summary>장면 목록 (다국어 준비: 문구는 여기만).</summary>
     public static readonly Scene[] Scenes =
     [
+        // 빠른 검색(Ctrl+Space)을 맨 앞에, 네 장면으로 (사용자: "활용도가 높을 것 같다, macOS Spotlight처럼")
+        new("quicksearch.png", 0.3, 0.24, 1.6, 1.9, "어디서든 Ctrl+Space, 치는 순간 찾아요", "Spotlight처럼 · 217만 개 파일 중에서도 0.003초 · Enter로 열기"),
+        new("quicksearch-settings.png", 0.3, 0.3, 1.8, 2.1, "Windows 설정·앱도 바로", "'디스'만 쳐도 디스플레이 설정 · 앱은 이름으로 실행"),
+        new("quicksearch-calc.png", 0.3, 0.3, 1.8, 2.1, "계산·단위 변환도 바로", "32평 = 105.79㎡ · Enter로 결과 복사"),
+        new("quicksearch-talk.png", 0.3, 0.3, 1.8, 2.1, "말하듯 써도 알아들어요", "'다운로드 정리해줘' → Foldy 기능이 바로 시작"),
         new("main.png", 0.62, 0.38, 1.65, 1.95, "끌어다 놓으면 복사 끝", "두 창 사이로 끌거나 F5 · 이동은 F6"),
-        new("quicksearch.png", 0.45, 0.3, 1.70, 2.00, "Ctrl+Space 한 번이면 다 찾아요", "파일·앱·설정·계산까지, 말하듯 써도 돼요"),
         new("analysis.png", 0.8, 0.28, 1.65, 1.90, "용량 범인을 한눈에", "큰 상자가 큰 폴더 · 지워도 되는 것만 골라 줘요"),
         new("guide.png", 0.5, 0.22, 1.70, 1.95, "쌓인 바탕화면, 한 번에 정리", "'바탕화면 보관' 폴더에 달별·종류별로 · 되돌리기 한 번이면 원래대로"),
         new("organize.png", 0.55, 0.3, 1.65, 1.90, "어지러운 폴더도 종류·날짜별로 정리", "지금과 정리 후를 먼저 보여 줘요 · 지우지 않고 되돌릴 수 있어요"),
@@ -72,7 +76,7 @@ internal sealed class ShortsWindow : Window
 
         for (var i = 0; i <= Scenes.Length; i++)
         {
-            var track = new Border { Width = 26, Height = 5, CornerRadius = new CornerRadius(2.5), Margin = new Thickness(3, 0, 3, 0), ClipToBounds = true };
+            var track = new Border { Width = 20, Height = 5, CornerRadius = new CornerRadius(2.5), Margin = new Thickness(3, 0, 3, 0), ClipToBounds = true };
             track.SetResourceReference(Border.BackgroundProperty, "Brush.Border");
             var fill = new Border { HorizontalAlignment = HorizontalAlignment.Left, Width = 0, CornerRadius = new CornerRadius(2.5) };
             fill.SetResourceReference(Border.BackgroundProperty, "Brush.Accent");

@@ -637,8 +637,75 @@ public partial class ShellWindow : Window, IPaneHost
             _ = Shell.Right.ActiveFolder?.RefreshFolderSizesAsync();
         }
 
-        IndexerText.Text = _search.IsIndexed ? "검색: 색인 사용" : "검색: 색인 준비 중";
-        IndexerText.ToolTip = "색인 서비스(foldy-index)로 전체 드라이브를 즉시 검색합니다.";
+        UpdateIndexText();
+        _indexStatusTimer ??= new DispatcherTimer(TimeSpan.FromSeconds(5), DispatcherPriority.Background, async (_, _) =>
+        {
+            await _search.RefreshStateAsync();
+            UpdateIndexText();
+        }, Dispatcher);
+        _indexStatusTimer.Start();
+    }
+
+    private DispatcherTimer? _indexStatusTimer;
+
+    /// <summary>
+    /// 상태 줄의 색인 상태: 만드는 중이면 몇 %, 끝났으면 몇 개. 마우스를 올리면 드라이브마다 (사용자 2026-11-21: "색인이 어느 정도 됐는지 알 수 있니?").
+    /// </summary>
+    private void UpdateIndexText()
+    {
+        if (_search.LastStatus is not { } st)
+        {
+            return;
+        }
+
+        IndexerText.Text = st.State switch
+        {
+            Foldy.Indexer.Client.IndexState.Ready => $"검색: 색인 완료 · {st.IndexedEntries:N0}개",
+            Foldy.Indexer.Client.IndexState.Indexing => $"검색: 색인 만드는 중 {st.ProgressPermille / 10}%",
+            _ => "검색: 색인 준비 중",
+        };
+        var lines = st.Volumes.Select(v => v.State switch
+        {
+            Foldy.Indexer.Client.IndexState.Ready => $"{v.Volume} 완료 · {v.Entries:N0}개",
+            Foldy.Indexer.Client.IndexState.Indexing => $"{v.Volume} 만드는 중 {v.ProgressPermille / 10}%",
+            _ => $"{v.Volume} 준비 중",
+        }).ToList();
+        var indexed = st.Volumes.Select(v => v.Volume.TrimEnd('\\').ToUpperInvariant()).ToHashSet();
+        foreach (var d in System.IO.DriveInfo.GetDrives())
+        {
+            var name = d.Name.TrimEnd('\\').ToUpperInvariant();
+            if (!indexed.Contains(name))
+            {
+                lines.Add($"{name} 색인 없음 ({(d.DriveType == System.IO.DriveType.Network ? "네트워크 드라이브" : "NTFS가 아니거나 가상 드라이브")}) · 그 폴더에 있을 때 직접 훑어요");
+            }
+        }
+
+        IndexerText.ToolTip = "파일 이름 검색(Ctrl+F·Ctrl+Space)에 쓰는 색인\n" + string.Join("\n", lines);
+
+        // 사이드바 드라이브마다 한 줄로 (바뀐 것만 바꾼다)
+        foreach (var pane in new[] { Shell.Left, Shell.Right })
+        {
+            foreach (var d in pane.Drives.ToList())
+            {
+                var text = DriveIndexText(st, d);
+                if (text != d.IndexText)
+                {
+                    pane.UpdateDrive(d with { IndexText = text });
+                }
+            }
+        }
+    }
+
+    private static string DriveIndexText(Foldy.Indexer.Client.StatusReply st, DriveItem d)
+    {
+        var v = st.Volumes.FirstOrDefault(v => string.Equals(v.Volume.TrimEnd('\\'), d.Letter, StringComparison.OrdinalIgnoreCase));
+        return v?.State switch
+        {
+            Foldy.Indexer.Client.IndexState.Ready => "빠른 찾기 ✓",
+            Foldy.Indexer.Client.IndexState.Indexing => $"빠른 찾기 준비 중 {v.ProgressPermille / 10}%",
+            Foldy.Indexer.Client.IndexState.NotReady => "빠른 찾기 준비 중",
+            _ => "빠른 찾기 없음 · 폴더 안에서만",
+        };
     }
 
     /// <summary>진단용: Windows 서비스 FoldyIndexer의 상태 (없음/실행 중/중지됨 …).</summary>
@@ -1539,8 +1606,13 @@ public partial class ShellWindow : Window, IPaneHost
 
         _startApps ??= Foldy.Core.QuickSearch.SystemCatalog.LoadStartApps();
         var scope = Shell.ActivePane.ActiveFolder?.Path;
+        var indexing = _search.LastStatus is { State: Foldy.Indexer.Client.IndexState.Indexing } ix ? ix.ProgressPermille / 10 : -1;
         var footer = (_search.IsIndexed
-                ? "파일은 모든 드라이브에서 찾아요."
+                ? (scope is not null && !_search.IsIndexedPath(scope) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(scope)
+                    ? $"파일은 색인된 드라이브 전체와, 색인이 없는 지금 폴더({Path.GetFileName(scope.TrimEnd('\\'))}) 안에서 찾아요."
+                    : "파일은 색인된 드라이브 전체에서 찾아요.")
+                : indexing >= 0
+                    ? $"색인을 만드는 중({indexing}%)이라 지금은 이 폴더 안에서만 찾아요. 끝나면 모든 드라이브에서 찾아요."
                 : $"⚠ 색인 서비스에 연결되지 않아 파일은 지금 폴더({Path.GetFileName(scope?.TrimEnd('\\') ?? "")}) 안에서만 찾아요. 아래 상태 줄의 \"검색\"을 확인해 주세요.")
             + " Enter 열기 · Ctrl+Enter 들어 있는 폴더 · Esc 닫기";
         _quickSearch = BuildQuickSearch(scope, footer);

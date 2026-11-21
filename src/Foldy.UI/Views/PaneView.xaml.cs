@@ -183,8 +183,14 @@ public partial class PaneView : UserControl
             _search.PropertyChanged -= OnSearchChanged;
         }
 
+        var previous = _tab;
         _tab = tab as FolderTabViewModel;
         _search = tab as SearchTabViewModel;
+        if (previous is not null && !ReferenceEquals(previous, tab) && PreviewVisible)
+        {
+            TogglePreview(); // 다른 탭(다른 폴더)으로 가면 미리보기는 닫는다
+        }
+
         UpdateTabVisuals();
         _tree?.ShowFor(_tab?.Path); // SFTP 탭이면 그 서버의 폴더 트리
 
@@ -351,6 +357,12 @@ public partial class PaneView : UserControl
             case nameof(FolderTabViewModel.Path):
                 UpdateNav();
                 _tree?.ShowFor(_tab!.Path);
+                // 다른 폴더·드라이브로 가면 미리보기는 닫는다 (보던 파일과 상관없는 곳, 사용자 요청 2026-11-21). F3으로 다시 켠다
+                if (PreviewVisible)
+                {
+                    TogglePreview();
+                }
+
                 _ = UpdateManagedBarAsync();
                 break;
             case nameof(FolderTabViewModel.Git):

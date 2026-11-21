@@ -22,21 +22,59 @@ public sealed class FileSearchService(Func<IndexerClient?> indexer, Func<bool> s
 
     public bool IsIndexed => Ready is not null;
 
+    /// <summary>마지막으로 받은 색인 상태 (상태 줄·빠른 검색 안내용). 서비스에 연결되지 않았으면 null.</summary>
+    public StatusReply? LastStatus { get; private set; }
+
     /// <summary>색인 상태를 확인해 둔다 (준비됨이면 색인 검색 사용).</summary>
     public async Task RefreshStateAsync()
     {
         try
         {
-            _ready = indexer() is { } c && (await c.StatusAsync()).State == IndexState.Ready;
+            LastStatus = indexer() is { IsFaulted: false } c ? await c.StatusAsync() : null;
+            _ready = LastStatus?.State == IndexState.Ready;
         }
         catch (Exception ex) when (ex is IOException or ProtocolException or OperationCanceledException)
         {
+            LastStatus = null;
             _ready = false;
         }
     }
 
+    /// <summary>이 경로가 색인이 끝난 드라이브에 있나 (네트워크·보안 드라이브, NTFS가 아닌 드라이브는 색인하지 않는다).</summary>
+    public bool IsIndexedPath(string? path)
+    {
+        if (string.IsNullOrEmpty(path) || path.Length < 2 || path[1] != ':' || LastStatus is not { } st)
+        {
+            return false;
+        }
+
+        var drive = path[..2].ToUpperInvariant();
+        return st.Volumes.Any(v => v.State == IndexState.Ready && string.Equals(v.Volume.TrimEnd('\\'), drive, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// 색인이 준비됐으면 색인으로 전체를 찾고, 지금 폴더가 색인 없는 드라이브(네트워크·회사 보안 드라이브 등)에 있으면
+    /// 그 폴더 안도 함께 훑는다 (사용자 2026-11-21: "수집 안 되었을 때?"). 색인이 없으면 지금 폴더만 훑는다.
+    /// </summary>
     public IAsyncEnumerable<IReadOnlyList<FsEntry>> SearchAsync(string query, string? scope, CancellationToken ct) =>
-        Ready is { } c ? IndexedAsync(c, query, ct) : WalkAsync(query, scope, ct);
+        Ready is { } c
+            ? (!string.IsNullOrEmpty(scope) && !IsIndexedPath(scope) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(scope)
+                ? BothAsync(c, query, scope, ct)
+                : IndexedAsync(c, query, ct))
+            : WalkAsync(query, scope, ct);
+
+    private async IAsyncEnumerable<IReadOnlyList<FsEntry>> BothAsync(IndexerClient c, string query, string scope, [EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var b in IndexedAsync(c, query, ct))
+        {
+            yield return b;
+        }
+
+        await foreach (var b in WalkAsync(query, scope, ct))
+        {
+            yield return b;
+        }
+    }
 
     private static async IAsyncEnumerable<IReadOnlyList<FsEntry>> IndexedAsync(IndexerClient c, string query, [EnumeratorCancellation] CancellationToken ct)
     {
