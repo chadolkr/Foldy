@@ -9,7 +9,7 @@
 
 ### 지금 상태
 - 구현: `build/store/make-msix.ps1`, `AppxManifest.template.xml`, release.yml의 "Store MSIX" 단계(첫 실제 빌드로 검증될 때까지 실패해도 릴리스는 계속), 앱의 Store 판 분기.
-- 필요한 저장소 변수(Partner Center → 앱 → Product identity에서 복사): `FOLDY_STORE_IDENTITY_NAME`, `FOLDY_STORE_PUBLISHER`(CN=…), `FOLDY_STORE_PUBLISHER_DISPLAY_NAME`. 없으면 시험용 값으로 만들어 Store에 낼 수 없다.
+- Store 제품 (2026-11-21 예약): 이름 **Foldy File Manager** ("Foldy"는 선점됨), Store ID `9NS1PWL5QGP6`, Identity `DavidCHA.FoldyFileManager`, Publisher `CN=2AAA454A-54B0-4C55-B5E3-99DD3024FB14`, 표시 이름 `David CHA`, PFN `DavidCHA.FoldyFileManager_2mprgqxmdw8d8`. make-msix.ps1의 기본값이다. 시작 메뉴·Store에는 "Foldy File Manager", 앱 안에서는 Foldy.
 - 로컬 시험: `./build/setup/make-setup.ps1` 다음 `./build/store/make-msix.ps1 -Version x.y.z -TestCert`.
 
 ## Certum 서명 (설치본)

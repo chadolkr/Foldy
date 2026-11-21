@@ -4,16 +4,16 @@
   - 서명하지 않는다: Store가 제출받은 패키지를 Microsoft 인증서로 서명한다.
     로컬 시험 설치만 하려면 -TestCert로 자체 서명 인증서를 만들어 서명한다 (그 PC에서만 신뢰).
 
-  Identity 값은 Partner Center → 앱 → Product management → Product identity 에서 복사한다.
-  CI에서는 저장소 변수 FOLDY_STORE_IDENTITY_NAME / FOLDY_STORE_PUBLISHER / FOLDY_STORE_PUBLISHER_DISPLAY_NAME 으로 넘긴다.
+  Identity 기본값은 Partner Center의 "Foldy File Manager"(Store ID 9NS1PWL5QGP6) 제품 ID다 (공개 정보).
+  다른 제품으로 내려면 저장소 변수 FOLDY_STORE_IDENTITY_NAME / FOLDY_STORE_PUBLISHER / FOLDY_STORE_PUBLISHER_DISPLAY_NAME 으로 덮어쓴다.
 
   예) ./build/store/make-msix.ps1 -Version 0.9.32 -OutDir artifacts/release
 #>
 param(
     [Parameter(Mandatory)] [string] $Version,
     [string] $OutDir = 'artifacts/store',
-    [string] $IdentityName = $(if ($env:FOLDY_STORE_IDENTITY_NAME) { $env:FOLDY_STORE_IDENTITY_NAME } else { 'Foldy.Dev' }),
-    [string] $Publisher = $(if ($env:FOLDY_STORE_PUBLISHER) { $env:FOLDY_STORE_PUBLISHER } else { 'CN=Foldy Dev' }),
+    [string] $IdentityName = $(if ($env:FOLDY_STORE_IDENTITY_NAME) { $env:FOLDY_STORE_IDENTITY_NAME } else { 'DavidCHA.FoldyFileManager' }),
+    [string] $Publisher = $(if ($env:FOLDY_STORE_PUBLISHER) { $env:FOLDY_STORE_PUBLISHER } else { 'CN=2AAA454A-54B0-4C55-B5E3-99DD3024FB14' }),
     [string] $PublisherDisplayName = $(if ($env:FOLDY_STORE_PUBLISHER_DISPLAY_NAME) { $env:FOLDY_STORE_PUBLISHER_DISPLAY_NAME } else { 'David CHA' }),
     [switch] $TestCert
 )
