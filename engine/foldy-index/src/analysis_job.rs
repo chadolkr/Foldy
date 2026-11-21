@@ -80,6 +80,18 @@ fn run(ix: &Indexer, slot: &VolumeSlot) {
     }
 }
 
+/// 분석을 요청한 사용자에게만 분석 DB 읽기를 허락한다 (처음 한 번만 ACL을 쓴다). 시험 폴더는 건드리지 않는다.
+pub fn allow_reader(ix: &Indexer, sid: Option<&str>) {
+    if ix.analysis_dir.is_some() {
+        return;
+    }
+    if let Some(sid) = sid
+        && let Err(e) = analysis::allow_reader(&ix.analysis_dir(), sid)
+    {
+        eprintln!("분석 폴더 읽기 허락 실패: {e}");
+    }
+}
+
 pub fn info(ix: &Indexer, volume: &str) -> AnalysisInfoReply {
     let empty = |status, volume: String| AnalysisInfoReply { status, volume, db_path: String::new(), scan_time: 0, previous: Vec::new() };
     let Some(slot) = ix.find_volume(volume) else {

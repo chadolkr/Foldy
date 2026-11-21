@@ -16,6 +16,11 @@ pub struct Visibility {
 
 impl Visibility {
     /// `profiles`: 이 PC의 (SID, 프로필 경로) 목록. `own_sid`: 요청한 사용자 (모르면 None → 모든 프로필 숨김).
+    /// 요청한 사용자의 SID (대문자). 모르면 None.
+    pub fn user_sid(&self) -> Option<&str> {
+        self.own_sid.as_deref()
+    }
+
     pub fn new(own_sid: Option<&str>, profiles: &[(String, String)]) -> Self {
         let own = own_sid.map(|s| s.to_ascii_uppercase());
         let hidden = profiles

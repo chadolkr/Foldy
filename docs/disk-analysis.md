@@ -86,9 +86,7 @@ C# 디코더는 `analysis` 목록이 없는 옛 서비스 응답도 읽는다. �
   설계서의 `<볼륨GUID>.db` 하나를 덮어쓰는 방식은 앱이 이전 스냅샷을 열어 둔 채면 Windows에서 이름 변경이 공유 위반으로 실패하므로, 시각을 붙인 새 이름으로 바꾼다(항상 성공).
   최신 경로는 `AnalysisInfo`(서비스) 또는 `AnalysisPaths.ListSnapshots`(폴더 목록)로 찾는다.
 - 보관: 최신 1개 + 바로 이전 1개 + 그보다 오래된 것은 앞서 남긴 것보다 6.5일 이상 오래된 것만, 이전 스냅샷 최대 4개 (`retention_plan` = `AnalysisPaths.RetentionPlan`). 열려 있어 못 지운 파일은 다음 분석 때 다시 지운다.
-- 서비스 폴더 `%ProgramData%\Foldy\Analysis`의 ACL: 상속을 끊고 SYSTEM·Administrators 모두, **Interactive(로그온 사용자) 읽기**, 서비스 계정 자신.
-  설계서는 "Administrators + 설치한 사용자"인데 서비스는 설치한 사용자를 알 수 없으므로 일단 Interactive 읽기로 했다 (파이프 ACL과 같은 기준). ProgramData 기본 ACL은 Users에게 쓰기까지 주므로, 일반 사용자가 가짜 DB를 넣지 못하게 막는 의미도 있다.
-  업무용 모드에서 좁히려면 MSI가 설치 사용자 SID를 레지스트리에 남기고 `secure_dir`의 IU를 그 SID로 바꾼다.
+- 서비스 폴더 `%ProgramData%\Foldy\Analysis`의 ACL: 상속을 끊고 SYSTEM·Administrators·서비스 계정 자신은 모두, 그리고 **Foldy에서 분석을 요청한 사용자만 읽기** (0.9.22, 예전에는 Interactive 읽기). 서비스가 파이프로 연결한 사용자의 SID를 기억해 사용자마다 처음 한 번만 폴더 권한을 다시 쓴다(이미 있는 DB에도 이어짐). ProgramData 기본 ACL은 Users에게 쓰기까지 주므로, 일반 사용자가 가짜 DB를 넣지 못하게 막는 의미도 있다.
 - DB에는 권한 없는 폴더의 이름도 들어간다 (색인과 같음). 업무용 PC라면 ACL 필터링이 필요하다 (설계서 12장 결정 사항).
 
 ## 정리 규칙 (cleanup-rules.json)

@@ -332,3 +332,27 @@ fn bench_1m() {
     }
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn analysis_acl_reads_only_for_requesting_users() {
+    // 로그온한 모든 사용자(IU)가 아니라 분석을 요청한 사용자만 읽기
+    let s = super::analysis_sddl(Some("S-1-5-18"), &["S-1-5-21-1-2-3-1001".to_string(), "bad;(A;;FA;;;WD)".to_string()]);
+    assert_eq!(s, "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;S-1-5-18)(A;OICI;FRFX;;;S-1-5-21-1-2-3-1001)");
+    assert!(!s.contains("IU"));
+    assert!(!s.contains("WD"));
+}
+
+#[test]
+fn securing_dir_reaches_existing_db_files() {
+    // 이미 있던 DB 파일에도 새 권한이 이어지고, 서비스 계정(여기서는 나)은 계속 읽을 수 있다
+    let dir = std::env::temp_dir().join(format!("foldy-acl-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let f = dir.join("C.20260101T000000Z.db");
+    std::fs::write(&f, b"x").unwrap();
+    super::secure_dir(&dir).unwrap();
+    assert_eq!(std::fs::read(&f).unwrap(), b"x");
+    let out = std::process::Command::new("icacls").arg(&f).output().unwrap();
+    let text = String::from_utf8_lossy(&out.stdout).to_uppercase();
+    assert!(!text.contains("INTERACTIVE"), "{text}");
+    let _ = std::fs::remove_dir_all(&dir);
+}

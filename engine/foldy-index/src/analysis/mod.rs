@@ -822,39 +822,100 @@ pub fn default_dir() -> PathBuf {
     pd.join("Foldy").join("Analysis")
 }
 
-/// 분석 폴더 ACL (설계서 7.3 보안): 상속을 끊고 SYSTEM·Administrators 모두, 로그온 사용자(Interactive)는
-/// 읽기만, 그리고 서비스를 띄운 계정 자신. 설계서의 "설치한 사용자"는 서비스가 알 수 없으므로 일단
-/// Interactive 읽기로 둔다 (docs/disk-analysis.md). ProgramData 기본 ACL은 Users에게 쓰기까지 주므로,
-/// 일반 사용자가 가짜 DB를 넣지 못하게 막는 의미도 있다.
+/// 분석 DB를 읽어도 되는 사용자 (Foldy에서 분석을 요청한 사람). 서비스가 도는 동안 기억한다.
+static READERS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+/// 분석 폴더 ACL (설계서 7.3 보안): 상속을 끊고 SYSTEM·Administrators·서비스 계정은 모두, 그리고
+/// Foldy에서 분석을 요청한 사용자([`allow_reader`])만 읽기. 예전에는 로그온한 모든 사용자(Interactive)가
+/// 읽을 수 있어서, 같은 PC의 다른 계정도 폴더 이름·크기를 볼 수 있었다 (2026-11-21 보안 점검, 사용자 승인).
+/// ProgramData 기본 ACL은 Users에게 쓰기까지 주므로, 일반 사용자가 가짜 DB를 넣지 못하게 막는 의미도 있다.
 pub fn secure_dir(dir: &Path) -> std::io::Result<()> {
-    secure_dir_with(dir, true)
+    let readers = READERS.lock().map(|r| r.clone()).unwrap_or_default();
+    secure_dir_with(dir, Some(&readers))
+}
+
+/// 이 사용자에게 분석 DB 읽기를 허락한다. 이미 허락한 사용자면 아무것도 하지 않는다(요청마다 드는 비용 없음).
+/// 처음일 때만 폴더 ACL을 한 번 다시 쓰고, 이미 있는 DB 파일에도 이어 준다.
+pub fn allow_reader(dir: &Path, sid: &str) -> std::io::Result<()> {
+    if !is_plain_sid(sid) {
+        return Ok(());
+    }
+    {
+        let mut r = READERS.lock().map_err(|_| std::io::Error::other("lock"))?;
+        if r.iter().any(|s| s.eq_ignore_ascii_case(sid)) {
+            return Ok(());
+        }
+        r.push(sid.to_ascii_uppercase());
+    }
+    if !dir.exists() {
+        return Ok(()); // 첫 분석 때 secure_dir이 READERS로 만든다
+    }
+    secure_dir(dir)
+}
+
+/// SDDL에 그대로 넣어도 되는 SID 문자열인가 (S-1-숫자-…).
+fn is_plain_sid(s: &str) -> bool {
+    s.len() > 4 && s[..2].eq_ignore_ascii_case("S-") && s[2..].chars().all(|c| c.is_ascii_digit() || c == '-')
+}
+
+/// 분석 폴더 SDDL (시험용으로 따로 둔다).
+pub(crate) fn analysis_sddl(me: Option<&str>, readers: &[String]) -> String {
+    let mut s = String::from("D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)");
+    if let Some(me) = me.filter(|m| is_plain_sid(m)) {
+        s.push_str(&format!("(A;OICI;FA;;;{me})"));
+    }
+    for r in readers.iter().filter(|r| is_plain_sid(r)) {
+        s.push_str(&format!("(A;OICI;FRFX;;;{r})"));
+    }
+    s
 }
 
 /// 색인 스냅샷 폴더: SYSTEM·Administrators만 (일반 사용자는 읽기도 불가: 다른 사용자의 파일 이름이 들어 있다).
 pub fn secure_dir_private(dir: &Path) -> std::io::Result<()> {
-    secure_dir_with(dir, false)
+    secure_dir_with(dir, None)
 }
 
-fn secure_dir_with(dir: &Path, interactive_read: bool) -> std::io::Result<()> {
+fn secure_dir_with(dir: &Path, readers: Option<&[String]>) -> std::io::Result<()> {
     use windows_sys::Win32::Foundation::{HLOCAL, LocalFree};
-    use windows_sys::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1};
-    use windows_sys::Win32::Security::{DACL_SECURITY_INFORMATION, PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, SetFileSecurityW};
-    let me = if interactive_read { crate::acl::current_user_sid().map(|s| format!("(A;OICI;FA;;;{s})")).unwrap_or_default() } else { String::new() };
-    let iu = if interactive_read { "(A;OICI;FRFX;;;IU)" } else { "" };
-    let sddl = format!("D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA){iu}{me}");
+    use windows_sys::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1, SE_FILE_OBJECT, SetNamedSecurityInfoW};
+    use windows_sys::Win32::Security::{ACL, DACL_SECURITY_INFORMATION, GetSecurityDescriptorDacl, PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR};
+    let sddl = match readers {
+        Some(r) => analysis_sddl(crate::acl::current_user_sid().as_deref(), r),
+        None => "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)".to_string(),
+    };
     let wide: Vec<u16> = sddl.encode_utf16().chain([0]).collect();
     let mut sd: PSECURITY_DESCRIPTOR = std::ptr::null_mut();
     // SAFETY: wide는 NUL로 끝나는 UTF-16. 성공하면 sd는 LocalAlloc 메모리이고 아래에서 해제한다.
     if unsafe { ConvertStringSecurityDescriptorToSecurityDescriptorW(wide.as_ptr(), SDDL_REVISION_1, &mut sd, std::ptr::null_mut()) } == 0 {
         return Err(std::io::Error::last_os_error());
     }
+    let mut present = 0i32;
+    let mut defaulted = 0i32;
+    let mut dacl: *mut ACL = std::ptr::null_mut();
+    // SAFETY: sd는 위에서 만든 유효한 보안 설명자. dacl은 sd 안을 가리키므로 sd를 풀기 전까지만 쓴다.
+    let got = unsafe { GetSecurityDescriptorDacl(sd, &mut present, &mut dacl, &mut defaulted) };
     let path: Vec<u16> = dir.as_os_str().to_string_lossy().encode_utf16().chain([0]).collect();
-    // SAFETY: path는 NUL로 끝나는 UTF-16, sd는 위에서 만든 유효한 보안 설명자.
-    let ok = unsafe { SetFileSecurityW(path.as_ptr(), DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, sd) };
-    let err = std::io::Error::last_os_error();
+    // SetNamedSecurityInfoW는 상속되는 ACE를 이미 있는 하위 파일에도 이어 준다 (예전 DB의 Interactive 읽기를 지운다)
+    let r = if got == 0 || present == 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        // SAFETY: path는 NUL로 끝나는 UTF-16, dacl은 sd 안의 유효한 ACL.
+        let code = unsafe {
+            SetNamedSecurityInfoW(
+                path.as_ptr(),
+                SE_FILE_OBJECT,
+                DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                dacl,
+                std::ptr::null(),
+            )
+        };
+        if code == 0 { Ok(()) } else { Err(std::io::Error::from_raw_os_error(code as i32)) }
+    };
     // SAFETY: ConvertStringSecurityDescriptorToSecurityDescriptorW가 할당한 메모리를 한 번 해제한다.
     unsafe { LocalFree(sd as HLOCAL) };
-    if ok == 0 { Err(err) } else { Ok(()) }
+    r
 }
 
 /// 분석 스레드의 CPU·I/O 우선순위를 낮춘다 (사용자 작업 방해 금지).
