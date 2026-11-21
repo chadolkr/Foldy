@@ -635,7 +635,10 @@ public partial class ShellWindow : Window, IPaneHost
         aiOnce.Tick += (_, _) =>
         {
             aiOnce.Stop();
-            MaybeSuggestAi();
+            if (!MaybeSuggestDesktop())
+            {
+                MaybeSuggestAi(); // 한 줄 제안은 한 번에 하나만
+            }
         };
         aiOnce.Start();
         await _search.RefreshStateAsync();
@@ -2413,6 +2416,57 @@ public partial class ShellWindow : Window, IPaneHost
             SaveSettings();
             Shell.Status = "AI 연결 제안을 다시 띄우지 않아요. 설정 → 일반 → AI 연결에서 되돌릴 수 있어요";
         }
+        else if (_cleanupFinding?.Tool == "desktop-start")
+        {
+            _settings = _settings with { DesktopSuggest = false };
+            SaveSettings();
+            Shell.Status = "바탕화면 정리 제안을 다시 띄우지 않아요. 설정 → 일반 → 정리 알림에서 되돌릴 수 있어요";
+        }
+    }
+
+    /// <summary>
+    /// 바탕화면 정리 제안 (사용자 2026-11-21): 바로 가기를 뺀 파일이 20개가 넘으면 켤 때 창 위 한 줄.
+    /// [정리하기] [나중에(7일 뒤 다시)] [다시 묻지 않기]. 확인 창이 아니고, 그냥 두면 저절로 사라진다. 띄웠으면 참.
+    /// </summary>
+    private bool MaybeSuggestDesktop()
+    {
+        if (App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null
+            || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 } || CleanupNotice.Visibility == Visibility.Visible)
+        {
+            return false;
+        }
+
+        var desktop = CleanupPaths.Desktop;
+        var n = Directory.Exists(desktop) ? Foldy.Core.Desktop.DesktopTidy.CountLoose(desktop) : 0;
+        if (!Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(n, _settings.DesktopSuggest, _settings.DesktopSuggestAfterUtc, DateTime.UtcNow))
+        {
+            return false;
+        }
+
+        _hintKey = null;
+        _cleanupFinding = new CleanupFinding($"바탕화면에 파일이 {n:N0}개 있어요. 종류별로 정리해 드릴까요? 지우지 않고, 되돌릴 수 있어요.", "desktop-start", desktop);
+        CleanupNoticeText.Text = _cleanupFinding.Text;
+        CleanupNoticeButton.Content = "정리하기";
+        CleanupNoticeClose.Content = "나중에";
+        CleanupNoticeNever.Visibility = Visibility.Visible;
+        CleanupNotice.Visibility = Visibility.Visible;
+        AutoHideNotice("desktop-start");
+        return true;
+    }
+
+    private void AutoHideNotice(string tool)
+    {
+        // 그냥 두면 저절로 사라진다 (누를 것을 강요하지 않는다)
+        _aiSuggestHide?.Stop();
+        _aiSuggestHide = new DispatcherTimer(TimeSpan.FromSeconds(45), DispatcherPriority.Background, (_, _) =>
+        {
+            _aiSuggestHide?.Stop();
+            if (_cleanupFinding?.Tool == tool && !CleanupNotice.IsMouseOver)
+            {
+                CleanupNotice.Visibility = Visibility.Collapsed;
+            }
+        }, Dispatcher);
+        _aiSuggestHide.Start();
     }
 
     /// <summary>백그라운드 정리 확인을 시작한다: 시작 3분 뒤 한 번, 그 뒤 6시간마다. 알림은 일주일에 한 번까지.</summary>
@@ -2467,6 +2521,9 @@ public partial class ShellWindow : Window, IPaneHost
             case "ai":
                 OpenMcp();
                 break;
+            case "desktop-start":
+                OpenDesktopTidy();
+                break;
             case "logs":
                 OpenLogCleanup(_cleanupFinding.Target);
                 break;
@@ -2485,6 +2542,14 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnCleanupNoticeClose(object sender, RoutedEventArgs e)
     {
         CleanupNotice.Visibility = Visibility.Collapsed;
+        if (_cleanupFinding?.Tool == "desktop-start")
+        {
+            // [나중에]: 7일 뒤에 다시
+            _settings = _settings with { DesktopSuggestAfterUtc = DateTime.UtcNow.AddDays(7) };
+            SaveSettings();
+            return;
+        }
+
         if (_cleanupFinding is { } f && f.Text.Length > 0 && _hintKey is { } key)
         {
             ContextHints.Dismiss(key); // 닫은 제안은 그 폴더에서 다시 보이지 않는다

@@ -250,6 +250,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private bool _desktopSuggest = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
     private string _rebuildableExtra = "";
 
     public bool CopyThreadsManualEnabled => !CopyThreadsAuto;
@@ -291,6 +295,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         KeepPreviousVersions = KeepPreviousVersions,
         SlowCrawl = SlowCrawl,
         AiSuggest = AiSuggest,
+        DesktopSuggest = DesktopSuggest,
         RebuildableExtra = RebuildableExtra,
     };
 
@@ -362,6 +367,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         KeepPreviousVersions = s.KeepPreviousVersions;
         SlowCrawl = s.SlowCrawl;
         AiSuggest = s.AiSuggest;
+        DesktopSuggest = s.DesktopSuggest;
         RebuildableExtra = s.RebuildableExtra;
         AutoOpenGitView = s.AutoOpenGitView;
         _loading = false;

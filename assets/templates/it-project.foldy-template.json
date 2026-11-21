@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "id": "it-project",
+  "name": "IT 시스템 개발 문서 (ISO/IEC/IEEE 12207)",
+  "badge": "IT",
+  "category": "프로젝트",
+  "description": "요구사항부터 운영까지 소프트웨어 수명 주기(ISO/IEC/IEEE 12207의 기술 프로세스) 순서로 나누는 프로젝트 문서. 소스 코드는 Git 저장소에 따로",
+  "purposes": [
+    "work"
+  ],
+  "variables": [
+    {
+      "key": "프로젝트",
+      "label": "프로젝트 이름",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{date:yyyy-MM-dd}}_{{프로젝트}}",
+      "children": [
+        {
+          "name": "01_요구사항",
+          "nameEn": "01_requirements",
+          "purpose": "요청 접수, 이해관계자 요구사항, 요구사항 정의서"
+        },
+        {
+          "name": "02_분석",
+          "nameEn": "02_analysis",
+          "purpose": "현황·업무 분석, 시스템 분석, 타당성 검토"
+        },
+        {
+          "name": "03_설계",
+          "nameEn": "03_design",
+          "purpose": "아키텍처 정의, 상세 설계, 화면·데이터 설계"
+        },
+        {
+          "name": "04_구현",
+          "nameEn": "04_implementation",
+          "purpose": "구현 메모, 빌드·배포 설정 설명, 저장소 위치(코드는 Git에)"
+        },
+        {
+          "name": "05_시험",
+          "nameEn": "05_testing",
+          "purpose": "시험 계획·시나리오·결과(검증·확인), 결함 목록"
+        },
+        {
+          "name": "06_이행",
+          "nameEn": "06_transition",
+          "purpose": "전환·배포 계획, 데이터 이관, 사용자 교육"
+        },
+        {
+          "name": "07_운영유지보수",
+          "nameEn": "07_operation_maintenance",
+          "purpose": "운영 매뉴얼, 장애 기록, 변경·개선 요청"
+        },
+        {
+          "name": "99_보관",
+          "nameEn": "99_archive",
+          "purpose": "지난 버전·더는 안 쓰는 것"
+        },
+        {
+          "name": "README.md",
+          "file": "# {{프로젝트}}\n\n시작일: {{date:yyyy-MM-dd}}\n\nISO/IEC/IEEE 12207의 기술 프로세스 순서(요구사항 → 분석 → 설계 → 구현 → 시험 → 이행 → 운영·유지보수)로 문서를 둡니다. 소스 코드는 Git 저장소에 둡니다.\n"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "날짜_프로젝트_문서종류_v버전.확장자",
+      "examples": [
+        "2026-11-21_고객포털_요구사항정의서_v01.docx",
+        "2026-12-05_고객포털_주간보고.pptx"
+      ],
+      "regex": "^\\d{4}-\\d{2}-\\d{2}_[^_]+_.+"
+    }
+  ],
+  "firstSteps": [
+    "받은 요청과 요구사항 정의서를 01_요구사항에 넣기",
+    "설계 문서는 03_설계, 시험 계획과 결과는 05_시험에 날짜_프로젝트_문서종류 이름으로",
+    "오픈 뒤 운영 매뉴얼·장애 기록은 07_운영유지보수에 모으기"
+  ],
+  "organize": [
+    {
+      "target": "01_요구사항",
+      "keywords": [
+        "요구사항",
+        "요청",
+        "RFP",
+        "requirement",
+        "SRS"
+      ],
+      "reason": "이름에 요구사항·요청"
+    },
+    {
+      "target": "02_분석",
+      "keywords": [
+        "분석",
+        "현황",
+        "타당성",
+        "analysis"
+      ],
+      "reason": "이름에 분석"
+    },
+    {
+      "target": "03_설계",
+      "keywords": [
+        "설계",
+        "아키텍처",
+        "화면정의",
+        "ERD",
+        "design",
+        "architecture"
+      ],
+      "reason": "이름에 설계"
+    },
+    {
+      "target": "05_시험",
+      "keywords": [
+        "시험",
+        "테스트",
+        "결함",
+        "test",
+        "QA"
+      ],
+      "reason": "이름에 시험·테스트"
+    },
+    {
+      "target": "06_이행",
+      "keywords": [
+        "이행",
+        "전환",
+        "이관",
+        "배포",
+        "교육",
+        "migration"
+      ],
+      "reason": "이름에 이행·배포"
+    },
+    {
+      "target": "07_운영유지보수",
+      "keywords": [
+        "운영",
+        "장애",
+        "유지보수",
+        "매뉴얼",
+        "operation"
+      ],
+      "reason": "이름에 운영·장애"
+    }
+  ]
+}

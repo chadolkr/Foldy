@@ -28,7 +28,7 @@ internal static class DocShotsSandbox
 
     public static string Repo(string root) => Path.Combine(root, "Projects", "todo-app");
 
-    public static string JavaApp(string root) => Path.Combine(root, "Projects", "inventory-service");
+    public static string JavaApp(string root) => Path.Combine(root, "Projects", "2026 사업계획");
 
     public static string Archive(string root) => Path.Combine(root, "Archive");
 
@@ -468,28 +468,14 @@ internal static class DocShotsSandbox
 
     private static void BuildJava(string root)
     {
-        // 폴더 템플릿 기능으로 만든 Java 프로젝트 (내 템플릿 폴더는 비어 있게)
-        var library = new Foldy.Core.Templates.TemplateLibrary(Path.Combine(root, "_remote", "templates")).Reload();
-        var projects = Path.Combine(root, "Projects");
-        var vm = new Foldy.Presentation.Templates.TemplateDialogViewModel(library, projects);
-        var item = vm.Templates.FirstOrDefault(t => t.Template.Id == "java-project") ?? throw new InvalidOperationException("java-project 템플릿이 없습니다");
-        vm.SelectedTemplate = item;
-        var name = vm.Customizer.Variables.FirstOrDefault(v => v.Key == "프로젝트");
-        if (name is not null)
+        // 최근 폴더에 보이는 일반 문서 프로젝트 (개발 템플릿은 2026-11-21에 뺐다)
+        var plan = JavaApp(root);
+        foreach (var sub in new[] { "01_기획", "02_자료", "03_작업", "04_보고", "99_보관" })
         {
-            name.Value = "inventory-service";
+            Directory.CreateDirectory(Path.Combine(plan, sub));
         }
 
-        vm.CreateCommand.Execute(null);
-        if (vm.Result?.Succeeded != true)
-        {
-            throw new InvalidOperationException("Java 템플릿을 적용하지 못했습니다: " + vm.Error);
-        }
-
-        if (!Directory.Exists(JavaApp(root)))
-        {
-            throw new InvalidOperationException("Java 프로젝트 폴더가 예상 위치에 없습니다: " + vm.CreatedTopFolder);
-        }
+        File.WriteAllText(Path.Combine(plan, "01_기획", "사업계획_초안.docx"), "Foldy 문서용 예시");
     }
 
     private const string AppV1 = "class TodoApp:\n    def __init__(self):\n        self.todos = []\n\n    def add(self, title):\n        self.todos.append({'title': title, 'done': False})\n";

@@ -15,7 +15,7 @@
            InstallerVersion="500"
            Compressed="yes">
 
-    <SummaryInformation Description="Foldy - dual-pane file manager" />
+    <SummaryInformation Description="Foldy - fast, smart file manager, even offline" />
 
     <!-- 새 버전이 설치되면 이전 MSI를 제거하고 교체한다. 같은 버전(프리릴리스 등)도 허용.
          낮은 버전 설치(다운그레이드)는 자동 업데이트의 되돌리기(FOLDY_ROLLBACK=1, docs/auto-update.md)에서만 허용하고,
@@ -58,7 +58,7 @@
         <Component Id="FoldyExe" Bitness="always64">
           <File Id="FoldyExeFile" Source="$(PayloadDir)\Foldy.exe" KeyPath="yes">
             <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Foldy"
-                      Description="Foldy file manager" WorkingDirectory="INSTALLFOLDER"
+                      Description="빠르고 똑똑한 파일 관리자, 오프라인에서도" WorkingDirectory="INSTALLFOLDER"
                       Icon="FoldyIcon" Advertise="no" />
           </File>
           <!-- 잠긴 파일(.foldylock)·금고(.foldyvault): 탐색기에서 두 번 누르면 Foldy가 암호를 묻고 연다. 제거하면 연결도 지워진다 -->

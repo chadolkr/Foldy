@@ -388,11 +388,11 @@ public partial class ShellWindow
         await DocSceneAsync("template-picker", async () =>
         {
             var vm = new Foldy.Presentation.Templates.TemplateDialogViewModel(_docLibrary!, Path.Combine(r, "Projects"));
-            var item = vm.Templates.First(t => t.Template.Id == "java-project");
+            var item = vm.Templates.First(t => t.Template.Id == "document-workflow"); // 일반 문서 관리 (사용자 2026-11-21: 개발용 말고)
             vm.SelectedTemplate = item;
             if (vm.Customizer.Variables.FirstOrDefault(v => v.Key == "프로젝트") is { } nameInput)
             {
-                nameInput.Value = "payment-service";
+                nameInput.Value = "2026 사업계획";
             }
 
             vm.SelectedTab = Foldy.Presentation.Templates.TemplateDialogTab.Preview;
@@ -462,7 +462,7 @@ public partial class ShellWindow
         {
             var vm = new Foldy.Presentation.Templates.FolderWizardViewModel(Foldy.Core.Templates.TemplateLibrary.LoadWizard(), _docLibrary!, Path.Combine(r, "Projects"));
             var win = DocOpen(new Foldy.UI.Templates.FolderWizardWindow { DataContext = vm });
-            vm.SelectPurpose("dev");
+            vm.SelectPurpose("work");
             await DocShotDialogAsync("wizard-purpose", win, 800);
             vm.NextCommand.Execute(null);
             foreach (var q in vm.Questions)

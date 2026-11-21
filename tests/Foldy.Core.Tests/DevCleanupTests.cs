@@ -138,3 +138,35 @@ public sealed class DevCachesTests : IDisposable
         DevCaches.FindOnPath(["python.exe"], store).Should().BeNull();
     }
 }
+
+public sealed class DesktopSuggestTests
+{
+    [Fact]
+    public void Counts_loose_files_without_shortcuts_and_asks_only_above_twenty()
+    {
+        var d = Path.Combine(Path.GetTempPath(), "foldy-desk-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(d, "폴더"));
+        for (var i = 0; i < 21; i++)
+        {
+            File.WriteAllText(Path.Combine(d, $"문서{i}.txt"), "x");
+        }
+
+        File.WriteAllText(Path.Combine(d, "프로그램.lnk"), "x");
+        File.WriteAllText(Path.Combine(d, "사이트.url"), "x");
+        try
+        {
+            var n = Foldy.Core.Desktop.DesktopTidy.CountLoose(d);
+            n.Should().Be(21, "바로 가기와 폴더는 세지 않는다");
+            var now = new DateTime(2026, 11, 21, 0, 0, 0, DateTimeKind.Utc);
+            Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(n, true, null, now).Should().BeTrue();
+            Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(20, true, null, now).Should().BeFalse("20개는 넘어야");
+            Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(n, false, null, now).Should().BeFalse("다시 묻지 않기");
+            Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(n, true, now.AddDays(3), now).Should().BeFalse("나중에: 7일 동안은 묻지 않는다");
+            Foldy.Core.Desktop.DesktopTidy.ShouldSuggest(n, true, now.AddDays(-1), now).Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(d, true);
+        }
+    }
+}

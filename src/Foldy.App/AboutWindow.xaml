@@ -13,6 +13,8 @@
              RenderOptions.BitmapScalingMode="NearestNeighbor" />
       <StackPanel>
         <TextBlock FontSize="16" FontWeight="Bold" Text="Foldy" />
+        <TextBlock Text="빠르고 똑똑한 파일 관리자, 오프라인에서도" TextWrapping="Wrap" Margin="0,2,0,0" />
+        <TextBlock Text="AI와 연결하면 더 편하게" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="12" />
         <TextBlock x:Name="VersionText" Margin="0,2,0,8" />
         <TextBlock Text="개발자: David CHA" />
         <TextBlock Margin="0,2,0,0">

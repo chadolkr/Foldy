@@ -264,6 +264,7 @@
           <TextBlock Text="더한 이름은 옆에 프로젝트 파일이 없어도 이름만으로 찾아요. 찾은 것은 고른 뒤에만 휴지통으로 가요." Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="정리 알림" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="로그·다운로드가 많이 쌓이면 알려 주기" IsChecked="{Binding CleanupNotices, Mode=TwoWay}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="바탕화면에 파일이 20개가 넘으면 켤 때 정리를 한 줄로 제안하기" IsChecked="{Binding DesktopSuggest, Mode=TwoWay}" />
           <TextBlock Text="색인으로 가볍게 확인하고, 정리할 게 많을 때만 한 줄로 알려 줍니다 (일주일에 한 번까지). 저절로 지우지는 않습니다." Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="Git" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="Git 바 보이기" IsChecked="{Binding ShowGitBar, Mode=TwoWay}" />

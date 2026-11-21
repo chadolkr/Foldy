@@ -16,9 +16,10 @@ public class TemplateDialogViewModelTests
         using var tmp = new TempDir();
         var target = tmp.Dir("work");
         var vm = new TemplateDialogViewModel(Library(tmp), target, clock: () => new DateTime(2026, 11, 18));
-        vm.SelectedTemplate!.Template.Id.Should().Be("client-project", "이름순 첫 항목");
+        vm.SelectedTemplate!.Template.Id.Should().Be("para", "일반 문서 관리 중 가장 대중적인 PARA가 처음 (2026-11-21)");
         vm.SelectedTab.Should().Be(TemplateDialogTab.Guide);
 
+        vm.SelectedTemplate = vm.Templates.Single(t => t.Template.Id == "client-project");
         vm.SelectedTemplate = vm.Templates.Single(t => t.Template.Id == "para");
         vm.SelectedTemplate = vm.Templates.Single(t => t.Template.Id == "client-project");
         vm.SelectedTab.Should().Be(TemplateDialogTab.Preview, "두 번째부터는 미리보기");
@@ -114,34 +115,6 @@ public class FolderWizardViewModelTests
         vm.Steps.Take(5).Should().OnlyContain(s => s.IsCompleted);
         vm.NextCommand.Execute(null);
         vm.DialogResult.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Dev_language_answer_presets_variable()
-    {
-        using var tmp = new TempDir();
-        var vm = Wizard(tmp, out _);
-        vm.SelectPurpose("dev");
-        vm.NextCommand.Execute(null);
-        vm.Answer("language", "rust");
-        vm.NextCommand.Execute(null);
-        vm.SelectedRecommendation!.Template.Id.Should().Be("software-project");
-        vm.NextCommand.Execute(null);
-        vm.Customizer.Variables.Single(v => v.Key == "language").Value.Should().Be("rust");
-        vm.Customizer.Variables.Single(v => v.Key == "프로젝트").Value = "tool";
-        vm.Customizer.Plan!.Flatten().Single(n => n.Name == ".gitignore").Content.Should().Contain("/target/");
-    }
-
-    [Fact]
-    public void Dev_language_answer_recommends_the_language_template()
-    {
-        using var tmp = new TempDir();
-        var vm = Wizard(tmp, out _);
-        vm.SelectPurpose("dev");
-        vm.NextCommand.Execute(null);
-        vm.Answer("language", "java");
-        vm.NextCommand.Execute(null);
-        vm.Recommendations[0].Template.Id.Should().Be("java-project");
     }
 
     [Fact]

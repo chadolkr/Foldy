@@ -206,7 +206,7 @@ public class PlannerTests
     public void Language_condition_and_default_pick_one_gitignore()
     {
         using var tmp = new TempDir();
-        var t = TemplateLibrary.LoadBuiltIn().Single(x => x.Id == "software-project");
+        var t = TemplateFixtures.Load("software-project"); // 조건·선택 폴더 엔진 시험용 (내장에서는 뺐다)
         var plan = TemplatePlanner.Plan(t, tmp.Path, Values(("프로젝트", "app"), ("language", "rust")), LocalTemplateFileSystem.Instance);
         var gi = plan.Flatten().Where(n => n.Name == ".gitignore").ToList();
         gi.Should().ContainSingle().Which.Content.Should().Contain("/target/");
@@ -269,9 +269,10 @@ public class LibraryAndCaptureTests
     {
         var all = TemplateLibrary.LoadBuiltIn();
         all.Select(t => t.Id).Should().BeEquivalentTo([
-            "para", "johnny-decimal", "software-project", "client-project", "photo-archive",
-            "java-project", "python-project", "node-project", "dotnet-project", "go-project",
-            "date-archive", "document-workflow", "research-project", "household-life", "design-assets", "number-prefix", "claude-project", "claude-skill", "ai-work"]);
+            "para", "johnny-decimal", "client-project", "photo-archive",
+            "date-archive", "document-workflow", "research-project", "household-life", "design-assets", "number-prefix",
+            "pm-project", "it-project", "cde-project"]);
+        all.Should().NotContain(t => t.Category == "개발", "개발용은 이미 정해진 폴더링이 있어 내장하지 않는다 (2026-11-21)");
         all.Select(t => t.Id).Should().OnlyHaveUniqueItems();
         foreach (var t in all)
         {
@@ -303,7 +304,7 @@ public class LibraryAndCaptureTests
     public void Java_template_builds_standard_maven_gradle_tree_with_package_path()
     {
         using var tmp = new TempDir();
-        var t = TemplateLibrary.LoadBuiltIn().Single(x => x.Id == "java-project");
+        var t = TemplateFixtures.Load("java-project"); // 엔진 시험용 (내장에서는 뺐다)
         var values = new Dictionary<string, string> { ["프로젝트"] = "shop", ["조직"] = "acme", ["앱"] = "store" };
         var plan = TemplatePlanner.Plan(t, tmp.Path, new TemplatePlanOptions { Values = values, Now = new DateTime(2026, 11, 18) }, LocalTemplateFileSystem.Instance);
         var paths = plan.Flatten().Select(n => n.RelativePath.Replace('\\', '/')).ToList();
@@ -347,7 +348,6 @@ public class LibraryAndCaptureTests
         top[0].Template.Id.Should().Be("johnny-decimal");
         top[0].Reasons.Should().NotBeEmpty();
         WizardScorer.Top(WizardScorer.Rank(wiz, "work", new Dictionary<string, string> { ["clients"] = "yes" }, all))[0].Template.Id.Should().Be("client-project");
-        WizardScorer.VariablesFrom(wiz, "dev", new Dictionary<string, string> { ["language"] = "python" }).Should().Contain("language", "python");
     }
 
     [Fact]
@@ -486,3 +486,4 @@ public class DescriptionTests
         store.GetNote(@"Z:\old\name", id).Should().BeNull();
     }
 }
+

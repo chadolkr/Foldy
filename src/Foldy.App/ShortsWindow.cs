@@ -40,8 +40,8 @@ internal sealed class ShortsWindow : Window
         new("git-changes.png", 0.55, 0.32, 1.65, 1.90, "프로젝트 폴더면 Git이 저절로", "받기·올리기·커밋을 버튼으로"),
     ];
 
-    public const string EndTitle = "이제 시작해 볼까요?";
-    public const string EndSub = "모르는 게 있으면 F1 · 이 소개는 더 보기 → 둘러보기에서 다시 볼 수 있어요";
+    public const string EndTitle = Foldy.Core.Branding.Tagline; // 마지막 장: 한 줄 소개 (사용자 2026-11-21)
+    public const string EndSub = Foldy.Core.Branding.TaglineSub + " · 모르는 게 있으면 F1 · 이 소개는 ? → 짧은 소개 보기에서 다시 볼 수 있어요";
 
     private static readonly TimeSpan SceneLength = TimeSpan.FromSeconds(5.5);
 

@@ -21,20 +21,10 @@
         "client-project": 3,
         "para": 2,
         "johnny-decimal": 1,
-        "document-workflow": 2
-      }
-    },
-    {
-      "id": "dev",
-      "label": "개발",
-      "description": "개발 저장소의 기본 구조입니다. 다음 질문에서 언어를 고르면 그 언어의 표준 구조를 추천합니다.",
-      "weights": {
-        "software-project": 5,
-        "java-project": 3,
-        "python-project": 3,
-        "node-project": 3,
-        "dotnet-project": 3,
-        "go-project": 3
+        "document-workflow": 2,
+        "pm-project": 2,
+        "it-project": 1,
+        "cde-project": 1
       }
     },
     {
@@ -201,96 +191,6 @@
           }
         }
       ]
-    },
-    {
-      "id": "language",
-      "text": "어떤 언어인가요?",
-      "purposes": [
-        "dev"
-      ],
-      "choices": [
-        {
-          "id": "dotnet",
-          "label": ".NET (C#)",
-          "weights": {
-            "dotnet-project": 4,
-            "software-project": 1
-          },
-          "variables": {
-            "language": "dotnet"
-          },
-          "reason": ".NET은 src·tests·docs로 나누는 솔루션 구조가 표준입니다."
-        },
-        {
-          "id": "java",
-          "label": "Java (Maven·Gradle)",
-          "weights": {
-            "java-project": 4,
-            "software-project": 1
-          },
-          "reason": "Maven·Gradle 표준 구조(src/main/java ...)에 패키지 폴더까지 만들어 줍니다.",
-          "variables": {
-            "language": "other"
-          }
-        },
-        {
-          "id": "rust",
-          "label": "Rust",
-          "weights": {
-            "software-project": 2
-          },
-          "variables": {
-            "language": "rust"
-          }
-        },
-        {
-          "id": "node",
-          "label": "Node.js / TypeScript",
-          "weights": {
-            "node-project": 4,
-            "software-project": 1
-          },
-          "variables": {
-            "language": "node"
-          },
-          "reason": "소스(src)·테스트(test)·정적 파일(public)을 나누고 dist는 git에서 뺍니다."
-        },
-        {
-          "id": "python",
-          "label": "Python",
-          "weights": {
-            "python-project": 4,
-            "software-project": 1
-          },
-          "variables": {
-            "language": "python"
-          },
-          "reason": "src 레이아웃은 설치하지 않은 코드를 실수로 쓰는 일을 막아 줍니다."
-        },
-        {
-          "id": "go",
-          "label": "Go",
-          "weights": {
-            "go-project": 4,
-            "software-project": 1
-          },
-          "reason": "cmd·internal·pkg가 Go의 표준 배치입니다.",
-          "variables": {
-            "language": "other"
-          }
-        },
-        {
-          "id": "other",
-          "label": "기타",
-          "weights": {
-            "software-project": 2
-          },
-          "variables": {
-            "language": "other"
-          }
-        }
-      ],
-      "hint": "고른 언어의 표준 폴더 구조를 추천합니다"
     },
     {
       "id": "media-kind",

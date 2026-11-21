@@ -49,7 +49,7 @@ public sealed partial class TemplateDialogViewModel : ObservableObject
     private static IEnumerable<TemplateItemViewModel> Grouped(IEnumerable<TemplateItemViewModel> items)
     {
         string? last = null;
-        foreach (var item in items.OrderBy(i => TemplateCategories.OrderOf(i.Category)).ThenBy(i => TemplateCategories.OrderOf(i.Category) == 100 ? i.Category : "", StringComparer.CurrentCulture))
+        foreach (var item in items.OrderBy(i => TemplateCategories.OrderOf(i.Category)).ThenBy(i => TemplateCategories.OrderOf(i.Category) == 100 ? i.Category : "", StringComparer.CurrentCulture).ThenBy(i => TemplateCategories.PopularityOf(i.Template.Id)))
         {
             item.CategoryHeader = string.Equals(last, item.Category, StringComparison.Ordinal) ? null : item.Category;
             last = item.Category;

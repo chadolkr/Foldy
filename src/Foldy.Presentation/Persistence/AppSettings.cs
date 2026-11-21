@@ -60,6 +60,12 @@ public sealed record AppSettings
     /// <summary>AI 앱이 있는데 아직 연결 안 했으면 창 위 한 줄로 제안 (기본 켬, [다시 묻지 않기]로 끔).</summary>
     public bool AiSuggest { get; init; } = true;
 
+    /// <summary>바탕화면 파일이 많으면 시작할 때 한 줄로 정리를 제안 (기본 켬, [다시 묻지 않기]로 끔).</summary>
+    public bool DesktopSuggest { get; init; } = true;
+
+    /// <summary>[나중에]를 누르면 이때까지 다시 묻지 않는다 (7일 뒤).</summary>
+    public DateTime? DesktopSuggestAfterUtc { get; init; }
+
     /// <summary>"지워도 되는 폴더 찾기"에 더할 폴더 이름 (쉼표로, 예: "Temp, .cache"). 기본 목록(node_modules 등)에 더해진다.</summary>
     public string RebuildableExtra { get; init; } = "";
 

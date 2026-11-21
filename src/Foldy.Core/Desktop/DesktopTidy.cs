@@ -17,6 +17,27 @@ public static class DesktopTidy
 
     private static readonly string[] KeepExtensions = [".lnk", ".url", ".appref-ms"];
 
+    /// <summary>시작할 때 정리를 제안하는 기준: 바로 가기를 뺀 파일이 이보다 많으면 (사용자 2026-11-21: "20개가 넘을 때 물어볼까?").</summary>
+    public const int SuggestCount = 20;
+
+    /// <summary>바탕화면에 놓인 파일 수 (바로 가기·숨김·시스템 파일·폴더는 세지 않는다).</summary>
+    public static int CountLoose(string desktop)
+    {
+        try
+        {
+            var opts = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.Directory };
+            return Directory.EnumerateFiles(desktop, "*", opts).Count(f => !KeepExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>시작할 때 한 줄로 정리를 제안할까 (기준을 넘고, 꺼 두지 않았고, [나중에]의 7일이 지났을 때).</summary>
+    public static bool ShouldSuggest(int looseFiles, bool enabled, DateTime? laterUntilUtc, DateTime nowUtc) =>
+        enabled && looseFiles > SuggestCount && (laterUntilUtc is null || nowUtc >= laterUntilUtc);
+
     public static IReadOnlyList<DesktopMove> Plan(string desktop, string archiveRoot, DateTime nowUtc)
     {
         var month = nowUtc.ToLocalTime().ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);

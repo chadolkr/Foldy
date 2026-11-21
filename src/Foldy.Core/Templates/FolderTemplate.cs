@@ -146,7 +146,29 @@ public static class TemplateCategories
 {
     public const string User = "내 템플릿";
 
-    public static readonly IReadOnlyList<string> Order = ["개인·업무", "개발", "미디어·창작", "기록·보관"];
+    /// <summary>
+    /// 묶음 순서: 일반 문서 관리만 (사용자 2026-11-21: "개발용은 이미 정해진 폴더링이 있으니 유용하지 않다" → 내장 개발 템플릿을 뺐다).
+    /// "프로젝트"는 업종별 국제 표준 단계(PMBOK, ISO/IEC/IEEE 12207, ISO 19650)로 나누는 문서 폴더.
+    /// 사용자가 만든 템플릿의 다른 묶음(예: 개발)은 이 뒤에 이름순으로 그대로 보인다.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Order = ["개인·업무", "프로젝트", "기록·보관", "미디어·창작"];
+
+    /// <summary>묶음 안에서 먼저 보여 줄 대중적인 템플릿 (PARA가 맨 앞이고 처음 고른 상태). 없는 것은 그 뒤, 원래 순서.</summary>
+    public static readonly IReadOnlyList<string> Popular = ["para", "date-archive", "household-life", "document-workflow", "number-prefix", "johnny-decimal", "photo-archive", "pm-project", "it-project", "cde-project"];
+
+    /// <summary>묶음 안 순서 (대중적인 것 먼저).</summary>
+    public static int PopularityOf(string id)
+    {
+        for (var i = 0; i < Popular.Count; i++)
+        {
+            if (string.Equals(Popular[i], id, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return Popular.Count;
+    }
 
     /// <summary>정해진 묶음은 Order 순서, 그 밖의 묶음은 그 뒤(이름순), "내 템플릿"은 맨 끝.</summary>
     public static int OrderOf(string category)
