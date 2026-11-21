@@ -252,6 +252,9 @@
           <TextBlock Text="이전 버전" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="덮어쓰기 전에 이전 버전 보관하기 (7일)" IsChecked="{Binding KeepPreviousVersions, Mode=TwoWay}" />
           <TextBlock Text="Foldy로 복사·이동하다 파일을 덮어쓰면 원래 파일을 같은 드라이브에 7일 동안 보관해요 (드라이브마다 최대 2GB). 파일을 오른쪽 클릭 → 이전 버전 보기로 되돌릴 수 있어요." Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="빠른 찾기" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="색인 없는 드라이브도 천천히 모으기 (회사 드라이브·Google Drive 등)" IsChecked="{Binding SlowCrawl, Mode=TwoWay}" />
+          <TextBlock Text="Foldy가 켜져 있는 동안 폴더를 하나씩 살살 열어 파일 목록을 모아요. 드라이브가 느릴수록 더 천천히, 복사 같은 작업 중에는 쉬어요. 모은 목록은 이 PC에만 두고, Ctrl+Space·Ctrl+F로 찾을 수 있어요." Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="정리 알림" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="로그·다운로드가 많이 쌓이면 알려 주기" IsChecked="{Binding CleanupNotices, Mode=TwoWay}" />
           <TextBlock Text="색인으로 가볍게 확인하고, 정리할 게 많을 때만 한 줄로 알려 줍니다 (일주일에 한 번까지). 저절로 지우지는 않습니다." Style="{StaticResource Settings.Hint}" />

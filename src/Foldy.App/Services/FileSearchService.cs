@@ -14,6 +14,12 @@ namespace Foldy.App.Services;
 /// </summary>
 public sealed class FileSearchService(Func<IndexerClient?> indexer, Func<bool> showHidden) : IFileSearchService
 {
+    /// <summary>색인 없는 드라이브를 천천히 모은 목록 (없으면 null). 앱이 연결한다.</summary>
+    public Foldy.Core.Search.SlowCrawler? Crawler { get; set; }
+
+    /// <summary>모으는 드라이브 목록 (앱이 연결한다).</summary>
+    public Func<IReadOnlyList<string>>? CrawlDrives { get; set; }
+
     public const int WalkLimit = 20_000;
 
     private IndexerClient? Ready => indexer() is { IsFaulted: false } c && _ready ? c : null;
@@ -56,23 +62,37 @@ public sealed class FileSearchService(Func<IndexerClient?> indexer, Func<bool> s
     /// 색인이 준비됐으면 색인으로 전체를 찾고, 지금 폴더가 색인 없는 드라이브(네트워크·회사 보안 드라이브 등)에 있으면
     /// 그 폴더 안도 함께 훑는다 (사용자 2026-11-21: "수집 안 되었을 때?"). 색인이 없으면 지금 폴더만 훑는다.
     /// </summary>
-    public IAsyncEnumerable<IReadOnlyList<FsEntry>> SearchAsync(string query, string? scope, CancellationToken ct) =>
-        Ready is { } c
-            ? (!string.IsNullOrEmpty(scope) && !IsIndexedPath(scope) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(scope)
-                ? BothAsync(c, query, scope, ct)
-                : IndexedAsync(c, query, ct))
-            : WalkAsync(query, scope, ct);
-
-    private async IAsyncEnumerable<IReadOnlyList<FsEntry>> BothAsync(IndexerClient c, string query, string scope, [EnumeratorCancellation] CancellationToken ct)
+    public async IAsyncEnumerable<IReadOnlyList<FsEntry>> SearchAsync(string query, string? scope, [EnumeratorCancellation] CancellationToken ct)
     {
-        await foreach (var b in IndexedAsync(c, query, ct))
+        // 1) 색인(로컬 NTFS) 2) 천천히 모은 목록(색인 없는 드라이브) 3) 지금 폴더가 색인 없는 곳이면 직접 훑기 — 같은 파일은 한 번만
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        IReadOnlyList<FsEntry> Fresh(IReadOnlyList<FsEntry> b) => [.. b.Where(e => seen.Add(e.Path.Value))];
+        if (Ready is { } c)
         {
-            yield return b;
+            await foreach (var b in IndexedAsync(c, query, ct))
+            {
+                yield return Fresh(b);
+            }
         }
 
-        await foreach (var b in WalkAsync(query, scope, ct))
+        if (Crawler is { } crawler && CrawlDrives?.Invoke() is { Count: > 0 } drives)
         {
-            yield return b;
+            var crawled = await Task.Run(() => drives.SelectMany(d => crawler.StoreFor(d).Search(query, 2000, ct)).Take(5000).Select(e => new FsEntry(
+                Path.GetFileName(e.Path.TrimEnd('\\')), FsPath.Local(e.Path), e.IsFolder ? FsKind.Folder : FsKind.File, e.Size, null, e.ModifiedUtc, default,
+                e.IsFolder ? FileAttributes.Directory : FileAttributes.Normal, null)).ToList(), ct);
+            if (crawled.Count > 0)
+            {
+                yield return Fresh(crawled);
+            }
+        }
+
+        var walk = Ready is null || (!string.IsNullOrEmpty(scope) && !IsIndexedPath(scope) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(scope));
+        if (walk)
+        {
+            await foreach (var b in WalkAsync(query, scope, ct))
+            {
+                yield return Fresh(b);
+            }
         }
     }
 

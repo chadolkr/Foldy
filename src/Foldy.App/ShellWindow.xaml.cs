@@ -644,6 +644,80 @@ public partial class ShellWindow : Window, IPaneHost
             UpdateIndexText();
         }, Dispatcher);
         _indexStatusTimer.Start();
+        StartSlowCrawl();
+    }
+
+    private Foldy.Core.Search.SlowCrawler? _crawler;
+
+    /// <summary>
+    /// 색인 없는 드라이브를 천천히 모은다 (사용자 2026-11-21: "회사 드라이브도 부하 주지 않게 살살"). 설정으로 끌 수 있다.
+    /// 시험 실행(FOLDY_DATA_DIR)·문서 캡처·성능 측정에서는 하지 않는다(사용자의 네트워크 드라이브를 건드리지 않게).
+    /// </summary>
+    private void StartSlowCrawl()
+    {
+        if (!_settings.SlowCrawl || App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null
+            || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 })
+        {
+            _crawler?.Dispose();
+            _crawler = null;
+            _search.Crawler = null;
+            return;
+        }
+
+        if (_crawler is not null)
+        {
+            return;
+        }
+
+        _crawler = new Foldy.Core.Search.SlowCrawler(Path.Combine(App.DataDir, "crawl"), CrawlDrives)
+        {
+            ShouldPause = () =>
+            {
+                try
+                {
+                    return Dispatcher.Invoke(() => Shell.Jobs.Any(j => !j.IsFinished)); // 복사·이동 같은 작업 중엔 쉰다
+                }
+                catch (Exception ex) when (ex is TaskCanceledException or InvalidOperationException)
+                {
+                    return true; // 끄는 중
+                }
+            },
+        };
+        _crawler.Changed += _ => Dispatcher.BeginInvoke(UpdateIndexText);
+        _search.Crawler = _crawler;
+        _search.CrawlDrives = CrawlDrives;
+        _crawler.Start();
+    }
+
+    /// <summary>모을 드라이브: 준비된 드라이브 중 색인 서비스가 다루지 않는 것 (네트워크, NTFS가 아님, 클라우드 가상 드라이브). 이동식·CD는 뺀다.</summary>
+    private List<string> CrawlDrives()
+    {
+        var list = new List<string>();
+        foreach (var d in DriveInfo.GetDrives())
+        {
+            try
+            {
+                if (!d.IsReady || d.DriveType is DriveType.CDRom or DriveType.Removable or DriveType.NoRootDirectory or DriveType.Unknown)
+                {
+                    continue;
+                }
+
+                if (_search.IsIndexedPath(d.Name))
+                {
+                    continue;
+                }
+
+                if (d.DriveType == DriveType.Network || !string.Equals(d.DriveFormat, "NTFS", StringComparison.OrdinalIgnoreCase) || _search.LastStatus is not null)
+                {
+                    list.Add(d.Name);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
+        return list;
     }
 
     private DispatcherTimer? _indexStatusTimer;
@@ -676,7 +750,9 @@ public partial class ShellWindow : Window, IPaneHost
             var name = d.Name.TrimEnd('\\').ToUpperInvariant();
             if (!indexed.Contains(name))
             {
-                lines.Add($"{name} 색인 없음 ({(d.DriveType == System.IO.DriveType.Network ? "네트워크 드라이브" : "NTFS가 아니거나 가상 드라이브")}) · 그 폴더에 있을 때 직접 훑어요");
+                lines.Add(_crawler?.StatusOf(d.Name) is { } cs
+                    ? $"{name} {(cs.Running ? "천천히 모으는 중" : cs.Complete ? "모으기 완료" : "쉬는 중")} · {Math.Max(0, cs.Found):N0}개 ({(d.DriveType == System.IO.DriveType.Network ? "네트워크 드라이브" : "NTFS가 아니거나 가상 드라이브")})"
+                    : $"{name} 색인 없음 ({(d.DriveType == System.IO.DriveType.Network ? "네트워크 드라이브" : "NTFS가 아니거나 가상 드라이브")}) · 그 폴더에 있을 때 직접 훑어요");
             }
         }
 
@@ -696,16 +772,28 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
-    private static string DriveIndexText(Foldy.Indexer.Client.StatusReply st, DriveItem d)
+    /// <summary>드라이브 옆 한 줄 (사용자 2026-11-21: "색인 중이라고 표시해 줘").</summary>
+    private string DriveIndexText(Foldy.Indexer.Client.StatusReply st, DriveItem d)
     {
         var v = st.Volumes.FirstOrDefault(v => string.Equals(v.Volume.TrimEnd('\\'), d.Letter, StringComparison.OrdinalIgnoreCase));
-        return v?.State switch
+        if (v is not null)
         {
-            Foldy.Indexer.Client.IndexState.Ready => "빠른 찾기 ✓",
-            Foldy.Indexer.Client.IndexState.Indexing => $"빠른 찾기 준비 중 {v.ProgressPermille / 10}%",
-            Foldy.Indexer.Client.IndexState.NotReady => "빠른 찾기 준비 중",
-            _ => "빠른 찾기 없음 · 폴더 안에서만",
-        };
+            return v.State switch
+            {
+                Foldy.Indexer.Client.IndexState.Ready => "색인 완료",
+                Foldy.Indexer.Client.IndexState.Indexing => $"색인 중 {v.ProgressPermille / 10}%",
+                _ => "색인 준비 중",
+            };
+        }
+
+        if (_crawler?.StatusOf(d.Root) is { } c)
+        {
+            return c.Running
+                ? $"색인 중 · {Math.Max(0, c.Found):N0}개 (천천히)"
+                : c.Complete ? $"색인 완료 · {Math.Max(0, c.Found):N0}개" : "색인 쉬는 중";
+        }
+
+        return _crawler is null ? "색인 없음 · 폴더 안에서만" : "색인 기다리는 중";
     }
 
     /// <summary>진단용: Windows 서비스 FoldyIndexer의 상태 (없음/실행 중/중지됨 …).</summary>
@@ -726,6 +814,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
+        _crawler?.Dispose();
         SaveSession(Shell.Capture(null, double.NaN));
         _quickSave.Stop();
         SaveQuickAccess();
@@ -1165,6 +1254,8 @@ public partial class ShellWindow : Window, IPaneHost
             _commands.Clear();
             BuildCommands();
             _ = EnsureQuickSearchHotkeyAsync(null); // 단축키를 바꿨으면 다시 등록 (겹치면 알림)
+            StartSlowCrawl(); // "색인 없는 드라이브도 천천히 모으기" 켜고 끄기
+            UpdateIndexText();
             _ = Shell.Left.ActiveFolder?.RefreshAsync();
             _ = Shell.Right.ActiveFolder?.RefreshAsync();
             LeftPane.RefreshGit();

@@ -54,6 +54,9 @@ public sealed record AppSettings
     /// <summary>빠른 검색 단축키를 다른 프로그램을 쓰는 중에도 받는다 (기본 켬). 끄면 Foldy 창 안에서만.</summary>
     public bool QuickSearchGlobal { get; init; } = true;
 
+    /// <summary>색인이 없는 드라이브(네트워크·회사 드라이브·Google Drive 등)도 천천히 모아 빠른 찾기에 넣는다 (기본 켬).</summary>
+    public bool SlowCrawl { get; init; } = true;
+
     /// <summary>
     /// 화면 전체 크기 (글씨·버튼). 0 = Windows 설정 따르기(기본: 설정 → 접근성 → 텍스트 크기),
     /// 그 밖에는 직접 고른 배율 (1.0, 1.15, 1.3, 1.5). 디스플레이 배율(DPI)은 이와 따로 늘 따라간다.
