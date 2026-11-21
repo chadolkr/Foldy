@@ -62,6 +62,16 @@
     </Setter>
   </Style>
 
+  <!-- 체크 상자·선택 단추 글자도 테마 색 (2026-11-21: 다크 테마의 AI 연결 창에서 검정 글자가 안 보였다) -->
+  <Style TargetType="CheckBox">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.UI}" />
+  </Style>
+  <Style TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.UI}" />
+  </Style>
+
   <!-- 일반 버튼 -->
   <Style TargetType="Button">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />

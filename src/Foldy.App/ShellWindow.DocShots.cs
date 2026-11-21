@@ -610,6 +610,15 @@ public partial class ShellWindow
             };
             var w = (McpWindow)DocOpen(new McpWindow(apps, @"C:\Program Files\Foldy\Foldy.exe", () => true, _ => { }, a => a.Name == "Claude Desktop", preview: true) { Height = 900 });
             await DocShotDialogAsync("mcp", w, 600);
+
+            // 화면 점검: 다크·레트로에서도 글자가 보이는지 (2026-11-21: 다크에서 체크 상자 글자가 검정이라 안 보였다)
+            foreach (var (theme, name) in new[] { (Foldy.UI.Theming.FoldyTheme.Dark, "review-mcp-dark"), (Foldy.UI.Theming.FoldyTheme.Retro, "review-mcp-retro") })
+            {
+                Foldy.UI.Theming.ThemeManager.SetMode(theme);
+                await DocShotDialogAsync(name, w, 800);
+            }
+
+            Foldy.UI.Theming.ThemeManager.SetMode(Foldy.UI.Theming.FoldyTheme.Light);
             w.Close();
         });
 

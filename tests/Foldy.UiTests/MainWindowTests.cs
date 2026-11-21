@@ -98,12 +98,17 @@ public sealed class MainWindowTests
             .FirstOrDefault(t => t.Name == "images" && t.Patterns.SelectionItem.TryGetPattern(out var s) && s.IsSelected.Value);
 
         var hit = Retry.WhileNull(Selected, TimeSpan.FromSeconds(8)).Result;
-        if (hit is null)
+        // 좁은 화면(CI 등)에서 트리가 접혀 있으면 패널마다 트리 단추로 펴 본다 (펴는 순간 따라가야 한다)
+        foreach (var toggle in hit is null ? app.Main.FindAllDescendants(app.By.ByName("폴더 트리 보이기/숨기기")) : [])
         {
-            // 좁은 화면에서 트리가 접혀 있으면 펴 본다 (펴는 순간 따라가야 한다)
-            app.Main.Focus();
-            FlaUI.Core.Input.Keyboard.TypeSimultaneously(FlaUI.Core.WindowsAPI.VirtualKeyShort.CONTROL, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_B);
-            hit = Retry.WhileNull(Selected, TimeSpan.FromSeconds(10)).Result;
+            toggle.AsButton().Invoke();
+            hit = Retry.WhileNull(Selected, TimeSpan.FromSeconds(8)).Result;
+            if (hit is not null)
+            {
+                break;
+            }
+
+            toggle.AsButton().Invoke(); // 이 패널이 아니면 되돌린다
         }
 
         hit.Should().NotBeNull("트리에서 지금 폴더(images)가 펼쳐져 강조돼야 한다: " + string.Join(", ",
