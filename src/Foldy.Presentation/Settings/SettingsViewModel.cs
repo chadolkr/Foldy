@@ -106,6 +106,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>[취소]를 누르면 발생. 창을 닫는 신호로 쓴다.</summary>
     public event EventHandler? Cancelled;
 
+    /// <summary>언어 고르기: Windows 따르기 + 지원 언어(그 언어로 쓴 이름).</summary>
+    public static IReadOnlyList<SettingChoice> LanguageChoices { get; } =
+        [new("auto", Foldy.Core.Localization.Loc.T("settings.language.auto")), .. Foldy.Core.Localization.Loc.Languages.Select(l => new SettingChoice(l.Code, l.NativeName))];
+
     public static IReadOnlyList<SettingChoice> ThemeChoices { get; } =
     [
         new("system", "시스템 설정 따르기"),
@@ -250,6 +254,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private string _language = "auto";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
     private bool _desktopSuggest = true;
 
     [ObservableProperty]
@@ -295,6 +303,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         KeepPreviousVersions = KeepPreviousVersions,
         SlowCrawl = SlowCrawl,
         AiSuggest = AiSuggest,
+        Language = Language,
         DesktopSuggest = DesktopSuggest,
         RebuildableExtra = RebuildableExtra,
     };
@@ -367,6 +376,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         KeepPreviousVersions = s.KeepPreviousVersions;
         SlowCrawl = s.SlowCrawl;
         AiSuggest = s.AiSuggest;
+        Language = s.Language;
         DesktopSuggest = s.DesktopSuggest;
         RebuildableExtra = s.RebuildableExtra;
         AutoOpenGitView = s.AutoOpenGitView;

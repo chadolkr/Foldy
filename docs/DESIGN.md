@@ -182,6 +182,12 @@ $MFT 파싱 순서:
 - 폴더 분석 DB(`%ProgramData%\Foldy\Analysis`): SYSTEM·Administrators·서비스 계정 + **분석을 요청한 사용자만 읽기**(0.9.22, 예전 Interactive 읽기 제거). 사용자마다 처음 한 번만 권한을 쓴다.
 - 검색 결과는 파이프로 연결한 사용자 기준으로 거른다(다른 사용자 프로필 숨김).
 
+## 다국어
+
+- 글은 `assets/i18n/<언어>.json` (원본 `build/i18n/strings.py`에서 만든다). Foldy.Core에 포함 리소스로 들어가고 `Foldy.Core.Localization.Loc`이 읽는다: `Loc.T("키")`, `Loc.F("키", 값)`, XAML `{loc:T 키}` (`Foldy.UI.Localization.TExtension`).
+- 언어: 설정 `Language`(auto·ko·en·es·ja·zh-Hans). Foldy를 켤 때 한 번 정한다(바꾸면 다시 켤 때). auto는 Windows 표시 언어(zh-CN·zh-SG → 간체, 모르는 언어 → 영어). 옮기는 동안은 `App.TranslationComplete=false`라 auto도 한국어.
+- 없는 키는 영어, 그것도 없으면 키 그대로. `LocalizationTests`가 언어마다 키·{0} 자리가 같은지, 한국어가 남았는지 막는다. UI 시험·문서 캡처는 `FOLDY_LANGUAGE`로 고정(시험은 ko).
+
 ## 개발자 정리
 
 - 지워도 되는 폴더 찾기(`Foldy.Core/Cleanup/RebuildableFolders`): 고른 폴더 안을 훑되 찾은 폴더 안으로는 들어가지 않는다. 종류마다 옆 표시 파일(package.json·.csproj·Cargo.toml…)·안 표시 파일(.venv의 pyvenv.cfg)을 확인해 오진을 막는다. 크기는 색인(부모 폴더의 FolderSizes)에서, 없으면 직접 더한다. .git은 CanRebuild=false: 기본 미선택, index·HEAD 시각으로 최근 사용을 보고 경고. 지우기는 휴지통(ShellViewModel.RecycleAsync).

@@ -48,6 +48,9 @@
 
     <!-- 설치 UI: 라이선스(RTF) + 설치 경로. 환영 화면에 SYSTEM 색인 서비스 안내를 덧붙인다 (Strings.en-us.wxl) -->
     <WixVariable Id="WixUILicenseRtf" Value="$(LicenseRtf)" />
+    <!-- Foldy 모양의 설치 화면 (2026-11-22): 왼쪽 주황 띠에 아이콘·한 줄 소개·대표 기능 넷, 위 띠에 아이콘. 그림은 make-art.ps1로 만든다 -->
+    <WixVariable Id="WixUIDialogBmp" Value="$(RepoRoot)\build\installer\dialog.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(RepoRoot)\build\installer\banner.bmp" />
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <ui:WixUI Id="WixUI_InstallDir" />
 

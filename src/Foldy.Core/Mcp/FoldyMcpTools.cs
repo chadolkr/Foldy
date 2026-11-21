@@ -62,8 +62,8 @@ public static class FoldyMcpTools
     /// </summary>
     public static string SuggestLine(string app, int seed)
     {
-        var (ask, _) = Examples[(int)((uint)seed % (uint)Examples.Count)];
-        return $"{app}에게 \"{ask}\"라고 하면 Foldy가 내 PC에서 찾아 줘요. 읽기만 해요.";
+        var i = (int)((uint)seed % (uint)Examples.Count);
+        return Localization.Loc.F("suggest.ai", app, Localization.Loc.T("ai.ex." + i));
     }
 
     public const string Instructions =

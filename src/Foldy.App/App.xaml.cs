@@ -31,6 +31,45 @@ public partial class App : Application
 
     public static AppOptions Options { get; private set; } = new();
 
+    /// <summary>
+    /// 모든 화면 글을 언어 파일로 옮겼나 (다국어 작업 중, 2026-11-21~). 거짓이면 "Windows 언어 따르기"도 한국어로 시작한다.
+    /// 다 옮기고 번역을 검수하면 참으로 바꾼다 (DECISIONS 다국어).
+    /// </summary>
+    public const bool TranslationComplete = false;
+
+    /// <summary>화면 언어를 정한다 (설정 Language, auto면 Windows 언어). 창을 만들기 전에 불러야 XAML 글이 그 언어로 나온다.</summary>
+    private static void ApplyLanguage()
+    {
+        string? setting = null;
+        try
+        {
+            var path = Path.Combine(DataDir, "settings.json");
+            if (File.Exists(path))
+            {
+                setting = Foldy.Presentation.Persistence.JsonFileStore.Load(path, () => new Foldy.Presentation.Persistence.AppSettings()).Language;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+        }
+
+        // 시험·문서 캡처는 언어를 고정할 수 있다 (FOLDY_LANGUAGE=ko 등). 문서 그림은 한국어판 기본
+        if (Environment.GetEnvironmentVariable("FOLDY_LANGUAGE") is { Length: > 0 } forced)
+        {
+            setting = forced;
+        }
+        else if (Options.DocShots is not null)
+        {
+            setting = "ko";
+        }
+        else if (!TranslationComplete && (string.IsNullOrEmpty(setting) || setting == "auto"))
+        {
+            setting = "ko"; // 옮기는 중에는 Windows 언어를 따르지 않는다 (반은 영어·반은 한국어 화면을 막는다). 설정에서 고르면 그 언어로
+        }
+
+        Foldy.Core.Localization.Loc.Use(setting);
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         if (e.Args.Contains("--mcp", StringComparer.OrdinalIgnoreCase))
@@ -43,6 +82,7 @@ public partial class App : Application
         }
 
         Options = AppOptions.Parse(e.Args);
+        ApplyLanguage();
         if (Options.DocShots is not null)
         {
             // 문서용 캡처는 항상 모던 라이트. 사용자 설정·세션을 건드리지 않도록 FOLDY_DATA_DIR(임시 폴더)가 꼭 필요하다.
