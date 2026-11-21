@@ -121,7 +121,8 @@ public partial class ShellWindow : Window, IPaneHost
             AskBigDeleteAsync = q => DeleteFlows.AskBigDeleteAsync(this, q),
         };
 
-        _updater = new LegacyUpdateSource(new AppUpdater(AppVersion));
+        // Store(MSIX) 판은 Microsoft Store가 업데이트한다: 자체 업데이트(AppUpdater·서비스)는 쓰지 않는다 (docs/store.md)
+        _updater = Foldy.Platform.SystemInfo.AppPackage.IsPackaged ? new StoreUpdateSource() : new LegacyUpdateSource(new AppUpdater(AppVersion));
         _updater.Changed += OnUpdaterChanged;
         _search = new FileSearchService(() => App.Options.DocShots is null ? _indexer : null, // 문서 캡처는 색인(전체 드라이브)을 검색에 쓰지 않는다
              () => _settings.ShowHidden);
@@ -391,7 +392,7 @@ public partial class ShellWindow : Window, IPaneHost
             }, DispatcherPriority.ApplicationIdle);
         }
 
-        if (!App.Options.IsBench && !App.Options.IsCapture)
+        if (!App.Options.IsBench && !App.Options.IsCapture && !Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
         {
             _updater.Start(TimeSpan.FromSeconds(5)); // 실행 5초 뒤 + 6시간마다 (짧게 켰다 꺼도 확인되게)
             _ = UseServiceUpdaterAsync(); // 서비스를 쓸 수 있으면 UAC 없는 쪽으로 바꾼다
@@ -1520,6 +1521,22 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>[업데이트] 버튼: 바로 확인하고, 새 버전이 있으면 설치를 묻고, 실패하면 이유를 보여 준다.</summary>
     private async Task CheckAndOfferUpdateAsync(bool interactive)
     {
+        if (Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
+        {
+            // Store 판: Store의 다운로드 및 업데이트 화면을 연다
+            Shell.Status = "Microsoft Store에서 Foldy 업데이트를 확인해요";
+            try
+            {
+                Process.Start(new ProcessStartInfo("ms-windows-store://downloadsandupdates") { UseShellExecute = true });
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                Log.Warning(ex, "Store 업데이트 화면을 열지 못함");
+            }
+
+            return;
+        }
+
         // 받아 둔 업데이트가 있어도 서비스에는 한 번 더 확인한다: 그사이 더 새 버전이 나왔으면 그것으로 바뀐다
         // (2026-11-21 사용자: "업데이트 정보를 받은 상태에서는 새 버전이 있어도 새 버전으로 업데이트하지 않는다")
         if (_updater.ReadyVersion is null || _updater is ServiceUpdater)
@@ -1939,7 +1956,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         try
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(target) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
         {
@@ -2720,7 +2737,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         var dir = Path.Combine(App.DataDir, "logs");
         Directory.CreateDirectory(dir);
-        using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dir) { UseShellExecute = true });
+        using var _ = Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
     }
 
     /// <summary>
