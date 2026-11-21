@@ -14,9 +14,16 @@ npm run build    # dist/ 에 만들어짐
 - **다운로드 단추**: 만들 때 GitHub에서 최신 릴리스를 읽어 MSI 주소와 버전을 넣어요. 못 읽으면 Releases 최신 페이지로 보내요.
 - **배포**: `main`에 `site/`가 바뀌거나 새 릴리스가 나오면 `.github/workflows/pages.yml`이 다시 만들어 올려요.
 
-## 영어 더하기
+## 언어
 
-1. `src/i18n/ko.ts`를 복사해 `src/i18n/en.ts`로 만들고 글자만 바꿔요 (`lang: 'en'`).
-2. `src/i18n/index.ts`의 `dictionaries`에 `en`을 넣어요.
-3. `astro.config.mjs`의 `locales`에 `'en'`을 넣어요.
-4. `src/pages/en/index.astro`를 `index.astro`처럼 만들고 `dictionaries.en`을 넘겨요. → `/Foldy/en/`
+한국어(기본, `/Foldy/`), English(`/en/`), Español(`/es/`), 日本語(`/ja/`), 简体中文(`/zh-cn/`). 오른쪽 위 지구본 단추로 바꿔요.
+
+- 언어마다 `src/i18n/<언어>.ts` 하나. 모양이 `ko.ts`와 같아야 해서, 빠진 문구가 있으면 `npm run check`(빌드에 포함)가 알려 줘요.
+- 문구를 고치면 공유 그림도 다시 만들어요: `node scripts/make-og.mjs` → `public/og/<언어>.png` (Playwright 필요).
+- 검색용: 언어별 설명·`hreflang`·사이트맵(`sitemap-index.xml`)·`robots.txt`·공유 그림이 자동으로 들어가요.
+
+### 언어 더하기
+
+1. `src/i18n/ko.ts`를 복사해 `src/i18n/<언어>.ts`로 만들고 글자만 바꿔요.
+2. `src/i18n/index.ts`의 `locales`에 한 줄, `astro.config.mjs`의 `locales`에 한 줄 더해요. 페이지(`/<언어>/`)는 저절로 생겨요.
+3. `scripts/make-og.mjs`의 `langs`에 넣고 공유 그림을 만들어요.

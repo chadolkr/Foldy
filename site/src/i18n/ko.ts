@@ -1,9 +1,11 @@
-// 사이트의 모든 글자. 영어를 더할 때는 이 파일을 복사해 en.ts로 옮기고 글자만 바꾼다.
+// 사이트의 모든 글자 (한국어, 기본). 다른 언어 파일(en.ts 등)은 이 파일과 모양이 같아야 한다.
 // 문장을 조각내 이어 붙이지 않는다 (DESIGN-PRINCIPLES 다국어 원칙). 그림은 이름(img)으로만 가리킨다.
 
 const ko = {
   lang: 'ko',
   zoom: '눌러서 크게 보기',
+  // 화면 사진이 이 언어가 아닐 때 한 줄 안내 (한국어는 빈칸)
+  shotsNote: '',
   meta: {
     title: 'Foldy · 빠르고 똑똑한 파일 관리자, 오프라인에서도',
     description:
@@ -17,6 +19,7 @@ const ko = {
     github: 'GitHub',
     download: '내려받기',
     skip: '본문으로 건너뛰기',
+    language: '언어',
   },
   hero: {
     title: '빠르고 똑똑한 파일 관리자,\n오프라인에서도',

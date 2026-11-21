@@ -1,10 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
 import Landing from '../components/Landing.astro';
-import { dictionaries } from '../i18n';
+import { locales, defaultLocale } from '../i18n';
 
-const t = dictionaries.ko;
+const locale = locales.find((l) => l.path === defaultLocale)!;
 ---
-<Base lang={t.lang} title={t.meta.title} description={t.meta.description}>
-  <Landing t={t} />
+<Base locale={locale}>
+  <Landing locale={locale} />
 </Base>

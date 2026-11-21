@@ -84,7 +84,26 @@ p { margin: 0; }
 .top nav { display: flex; gap: 4px; margin-left: auto; }
 .top nav a { padding: 8px 12px; border-radius: 8px; text-decoration: none; color: var(--text-2); font-size: 16px; font-weight: 500; }
 .top nav a:hover { background: var(--bg-tint); color: var(--text); }
-@media (max-width: 760px) { .top nav { display: none; } .top-inner .btn { margin-left: auto; } }
+@media (max-width: 760px) { .top nav { display: none; } .top-inner .lang { margin-left: auto; } }
+.top-inner { gap: 12px; }
+.brand { margin-right: 12px; }
+
+/* 언어 바꾸기: 늘 같은 자리(오른쪽 위), 지금 언어 이름이 보이게 */
+.lang { position: relative; }
+.lang summary { list-style: none; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); cursor: pointer; font-size: 15px; font-weight: 600; color: var(--text-2); }
+.lang summary::-webkit-details-marker { display: none; }
+.lang summary:hover, .lang[open] summary { background: var(--surface); color: var(--text); }
+.lang ul { position: absolute; right: 0; top: calc(100% + 6px); list-style: none; margin: 0; padding: 6px; min-width: 160px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); z-index: 20; }
+.lang a { display: block; padding: 10px 12px; border-radius: 8px; text-decoration: none; font-size: 16px; }
+.lang a:hover { background: var(--bg-tint); }
+.lang a[aria-current='page'] { color: var(--accent-strong); font-weight: 700; }
+@media (max-width: 420px) { .lang summary span { display: none; } }
+.shots-note { margin-top: 14px; text-align: center; color: var(--text-2); font-size: 15px; }
+
+/* 일본어·중국어는 띄어쓰기가 없어 keep-all이면 줄이 안 바뀐다 */
+html:lang(ja) body, html:lang(zh-CN) body { word-break: normal; line-break: strict; }
+html:lang(ja) body { font-family: 'Yu Gothic UI', 'Hiragino Sans', 'Noto Sans JP', Meiryo, 'Pretendard Variable', sans-serif; }
+html:lang(zh-CN) body { font-family: 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', 'Pretendard Variable', sans-serif; }
 
 /* 첫 화면 */
 .hero { padding: 72px 0 0; }

@@ -1,0 +1,212 @@
+// Español. Misma forma que ko.ts (TypeScript lo comprueba).
+import type { Dictionary } from './index';
+
+const es: Dictionary = {
+  lang: 'es',
+  zoom: 'Haz clic para ampliar',
+  shotsNote: 'Las capturas muestran la interfaz en coreano. La versión en español está en camino.',
+  meta: {
+    title: 'Foldy · Un gestor de archivos rápido e inteligente, incluso sin conexión',
+    description:
+      'Gestor de archivos gratuito y de código abierto para Windows. Encuentra lo que sea con Ctrl+Espacio, libera espacio y ordena el Escritorio y las Descargas paso a paso. Todo funciona sin internet.',
+  },
+  nav: {
+    features: 'Funciones',
+    safety: 'Privacidad',
+    install: 'Instalar',
+    faq: 'Preguntas',
+    github: 'GitHub',
+    download: 'Descargar',
+    skip: 'Saltar al contenido',
+    language: 'Idioma',
+  },
+  hero: {
+    title: 'Un gestor de archivos rápido e inteligente.\nIncluso sin conexión.',
+    sub: 'Y aún mejor si lo conectas a tu IA',
+    lead: 'Encuentra archivos, libera espacio y pon orden en tu Escritorio. Se ve y se usa como el Explorador de archivos, así que puedes empezar ya. Sin manuales.',
+    download: 'Descargar gratis',
+    versionPrefix: 'Versión',
+    requirements: 'Windows 10 y 11 (64 bits) · Gratis y de código abierto',
+    secondary: 'Ver qué hace',
+    imageAlt: 'Ventana principal de Foldy: carpetas favoritas y unidades a la izquierda, dos listas de archivos lado a lado.',
+  },
+  highlights: [
+    { value: '0,003 s', label: 'para encontrar un archivo por nombre entre 2,17 millones', note: 'Medido en un portátil' },
+    { value: '0 €', label: 'Sin anuncios ni planes de pago, con el código fuente', note: 'GPL-3.0' },
+    { value: 'Sin conexión', label: 'Todas las funciones van sin internet', note: 'Todo se queda en tu PC' },
+  ],
+  features: {
+    eyebrow: 'Las cuatro cosas que más se hacen',
+    title: 'Empieza por lo que quieres hacer',
+    lead: 'Estas cuatro están siempre arriba en la barra lateral de Foldy. Elige una y Foldy te guía paso a paso.',
+    items: [
+      {
+        id: 'find',
+        kicker: 'Encontrar lo que sea',
+        key: 'Ctrl + Espacio',
+        title: 'Pulsa Ctrl+Espacio donde sea.\nResultados mientras escribes.',
+        summary:
+          'Estés en la aplicación que estés, pulsa Ctrl+Espacio y aparece un gran cuadro de búsqueda en el centro de la pantalla. Archivos, aplicaciones, ajustes de Windows y hasta cálculos, todo desde un solo cuadro.',
+        points: [
+          { title: 'Archivos y carpetas', text: 'Escribe parte del nombre y aparece al instante, con una vista previa de la imagen, las primeras líneas del texto, el tamaño y la fecha. Intro lo abre; Ctrl+Intro abre la carpeta que lo contiene.' },
+          { title: 'Aplicaciones y ajustes de Windows', text: 'Escribe "wifi", "tamaño de texto" o "impresora" para ir directo a ese ajuste. Las aplicaciones del menú Inicio también se abren por su nombre.' },
+          { title: 'Dilo con tus palabras', text: 'Escribe "ordena mis descargas" o "vacía la papelera" y Foldy encuentra la herramienta adecuada y te pregunta: "¿Lo hago?"' },
+          { title: 'Cálculos y conversiones', text: 'Escribe 12*3+4, 200*15% o 5 km to mi y verás la respuesta al momento. Pulsa Intro para copiarla.' },
+          { title: 'Unidades de red, NAS y USB', text: 'Las unidades sin índice se recorren poco a poco en segundo plano mientras Foldy está abierto. Va más despacio si la unidad está ocupada y se detiene mientras copias.' },
+        ],
+        note: 'No busca en internet. Lo que escribes nunca sale de tu PC.',
+        img: 'quicksearch',
+        imgAlt: 'Búsqueda rápida: al escribir "informe" aparecen cuatro archivos y un sabueso dice que los trajo en 0,002 segundos.',
+        extra: [
+          { img: 'quicksearchCalc', alt: 'Al escribir una operación en la búsqueda rápida aparece el resultado al instante.' },
+          { img: 'quicksearchTalk', alt: 'Al escribir una petición con palabras normales aparece la herramienta de Foldy adecuada.' },
+        ],
+      },
+      {
+        id: 'space',
+        kicker: 'Liberar espacio',
+        key: 'Análisis de carpetas',
+        title: '¿Disco lleno?\nMira qué lo ocupa.',
+        summary:
+          'Elige una unidad o carpeta y Foldy dibuja lo que ocupa espacio como cajas grandes. Cuanto más grande la carpeta, más grande la caja.',
+        points: [
+          { title: 'Haz clic en una caja para entrar', text: 'Haz clic en cualquier caja para abrir esa carpeta. Clic derecho o Retroceso para volver arriba.' },
+          { title: 'O léelo como lista', text: 'Carpetas y archivos más grandes, carpetas con más archivos, archivos antiguos y carpetas que han crecido desde la última vez.' },
+          { title: 'Solo sugerencias seguras', text: 'Foldy solo sugiere lo que se puede borrar sin problema, como archivos temporales, cachés y resultados de compilación que se pueden volver a crear. Nunca sugiere carpetas del sistema como Windows o Archivos de programa.' },
+          { title: 'Todo va a la Papelera', text: '[Mover a la Papelera] pregunta una vez más y solo mueve a la Papelera. Si cambias de idea, puedes recuperarlo.' },
+        ],
+        note: 'Con el servicio de índice instalado, el análisis tarda segundos porque no vuelve a leer el disco.',
+        img: 'analysis',
+        imgAlt: 'Análisis de carpetas: vídeos, instaladores, copias de seguridad y fotos como cajas según el espacio que ocupan.',
+        extra: [],
+      },
+      {
+        id: 'tidy',
+        kicker: 'Ordenar Escritorio, Descargas y carpetas',
+        key: 'Limpieza guiada',
+        title: 'Como un amigo que te ayuda\na ordenar tu cuarto',
+        summary:
+          'Foldy primero te cuenta qué ha encontrado, por qué conviene ordenarlo y qué pasará exactamente. Luego eliges: [Ordenar], [Ver detalles] o [Más tarde].',
+        points: [
+          { title: 'Escritorio', text: 'Los archivos que no has usado en 7 días van a una carpeta "Archivo del Escritorio", por mes y por tipo. Los accesos directos y los archivos recientes se quedan donde están.' },
+          { title: 'Descargas', text: 'Encuentra instaladores que ya usaste, duplicados, zips que ya descomprimiste y archivos antiguos, y te deja elegir: Papelera o archivo.' },
+          { title: 'Tu propio estilo de carpetas', text: 'Elige un método como PARA y Foldy te enseña cómo quedará antes de mover nada. No se mueve nada hasta que tú lo digas.' },
+          { title: 'Un aviso discreto', text: 'Si se acumulan más de 20 archivos en el Escritorio, Foldy te lo pregunta en una línea al abrirse. [Más tarde] espera 7 días; [No volver a preguntar] es definitivo.' },
+        ],
+        note: 'Nada se tira solo. Foldy te dice dónde ha puesto cada cosa. Un clic en [Deshacer] lo deja todo como estaba.',
+        img: 'guide',
+        imgAlt: 'Ventana de limpieza guiada explicando que encontró 128 archivos sin usar, con los botones Ordenar, Ver detalles y Más tarde.',
+        extra: [{ img: 'paraOrganize', alt: 'Vista previa de una carpeta desordenada repartida en las cuatro carpetas PARA antes de mover nada.' }],
+      },
+      {
+        id: 'template',
+        kicker: 'Crear carpetas con plantillas',
+        key: 'Ctrl + Mayús + N',
+        title: 'Ese sistema de carpetas que leíste,\nen un clic',
+        summary:
+          '¿Querías probar PARA y te quedaste atascado creando carpetas? Elige una plantilla y toda la estructura aparece de golpe, con una nota sobre qué va en cada carpeta.',
+        points: [
+          { title: 'Personal y trabajo', text: 'PARA, Johnny.Decimal, prefijos de número y fecha, proyectos de clientes, fases de un documento, investigación y estudio, papeles del hogar.' },
+          { title: 'Proyectos según estándares del sector', text: 'Gestión de proyectos (los cinco grupos de procesos del PMBOK), documentación de sistemas TI (ISO/IEC/IEEE 12207), información de construcción y diseño (ISO 19650).' },
+          { title: 'Fotos, creatividad y archivo', text: 'Biblioteca de fotos y vídeos, recursos de diseño y creatividad, archivo por fechas.' },
+          { title: 'Las carpetas que ya existen no se tocan', text: 'Ves el resultado antes y puedes desmarcar lo que no necesites. Si una carpeta ya existe, Foldy la deja y solo crea lo que falta.' },
+        ],
+        note: 'Guarda tu estructura como "Mi plantilla" y reutilízala cuando quieras.',
+        img: 'paraTemplate',
+        imgAlt: 'Selector de plantillas con PARA elegido, mostrando 1_Projects, 2_Areas, 3_Resources y 4_Archives con una breve descripción de cada una.',
+        extra: [],
+      },
+    ],
+  },
+  more: {
+    eyebrow: 'Tan familiar como el Explorador',
+    title: 'El día a día, más fácil',
+    lead: 'Los menús del clic derecho, arrastrar y soltar y los atajos funcionan igual que en el Explorador de archivos. Y además tienes:',
+    items: [
+      { icon: 'panes', title: 'Dos paneles lado a lado', text: 'Arrastra de izquierda a derecha, o pulsa F5, y listo. Pestañas por colores, y tus carpetas siguen abiertas la próxima vez.' },
+      { icon: 'eye', title: 'Mira sin abrir', text: 'Pulsa F3 para ver fotos, documentos, PDF y código justo encima de la lista. Las notas (.md) se ven bien formateadas.' },
+      { icon: 'turtle', title: 'Las unidades lentas no lo bloquean', text: 'Foldy mide cada unidad al abrir carpetas. En las lentas muestra primero la lista y deja el trabajo pesado para después. Sin configurar nada.' },
+      { icon: 'undo', title: 'Deshaz tus errores', text: 'Los archivos sobrescritos al copiar con Foldy se guardan 7 días. Borrar manda los archivos a la Papelera.' },
+      { icon: 'lock', title: 'Notas bloqueadas y cajas fuertes', text: 'Notas con contraseña y cajas fuertes que protegen muchos archivos a la vez, con cifrado fuerte que oculta hasta los nombres.' },
+      { icon: 'ball', title: 'Copiar es divertido', text: 'Unos niños juegan al baloncesto mientras se copian tus archivos y encestan un triple al terminar. Se puede desactivar en Ajustes.' },
+      { icon: 'update', title: 'Se actualiza solo', text: 'Las versiones nuevas se instalan solo tras comprobar su firma y cuando terminan tus copias. También detrás de proxies de empresa.' },
+      { icon: 'code', title: 'Extras para desarrolladores', text: 'El estado de Git aparece al entrar en un repositorio, los servidores SFTP y SSH se abren como pestañas y Foldy encuentra carpetas de compilación que se pueden borrar.' },
+    ],
+  },
+  ai: {
+    eyebrow: 'Una cosa más',
+    title: 'Y aún mejor si lo conectas a tu IA',
+    lead: 'Pulsa [Conectar con IA] una vez y apps de IA como Claude podrán pedirle a Foldy que busque en tu PC. Sin tocar archivos de configuración.',
+    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code',
+    examplesTitle: 'Prueba a preguntar',
+    examples: [
+      '«Encuentra el presupuesto del año pasado.»',
+      '«¿Qué carpetas ocupan más espacio en la unidad D?»',
+      '«Resúmeme qué hay en mi carpeta de Descargas.»',
+    ],
+    points: [
+      'Solo lectura. Nunca mueve ni borra nada.',
+      'Desactivado por defecto, y se apaga en la misma pantalla.',
+      'No se abre a internet. Solo habla con apps de IA de tu propio PC.',
+    ],
+    footnote: 'Todas las funciones de Foldy van sin IA.',
+    img: 'mcp',
+    imgAlt: 'Pantalla Conectar con IA con las apps de IA instaladas en este PC, un botón para conectar y preguntas de ejemplo.',
+  },
+  safety: {
+    eyebrow: 'Úsalo con tranquilidad',
+    title: 'Tus archivos se quedan en tu PC',
+    items: [
+      { title: 'Funciona sin internet', text: 'Buscar, analizar, ordenar y las plantillas funcionan sin conexión. Foldy sigue reglas claras, así que es rápido y predecible.' },
+      { title: 'El índice se queda aquí', text: 'La lista de nombres de archivo que Foldy crea para buscar rápido se guarda solo en este equipo y nunca se sube.' },
+      { title: 'Sin anuncios, estadísticas ni rastreo', text: 'Foldy no cuenta tus clics. Los informes de error solo se envían si aceptas, y antes se quitan rutas y nombres.' },
+      { title: 'Cualquiera puede leer el código', text: 'Foldy es código abierto GPL-3.0. Comprueba exactamente qué hace y ayuda a mejorarlo.' },
+    ],
+    link: 'Leer la política de privacidad',
+  },
+  why: {
+    eyebrow: '¿Por qué código abierto?',
+    quote: 'Llegué hasta aquí gracias al código abierto. Foldy es mi pequeña forma de dar las gracias. Deseo que todo el mundo, sin discriminación, sea feliz.',
+    by: 'David CHA, creador de Foldy',
+    text: 'Por eso Foldy se publica bajo GPL-3.0. Si algo te molesta o tienes una idea, únete.',
+    link: 'Participa en GitHub',
+  },
+  install: {
+    eyebrow: 'Listo en un minuto',
+    title: 'Cómo instalarlo',
+    steps: [
+      { title: 'Descarga', text: 'Descarga el instalador (MSI) con el botón de abajo.' },
+      { title: 'Doble clic', text: 'Haz doble clic en el archivo para instalarlo. El servicio de índice para la búsqueda rápida se instala con él.' },
+      { title: 'Ajústalo a tu gusto', text: 'La primera vez, elige el tamaño del texto y el modo claro u oscuro viéndolo en directo. Luego una introducción de 30 segundos te enseña lo básico.' },
+    ],
+    warning:
+      'Foldy aún no tiene firma de código, así que Windows puede mostrar «Windows protegió su PC». Haz clic en [Más información] y luego en [Ejecutar de todas formas].',
+    uninstall: 'Para quitarlo: Configuración de Windows → Aplicaciones → Aplicaciones instaladas → Foldy → Desinstalar. El servicio de índice también se quita.',
+    allReleases: 'Versiones anteriores y novedades',
+  },
+  faq: {
+    title: 'Preguntas',
+    items: [
+      { q: '¿De verdad es gratis?', a: 'Sí. Sin anuncios ni funciones de pago. Es código abierto GPL-3.0, así que cualquiera puede leer el código fuente.' },
+      { q: '¿Sustituye al Explorador de archivos?', a: 'Puedes usar los dos. Los menús del clic derecho, arrastrar y soltar y los atajos son iguales, así que casi no hay nada que aprender.' },
+      { q: '¿Necesita internet?', a: 'No. Todo funciona sin conexión. Internet solo se usa para buscar actualizaciones y para las conexiones SFTP o Git que tú inicies.' },
+      { q: '¿Funcionará en el PC del trabajo?', a: 'Las unidades seguras lentas y las de red no lo bloquean, y las actualizaciones funcionan detrás de proxies de empresa.' },
+      { q: 'El texto me resulta pequeño.', a: 'Elige un tamaño mayor la primera vez que abras Foldy, o pulsa Ctrl y + cuando quieras. También sigue el tamaño de texto de Windows.' },
+      { q: '¿Dónde informo de un problema?', a: 'Abre una incidencia en GitHub. El botón Informar de un error dentro de Foldy abre una página ya rellenada.' },
+    ],
+  },
+  cta: {
+    title: '¿Empezamos hoy por tu Escritorio?',
+    text: 'Gratis en Windows 10 y 11.',
+  },
+  footer: {
+    made: 'Hecho por David CHA',
+    license: 'Código abierto GPL-3.0',
+    privacy: 'Privacidad',
+    issues: 'Informar de un problema',
+    source: 'Código fuente',
+    note: 'Todas las capturas de este sitio son de Foldy real, hechas con carpetas de ejemplo inventadas.',
+  },
+};
+
+export default es;

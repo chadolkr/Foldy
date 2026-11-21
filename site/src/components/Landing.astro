@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import type { Dictionary } from '../i18n';
+import { locales, localeHref, type Locale } from '../i18n';
 import { getLatestRelease, RELEASES_URL, REPO } from '../lib/release';
 import Icon from './Icon.astro';
 
@@ -21,9 +21,10 @@ type ImgKey = keyof typeof images;
 const img = (k: string) => images[k as ImgKey];
 
 interface Props {
-  t: Dictionary;
+  locale: Locale;
 }
-const { t } = Astro.props;
+const { locale } = Astro.props;
+const t = locale.dict;
 const release = await getLatestRelease();
 const repoUrl = `https://github.com/${REPO}`;
 const lines = (s: string) => s.split('\n');
@@ -44,6 +45,14 @@ const lines = (s: string) => s.split('\n');
       <a href="#faq">{t.nav.faq}</a>
       <a href={repoUrl} rel="noopener">{t.nav.github}</a>
     </nav>
+    <details class="lang">
+      <summary aria-label={t.nav.language}><Icon name="globe" /><span>{locale.name}</span></summary>
+      <ul>
+        {locales.map((l) => (
+          <li><a href={localeHref(l.path)} hreflang={l.htmlLang} lang={l.htmlLang} aria-current={l.path === locale.path ? 'page' : undefined}>{l.name}</a></li>
+        ))}
+      </ul>
+    </details>
     <a class="btn btn-small" href={release.msiUrl}>{t.nav.download}</a>
   </div>
 </header>
@@ -71,6 +80,7 @@ const lines = (s: string) => s.split('\n');
       <figure class="shot shot-hero">
         <Image src={main} alt={t.hero.imageAlt} widths={[800, 1600]} sizes="(max-width: 1160px) 100vw, 1120px" loading="eager" />
       </figure>
+      {t.shotsNote && <p class="shots-note">{t.shotsNote}</p>}
     </div>
   </section>
 

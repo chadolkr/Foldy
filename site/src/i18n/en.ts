@@ -1,0 +1,212 @@
+// English copy. Same shape as ko.ts (TypeScript checks it). Written as natural English, not a word-for-word translation.
+import type { Dictionary } from './index';
+
+const en: Dictionary = {
+  lang: 'en',
+  zoom: 'Click to enlarge',
+  shotsNote: 'Screenshots show the Korean interface. An English interface is on the way.',
+  meta: {
+    title: 'Foldy · A fast, smart file manager that works offline',
+    description:
+      'A free, open-source file manager for Windows. Find anything with Ctrl+Space, free up disk space, and tidy your Desktop and Downloads step by step. Everything works without the internet.',
+  },
+  nav: {
+    features: 'Features',
+    safety: 'Privacy',
+    install: 'Install',
+    faq: 'FAQ',
+    github: 'GitHub',
+    download: 'Download',
+    skip: 'Skip to content',
+    language: 'Language',
+  },
+  hero: {
+    title: 'A fast, smart file manager.\nEven offline.',
+    sub: 'Even better when you connect your AI',
+    lead: 'Find files, free up space, and clean up your Desktop. It looks and feels like File Explorer, so you can start right away. No manual needed.',
+    download: 'Download for free',
+    versionPrefix: 'Latest',
+    requirements: 'Windows 10 & 11 (64-bit) · Free and open source',
+    secondary: 'See what it does',
+    imageAlt: 'Foldy main window: favorite folders and drives on the left, two file lists side by side.',
+  },
+  highlights: [
+    { value: '0.003 s', label: 'to find a file by name among 2.17 million', note: 'Measured on a laptop' },
+    { value: '$0', label: 'No ads, no paid tiers, source code included', note: 'GPL-3.0' },
+    { value: 'Offline', label: 'Every feature works without the internet', note: 'Stays on your PC' },
+  ],
+  features: {
+    eyebrow: 'The four things people do most',
+    title: 'Start with what you want to do',
+    lead: 'These four sit at the top of Foldy’s sidebar. Pick one and Foldy walks you through it, one step at a time.',
+    items: [
+      {
+        id: 'find',
+        kicker: 'Find anything',
+        key: 'Ctrl + Space',
+        title: 'Press Ctrl+Space anywhere.\nResults as you type.',
+        summary:
+          'Whatever app you are in, press Ctrl+Space and a big search box opens in the middle of the screen. Files, apps, Windows settings, even quick math, all from one box.',
+        points: [
+          { title: 'Files and folders', text: 'Type part of a name and it shows up instantly, with a preview of the picture, the first lines of text, size and date. Enter opens it; Ctrl+Enter opens the folder it is in.' },
+          { title: 'Apps and Windows settings', text: 'Type "Wi-Fi", "text size" or "printer" to jump straight to that settings page. Start-menu apps launch by name, too.' },
+          { title: 'Just say what you want', text: 'Type "clean up my downloads" or "empty the recycle bin" and Foldy finds the right tool and asks, "Want me to do this?"' },
+          { title: 'Math and unit conversions', text: 'Type 12*3+4, 200*15% or 5 km to mi and the answer appears right away. Press Enter to copy it.' },
+          { title: 'Network drives, NAS and USB too', text: 'Drives without an index are gathered quietly in the background while Foldy runs. It slows down when a drive is busy and pauses while you copy.' },
+        ],
+        note: 'No web search. What you type never leaves your PC.',
+        img: 'quicksearch',
+        imgAlt: 'The quick search box: typing a word for "report" lists four report files, and a bloodhound says it fetched them in 0.002 seconds.',
+        extra: [
+          { img: 'quicksearchCalc', alt: 'Typing a calculation into quick search shows the answer instantly.' },
+          { img: 'quicksearchTalk', alt: 'Typing a request in plain words finds the matching Foldy tool.' },
+        ],
+      },
+      {
+        id: 'space',
+        kicker: 'Free up space',
+        key: 'Folder analysis',
+        title: 'Disk full?\nSee what is eating it.',
+        summary:
+          'Pick a drive or folder and Foldy draws what takes up space as big boxes. The bigger the folder, the bigger the box.',
+        points: [
+          { title: 'Click a box to go inside', text: 'Click any box to open that folder. Right-click or press Backspace to go back up.' },
+          { title: 'Or read it as a list', text: 'Biggest folders, biggest files, folders with the most files, old files, and folders that grew since last time.' },
+          { title: 'Only safe suggestions', text: 'Foldy suggests only things that are safe to remove, like temp files, caches and build output that can be recreated. System folders such as Windows and Program Files are never suggested.' },
+          { title: 'Everything goes to the Recycle Bin', text: '[Move to Recycle Bin] asks once more, then only moves files to the Recycle Bin. Change your mind and you can restore them.' },
+        ],
+        note: 'With the index service installed, analysis takes seconds because the disk is not read again.',
+        img: 'analysis',
+        imgAlt: 'Folder analysis: video, installers, backups and photos shown as boxes sized by how much space they use.',
+        extra: [],
+      },
+      {
+        id: 'tidy',
+        kicker: 'Tidy Desktop, Downloads and folders',
+        key: 'Guided cleanup',
+        title: 'Like a friend helping you\ntidy your room',
+        summary:
+          'Foldy first tells you what it found, why tidying helps, and exactly what will happen. Then you choose: [Tidy up], [Show details] or [Later].',
+        points: [
+          { title: 'Desktop', text: 'Files you have not touched in 7 days go into a "Desktop archive" folder, sorted by month and type. Shortcuts and recent files stay put.' },
+          { title: 'Downloads', text: 'Finds installers you already ran, duplicates, zip files you already extracted and old files, then lets you choose: Recycle Bin or archive.' },
+          { title: 'Your own folder style', text: 'Choose a method such as PARA and Foldy shows how things will look before anything moves. Nothing moves until you say so.' },
+          { title: 'A gentle nudge', text: 'When more than 20 files pile up on your Desktop, Foldy asks in one line when it starts. [Later] waits 7 days; [Don’t ask again] means it won’t.' },
+        ],
+        note: 'Nothing is thrown away on its own. Foldy tells you where things went. One click on [Undo] puts everything back.',
+        img: 'guide',
+        imgAlt: 'Guided cleanup window explaining it found 128 unused files, with Tidy up, Show details and Later buttons.',
+        extra: [{ img: 'paraOrganize', alt: 'Preview of a messy folder sorted into the four PARA folders before anything is moved.' }],
+      },
+      {
+        id: 'template',
+        kicker: 'Create folders from templates',
+        key: 'Ctrl + Shift + N',
+        title: 'That folder system you read about,\nin one click',
+        summary:
+          'Ever wanted to try PARA but got stuck creating all the folders? Pick a template, and the whole structure appears at once, with a note on what goes in each folder.',
+        points: [
+          { title: 'Personal and work', text: 'PARA, Johnny.Decimal, number and date prefixes, client projects, document stages, research and study, household papers.' },
+          { title: 'Projects by industry standard', text: 'Project management (the five PMBOK process groups), IT system documents (ISO/IEC/IEEE 12207), construction and design information (ISO 19650).' },
+          { title: 'Photos, creative work, archives', text: 'Photo and video library, design and creative assets, date-based archive.' },
+          { title: 'Existing folders are left alone', text: 'You see the result first and can untick anything you don’t need. If a folder already exists, Foldy keeps it and only creates what is missing.' },
+        ],
+        note: 'Save the structure you use as “My template” and reuse it any time.',
+        img: 'paraTemplate',
+        imgAlt: 'Template picker with PARA selected, previewing 1_Projects, 2_Areas, 3_Resources and 4_Archives with a short description of each.',
+        extra: [],
+      },
+    ],
+  },
+  more: {
+    eyebrow: 'Familiar like File Explorer',
+    title: 'Everyday work, made easier',
+    lead: 'Right-click menus, drag and drop and keyboard shortcuts work just like File Explorer. On top of that, you get:',
+    items: [
+      { icon: 'panes', title: 'Two panes side by side', text: 'Drag from left to right, or press F5, and the copy is done. Color-coded tabs, and your folders are still open next time.' },
+      { icon: 'eye', title: 'Look without opening', text: 'Press F3 to preview photos, documents, PDFs and code right above the list. Notes (.md) are shown nicely formatted.' },
+      { icon: 'turtle', title: 'Slow drives never freeze it', text: 'Foldy measures each drive as you open folders. On slow ones it shows the list first and does heavy work later. Nothing to configure.' },
+      { icon: 'undo', title: 'Undo your mistakes', text: 'Files overwritten while copying with Foldy are kept for 7 days. Deleting sends files to the Recycle Bin.' },
+      { icon: 'lock', title: 'Locked notes and vaults', text: 'Password-protected notes, and vaults that lock many files together, with strong encryption that hides even file names.' },
+      { icon: 'ball', title: 'Copying is fun', text: 'Kids play basketball while your files copy, and sink a three-pointer when it is done. You can turn it off in Settings.' },
+      { icon: 'update', title: 'Updates take care of themselves', text: 'New versions install only after their signature is checked, and only once your copies finish. Works behind company proxies too.' },
+      { icon: 'code', title: 'Extras for developers', text: 'Git status appears the moment you enter a repo, SFTP and SSH servers open as tabs, and Foldy finds build folders that are safe to remove.' },
+    ],
+  },
+  ai: {
+    eyebrow: 'One more thing',
+    title: 'Even better when you connect your AI',
+    lead: 'Click [Connect to AI] once and AI apps like Claude can ask Foldy to find things on your PC. No config files to edit.',
+    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code',
+    examplesTitle: 'Try asking',
+    examples: [
+      '“Find last year’s quote.”',
+      '“Which folders take up the most space on drive D?”',
+      '“Summarize what’s in my Downloads folder.”',
+    ],
+    points: [
+      'Read-only. It never moves or deletes anything.',
+      'Off by default, and you can turn it off on the same screen.',
+      'Not exposed to the internet. It only talks to AI apps on your own PC.',
+    ],
+    footnote: 'Every Foldy feature works without AI.',
+    img: 'mcp',
+    imgAlt: 'Connect to AI screen listing the AI apps installed on this PC, a Connect button and example questions.',
+  },
+  safety: {
+    eyebrow: 'Use it with peace of mind',
+    title: 'Your files stay on your PC',
+    items: [
+      { title: 'Works without the internet', text: 'Search, analysis, cleanup and templates all run offline. Foldy follows clear rules, so results are fast and predictable.' },
+      { title: 'The index stays here', text: 'The list of file names Foldy builds for fast search is stored on this computer only and never uploaded.' },
+      { title: 'No ads, analytics or tracking', text: 'Foldy does not count your clicks. Crash reports are sent only if you agree, with paths and names removed first.' },
+      { title: 'Anyone can read the code', text: 'Foldy is GPL-3.0 open source. See exactly what it does, and help make it better.' },
+    ],
+    link: 'Read the privacy policy',
+  },
+  why: {
+    eyebrow: 'Why open source?',
+    quote: 'Open source is how I got this far. Foldy is my small way of saying thank you. I hope everyone, without discrimination, finds happiness.',
+    by: 'David CHA, creator of Foldy',
+    text: 'That is why Foldy is released under GPL-3.0. If something bugs you or you have an idea, come join in.',
+    link: 'Get involved on GitHub',
+  },
+  install: {
+    eyebrow: 'Done in a minute',
+    title: 'How to install',
+    steps: [
+      { title: 'Download', text: 'Get the installer (MSI) with the button below.' },
+      { title: 'Double-click', text: 'Double-click the file to install. The index service for fast search is installed with it.' },
+      { title: 'Make it comfortable', text: 'On first launch, pick a text size and light or dark mode while seeing the real thing. Then a 30-second intro shows you around.' },
+    ],
+    warning:
+      'Foldy is not code-signed yet, so Windows may show a “Windows protected your PC” screen. Click [More info], then [Run anyway].',
+    uninstall: 'To remove it: Windows Settings → Apps → Installed apps → Foldy → Uninstall. The index service is removed too.',
+    allReleases: 'Older versions and release notes',
+  },
+  faq: {
+    title: 'Questions',
+    items: [
+      { q: 'Is it really free?', a: 'Yes. No ads and no paid features. It is GPL-3.0 open source, so anyone can read the source code.' },
+      { q: 'Does it replace File Explorer?', a: 'You can use both. Right-click menus, drag and drop and shortcuts match File Explorer, so there is very little to learn.' },
+      { q: 'Does it need the internet?', a: 'No. Every feature works offline. The internet is only used to check for updates and for SFTP or Git connections you start yourself.' },
+      { q: 'Will it work on my work PC?', a: 'Slow secure drives and network drives won’t freeze it, and updates work behind company proxies.' },
+      { q: 'The text is too small for me.', a: 'Choose a larger text size the first time you open Foldy, or press Ctrl and + any time. It also follows your Windows text size.' },
+      { q: 'Where do I report a problem?', a: 'Open an issue on GitHub. The Report a bug button inside Foldy opens a pre-filled page for you.' },
+    ],
+  },
+  cta: {
+    title: 'Why not start with your Desktop today?',
+    text: 'Free on Windows 10 and 11.',
+  },
+  footer: {
+    made: 'Made by David CHA',
+    license: 'GPL-3.0 open source',
+    privacy: 'Privacy',
+    issues: 'Report a problem',
+    source: 'Source code',
+    note: 'Every screenshot on this site is real Foldy, taken with made-up sample folders.',
+  },
+};
+
+export default en;
