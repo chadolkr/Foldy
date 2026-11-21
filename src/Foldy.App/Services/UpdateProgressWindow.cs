@@ -90,7 +90,7 @@ internal static class UpdateProgressWindow
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            foreach (var a in (string[])["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script, "-Version", version, "-Log", LogPath, "-Since", since.ToString(System.Globalization.CultureInfo.InvariantCulture), "-OldPid", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), "-Anim", animDir ?? "", .. colors])
+            foreach (var a in (string[])["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script, "-Version", version, "-Log", LogPath, "-Since", since.ToString(System.Globalization.CultureInfo.InvariantCulture), "-OldPid", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), "-Exe", Environment.ProcessPath ?? "", "-Anim", animDir ?? "", .. colors])
             {
                 psi.ArgumentList.Add(a);
             }
@@ -141,7 +141,7 @@ internal static class UpdateProgressWindow
     }
 
     private const string Script = """
-        param([string]$Version, [string]$Log, [long]$Since, [int]$OldPid, [string]$Anim = "",
+        param([string]$Version, [string]$Log, [long]$Since, [int]$OldPid, [string]$Exe = "", [string]$Anim = "",
               [string]$Bg = "#FFFFFF", [string]$Surface = "#F7F7F8", [string]$Fg = "#1C1C1F", [string]$Fg2 = "#6B6B73",
               [string]$Accent = "#F28C1B", [string]$AccentText = "#FFFFFF", [string]$Border = "#CFCFD4", [string]$Dark = "0")
         Add-Type -AssemblyName System.Windows.Forms
@@ -216,6 +216,7 @@ internal static class UpdateProgressWindow
             $animTimer.Start()
         }
         $start = Get-Date
+        $script:installedAt = $null; $script:slow = $false
         $timer = New-Object System.Windows.Forms.Timer
         $timer.Interval = 1000
         $timer.Add_Tick({
@@ -230,22 +231,28 @@ internal static class UpdateProgressWindow
                     if ($t -match '설치 실패|검증 실패|설치 후에도 버전이') { $msg.Text = "업데이트를 설치하지 못했어요. 지금 쓰던 버전은 그대로예요. Foldy를 다시 열고 [업데이트]를 한 번 더 눌러 주세요."; $failed = $true }
                     elseif ($t -match '끝나지 않아 설치를 미룸') { $msg.Text = "열려 있는 다른 Foldy 창이 닫히기를 기다리고 있어요. 다른 Foldy 창을 모두 닫아 주세요." }
                     elseif ($t -match '설치 시작') { $msg.Text = "설치하고 있어요… 보통 1분 안에 끝나요." }
-                    elseif ($t -match '설치 완료') { $msg.Text = "설치가 끝났어요. Foldy를 다시 여는 중이에요…" }
+                    elseif ($t -match '설치 완료') { $msg.Text = "설치가 끝났어요. Foldy를 다시 여는 중이에요…"; if (-not $script:installedAt) { $script:installedAt = Get-Date } }
                     elseif ($t -match '다시 띄움|정상 시작') { $done = $true }
                 }
             }
             # 새 Foldy가 떠 있으면 끝
             $new = Get-Process -Name Foldy -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $OldPid -and $_.StartTime -gt $start }
             if ($new) { $done = $true }
+            # 설치는 끝났는데 15초가 지나도 Foldy가 안 뜨면 이 창이 직접 연다 (2026-11-21: 서비스가 다시 띄우지 않아 창이 계속 기다린 일)
+            if (-not $done -and $script:installedAt -and ((Get-Date) - $script:installedAt).TotalSeconds -gt 15 -and $Exe -and (Test-Path $Exe)) {
+                Start-Process -FilePath $Exe; $done = $true
+            }
             if ($done) {
                 $timer.Stop(); $msg.Text = "다 됐어요! 새 Foldy가 열려요."; $track.Visible = $false; $barTimer.Stop()
                 if ($pic -and $donePics.Count -gt 0) { $script:finishing = $true } else { $f.Close() }  # 3점슛 → 하이파이브 뒤에 닫힘
                 return
             }
             if ($failed) { $timer.Stop(); $track.Visible = $false; $barTimer.Stop(); $close.Visible = $true; if ($animTimer) { $animTimer.Stop() }; return }
-            if (((Get-Date) - $start).TotalMinutes -gt 5) {
-                $msg.Text = "생각보다 오래 걸리고 있어요. 이 창을 닫고 잠시 뒤 Foldy를 직접 열어 보세요."
-                $timer.Stop(); $track.Visible = $false; $barTimer.Stop(); $close.Visible = $true
+            if (-not $script:slow -and ((Get-Date) - $start).TotalMinutes -gt 5) {
+                # 계속 지켜본다: 설치가 끝나면 그래도 Foldy를 연다
+                $script:slow = $true
+                $msg.Text = "생각보다 오래 걸리고 있어요. 다른 Foldy 창이 열려 있으면 닫아 주세요. 끝나면 Foldy를 열어 드릴게요."
+                $close.Visible = $true
             }
         })
         $timer.Start()

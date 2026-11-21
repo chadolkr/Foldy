@@ -1421,7 +1421,9 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>[업데이트] 버튼: 바로 확인하고, 새 버전이 있으면 설치를 묻고, 실패하면 이유를 보여 준다.</summary>
     private async Task CheckAndOfferUpdateAsync(bool interactive)
     {
-        if (_updater.ReadyVersion is null)
+        // 받아 둔 업데이트가 있어도 서비스에는 한 번 더 확인한다: 그사이 더 새 버전이 나왔으면 그것으로 바뀐다
+        // (2026-11-21 사용자: "업데이트 정보를 받은 상태에서는 새 버전이 있어도 새 버전으로 업데이트하지 않는다")
+        if (_updater.ReadyVersion is null || _updater is ServiceUpdater)
         {
             Shell.Status = "업데이트 확인 중…";
             bool found;

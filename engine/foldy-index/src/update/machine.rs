@@ -85,6 +85,9 @@ pub struct Machine {
     pub last_error: Option<String>,
     /// 설치 요청을 받았고 Foldy가 끝나기를 기다리는 중
     pub install: Option<InstallRequest>,
+    /// 설치가 이미 시작된 뒤에 온 "끝나면 다시 띄워 줘" (그 세션). 진행 중인 설치가 이어받는다.
+    /// (2026-11-21: Foldy를 닫아 시작된 설치를 기다리는 동안 다시 연 Foldy에서 [재시작하고 업데이트]를 누르면 무시되어 Foldy가 다시 뜨지 않았다)
+    pub late_relaunch: Option<u32>,
 }
 
 impl Machine {
@@ -150,6 +153,9 @@ impl Machine {
     /// 설치 요청. 준비된 업데이트가 있어야 한다. 요청은 경로를 담지 않는다.
     pub fn request_install(&mut self, req: InstallRequest) -> Result<(), RequestError> {
         if self.phase == Phase::Installing {
+            if req.relaunch {
+                self.late_relaunch = Some(req.session_id);
+            }
             return Ok(());
         }
         if self.ready.is_none() {
@@ -173,6 +179,7 @@ impl Machine {
         self.install = None;
         self.phase = Phase::Installing;
         self.last_error = None;
+        self.late_relaunch = None;
         Some((ready, req))
     }
 
@@ -432,6 +439,19 @@ mod tests {
         assert!(m.take_install().is_some(), "실패 뒤 다시 시도할 수 있다");
         m.install_failed("SHA-256 불일치".into(), true);
         assert_eq!(m.request_install(REQ), Err(RequestError::NotReady));
+    }
+
+    #[test]
+    fn relaunch_asked_during_install_is_kept() {
+        let mut m = Machine::default();
+        assert!(m.begin_check());
+        m.finish_check(Ok(Checked::Ready(ready("1.2.3"))));
+        m.request_install(InstallRequest { relaunch: false, session_id: 1 }).unwrap(); // Foldy를 닫으며 설치
+        let (_, req) = m.take_install().unwrap();
+        assert!(!req.relaunch);
+        m.request_install(InstallRequest { relaunch: true, session_id: 4 }).unwrap(); // 다시 연 Foldy에서 [재시작하고 업데이트]
+        assert_eq!(m.late_relaunch, Some(4));
+        assert_eq!(m.install, None);
     }
 
     #[test]

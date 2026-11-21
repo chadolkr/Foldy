@@ -238,6 +238,17 @@ impl UpdateService {
                     if r.is_ok() {
                         g.refresh_before_install = true; // 설치 직전에 최신인지 한 번 더 (중간 버전을 거치지 않게)
                     }
+                    // msiexec가 이미 돌고 있으면 저장된 설치 기록에도 "다시 띄우기"를 넣는다 (새 서비스가 시작하며 이어받는다)
+                    if let Some(s) = g.m.late_relaunch
+                        && let Some(p) = g.st.pending.as_mut()
+                        && !p.relaunch
+                    {
+                        p.relaunch = true;
+                        p.session_id = s;
+                        g.m.late_relaunch = None;
+                        self.save(&g);
+                        self.log("설치 중에 다시 띄우기 요청을 받음");
+                    }
                     drop(g);
                     match r {
                         Ok(()) => {
@@ -622,11 +633,13 @@ impl UpdateService {
             let previous_record = g.st.install.clone();
             g.st.record_install(&ready.version, Some(&self.cfg.current_version), prev_msi);
             g.st.rollback_asset = prev_asset;
+            // 기다리는 동안 다른 Foldy가 "다시 띄워 줘"를 보냈으면 이어받는다
+            let late = g.m.late_relaunch.take();
             let p = PendingInstall {
                 version: ready.version.to_string(),
                 msi: ready.path.clone(),
-                relaunch: req.relaunch,
-                session_id: req.session_id,
+                relaunch: req.relaunch || late.is_some(),
+                session_id: late.unwrap_or(req.session_id),
                 rollback: false,
                 started_unix: now_unix(),
                 previous_record,
@@ -644,8 +657,10 @@ impl UpdateService {
 
     /// msiexec가 끝났는데 이 서비스가 아직 살아 있을 때 (실패했거나, MSI가 서비스를 건드리지 않았을 때).
     fn after_installer(&self, p: &PendingInstall, r: std::io::Result<i32>) {
-        {
+        let (relaunch, session) = {
             let mut g = self.lock();
+            // msiexec가 도는 동안 "다시 띄워 줘"가 왔으면 저장된 기록에 들어 있다
+            let (relaunch, session) = g.st.pending.as_ref().map_or((p.relaunch, p.session_id), |q| (q.relaunch || p.relaunch, q.session_id));
             match r {
                 // 0 성공, 3010/1641 다시 시작 필요 (설치 자체는 성공)
                 Ok(0 | 3010 | 1641) => self.finish_success(&mut g, p),
@@ -656,10 +671,11 @@ impl UpdateService {
                 g.watch = Some(StartWatch::new(self.cfg.start_window));
             }
             self.save(&g);
-        }
-        if p.relaunch {
+            (relaunch, session)
+        };
+        if relaunch {
             std::thread::sleep(self.cfg.relaunch_delay);
-            self.relaunch(p.session_id);
+            self.relaunch(session);
         }
     }
 

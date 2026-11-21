@@ -231,6 +231,59 @@ fn install_waits_for_foldy_to_exit_then_defers() {
 }
 
 #[test]
+fn relaunch_asked_while_waiting_for_foldy_is_honored() {
+    // 2026-11-21 실제 사례: Foldy를 닫아 "다시 띄우지 않는 설치"가 Foldy 종료를 기다리는 동안
+    // 다시 연 Foldy에서 [재시작하고 업데이트]를 누르면 그 요청이 무시되어 설치 후 Foldy가 뜨지 않았다
+    let dir = temp_dir("late");
+    let srv = Server::start();
+    srv.release("1.2.3", &payload(5000, 2), &dir);
+    let host = Arc::new(FakeHost::new(None));
+    let mut cfg = config(&srv, &dir, "1.0.0");
+    cfg.idle_timeout = Duration::from_secs(10);
+    *host.processes.lock().unwrap() = vec![77];
+    let svc = UpdateService::new(cfg, host.clone());
+    let rt = rt();
+    rt.spawn(svc.clone().run());
+    svc.handle(MsgType::CheckNow, &[], None);
+    wait_for(&svc, |s| s.state == update_state::READY_TO_INSTALL);
+    frame_status(&svc.handle(MsgType::InstallWhenIdle, &install_req(false, 1), None)); // 닫으면서 설치
+    wait_for(&svc, |s| s.state == update_state::INSTALLING);
+    frame_status(&svc.handle(MsgType::InstallWhenIdle, &install_req(true, 6), Some(6))); // 다시 연 Foldy에서 버튼
+    host.processes.lock().unwrap().clear();
+    let t = Instant::now();
+    while host.lines().len() < 2 && t.elapsed() < Duration::from_secs(10) {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let lines = host.lines();
+    assert_eq!(lines.len(), 2, "{lines:?}");
+    assert!(lines[1].starts_with("relaunch ") && lines[1].ends_with("session=6"), "{}", lines[1]);
+    drop(rt);
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn newer_release_replaces_the_one_waiting_to_install() {
+    // 받아 둔 업데이트(1.2.3)가 설치를 기다리는 동안 1.3.0이 나오면, 확인할 때 1.3.0으로 바뀌고 옛 파일은 지운다
+    let dir = temp_dir("newer");
+    let srv = Server::start();
+    srv.release("1.2.3", &payload(5000, 3), &dir);
+    let host = Arc::new(FakeHost::new(None));
+    let svc = UpdateService::new(config(&srv, &dir, "1.0.0"), host.clone());
+    let rt = rt();
+    rt.spawn(svc.clone().run());
+    svc.handle(MsgType::CheckNow, &[], None);
+    let s = wait_for(&svc, |s| s.state == update_state::READY_TO_INSTALL);
+    assert_eq!(s.available_version, "1.2.3");
+    srv.release("1.3.0", &payload(6000, 4), &dir);
+    svc.handle(MsgType::CheckNow, &[], None);
+    let s = wait_for(&svc, |s| s.state == update_state::READY_TO_INSTALL && s.available_version == "1.3.0");
+    assert_eq!(s.available_version, "1.3.0", "{}", s.last_error);
+    assert!(!dir.join("Updates").join("Foldy-1.2.3-x64.msi").exists(), "옛 파일은 지운다");
+    drop(rt);
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn client_cannot_choose_the_installed_file() {
     let dir = temp_dir("paths");
     let srv = Server::start();
