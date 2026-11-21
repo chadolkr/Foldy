@@ -166,7 +166,7 @@ const zhCN: Dictionary = {
   },
   why: {
     eyebrow: '为什么开源？',
-    quote: '我能走到今天，多亏了开源。Foldy 是我回报这份感激的一点小小心意。愿每个人都能不受歧视，幸福快乐。',
+    quote: '我能走到今天，多亏了开源。Foldy 是我回报这份感激的一点小小心意。\n愿每个人都能不受歧视，幸福快乐。',
     by: 'David CHA，Foldy 作者',
     text: '所以 Foldy 以 GPL-3.0 公开。有不方便的地方或好点子，随时欢迎参与。',
     link: '在 GitHub 上参与',
