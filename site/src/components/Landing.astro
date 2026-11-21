@@ -210,7 +210,7 @@ const lines = (s: string) => s.split('\n');
     <div class="wrap narrow center why">
       <p class="eyebrow">{t.why.eyebrow}</p>
       <blockquote>
-        <p>“{t.why.quote}”</p>
+        <p>“{lines(t.why.quote).map((l, i) => (i ? <><br />{l}</> : l))}”</p>
         <footer>{t.why.by}</footer>
       </blockquote>
       <p class="section-lead">{t.why.text}</p>

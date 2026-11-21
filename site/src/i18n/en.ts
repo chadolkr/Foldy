@@ -166,7 +166,7 @@ const en: Dictionary = {
   },
   why: {
     eyebrow: 'Why open source?',
-    quote: 'Open source is how I got this far. Foldy is my small way of saying thank you. I hope everyone, without discrimination, finds happiness.',
+    quote: 'Open source is how I got this far. Foldy is my small way of saying thank you.\nI hope everyone, without discrimination, finds happiness.',
     by: 'David CHA, creator of Foldy',
     text: 'That is why Foldy is released under GPL-3.0. If something bugs you or you have an idea, come join in.',
     link: 'Get involved on GitHub',

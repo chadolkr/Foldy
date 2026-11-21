@@ -166,7 +166,7 @@ const es: Dictionary = {
   },
   why: {
     eyebrow: '¿Por qué código abierto?',
-    quote: 'Llegué hasta aquí gracias al código abierto. Foldy es mi pequeña forma de dar las gracias. Deseo que todo el mundo, sin discriminación, sea feliz.',
+    quote: 'Llegué hasta aquí gracias al código abierto. Foldy es mi pequeña forma de dar las gracias.\nDeseo que todo el mundo, sin discriminación, sea feliz.',
     by: 'David CHA, creador de Foldy',
     text: 'Por eso Foldy se publica bajo GPL-3.0. Si algo te molesta o tienes una idea, únete.',
     link: 'Participa en GitHub',
