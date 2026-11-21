@@ -411,6 +411,53 @@ public partial class ShellWindow
             win.Close();
         });
 
+        // 짧은 소개용 PARA (사용자 2026-11-21: "폴더 관리 기능 영상을 PARA 타입으로"): 템플릿 고르기 → 뒤죽박죽 폴더를 PARA 네 칸으로
+        await DocSceneAsync("para", async () =>
+        {
+            var vm = new Foldy.Presentation.Templates.TemplateDialogViewModel(_docLibrary!, Path.Combine(r, "Projects"));
+            var item = vm.Templates.First(t => t.Template.Id == "para");
+            vm.SelectedTemplate = item;
+            vm.SelectedTab = Foldy.Presentation.Templates.TemplateDialogTab.Preview;
+            var win = DocOpen(new Foldy.UI.Templates.TemplatePickerWindow { DataContext = vm });
+            foreach (var lb in DocFind<ListBox>(win))
+            {
+                if (lb.Items.Contains(item))
+                {
+                    lb.ScrollIntoView(item);
+                }
+            }
+
+            await DocShotDialogAsync("para-template", win, 1000);
+            win.Close();
+
+            // 뒤죽박죽 문서함 (가짜 파일): 진행 중인 일·계속 관리하는 일·참고 자료·오래된 것이 섞여 있다
+            var messy = Path.Combine(r, "문서함");
+            Directory.CreateDirectory(messy);
+            foreach (var (name, daysAgo) in new[]
+            {
+                ("신제품_기획서.pptx", 3), ("2026_이사_견적비교.xlsx", 5), ("팀회의록_11월.docx", 1),
+                ("건강검진_결과.pdf", 40), ("자동차보험_증권.pdf", 90), ("11월_가계부.xlsx", 2),
+                ("엑셀_함수_참고자료.pdf", 60), ("가족사진_추석.jpg", 50),
+                ("2023_홈페이지개편_완료보고.docx", 700), ("2022_동호회_회비정리.xlsx", 900),
+            })
+            {
+                var f = Path.Combine(messy, name);
+                File.WriteAllText(f, "Foldy 문서용 예시");
+                var t = DateTime.Now.AddDays(-daysAgo);
+                File.SetLastWriteTime(f, t);
+                File.SetLastAccessTime(f, t);
+                File.SetCreationTime(f, t);
+            }
+
+            var org = new Foldy.Presentation.Templates.OrganizeViewModel(messy, new WpfDispatcher(Dispatcher), templates: _docLibrary!.Templates, journalFolder: Path.Combine(App.DataDir, "jobs"));
+            org.SelectedMode = org.Modes.First(m => m.Mode == Foldy.Core.Organize.OrganizeMode.ByTemplate);
+            org.SelectedTemplate = org.Templates.FirstOrDefault(t => t.Id == "para") ?? org.SelectedTemplate;
+            var win2 = DocOpen(new Foldy.UI.Templates.OrganizeWindow { DataContext = org });
+            await org.PlanCommand.ExecuteAsync(null);
+            await DocShotDialogAsync("para-organize", win2, 1200);
+            win2.Close();
+        });
+
         await DocSceneAsync("wizard", async () =>
         {
             var vm = new Foldy.Presentation.Templates.FolderWizardViewModel(Foldy.Core.Templates.TemplateLibrary.LoadWizard(), _docLibrary!, Path.Combine(r, "Projects"));
