@@ -91,7 +91,8 @@ S = {
 # 주 창 메뉴·단추 (shell_strings.py)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from shell_strings import SHELL  # noqa: E402
-for _k, _ko, _en, _es, _ja, _zh in SHELL:
+from xaml_strings import XAML  # noqa: E402
+for _k, _ko, _en, _es, _ja, _zh in SHELL + XAML:
     S[_k] = {"ko": _ko, "en": _en, "es": _es, "ja": _ja, "zh-Hans": _zh}
 
 

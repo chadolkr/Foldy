@@ -1,6 +1,7 @@
 <UserControl x:Class="Foldy.UI.Views.PaneView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Foldy.UI.Localization"
              xmlns:fc="clr-namespace:Foldy.UI.Controls"
              xmlns:tabs="clr-namespace:Foldy.Presentation.Tabs;assembly=Foldy.Presentation"
              xmlns:tree="clr-namespace:Foldy.Presentation.Tree;assembly=Foldy.Presentation"
@@ -24,7 +25,7 @@
           <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                      Foreground="{DynamicResource Brush.Text}" FontSize="{DynamicResource Font.Size}" />
           <Button x:Name="CloseBtn" Grid.Column="2" Style="{DynamicResource Foldy.ToolButton}" Width="28" Height="28" FontSize="10"
-                  Margin="4,0,0,0" Content="&#xE711;" ToolTip="탭 닫기 (Ctrl+W)" Click="OnCloseTab" Tag="{Binding}" Opacity="0.45" />
+                  Margin="4,0,0,0" Content="&#xE711;" ToolTip="{loc:T pane.tab.close}" Click="OnCloseTab" Tag="{Binding}" Opacity="0.45" />
         </Grid>
       </Border>
       <DataTemplate.Triggers>
@@ -54,7 +55,7 @@
                    VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" />
         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
         <!-- 수다쟁이 Foldy: 폴더 목록을 받는 동안 (느린 서버·네트워크) 조용히 기다리게 하지 않는다 -->
-        <TextBlock Text=" · 불러오는 중…" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="12">
+        <TextBlock Text="{loc:T pane.loading}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="12">
           <TextBlock.Style>
             <Style TargetType="TextBlock">
               <Setter Property="Visibility" Value="Collapsed" />
@@ -97,7 +98,7 @@
           </ItemsControl>
         </ScrollViewer>
         <Button Style="{DynamicResource Foldy.ToolButton}" Width="28" Height="28" FontSize="12" Content="&#xE710;"
-                ToolTip="새 탭 (Ctrl+T)" Click="OnNewTab" VerticalAlignment="Bottom" />
+                ToolTip="{loc:T pane.tab.new}" Click="OnNewTab" VerticalAlignment="Bottom" />
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
         <ItemsControl x:Name="DriveStrip" VerticalAlignment="Center" Focusable="False">
@@ -126,8 +127,8 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <!-- 드라이브 끝: SFTP 서버 (저장된 서버 고르기·새 연결). 드라이브 칩과 같은 모양 -->
-        <Button Style="{DynamicResource Foldy.DriveChip}" Click="OnSftpChip" ToolTip="SFTP 서버에 연결 (Ctrl+Shift+O): 저장된 서버를 고르거나 새로 연결해요"
-                AutomationProperties.Name="SFTP 서버에 연결">
+        <Button Style="{DynamicResource Foldy.DriveChip}" Click="OnSftpChip" ToolTip="{loc:T pane.sftp.tip}"
+                AutomationProperties.Name="{loc:T pane.sftp}">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE968;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"
                        Foreground="{DynamicResource Brush.Text}" />
@@ -151,11 +152,11 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel Orientation="Horizontal" Margin="0,0,6,0">
-        <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="폴더 트리 숨기기 (Ctrl+B)"
-                AutomationProperties.Name="폴더 트리 보이기/숨기기" Click="OnToggleTree" Margin="0,0,6,0" />
-        <Button x:Name="BackBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72B;" ToolTip="뒤로 (Alt+←)" Click="OnBack" />
-        <Button x:Name="ForwardBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72A;" ToolTip="앞으로 (Alt+→)" Click="OnForward" />
-        <Button x:Name="UpBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74A;" ToolTip="위로 (Alt+↑)" Click="OnUp" />
+        <Button x:Name="TreeBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE8A0;" ToolTip="{loc:T pane.tree.hide.tip}"
+                AutomationProperties.Name="{loc:T pane.tree.toggle}" Click="OnToggleTree" Margin="0,0,6,0" />
+        <Button x:Name="BackBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72B;" ToolTip="{loc:T pane.back}" Click="OnBack" />
+        <Button x:Name="ForwardBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72A;" ToolTip="{loc:T pane.forward}" Click="OnForward" />
+        <Button x:Name="UpBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74A;" ToolTip="{loc:T pane.up}" Click="OnUp" />
       </StackPanel>
       <Grid Grid.Column="1">
         <Grid.ColumnDefinitions>
@@ -166,8 +167,8 @@
         <StackPanel Grid.Column="1" Orientation="Horizontal">
           <Border x:Name="SlowChip" Margin="6,0,0,0" Padding="8,0" CornerRadius="6" Height="32" Visibility="Collapsed"
                   Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
-                  ToolTip="이 드라이브는 응답이 느려서 미리보기·썸네일·Git 감지를 줄였습니다" ToolTipService.InitialShowDelay="300">
-            <TextBlock Text="느린 드라이브" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" />
+                  ToolTip="{loc:T pane.slow.tip}" ToolTipService.InitialShowDelay="300">
+            <TextBlock Text="{loc:T pane.slow}" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" />
           </Border>
           <!-- Git 브랜치 칩: 저장소 안에서만 보인다 (DESIGN.md Git 통합) -->
           <Border x:Name="GitChip" Margin="6,0,0,0" Padding="8,0" CornerRadius="6" Height="32" Cursor="Hand"
@@ -186,21 +187,21 @@
         <Grid>
           <TextBlock Text="&#xE721;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="9,0,0,0" VerticalAlignment="Center"
                      Foreground="{DynamicResource Brush.TextSecondary}" IsHitTestVisible="False" />
-          <TextBlock x:Name="SearchHint" Text="파일 이름 검색 (Ctrl+F)" Margin="28,0,0,0" VerticalAlignment="Center"
+          <TextBlock x:Name="SearchHint" Text="{loc:T pane.search}" Margin="28,0,0,0" VerticalAlignment="Center"
                      Foreground="{DynamicResource Brush.TextDisabled}" IsHitTestVisible="False" />
           <TextBox x:Name="SearchBox" Padding="24,0,6,0" KeyDown="OnSearchKey" TextChanged="OnSearchTextChanged" />
         </Grid>
       </Border>
       <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="6,0,0,0">
-        <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" ToolTip="새로 고침 (Ctrl+R)" Click="OnRefresh" />
-        <Button x:Name="ImagesBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEB9F;" ToolTip="이미지만 보기 (Ctrl+Shift+I)" Click="OnToggleImages" Visibility="Collapsed" />
+        <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72C;" ToolTip="{loc:T pane.refresh}" Click="OnRefresh" />
+        <Button x:Name="ImagesBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEB9F;" ToolTip="{loc:T pane.images}" Click="OnToggleImages" Visibility="Collapsed" />
         <Rectangle Width="1" Margin="4,8" Fill="{DynamicResource Brush.Border}" />
         <!-- 탭 종류에 따라 같은 자리의 터미널 아이콘이 바뀐다 (DESIGN.md): 로컬 = CMD·PowerShell·관리자, SFTP = SSH·sudo -->
-        <Button x:Name="CmdBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE756;" ToolTip="명령 프롬프트로 이 폴더 열기 (Ctrl+클릭: 관리자)" AutomationProperties.Name="명령 프롬프트" Click="OnCmd" />
-        <Button x:Name="PsBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE943;" ToolTip="PowerShell로 이 폴더 열기 (Ctrl+`) · Ctrl+클릭: 관리자" AutomationProperties.Name="PowerShell" Click="OnPowerShell" />
-        <Button x:Name="AdminBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEA18;" ToolTip="PowerShell(관리자)로 이 폴더 열기 (Ctrl+Shift+`)" AutomationProperties.Name="PowerShell 관리자" Click="OnAdminShell" />
+        <Button x:Name="CmdBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE756;" ToolTip="{loc:T pane.cmd.tip}" AutomationProperties.Name="{loc:T pane.cmd}" Click="OnCmd" />
+        <Button x:Name="PsBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE943;" ToolTip="{loc:T pane.ps.tip}" AutomationProperties.Name="PowerShell" Click="OnPowerShell" />
+        <Button x:Name="AdminBtn" Style="{DynamicResource Foldy.ToolButton}" Content="&#xEA18;" ToolTip="{loc:T pane.psAdmin.tip}" AutomationProperties.Name="{loc:T pane.psAdmin}" Click="OnAdminShell" />
         <Button x:Name="SshBtn" Style="{DynamicResource Foldy.ToolButton}" Width="Auto" Padding="8,0" Visibility="Collapsed"
-                ToolTip="같은 서버·계정·폴더로 SSH 터미널 (Ctrl+`)" Click="OnSsh">
+                ToolTip="{loc:T pane.ssh.tip}" Click="OnSsh">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE756;" FontFamily="{DynamicResource Font.Icon}" VerticalAlignment="Center" />
             <TextBlock Text=" SSH" FontFamily="{DynamicResource Font.UI}" FontSize="{DynamicResource Font.Size}" VerticalAlignment="Center" />
@@ -222,14 +223,14 @@
             <TextBlock x:Name="GitBarBranch" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
             <TextBlock x:Name="GitBarChanges" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" />
           </StackPanel>
-          <Button DockPanel.Dock="Right" Content="Git 화면 열기" Margin="2,3" Padding="10,0" Click="OnGitBarOpen"
-                  ToolTip="커밋 기록, 변경 내용 비교, 커밋 만들기를 한 화면에서" />
-          <Button DockPanel.Dock="Right" Content="커밋…" Margin="2,3" Padding="10,0" Click="OnGitBarCommit"
-                  ToolTip="Git 화면에서 변경한 파일을 골라 커밋합니다" />
-          <Button DockPanel.Dock="Right" Content="올리기" Margin="2,3" Padding="10,0" Click="OnGitBarPush"
-                  ToolTip="내 커밋을 원격 저장소로 보냅니다" />
-          <Button DockPanel.Dock="Right" Content="받기" Margin="2,3" Padding="10,0" Click="OnGitBarPull"
-                  ToolTip="원격 저장소의 새 커밋을 내 브랜치에 합칩니다" />
+          <Button DockPanel.Dock="Right" Content="{loc:T pane.git.open}" Margin="2,3" Padding="10,0" Click="OnGitBarOpen"
+                  ToolTip="{loc:T pane.git.open.tip}" />
+          <Button DockPanel.Dock="Right" Content="{loc:T pane.git.commit}" Margin="2,3" Padding="10,0" Click="OnGitBarCommit"
+                  ToolTip="{loc:T pane.git.commit.tip}" />
+          <Button DockPanel.Dock="Right" Content="{loc:T pane.git.push}" Margin="2,3" Padding="10,0" Click="OnGitBarPush"
+                  ToolTip="{loc:T pane.git.push.tip}" />
+          <Button DockPanel.Dock="Right" Content="{loc:T pane.git.pull}" Margin="2,3" Padding="10,0" Click="OnGitBarPull"
+                  ToolTip="{loc:T pane.git.pull.tip}" />
         </DockPanel>
       </Border>
     </Border>
@@ -238,8 +239,8 @@
     <Border x:Name="ManagedBar" Margin="8,0,8,6" Padding="10,0,4,0" Height="30" CornerRadius="{DynamicResource Radius}" Visibility="Collapsed"
             Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
       <DockPanel LastChildFill="True">
-        <Button DockPanel.Dock="Right" x:Name="ManagedBarButton" Content="정리할 것 보기" Margin="2,3" Padding="10,0" Click="OnManagedBarOpen" />
-        <Button DockPanel.Dock="Right" Content="방식 바꾸기" Margin="2,3" Padding="10,0" Click="OnManagedBarSettings" />
+        <Button DockPanel.Dock="Right" x:Name="ManagedBarButton" Content="{loc:T pane.managed.show}" Margin="2,3" Padding="10,0" Click="OnManagedBarOpen" />
+        <Button DockPanel.Dock="Right" Content="{loc:T pane.managed.change}" Margin="2,3" Padding="10,0" Click="OnManagedBarSettings" />
         <TextBlock Text="&#xE74C;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Accent}" />
         <TextBlock x:Name="ManagedBarText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
       </DockPanel>
@@ -249,10 +250,10 @@
     <Border x:Name="TagBar" Margin="8,0,8,6" Padding="10,0,4,0" Height="30" CornerRadius="{DynamicResource Radius}" Visibility="Collapsed"
             Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
       <DockPanel LastChildFill="True">
-        <ToggleButton DockPanel.Dock="Right" x:Name="TagShareToggle" Content="저장소에 공유" Margin="2,3" Padding="10,0" Visibility="Collapsed" Click="OnTagShare"
-                      ToolTip="태그를 Git 저장소에 함께 올릴지 (기본 끔: 이 PC의 폴더에만)" />
-        <Button DockPanel.Dock="Right" Content="태그 모두 지우기" Margin="2,3" Padding="10,0" Click="OnTagClear" ToolTip="이 폴더 파일들의 태그를 지워요 (파일은 그대로)" />
-        <Button DockPanel.Dock="Right" x:Name="TagNextButton" Content="다음 파일" Margin="2,3" Padding="10,0" Click="OnTagNext" ToolTip="아직 '작업 완료'가 아닌 다음 파일로 (Ctrl+D: 작업 완료 켜고 끄기)" />
+        <ToggleButton DockPanel.Dock="Right" x:Name="TagShareToggle" Content="{loc:T pane.tags.share}" Margin="2,3" Padding="10,0" Visibility="Collapsed" Click="OnTagShare"
+                      ToolTip="{loc:T pane.tags.share.tip}" />
+        <Button DockPanel.Dock="Right" Content="{loc:T pane.tags.clear}" Margin="2,3" Padding="10,0" Click="OnTagClear" ToolTip="{loc:T pane.tags.clear.tip}" />
+        <Button DockPanel.Dock="Right" x:Name="TagNextButton" Content="{loc:T pane.tags.next}" Margin="2,3" Padding="10,0" Click="OnTagNext" ToolTip="{loc:T pane.tags.next.tip}" />
         <TextBlock Text="&#xE73E;" FontFamily="{DynamicResource Font.Icon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Accent}" />
         <TextBlock x:Name="TagBarText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
       </DockPanel>
@@ -296,7 +297,7 @@
                         </Grid.ColumnDefinitions>
                         <ToggleButton x:Name="Expander" Width="28" Height="28" Focusable="False" ClickMode="Press"
                                       IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
-                                      AutomationProperties.Name="펼치기/접기">
+                                      AutomationProperties.Name="{loc:T pane.expand}">
                           <ToggleButton.Template>
                             <ControlTemplate TargetType="ToggleButton">
                               <Border Background="Transparent">
@@ -358,9 +359,9 @@
             <StackPanel x:Name="EmptyPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed" MaxWidth="420">
               <TextBlock Text="&#xE8B7;" FontFamily="{DynamicResource Font.Icon}" FontSize="32" HorizontalAlignment="Center"
                          Foreground="{DynamicResource Brush.TextDisabled}" />
-              <TextBlock x:Name="EmptyText" Text="빈 폴더입니다" Margin="0,8,0,0" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+              <TextBlock x:Name="EmptyText" Text="{loc:T pane.empty}" Margin="0,8,0,0" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                          Foreground="{DynamicResource Brush.TextSecondary}" />
-              <Button x:Name="EmptyExplorerButton" Content="탐색기에서 열기" HorizontalAlignment="Center" Margin="0,12,0,0" Padding="12,4"
+              <Button x:Name="EmptyExplorerButton" Content="{loc:T pane.openExplorer}" HorizontalAlignment="Center" Margin="0,12,0,0" Padding="12,4"
                       Visibility="Collapsed" Click="OnOpenInExplorer" />
             </StackPanel>
             <TextBlock x:Name="LoadingText" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="12"
@@ -369,7 +370,7 @@
                     Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Error}" BorderThickness="1"
                     Visibility="Collapsed">
               <DockPanel>
-                <Button DockPanel.Dock="Right" Content="다시 시도" Click="OnRefresh" Margin="12,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="{loc:T pane.retry}" Click="OnRefresh" Margin="12,0,0,0" />
                 <TextBlock x:Name="ErrorText" TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
               </DockPanel>
             </Border>
@@ -382,8 +383,8 @@
           <Border x:Name="ImagesBar" Visibility="Collapsed" VerticalAlignment="Top" Height="34" Margin="4,4,4,0" Padding="10,0,4,0"
                   CornerRadius="{DynamicResource Radius}" Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
             <DockPanel>
-              <Button DockPanel.Dock="Right" Content="모든 파일 보기" Margin="2,3" Padding="12,0" MinHeight="28" Click="OnToggleImages"
-                      ToolTip="이미지만 보기 끄기 (Ctrl+Shift+I)" />
+              <Button DockPanel.Dock="Right" Content="{loc:T pane.allFiles}" Margin="2,3" Padding="12,0" MinHeight="28" Click="OnToggleImages"
+                      ToolTip="{loc:T pane.images.off}" />
               <TextBlock Text="&#xEB9F;" FontFamily="{DynamicResource Font.Icon}" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Accent}" />
               <TextBlock x:Name="ImagesBarText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.Text}" />
             </DockPanel>

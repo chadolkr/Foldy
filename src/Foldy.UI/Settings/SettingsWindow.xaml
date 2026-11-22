@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:Foldy.UI.Localization"
         xmlns:vm="clr-namespace:Foldy.Presentation.Settings;assembly=Foldy.Presentation"
-        Title="Foldy 설정" Width="880" Height="620" MinWidth="720" MinHeight="480"
+        Title="{loc:T set.title}" Width="880" Height="620" MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         Style="{DynamicResource Foldy.Window}" TextOptions.TextFormattingMode="Ideal">
   <!--
@@ -228,13 +228,13 @@
       <ListBox x:Name="Categories" Background="Transparent" BorderThickness="0" Margin="0,12,0,0"
                ItemContainerStyle="{StaticResource Settings.NavItem}" SelectedIndex="0"
                SelectionChanged="OnCategoryChanged">
-        <ListBoxItem Content="일반" />
-        <ListBoxItem Content="모양" />
-        <ListBoxItem Content="목록" />
-        <ListBoxItem Content="터미널" />
-        <ListBoxItem Content="복사" />
-        <ListBoxItem Content="업데이트" />
-        <ListBoxItem Content="단축키" />
+        <ListBoxItem Content="{loc:T set.page.general}" />
+        <ListBoxItem Content="{loc:T set.page.look}" />
+        <ListBoxItem Content="{loc:T set.page.list}" />
+        <ListBoxItem Content="{loc:T set.page.terminal}" />
+        <ListBoxItem Content="{loc:T set.page.copy}" />
+        <ListBoxItem Content="{loc:T set.page.update}" />
+        <ListBoxItem Content="{loc:T set.page.keys}" />
       </ListBox>
     </Border>
 
@@ -243,59 +243,59 @@
       <!-- 일반 -->
       <ScrollViewer x:Name="PageGeneral" VerticalScrollBarVisibility="Auto" Padding="32,24">
         <StackPanel MaxWidth="600" HorizontalAlignment="Left">
-          <TextBlock Text="일반" Style="{StaticResource Settings.PageTitle}" />
-          <TextBlock Text="Markdown 파일 열기" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.page.general}" Style="{StaticResource Settings.PageTitle}" />
+          <TextBlock Text="{loc:T set.markdownOpen}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.MarkdownChoices}"
                    SelectedValue="{Binding MarkdownOpen, Mode=TwoWay}" />
-          <TextBlock Text="애니메이션" Style="{StaticResource Settings.Section}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="애니메이션 사용 (농구하는 아이들 포함)" IsChecked="{Binding Animations, Mode=TwoWay}" />
-          <TextBlock Text="끄면 작업 패널의 농구 애니메이션과 화면 움직임이 사라집니다. Windows의 '애니메이션 효과 줄이기'도 따릅니다." Style="{StaticResource Settings.Hint}" />
-          <TextBlock Text="이전 버전" Style="{StaticResource Settings.Section}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="덮어쓰기 전에 이전 버전 보관하기 (7일)" IsChecked="{Binding KeepPreviousVersions, Mode=TwoWay}" />
-          <TextBlock Text="Foldy로 복사·이동하다 파일을 덮어쓰면 원래 파일을 같은 드라이브에 7일 동안 보관해요 (드라이브마다 최대 2GB). 파일을 오른쪽 클릭 → 이전 버전 보기로 되돌릴 수 있어요." Style="{StaticResource Settings.Hint}" />
-          <TextBlock Text="빠른 찾기" Style="{StaticResource Settings.Section}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="색인 없는 드라이브도 천천히 모으기 (회사 드라이브·Google Drive 등)" IsChecked="{Binding SlowCrawl, Mode=TwoWay}" />
-          <TextBlock Text="Foldy가 켜져 있는 동안 폴더를 하나씩 살살 열어 파일 목록을 모아요. 드라이브가 느릴수록 더 천천히, 복사 같은 작업 중에는 쉬어요. 모은 목록은 이 PC에만 두고, Ctrl+Space·Ctrl+F로 찾을 수 있어요." Style="{StaticResource Settings.Hint}" />
-          <TextBlock Text="AI 연결" Style="{StaticResource Settings.Section}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="AI 앱이 있으면 연결을 한 줄로 제안하기" IsChecked="{Binding AiSuggest, Mode=TwoWay}" />
-          <TextBlock Text="Claude 같은 AI 앱이 이 PC에 있는데 아직 Foldy와 연결하지 않았으면, Foldy를 켤 때 창 위에 한 줄로 알려 줘요. 연결은 더 보기 → AI 연결 (MCP)에서 언제든 할 수 있어요." Style="{StaticResource Settings.Hint}" />
-          <TextBlock Text="지워도 되는 폴더 찾기" Style="{StaticResource Settings.Section}" />
-          <TextBlock Text="기본 목록(node_modules, bin·obj, target, __pycache__, .venv, dist·build, __history, .git 등)에 더할 폴더 이름 (쉼표로 구분)" Style="{StaticResource Settings.Hint}" />
-          <TextBox Style="{StaticResource Settings.TextBox}" Text="{Binding RebuildableExtra, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="더할 폴더 이름" />
-          <TextBlock Text="더한 이름은 옆에 프로젝트 파일이 없어도 이름만으로 찾아요. 찾은 것은 고른 뒤에만 휴지통으로 가요." Style="{StaticResource Settings.Hint}" />
-          <TextBlock Text="정리 알림" Style="{StaticResource Settings.Section}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="로그·다운로드가 많이 쌓이면 알려 주기" IsChecked="{Binding CleanupNotices, Mode=TwoWay}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="바탕화면·다운로드에 파일이 20개가 넘으면 켤 때 정리를 한 줄로 제안하기" IsChecked="{Binding DesktopSuggest, Mode=TwoWay}" />
-          <TextBlock Text="색인으로 가볍게 확인하고, 정리할 게 많을 때만 한 줄로 알려 줍니다 (일주일에 한 번까지). 저절로 지우지는 않습니다." Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.animations}" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.animations.on}" IsChecked="{Binding Animations, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.animations.hint}" Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.versions}" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.versions.on}" IsChecked="{Binding KeepPreviousVersions, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.versions.hint}" Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.quickFind}" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.slowCrawl}" IsChecked="{Binding SlowCrawl, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.slowCrawl.hint}" Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.ai}" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.ai.suggest}" IsChecked="{Binding AiSuggest, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.ai.hint}" Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.rebuildable}" Style="{StaticResource Settings.Section}" />
+          <TextBlock Text="{loc:T set.rebuildable.hint}" Style="{StaticResource Settings.Hint}" />
+          <TextBox Style="{StaticResource Settings.TextBox}" Text="{Binding RebuildableExtra, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{loc:T set.rebuildable.name}" />
+          <TextBlock Text="{loc:T set.rebuildable.hint2}" Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.cleanupNotices}" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.cleanupNotices.on}" IsChecked="{Binding CleanupNotices, Mode=TwoWay}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.desktopSuggest}" IsChecked="{Binding DesktopSuggest, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.cleanupNotices.hint}" Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="Git" Style="{StaticResource Settings.Section}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="Git 바 보이기" IsChecked="{Binding ShowGitBar, Mode=TwoWay}" />
-          <TextBlock Text="Git 저장소 폴더에서 파일 목록 위에 브랜치·변경 개수와 받기/올리기 버튼을 보입니다." Style="{StaticResource Settings.Hint}" />
-          <TextBlock Text="오류 보고" Style="{StaticResource Settings.Section}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="오류 보고서 자동으로 보내기 (같은 오류는 하나로 묶고, 경로·사용자 이름은 지움)" IsChecked="{Binding SendCrashReports, Mode=TwoWay}" />
-          <TextBlock Text="경로·파일 이름 같은 개인 정보는 제거한 뒤 보내며, 언제든 끌 수 있습니다." Style="{StaticResource Settings.Hint}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.gitBar}" IsChecked="{Binding ShowGitBar, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.gitBar.hint}" Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.crash}" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.crash.on}" IsChecked="{Binding SendCrashReports, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.crash.hint}" Style="{StaticResource Settings.Hint}" />
         </StackPanel>
       </ScrollViewer>
 
       <!-- 모양 -->
       <ScrollViewer x:Name="PageAppearance" VerticalScrollBarVisibility="Auto" Padding="32,24" Visibility="Collapsed">
         <StackPanel MaxWidth="600" HorizontalAlignment="Left">
-          <TextBlock Text="모양" Style="{StaticResource Settings.PageTitle}" />
+          <TextBlock Text="{loc:T set.page.look}" Style="{StaticResource Settings.PageTitle}" />
           <TextBlock Text="{loc:T settings.language}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.LanguageChoices}"
                    SelectedValue="{Binding Language, Mode=TwoWay}" AutomationProperties.Name="{loc:T settings.language}" />
           <TextBlock Text="{loc:T settings.language.hint}" Style="{StaticResource Settings.Hint}" />
-          <TextBlock Text="테마" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.theme}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.ThemeChoices}"
                    SelectedValue="{Binding Theme, Mode=TwoWay}" />
-          <TextBlock Text="강조색" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.accent}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.AccentChoices}"
                    SelectedValue="{Binding Accent, Mode=TwoWay}" />
-          <TextBlock Text="레트로 테마는 자체 색을 유지합니다." Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.accent.hint}" Style="{StaticResource Settings.Hint}" />
           <Border Margin="0,20,0,0" Padding="16" CornerRadius="{DynamicResource Radius}" BorderThickness="1"
                   Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Border}">
             <StackPanel>
-              <TextBlock Text="미리보기" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" />
-              <TextBlock Text="가나다라 마바사 Foldy 설정 Aa 123" FontSize="15" Margin="0,6,0,10" Foreground="{DynamicResource Brush.Text}" />
+              <TextBlock Text="{loc:T set.preview}" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" />
+              <TextBlock Text="{loc:T set.preview.sample}" FontSize="15" Margin="0,6,0,10" Foreground="{DynamicResource Brush.Text}" />
               <Border Height="6" CornerRadius="3" Background="{DynamicResource Brush.Border}">
                 <Border Width="140" HorizontalAlignment="Left" CornerRadius="3" Background="{DynamicResource Brush.Progress}" />
               </Border>
@@ -307,30 +307,30 @@
       <!-- 목록 -->
       <ScrollViewer x:Name="PageList" VerticalScrollBarVisibility="Auto" Padding="32,24" Visibility="Collapsed">
         <StackPanel MaxWidth="600" HorizontalAlignment="Left">
-          <TextBlock Text="목록" Style="{StaticResource Settings.PageTitle}" />
-          <TextBlock Text="줄 간격" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.page.list}" Style="{StaticResource Settings.PageTitle}" />
+          <TextBlock Text="{loc:T set.lineSpacing}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.DensityChoices}"
                    SelectedValue="{Binding Density, Mode=TwoWay}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Margin="0,16,0,0" Content="숨김 파일 보기" IsChecked="{Binding ShowHidden, Mode=TwoWay}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Margin="0,16,0,0" Content="{loc:T set.showHidden}" IsChecked="{Binding ShowHidden, Mode=TwoWay}" />
         </StackPanel>
       </ScrollViewer>
 
       <!-- 터미널 -->
       <ScrollViewer x:Name="PageTerminal" VerticalScrollBarVisibility="Auto" Padding="32,24" Visibility="Collapsed">
         <StackPanel MaxWidth="600" HorizontalAlignment="Left">
-          <TextBlock Text="터미널" Style="{StaticResource Settings.PageTitle}" />
-          <TextBlock Text="터미널 프로그램" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.page.terminal}" Style="{StaticResource Settings.PageTitle}" />
+          <TextBlock Text="{loc:T set.terminalApp}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.TerminalHostChoices}"
                    SelectedValue="{Binding TerminalHost, Mode=TwoWay}" />
-          <TextBlock Text="기본 셸" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.shell}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.TerminalShellChoices}"
                    SelectedValue="{Binding TerminalShell, Mode=TwoWay}" />
-          <TextBlock Text="Windows Terminal 프로필" Style="{StaticResource Settings.Section}" />
-          <TextBlock Text="일반 터미널 프로필 이름" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.wtProfile}" Style="{StaticResource Settings.Section}" />
+          <TextBlock Text="{loc:T set.wtProfile.normal}" Style="{StaticResource Settings.Label}" />
           <TextBox Style="{StaticResource Settings.TextBox}" Text="{Binding WtProfile, UpdateSourceTrigger=PropertyChanged}" />
-          <TextBlock Text="관리자 터미널 프로필 이름" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.wtProfile.admin}" Style="{StaticResource Settings.Label}" />
           <TextBox Style="{StaticResource Settings.TextBox}" Text="{Binding WtAdminProfile, UpdateSourceTrigger=PropertyChanged}" />
-          <TextBlock Text="비워 두면 Windows Terminal의 기본 프로필을 씁니다. 사용할 수 있는 프로필:" Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.wtProfile.hint}" Style="{StaticResource Settings.Hint}" />
           <ItemsControl ItemsSource="{Binding WindowsTerminalProfiles}" Margin="0,4,0,0">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
@@ -344,27 +344,27 @@
       <!-- 복사 -->
       <ScrollViewer x:Name="PageCopy" VerticalScrollBarVisibility="Auto" Padding="32,24" Visibility="Collapsed">
         <StackPanel MaxWidth="600" HorizontalAlignment="Left">
-          <TextBlock Text="복사" Style="{StaticResource Settings.PageTitle}" />
-          <CheckBox Style="{StaticResource Settings.Check}" Content="복사 스레드 수 자동 (드라이브 조합에 맞춰 조정)" IsChecked="{Binding CopyThreadsAuto, Mode=TwoWay}" />
-          <TextBlock Text="수동으로 정한 스레드 수" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.page.copy}" Style="{StaticResource Settings.PageTitle}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.copyThreads.auto}" IsChecked="{Binding CopyThreadsAuto, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.copyThreads.manual}" Style="{StaticResource Settings.Label}" />
           <TextBox Style="{StaticResource Settings.TextBox}" Width="100" HorizontalAlignment="Left"
                    IsEnabled="{Binding CopyThreadsManualEnabled}"
                    Text="{Binding CopyThreadsManual, UpdateSourceTrigger=LostFocus}" />
-          <TextBlock Text="1에서 64까지. SSD끼리는 많을수록, HDD나 네트워크 드라이브는 적을수록 빠른 경향이 있습니다." Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.copyThreads.hint}" Style="{StaticResource Settings.Hint}" />
         </StackPanel>
       </ScrollViewer>
 
       <!-- 업데이트 -->
       <ScrollViewer x:Name="PageUpdate" VerticalScrollBarVisibility="Auto" Padding="32,24" Visibility="Collapsed">
         <StackPanel MaxWidth="600" HorizontalAlignment="Left">
-          <TextBlock Text="업데이트" Style="{StaticResource Settings.PageTitle}" />
-          <TextBlock Text="업데이트 방식" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.page.update}" Style="{StaticResource Settings.PageTitle}" />
+          <TextBlock Text="{loc:T set.updateMode}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.UpdateModeChoices}"
                    SelectedValue="{Binding UpdateModeChoice, Mode=TwoWay}" />
-          <TextBlock Text="채널" Style="{StaticResource Settings.Label}" />
+          <TextBlock Text="{loc:T set.channel}" Style="{StaticResource Settings.Label}" />
           <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.UpdateChannelChoices}"
                    SelectedValue="{Binding UpdateChannelChoice, Mode=TwoWay}" />
-          <TextBlock Text="베타 채널은 정식 출시 전 버전을 먼저 받습니다. 불안정할 수 있습니다." Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.channel.hint}" Style="{StaticResource Settings.Hint}" />
         </StackPanel>
       </ScrollViewer>
 
@@ -376,15 +376,15 @@
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <DockPanel Grid.Row="0">
-          <Button DockPanel.Dock="Right" Style="{StaticResource Settings.Button}" Content="모두 기본값으로"
+          <Button DockPanel.Dock="Right" Style="{StaticResource Settings.Button}" Content="{loc:T set.keys.resetAll}"
                   Command="{Binding ResetAllKeysCommand}" VerticalAlignment="Top" />
-          <TextBlock Text="단축키" Style="{StaticResource Settings.PageTitle}" />
+          <TextBlock Text="{loc:T set.page.keys}" Style="{StaticResource Settings.PageTitle}" />
         </DockPanel>
         <Border Grid.Row="1" Margin="0,0,0,10" Padding="12,8" CornerRadius="{DynamicResource Radius}" BorderThickness="1"
                 BorderBrush="{DynamicResource Brush.Error}" Background="{DynamicResource Brush.SurfaceAlt}"
                 Visibility="{Binding HasKeyConflicts, Converter={StaticResource BoolToVis}}">
           <TextBlock FontSize="12" Foreground="{DynamicResource Brush.Error}" TextWrapping="Wrap"
-                     Text="같은 단축키를 쓰는 명령이 있습니다. 먼저 나오는 명령만 실행됩니다." />
+                     Text="{loc:T set.keys.conflict}" />
         </Border>
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
           <ItemsControl ItemsSource="{Binding KeyBindings}">
@@ -405,7 +405,7 @@
                     </StackPanel>
                     <Button Grid.Column="1" Style="{StaticResource Settings.Button}" MinWidth="150" Margin="8,0"
                             Tag="{Binding}" Click="OnRecordKey" PreviewKeyDown="OnRecordKeyDown" LostFocus="OnRecordLostFocus"
-                            ToolTip="눌러서 새 단축키 입력 (Esc 취소, Backspace 지우기)">
+                            ToolTip="{loc:T set.keys.record}">
                       <TextBlock>
                         <TextBlock.Style>
                           <Style TargetType="TextBlock">
@@ -420,7 +420,7 @@
                         </TextBlock.Style>
                       </TextBlock>
                     </Button>
-                    <Button Grid.Column="2" Style="{StaticResource Settings.Button}" MinWidth="0" Content="기본값" HorizontalAlignment="Left"
+                    <Button Grid.Column="2" Style="{StaticResource Settings.Button}" MinWidth="0" Content="{loc:T set.keys.default}" HorizontalAlignment="Left"
                             Command="{Binding ResetCommand}" Visibility="{Binding IsOverridden, Converter={StaticResource BoolToVis}}" />
                   </Grid>
                 </Border>
@@ -435,9 +435,9 @@
     <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Padding="20,12" Background="{DynamicResource Brush.Window}"
             BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button Style="{StaticResource Settings.PrimaryButton}" Content="확인" IsDefault="True" Click="OnOk" />
-        <Button Style="{StaticResource Settings.Button}" Content="취소" IsCancel="True" Margin="8,0,0,0" Click="OnCancel" />
-        <Button Style="{StaticResource Settings.Button}" Content="적용" Margin="8,0,0,0" Click="OnApply"
+        <Button Style="{StaticResource Settings.PrimaryButton}" Content="{loc:T set.ok}" IsDefault="True" Click="OnOk" />
+        <Button Style="{StaticResource Settings.Button}" Content="{loc:T shell.cancel}" IsCancel="True" Margin="8,0,0,0" Click="OnCancel" />
+        <Button Style="{StaticResource Settings.Button}" Content="{loc:T set.apply}" Margin="8,0,0,0" Click="OnApply"
                 IsEnabled="{Binding IsDirty}" />
       </StackPanel>
     </Border>
