@@ -121,13 +121,14 @@ public sealed class FoldyDialog : Window
 
     /// <summary>알림 하나 (단추 하나). 되도록 상태 줄을 쓰고, 이유를 꼭 읽어야 하는 실패에만.</summary>
     public static void Info(Window? owner, string title, string message, DialogKind kind = DialogKind.Info) =>
-        Show(owner, title, message, kind, ["확인"], 0, 0);
+        Show(owner, title, message, kind, [Foldy.Core.Localization.Loc.T("dlg.ok")], 0, 0);
 
     /// <summary>
     /// 예/아니요. <paramref name="danger"/>면 되살릴 수 없는 일이라 기본 단추가 [그만두기] 쪽이다.
     /// </summary>
-    public static bool Confirm(Window? owner, string title, string message, string yes, string no = "그만두기", bool danger = false)
+    public static bool Confirm(Window? owner, string title, string message, string yes, string? no = null, bool danger = false)
     {
+        no ??= Foldy.Core.Localization.Loc.T("dlg.cancel");
         var r = Show(owner, title, message, danger ? DialogKind.Danger : DialogKind.Question, [yes, no], defaultIndex: danger ? 1 : 0, cancelIndex: 1);
         return r == 0;
     }

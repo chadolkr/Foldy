@@ -5,6 +5,7 @@ using Foldy.Core.Localization;
 namespace Foldy.Core.Tests;
 
 /// <summary>다국어 (한국어·영어·스페인어·일본어·중국어 간체): 언어 파일이 서로 맞는지, 언어 고르기.</summary>
+[Collection("Loc")]
 public sealed partial class LocalizationTests
 {
     [Fact]
@@ -65,4 +66,10 @@ public sealed partial class LocalizationTests
 
     [GeneratedRegex(@"[가-힣]")]
     private static partial Regex Hangul();
+}
+
+/// <summary>언어를 바꿔 보는 시험은 다른 시험과 동시에 돌지 않는다 (Loc.Current는 하나).</summary>
+[CollectionDefinition("Loc", DisableParallelization = true)]
+public sealed class LocCollection
+{
 }

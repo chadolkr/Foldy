@@ -12,5 +12,6 @@
     <PackageReference Include="AwesomeAssertions" />
     <Using Include="Xunit" />
     <Using Include="AwesomeAssertions" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared\TestLanguage.cs" Link="Shared\TestLanguage.cs" />
   </ItemGroup>
 </Project>

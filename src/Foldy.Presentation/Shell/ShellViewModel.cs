@@ -246,7 +246,7 @@ public sealed partial class ShellViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or InvalidOperationException)
         {
-            Status = $"열 수 없습니다: {ex.Message}";
+            Status = Foldy.Core.Localization.Loc.F("ops.cantOpen", ex.Message);
         }
     }
 
@@ -281,7 +281,7 @@ public sealed partial class ShellViewModel : ObservableObject
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or InvalidOperationException)
         {
             // 관리자 UAC 창에서 [아니요]를 누르면 Win32Exception(1223)
-            Status = ex is System.ComponentModel.Win32Exception { NativeErrorCode: 1223 } ? "관리자 실행이 취소됐습니다" : $"터미널을 열 수 없습니다: {ex.Message}";
+            Status = ex is System.ComponentModel.Win32Exception { NativeErrorCode: 1223 } ? Foldy.Core.Localization.Loc.T("ops.adminCancelled") : Foldy.Core.Localization.Loc.F("ops.cantOpenTerminal", ex.Message);
         }
     }
 
@@ -300,7 +300,7 @@ public sealed partial class ShellViewModel : ObservableObject
         var dest = OtherPane.ActiveFolder?.Path;
         if (src.Count == 0 || dest is null)
         {
-            Status = src.Count == 0 ? "먼저 파일을 선택하세요" : "반대 패널에 폴더 탭이 없습니다";
+            Status = src.Count == 0 ? Foldy.Core.Localization.Loc.T("ops.selectFirst") : Foldy.Core.Localization.Loc.T("ops.noOtherFolder");
             return;
         }
 
@@ -310,7 +310,7 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <summary>붙여넣기·드롭·F5/F6 공통.</summary>
     public async Task TransferAsync(IReadOnlyList<string> src, string dest, bool move)
     {
-        var verb = move ? "이동" : "복사";
+        var verb = move ? Foldy.Core.Localization.Loc.T("ops.move") : Foldy.Core.Localization.Loc.T("ops.copy");
         var job = StartJob($"{JobViewModel.Describe(src)} {verb} → {PathUtil.DisplayName(dest)}", move ? Mascot.JobKind.Move : Mascot.JobKind.Copy);
         var r = move
             ? await _services.FileOps.MoveAsync(src, dest, job, job.Token)
@@ -327,7 +327,7 @@ public sealed partial class ShellViewModel : ObservableObject
             return false;
         }
 
-        var job = StartJob($"{JobViewModel.Describe(paths)} 휴지통으로", Mascot.JobKind.Delete);
+        var job = StartJob(Foldy.Core.Localization.Loc.F("ops.job.recycle", JobViewModel.Describe(paths)), Mascot.JobKind.Delete);
         var r = await _services.FileOps.DeleteAsync(paths, recycle: true, job, job.Token);
         FinishJob(job, r, paths);
         await RefreshFoldersAsync(paths.Select(s => PathUtil.Parent(s) ?? s));
@@ -342,7 +342,7 @@ public sealed partial class ShellViewModel : ObservableObject
             return false;
         }
 
-        var job = StartJob($"{JobViewModel.Describe(paths)} 영구 삭제", Mascot.JobKind.DeletePermanent);
+        var job = StartJob(Foldy.Core.Localization.Loc.F("ops.job.deletePermanent", JobViewModel.Describe(paths)), Mascot.JobKind.DeletePermanent);
         var r = await _services.FileOps.DeleteAsync(paths, recycle: false, job, job.Token);
         FinishJob(job, r, paths);
         await RefreshFoldersAsync(paths.Select(s => PathUtil.Parent(s) ?? s));
@@ -357,9 +357,9 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         const int Shown = 5;
         var names = paths.Take(Shown).Select(p => "  · " + PathUtil.DisplayName(p));
-        var more = paths.Count > Shown ? $"\n  … 외 {paths.Count - Shown:N0}개" : "";
-        return "잠깐만요! 서버에는 휴지통이 없어요. 🙂\n지우면 되살릴 수 없으니 한 번만 더 확인해 주세요.\n\n"
-            + $"지울 항목 {paths.Count:N0}개:\n{string.Join("\n", names)}{more}\n\n정말 지울까요?";
+        var more = paths.Count > Shown ? Foldy.Core.Localization.Loc.F("ops.more", paths.Count - Shown) : "";
+        return Foldy.Core.Localization.Loc.T("ops.sftpDeleteWarn")
+            + Foldy.Core.Localization.Loc.F("ops.deleteList", paths.Count, string.Join("\n", names), more);
     }
 
     /// <summary>Foldy가 직접 여는 파일(잠긴 메모·잠긴 파일·금고)이면 열고 true (UI가 연결한다).</summary>
@@ -383,7 +383,7 @@ public sealed partial class ShellViewModel : ObservableObject
             permanent = true;
             if (ConfirmAsync is null || !await ConfirmAsync(SftpDeleteConfirmMessage(src)))
             {
-                Status = "삭제를 취소했습니다";
+                Status = Foldy.Core.Localization.Loc.T("ops.deleteCancelled");
                 return;
             }
         }
@@ -398,7 +398,7 @@ public sealed partial class ShellViewModel : ObservableObject
                 switch (await AskBigDeleteAsync(new BigDeleteQuestion(src, count, canFast)))
                 {
                     case BigDeleteChoice.Cancel:
-                        Status = "삭제를 취소했습니다";
+                        Status = Foldy.Core.Localization.Loc.T("ops.deleteCancelled");
                         return;
                     case BigDeleteChoice.Fast when canFast:
                         await FastDeleteAsync(src, count);
@@ -410,7 +410,7 @@ public sealed partial class ShellViewModel : ObservableObject
             }
         }
 
-        var job = StartJob($"{JobViewModel.Describe(src)} {(permanent ? "영구 삭제" : "휴지통으로")}", permanent ? Mascot.JobKind.DeletePermanent : Mascot.JobKind.Delete);
+        var job = StartJob($"{JobViewModel.Describe(src)} {(permanent ? Foldy.Core.Localization.Loc.T("cmd.deletePermanent") : Foldy.Core.Localization.Loc.T("ops.toRecycle"))}", permanent ? Mascot.JobKind.DeletePermanent : Mascot.JobKind.Delete);
         var r = await _services.FileOps.DeleteAsync(src, recycle: !permanent, job, job.Token);
         FinishJob(job, r, src);
         await RefreshFoldersAsync(src.Select(s => PathUtil.Parent(s) ?? s));
@@ -422,12 +422,12 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <summary>빨리 지우기: 휴지통을 거치지 않고 병렬로 지운다. 사용자가 되살릴 수 없다는 안내를 보고 고른 뒤에만.</summary>
     public async Task FastDeleteAsync(IReadOnlyList<string> src, DeleteCount count)
     {
-        var job = StartJob($"{JobViewModel.Describe(src)} 빨리 지우기", Mascot.JobKind.DeletePermanent);
+        var job = StartJob(Foldy.Core.Localization.Loc.F("ops.job.fastDelete", JobViewModel.Describe(src)), Mascot.JobKind.DeletePermanent);
         FastDeleteResult res;
         try
         {
             res = await Task.Run(() => FastDelete.Delete(src, (n, _) =>
-                job.Report(new FileOpProgress(n, Math.Max(count.Files, n + 1), $"{n:N0}개 지웠어요")), ct: job.Token));
+                job.Report(new FileOpProgress(n, Math.Max(count.Files, n + 1), Foldy.Core.Localization.Loc.F("ops.deletedN", n))), ct: job.Token));
         }
         catch (InvalidOperationException e)
         {
@@ -438,12 +438,12 @@ public sealed partial class ShellViewModel : ObservableObject
         var r = res.Canceled
             ? FileOpResult.Canceled
             : res.FailedCount > 0
-                ? FileOpResult.Fail($"{res.FailedCount:N0}개는 지우지 못했어요 (쓰는 중이거나 권한이 없어요): {string.Join(", ", res.Failed.Take(3).Select(PathUtil.DisplayName))}")
-                : new FileOpResult(true, false, $"{res.DeletedFiles:N0}개를 지웠어요");
+                ? FileOpResult.Fail(Foldy.Core.Localization.Loc.F("ops.deleteFailed", res.FailedCount, string.Join(", ", res.Failed.Take(3).Select(PathUtil.DisplayName))))
+                : new FileOpResult(true, false, Foldy.Core.Localization.Loc.F("ops.deletedAll", res.DeletedFiles));
         FinishJob(job, r, res.FailedCount > 0 ? res.Failed : null);
         if (res.Canceled)
         {
-            Status = $"중간에 멈췄어요. 이미 지운 {res.DeletedFiles:N0}개는 되살릴 수 없어요";
+            Status = Foldy.Core.Localization.Loc.F("ops.deleteStopped", res.DeletedFiles);
         }
 
         await RefreshFoldersAsync(src.Select(s => PathUtil.Parent(s) ?? s));
@@ -459,14 +459,14 @@ public sealed partial class ShellViewModel : ObservableObject
 
         if (newName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         {
-            Status = "이름에 쓸 수 없는 문자가 있습니다: \\ / : * ? \" < > |";
+            Status = Foldy.Core.Localization.Loc.T("ops.badName");
             return false;
         }
 
         var r = await _services.FileOps.RenameAsync(item.FullPath, newName, CancellationToken.None);
         if (!r.Succeeded)
         {
-            Status = r.Aborted ? "" : $"이름을 바꿀 수 없습니다: {r.Error}";
+            Status = r.Aborted ? "" : Foldy.Core.Localization.Loc.F("ops.cantRename", r.Error);
             return false;
         }
 
@@ -475,12 +475,13 @@ public sealed partial class ShellViewModel : ObservableObject
         return true;
     }
 
-    public async Task<string?> NewFolderAsync(FolderTabViewModel tab, string name = "새 폴더")
+    public async Task<string?> NewFolderAsync(FolderTabViewModel tab, string? name = null)
     {
+        name ??= Foldy.Core.Localization.Loc.T("cmd.newFolder");
         var r = await _services.FileOps.NewFolderAsync(tab.Path, name, CancellationToken.None);
         if (!r.Succeeded)
         {
-            Status = r.Aborted ? "" : $"폴더를 만들 수 없습니다: {r.Error}";
+            Status = r.Aborted ? "" : Foldy.Core.Localization.Loc.F("ops.cantCreateFolder", r.Error);
             return null;
         }
 
@@ -513,7 +514,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private void FinishJob(JobViewModel job, FileOpResult r, IReadOnlyList<string>? sources = null)
     {
         job.Complete(r);
-        Status = r.Succeeded ? r.Error ?? "" : r.Aborted ? "취소됨" : $"{job.Title}: {r.Error}";
+        Status = r.Succeeded ? r.Error ?? "" : r.Aborted ? Foldy.Core.Localization.Loc.T("ops.cancelled") : $"{job.Title}: {r.Error}";
         if (job.State != JobState.Failed)
         {
             _ = RemoveLaterAsync(job);

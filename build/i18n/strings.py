@@ -93,7 +93,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from shell_strings import SHELL  # noqa: E402
 from xaml_strings import XAML  # noqa: E402
 from xaml_strings2 import XAML2  # noqa: E402
-for _k, _ko, _en, _es, _ja, _zh in SHELL + XAML + XAML2:
+from cs_strings import CS  # noqa: E402
+for _k, _ko, _en, _es, _ja, _zh in SHELL + XAML + XAML2 + CS:
     S[_k] = {"ko": _ko, "en": _en, "es": _es, "ja": _ja, "zh-Hans": _zh}
 
 

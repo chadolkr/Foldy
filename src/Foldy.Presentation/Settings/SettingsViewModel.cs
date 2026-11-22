@@ -58,7 +58,7 @@ public sealed partial class KeyBindingItem : ObservableObject
 
     public bool HasConflict => ConflictText.Length > 0;
 
-    public string GestureText => Gesture.Length > 0 ? Gesture : "없음";
+    public string GestureText => Gesture.Length > 0 ? Gesture : Foldy.Core.Localization.Loc.T("set.none");
 
     public IRelayCommand ResetCommand { get; }
 
@@ -70,7 +70,7 @@ public sealed partial class KeyBindingItem : ObservableObject
         DefaultGesture = map.GetDefaultGesture(Id) ?? "";
         IsOverridden = map.IsOverridden(Id);
         var others = map.ConflictsFor(Id, Gesture);
-        ConflictText = others.Count == 0 ? "" : "같은 단축키: " + string.Join(", ", others.Select(titleOf));
+        ConflictText = others.Count == 0 ? "" : Foldy.Core.Localization.Loc.T("set.keys.same") + string.Join(", ", others.Select(titleOf));
     }
 }
 
@@ -112,56 +112,56 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public static IReadOnlyList<SettingChoice> ThemeChoices { get; } =
     [
-        new("system", "시스템 설정 따르기"),
-        new("light", "라이트"),
-        new("dark", "다크"),
-        new("retro", "레트로"),
+        new("system", Foldy.Core.Localization.Loc.T("set.theme.system")),
+        new("light", Foldy.Core.Localization.Loc.T("set.theme.light")),
+        new("dark", Foldy.Core.Localization.Loc.T("set.theme.dark")),
+        new("retro", Foldy.Core.Localization.Loc.T("set.theme.retro")),
     ];
 
     public static IReadOnlyList<SettingChoice> AccentChoices { get; } =
     [
-        new("foldy", "Foldy 오렌지"),
-        new("windows", "Windows 강조색"),
+        new("foldy", Foldy.Core.Localization.Loc.T("set.accent.foldy")),
+        new("windows", Foldy.Core.Localization.Loc.T("set.accent.windows")),
     ];
 
     public static IReadOnlyList<SettingChoice> DensityChoices { get; } =
     [
-        new("compact", "조밀하게 (행 24)"),
-        new("normal", "보통 (행 28)"),
-        new("comfortable", "여유롭게 (행 32)"),
+        new("compact", Foldy.Core.Localization.Loc.T("set.density.compact")),
+        new("normal", Foldy.Core.Localization.Loc.T("set.density.normal")),
+        new("comfortable", Foldy.Core.Localization.Loc.T("set.density.relaxed")),
     ];
 
     public static IReadOnlyList<SettingChoice> MarkdownChoices { get; } =
     [
-        new("alwaysFoldy", "Foldy 뷰어로 보기 (기본)"),
-        new("preferAssociated", "등록된 앱으로 열기 (없으면 Foldy)"),
+        new("alwaysFoldy", Foldy.Core.Localization.Loc.T("set.md.foldy")),
+        new("preferAssociated", Foldy.Core.Localization.Loc.T("set.md.app")),
     ];
 
     public static IReadOnlyList<SettingChoice> TerminalHostChoices { get; } =
     [
-        new("auto", "자동 (Windows Terminal이 있으면 사용)"),
+        new("auto", Foldy.Core.Localization.Loc.T("set.term.auto")),
         new("windowsTerminal", "Windows Terminal"),
-        new("console", "콘솔 창"),
+        new("console", Foldy.Core.Localization.Loc.T("set.term.console")),
     ];
 
     public static IReadOnlyList<SettingChoice> TerminalShellChoices { get; } =
     [
         new("pwsh", "PowerShell 7 (pwsh)"),
         new("powershell", "Windows PowerShell"),
-        new("cmd", "명령 프롬프트 (cmd)"),
+        new("cmd", Foldy.Core.Localization.Loc.T("set.shell.cmd")),
     ];
 
     public static IReadOnlyList<SettingChoice> UpdateModeChoices { get; } =
     [
-        new("auto", "자동으로 설치"),
-        new("notify", "내려받고 알림만"),
-        new("off", "사용 안 함"),
+        new("auto", Foldy.Core.Localization.Loc.T("set.update.auto")),
+        new("notify", Foldy.Core.Localization.Loc.T("set.update.notify")),
+        new("off", Foldy.Core.Localization.Loc.T("set.update.off")),
     ];
 
     public static IReadOnlyList<SettingChoice> UpdateChannelChoices { get; } =
     [
-        new("stable", "안정"),
-        new("beta", "베타"),
+        new("stable", Foldy.Core.Localization.Loc.T("set.channel.stable")),
+        new("beta", Foldy.Core.Localization.Loc.T("set.channel.beta")),
     ];
 
     public ObservableCollection<string> WindowsTerminalProfiles { get; }

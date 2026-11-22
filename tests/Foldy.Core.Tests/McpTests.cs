@@ -250,6 +250,7 @@ public sealed class McpClientConfigTests : IDisposable
     }
 }
 
+[Collection("Loc")]
 public sealed class McpSuggestTests
 {
     private static McpClientApp A(string n, bool installed) => new(n, n + ".json", McpConfigFormat.McpServers, installed);
