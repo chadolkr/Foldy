@@ -8,7 +8,9 @@
 
 [한국어](README.md) · **English**
 
-Foldy is a free, open-source dual-pane file manager for Windows 10/11. Its features are rule-based and run on your own PC, with no account and no internet needed. Connecting an AI app is optional.
+Foldy is a free, open-source **dual-pane file manager for Windows 10/11** and a friendly **File Explorer alternative**. It brings instant file search (Ctrl+Space, like Spotlight for Windows), a **disk space analyzer** with a treemap, step-by-step **Desktop and Downloads cleanup**, folder templates, previews, Git and SFTP into one window that looks and feels like File Explorer. Its features are rule-based and run on your own PC, with no account, no ads and no internet needed. Connecting an AI app through MCP is optional.
+
+🌐 Website: [chadolkr.github.io/Foldy](https://chadolkr.github.io/Foldy/en/) · also in [Español](https://chadolkr.github.io/Foldy/es/), [日本語](https://chadolkr.github.io/Foldy/ja/), [简体中文](https://chadolkr.github.io/Foldy/zh-cn/)
 
 ![Foldy: folder analysis on the left, Git view on the right](docs/images/hero.png)
 
@@ -49,6 +51,8 @@ Download from [Releases](https://github.com/chadolkr/Foldy/releases).
 | --- | --- | --- |
 | **MSI (recommended)** | `Foldy-<version>-x64.msi` | Double-click to install. Uninstall from Settings → Apps → Installed apps → Foldy. |
 | Script | `Foldy-<version>-x64-setup.zip` | Unzip and run `Foldy 설치.cmd`. |
+
+Foldy is not code-signed yet, so Windows SmartScreen may say "Windows protected your PC". Click **More info**, then **Run anyway**. The source code and the build workflow are public in this repository.
 
 Installing also adds a background **index service** (FoldyIndexer, runs as SYSTEM) for instant name search; it is removed when you uninstall. It indexes the whole PC, but search results only show your own folders and shared folders.
 

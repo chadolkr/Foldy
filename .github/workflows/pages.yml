@@ -41,6 +41,9 @@ jobs:
       - run: npm run build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 검색 사이트 소유 확인 값 (저장소 Settings → Variables). 없으면 넣지 않는다.
+          PUBLIC_GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
+          PUBLIC_BING_SITE_VERIFICATION: ${{ vars.BING_SITE_VERIFICATION }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site/dist
