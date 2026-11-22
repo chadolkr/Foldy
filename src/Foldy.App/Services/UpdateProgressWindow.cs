@@ -152,7 +152,7 @@ internal static class UpdateProgressWindow
             s = s.Replace("\"" + ko + "\"", "'" + Foldy.Core.Localization.Loc.T(key).Replace("'", "''", StringComparison.Ordinal) + "'", StringComparison.Ordinal);
         }
 
-        return s.Replace("\"Foldy $Version(으)로 업데이트하고 있어요\"", "('" + Foldy.Core.Localization.Loc.T("up.heading").Replace("'", "''", StringComparison.Ordinal) + "' -f $Version)", StringComparison.Ordinal); // i18n:skip
+        return s.Replace("\"Foldy를 $Version 버전으로 업데이트하고 있어요\"", "('" + Foldy.Core.Localization.Loc.T("up.heading").Replace("'", "''", StringComparison.Ordinal) + "' -f $Version)", StringComparison.Ordinal); // i18n:skip
     }
 
     private static readonly (string Ko, string Key)[] ScriptTexts =
@@ -197,7 +197,7 @@ internal static class UpdateProgressWindow
         # 어두운 테마면 제목줄도 어둡게 (Foldy 창과 같게)
         $f.Add_HandleCreated({ if ($Dark -eq "1") { $v = 1; [void][FoldyUp.Dwm]::DwmSetWindowAttribute($f.Handle, 20, [ref]$v, 4) } })
         $title = New-Object System.Windows.Forms.Label
-        $title.Text = "Foldy $Version(으)로 업데이트하고 있어요"
+        $title.Text = "Foldy를 $Version 버전으로 업데이트하고 있어요"
         $title.Font = New-Object System.Drawing.Font("Malgun Gothic", 14, [System.Drawing.FontStyle]::Bold)
         $title.ForeColor = C $Fg
         $title.SetBounds(24, 18, 472, 32)

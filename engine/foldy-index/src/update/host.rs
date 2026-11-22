@@ -7,8 +7,12 @@ use std::process::Command;
 use std::sync::Mutex;
 
 pub trait Host: Send + Sync {
-    /// `exe`(설치 폴더의 Foldy.exe)로 실행 중인 프로세스 ID들.
+    /// `exe`(설치 폴더의 Foldy.exe)로 실행 중인 Foldy 창 프로세스 ID들. AI 연결용(`--mcp`)은 빼고 센다.
     fn foldy_processes(&self, exe: &Path) -> Vec<u32>;
+    /// AI 앱이 띄운 AI 연결용 Foldy(`Foldy.exe --mcp`, 창 없음) 프로세스 ID들.
+    fn mcp_processes(&self, exe: &Path) -> Vec<u32>;
+    /// 프로세스를 끝낸다 (AI 연결용 Foldy만 부른다). 끝냈으면 참.
+    fn end_process(&self, pid: u32) -> bool;
     /// 설치 명령을 서비스와 분리된 프로세스로 띄우고 끝날 때까지 기다려 종료 코드를 돌려준다.
     /// MSI가 서비스를 멈추면 이 함수는 돌아오지 못할 수 있다 (그때는 다음 시작에서 판단).
     fn run_installer(&self, cmd: Command) -> io::Result<i32>;
@@ -37,12 +41,24 @@ pub struct FakeHost {
     pub lines: Mutex<Vec<String>>,
     pub exit_code: Mutex<i32>,
     pub processes: Mutex<Vec<u32>>,
+    /// AI 연결용 Foldy (`--mcp`).
+    pub mcp: Mutex<Vec<u32>>,
+    /// end_process로 끝낸 프로세스.
+    pub ended: Mutex<Vec<u32>>,
     pub console_session: u32,
 }
 
 impl FakeHost {
     pub fn new(log: Option<PathBuf>) -> Self {
-        FakeHost { log, lines: Mutex::default(), exit_code: Mutex::new(0), processes: Mutex::default(), console_session: 1 }
+        FakeHost {
+            log,
+            lines: Mutex::default(),
+            exit_code: Mutex::new(0),
+            processes: Mutex::default(),
+            mcp: Mutex::default(),
+            ended: Mutex::default(),
+            console_session: 1,
+        }
     }
 
     fn record(&self, line: String) {
@@ -63,6 +79,16 @@ impl FakeHost {
 impl Host for FakeHost {
     fn foldy_processes(&self, _exe: &Path) -> Vec<u32> {
         self.processes.lock().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
+    fn mcp_processes(&self, _exe: &Path) -> Vec<u32> {
+        self.mcp.lock().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
+    fn end_process(&self, pid: u32) -> bool {
+        self.mcp.lock().unwrap_or_else(|e| e.into_inner()).retain(|&p| p != pid);
+        self.ended.lock().unwrap_or_else(|e| e.into_inner()).push(pid);
+        true
     }
 
     fn run_installer(&self, cmd: Command) -> io::Result<i32> {

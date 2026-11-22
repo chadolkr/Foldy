@@ -114,7 +114,14 @@
     <CustomAction Id="SetIndexerDelayedAuto" Directory="TARGETDIR"
                   ExeCommand="&quot;[System64Folder]sc.exe&quot; config FoldyIndexer start= delayed-auto"
                   Execute="deferred" Impersonate="no" Return="ignore" />
+    <!-- 다시 설치·업데이트·제거: AI 앱이 띄운 AI 연결용 Foldy(Foldy.exe 뒤에 mcp 인자, 창 없음)는 끝내고 진행한다 (사용자 2026-11-22).
+         창이 있는 Foldy는 건드리지 않는다 (복사·이동 중일 수 있다, 파일 사용 중 안내를 따른다). AI 앱이 다음에 다시 띄운다.
+         MSI 서식 문자열에서 대괄호·중괄호는 특별한 뜻이 있어 쓰지 않는다. -->
+    <CustomAction Id="EndAiConnectionFoldy" Directory="TARGETDIR"
+                  ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -C &quot;gcim Win32_Process -F 'Name=''Foldy.exe''' | ? CommandLine -Match '\s--mcp' | icim -M Terminate&quot;"
+                  Execute="immediate" Return="ignore" />
     <InstallExecuteSequence>
+      <Custom Action="EndAiConnectionFoldy" Before="InstallValidate" />
       <Custom Action="SetIndexerDelayedAuto" After="InstallServices" Condition="NOT REMOVE" />
     </InstallExecuteSequence>
 
