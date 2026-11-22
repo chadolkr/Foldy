@@ -73,7 +73,11 @@ public static class SecureFlows
 
     // ───────────── 잠긴 메모 ─────────────
 
-    public static async Task NewMemoAsync(Window owner, string folder)
+    /// <summary>
+    /// 새 잠긴 메모. 사용자 2026-11-22 "어떻게 써야 할지 모르겠다": 무엇을 하는지 한 줄로 말하고, 암호를 정하게 하고,
+    /// 만든 뒤에는 파일 목록에서 그 파일을 골라 보여 주며 어디에 저장됐는지·다시 여는 법을 메모 창에 적는다.
+    /// </summary>
+    public static async Task NewMemoAsync(Window owner, string folder, ShellViewModel shell)
     {
         var w = Open(owner, Foldy.Core.Localization.Loc.T("sec.newLocked"));
         w.Say(Foldy.Core.Localization.Loc.T("sec.newLockedHello"));
@@ -100,7 +104,36 @@ public static class SecureFlows
         }
 
         w.Close();
-        new MemoWindow(path, note, pw) { Owner = owner }.Show();
+        var m = new MemoWindow(path, note, pw) { Owner = owner };
+        m.Show();
+        m.Tell(Foldy.Core.Localization.Loc.F("sec.memoWhere", Path.GetFileName(path), folder));
+        await ShowInListAsync(shell, path);
+    }
+
+    /// <summary>새로 만든 잠긴 파일·메모·금고를 지금 보고 있는 목록에서 골라 보여 준다 (어디에 생겼는지 눈으로 보이게).</summary>
+    private static Task ShowInListAsync(ShellViewModel shell, string path) =>
+        shell.RefreshFoldersAsync([Path.GetDirectoryName(path)!], Path.GetFileName(path));
+
+    /// <summary>
+    /// 사이드바 [지키기]·Ctrl+Space에서 고른 것 없이 [파일 잠그기]를 누른 경우: 상태 줄에 작게 쓰는 대신 Windows 파일 고르기 창을 띄운다.
+    /// </summary>
+    public static void PickFileToLock(Window owner, ShellViewModel shell, string? startFolder)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Title = Foldy.Core.Localization.Loc.T("sw.c.encryptNeed"), InitialDirectory = startFolder ?? "", CheckFileExists = true };
+        if (dlg.ShowDialog(owner) == true && !IsLocked(dlg.FileName) && !IsVault(dlg.FileName))
+        {
+            _ = LockFileAsync(owner, dlg.FileName, shell);
+        }
+    }
+
+    /// <summary>고른 것 없이 [폴더를 금고에 넣기]: Windows 폴더 고르기 창.</summary>
+    public static void PickFolderForVault(Window owner, ShellViewModel shell, string? startFolder)
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Foldy.Core.Localization.Loc.T("sw.c.vaultNeed"), InitialDirectory = startFolder ?? "" };
+        if (dlg.ShowDialog(owner) == true && Directory.Exists(dlg.FolderName) && Path.GetPathRoot(dlg.FolderName) != dlg.FolderName)
+        {
+            _ = PutInVaultAsync(owner, dlg.FolderName, shell);
+        }
     }
 
     public static async Task OpenMemoAsync(Window owner, string path)
@@ -189,6 +222,7 @@ public static class SecureFlows
         var c = await w.AskAsync(Foldy.Core.Localization.Loc.F("sec.encryptDone", Path.GetFileName(r.LockPath)),
             C("recycle", Foldy.Core.Localization.Loc.T("sec.origToBin")), C("delete", Foldy.Core.Localization.Loc.T("sec.origDelete")), C("keep", Foldy.Core.Localization.Loc.T("sec.origKeep")));
         await DisposeOriginalAsync(w, shell, file, c);
+        await ShowInListAsync(shell, r.LockPath);
 
         await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.done"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         w.Close();
@@ -246,7 +280,7 @@ public static class SecureFlows
         }
 
         Array.Clear(bytes);
-        var c = await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.whatNow"), C("unlock", Foldy.Core.Localization.Loc.T("sec.decryptOpen")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+        var c = await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.lockedWhatNow"), C("unlock", Foldy.Core.Localization.Loc.T("sec.decryptOpen")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         if (c == "unlock" && !await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.CheckFiles(Path.GetDirectoryName(path)!, [size])))
         {
             c = "close"; // 시작 전에 공간이 모자라 그만둠 (암호 걸린 파일은 그대로)
@@ -368,11 +402,14 @@ public static class SecureFlows
     /// 잠그거나 금고에 넣은 뒤 암호 없는 원본 처리. 휴지통은 비우기 전까지 원본이 그대로 남는다는 것을 알려 준다.
     /// "바로 지우기"는 휴지통을 거치지 않는다 (디스크 복구 도구까지 막는 완전 삭제는 아니다).
     /// </summary>
-    private static async Task DisposeOriginalAsync(GuideWindow w, ShellViewModel shell, string path, string? choice)
+    private static async Task DisposeOriginalAsync(GuideWindow w, ShellViewModel shell, string path, string? choice) =>
+        await DisposeOriginalAsync(w, shell, [path], choice);
+
+    private static async Task DisposeOriginalAsync(GuideWindow w, ShellViewModel shell, IReadOnlyList<string> paths, string? choice)
     {
         if (choice == "recycle")
         {
-            if (await shell.RecycleAsync([path]))
+            if (await shell.RecycleAsync(paths))
             {
                 w.Say(Foldy.Core.Localization.Loc.T("sec.origInBin"));
             }
@@ -380,11 +417,92 @@ public static class SecureFlows
         else if (choice == "delete")
         {
             var sure = await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.origDeleteAsk"), C("yes", Foldy.Core.Localization.Loc.T("sec.delete")), C("no", Foldy.Core.Localization.Loc.T("dlg.cancel")));
-            if (sure == "yes" && await shell.DeletePermanentlyAsync([path]))
+            if (sure == "yes" && await shell.DeletePermanentlyAsync(paths))
             {
                 w.Say(Foldy.Core.Localization.Loc.T("sec.origDeleted"));
             }
         }
+    }
+
+    /// <summary>
+    /// 열어 둔 금고에 파일을 더 넣는다 (사용자 결정 2026-11-22: 이번에 같이). 고르기 → 같은 이름이면 어떻게 할지 → 공간 확인 →
+    /// 넣고 확인 → 원래 파일 처리. 다 되면 새 목록, 그만두거나 실패하면 null (금고는 그대로).
+    /// </summary>
+    private static async Task<IReadOnlyList<(string Name, long Size)>?> AddToVaultAsync(GuideWindow w, ShellViewModel shell, string vault, string pw, IReadOnlyList<(string Name, long Size)> entries)
+    {
+        var dir = Path.GetDirectoryName(vault)!;
+        var dlg = new Microsoft.Win32.OpenFileDialog { Title = Foldy.Core.Localization.Loc.T("sec.addPick"), Multiselect = true, CheckFileExists = true, InitialDirectory = dir };
+        if (dlg.ShowDialog(w) != true)
+        {
+            return null;
+        }
+
+        // 금고 자신이나 다른 잠긴 파일은 넣지 않는다
+        var files = dlg.FileNames.Where(f => !IsVault(f) && !IsLocked(f)).ToList();
+        if (files.Count == 0)
+        {
+            w.Say(Foldy.Core.Localization.Loc.T("sec.addNone"));
+            return null;
+        }
+
+        var have = new HashSet<string>(entries.Select(e => e.Name), StringComparer.OrdinalIgnoreCase);
+        var same = files.Select(f => Path.GetFileName(f)).Where(n => n is not null && have.Contains(n)).Select(n => n!).ToList();
+        var replace = false;
+        if (same.Count > 0)
+        {
+            var how = await w.AskAsync(Foldy.Core.Localization.Loc.F("sec.addSame", same.Count, string.Join(", ", same.Take(3))),
+                C("both", Foldy.Core.Localization.Loc.T("sec.addKeepBoth")), C("replace", Foldy.Core.Localization.Loc.T("sec.addReplace")), C("cancel", Foldy.Core.Localization.Loc.T("dlg.cancel")));
+            if (how is not ("both" or "replace"))
+            {
+                return null;
+            }
+
+            replace = how == "replace";
+        }
+
+        // 시작 전에 공간부터 (금고를 새로 써서 바꿔 끼우므로 금고 크기 + 넣는 크기만큼 더 든다)
+        long add = 0;
+        try
+        {
+            add = files.Sum(f => new FileInfo(f).Length) + new FileInfo(vault).Length;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+
+        var need = DiskSpace.VaultEstimate(add, entries.Count + files.Count);
+        if (!await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.Check(dir, need, need)))
+        {
+            return null;
+        }
+
+        w.Busy();
+        var status = w.Say(Foldy.Core.Localization.Loc.F("sec.adding", files.Count));
+        VaultAddResult? r;
+        IReadOnlyList<(string Name, long Size)> after;
+        try
+        {
+            r = await Task.Run(() => SecureZip.AddFiles(vault, pw, files, replace));
+            after = r is null ? entries : await Task.Run(() => SecureZip.List(vault, pw));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException)
+        {
+            status.Text = Foldy.Core.Localization.Loc.T("sec.addFailed") + ex.Message;
+            return null;
+        }
+
+        if (r is null)
+        {
+            status.Text = Foldy.Core.Localization.Loc.T("sec.addBad");
+            return null;
+        }
+
+        status.Text = Foldy.Core.Localization.Loc.F("sec.added", r.Added + r.Replaced, after.Count);
+        var c = await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.addOrig"),
+            C("recycle", Foldy.Core.Localization.Loc.T("sec.origToBin")), C("delete", Foldy.Core.Localization.Loc.T("sec.origDelete")), C("keep", Foldy.Core.Localization.Loc.T("sec.origKeep")));
+        await DisposeOriginalAsync(w, shell, files, c);
+        await shell.RefreshFoldersAsync(files.Select(f => Path.GetDirectoryName(f)!).Append(dir).Distinct(StringComparer.OrdinalIgnoreCase));
+        return after;
     }
 
     // ───────────── 금고 ─────────────
@@ -469,6 +587,7 @@ public static class SecureFlows
         var c = await w.AskAsync(Foldy.Core.Localization.Loc.F("sec.vaultCreated", Path.GetFileName(vault), FileItem.FormatBytes(new FileInfo(vault).Length)),
             C("recycle", Foldy.Core.Localization.Loc.T("sec.origToBin")), C("delete", Foldy.Core.Localization.Loc.T("sec.origDelete")), C("keep", Foldy.Core.Localization.Loc.T("sec.origKeep")));
         await DisposeOriginalAsync(w, shell, folder, c);
+        await ShowInListAsync(shell, vault);
 
         await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.vaultDone"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         w.Close();
@@ -500,14 +619,23 @@ public static class SecureFlows
             }
         }
 
-        w.Say(Foldy.Core.Localization.Loc.F("sec.vaultList", entries.Count));
         var dest = Path.Combine(Path.GetDirectoryName(vault)!, Path.GetFileNameWithoutExtension(vault));
+        // 어디로 꺼내지는지는 꺼내기 전에 말한다 (사용자 원칙: 미리 알리기)
+        w.Say(Foldy.Core.Localization.Loc.F("sec.vaultList", entries.Count, Path.GetFileName(dest)));
         while (!w.IsClosed)
         {
             var (choice, picked) = await w.PickAsync(Foldy.Core.Localization.Loc.T("sec.fileList"),
                 entries.Select(e => (e.Name, $"{e.Name}  ·  {FileItem.FormatBytes(e.Size)}", false)),
-                C("preview", Foldy.Core.Localization.Loc.T("sec.previewPicked")), C("extract", Foldy.Core.Localization.Loc.T("sec.extractPicked")), C("all", Foldy.Core.Localization.Loc.T("sec.extractAll")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
-            if (choice == "preview")
+                C("preview", Foldy.Core.Localization.Loc.T("sec.previewPicked")), C("extract", Foldy.Core.Localization.Loc.T("sec.extractPicked")), C("all", Foldy.Core.Localization.Loc.T("sec.extractAll")),
+                C("add", Foldy.Core.Localization.Loc.T("sec.addFiles")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+            if (choice == "add")
+            {
+                if (await AddToVaultAsync(w, shell, vault, pw, entries) is { } after)
+                {
+                    entries = after;
+                }
+            }
+            else if (choice == "preview")
             {
                 foreach (var n in picked.Take(5))
                 {

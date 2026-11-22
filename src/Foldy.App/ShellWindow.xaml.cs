@@ -1164,10 +1164,11 @@ public partial class ShellWindow : Window, IPaneHost
         });
         Add("secure.newMemo", Foldy.Core.Localization.Loc.T("sw.c.newLockedMemo"), () =>
         {
-            if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
-            {
-                _ = SecureFlows.NewMemoAsync(this, p);
-            }
+            // 지금 폴더가 내 PC의 폴더가 아니면(처음 화면·서버 등) 아무 일도 안 일어난 것처럼 보이지 않게 '문서'에 만든다
+            var p = Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } here && here[1] == ':' && Directory.Exists(here)
+                ? here
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            _ = SecureFlows.NewMemoAsync(this, p, Shell);
         });
         Add("secure.lock", Foldy.Core.Localization.Loc.T("sw.c.encrypt"), () =>
         {
@@ -1178,7 +1179,8 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.encryptNeed");
+                // 고른 파일이 없으면 상태 줄에 작게 쓰는 대신 고르는 창을 바로 띄운다 (사용자 2026-11-22: 어떻게 써야 할지 모르겠다)
+                SecureFlows.PickFileToLock(this, Shell, LocalHere());
             }
         });
         Add("secure.vault", Foldy.Core.Localization.Loc.T("sw.c.vault"), () =>
@@ -1190,7 +1192,7 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.vaultNeed");
+                SecureFlows.PickFolderForVault(this, Shell, LocalHere());
             }
         });
         Add("tag.done", Foldy.Core.Localization.Loc.T("sw.c.done"), () => ActiveView.ToggleTag(Foldy.Core.Tags.FileTags.Default), gesture: "Ctrl+D");
@@ -2459,6 +2461,9 @@ public partial class ShellWindow : Window, IPaneHost
 
         _ = DevCleanupFlows.RebuildableAsync(this, folder, Shell, extra, IndexSize);
     }
+
+    /// <summary>지금 폴더가 내 PC의 폴더면 그 경로 (고르기 창의 시작 위치).</summary>
+    private string? LocalHere() => Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':' ? p : null;
 
     public void ShowVersions(string file) => _ = SecureFlows.VersionsAsync(this, file, Shell);
 

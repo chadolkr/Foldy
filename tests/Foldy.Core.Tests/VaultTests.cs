@@ -119,6 +119,45 @@ public sealed class VaultTests : IDisposable
         File.Exists(Path.Combine(dst, "a (2).txt")).Should().BeTrue("이미 있으면 덮어쓰지 않는다");
     }
 
+    /// <summary>이미 만든 금고에 파일 더 넣기 (사용자 결정 2026-11-22): 원래 것은 그대로, 같은 이름은 바꾸거나 " (2)"로 둘 다.</summary>
+    [Fact]
+    public void Files_can_be_added_to_an_existing_vault()
+    {
+        var folder = Path.Combine(_root, "보관");
+        Directory.CreateDirectory(Path.Combine(folder, "하위"));
+        File.WriteAllText(Path.Combine(folder, "a.txt"), "A");
+        File.WriteAllText(Path.Combine(folder, "하위", "b.txt"), "B");
+        var vault = VaultMaker.Create(folder, "비밀-1234").VaultPath;
+
+        var more = Path.Combine(_root, "더");
+        Directory.CreateDirectory(more);
+        File.WriteAllText(Path.Combine(more, "c.txt"), "C");
+        File.WriteAllText(Path.Combine(more, "a.txt"), "A2");
+
+        // 같은 이름은 둘 다 둔다
+        var r = SecureZip.AddFiles(vault, "비밀-1234", [Path.Combine(more, "c.txt"), Path.Combine(more, "a.txt")], replace: false);
+        r.Should().Be(new VaultAddResult(2, 0));
+        SecureZip.Verify(vault, "비밀-1234").Should().BeTrue();
+        SecureZip.List(vault, "비밀-1234").Select(e => e.Name).Should().BeEquivalentTo(["a.txt", "하위/b.txt", "c.txt", "a (2).txt"]);
+        System.Text.Encoding.UTF8.GetString(SecureZip.ReadEntry(vault, "비밀-1234", "a.txt")).Should().Be("A", "원래 것은 그대로");
+        System.Text.Encoding.UTF8.GetString(SecureZip.ReadEntry(vault, "비밀-1234", "a (2).txt")).Should().Be("A2");
+        File.Exists(vault + ".adding").Should().BeFalse("다 쓴 뒤에는 옆에 남기지 않는다");
+
+        // 같은 이름을 바꾼다
+        File.WriteAllText(Path.Combine(more, "c.txt"), "C2");
+        r = SecureZip.AddFiles(vault, "비밀-1234", [Path.Combine(more, "c.txt")], replace: true);
+        r.Should().Be(new VaultAddResult(0, 1));
+        SecureZip.List(vault, "비밀-1234").Should().HaveCount(4);
+        System.Text.Encoding.UTF8.GetString(SecureZip.ReadEntry(vault, "비밀-1234", "c.txt")).Should().Be("C2");
+        System.Text.Encoding.UTF8.GetString(SecureZip.ReadEntry(vault, "비밀-1234", "하위/b.txt")).Should().Be("B");
+
+        // 틀린 암호로는 넣지 못하고 금고는 그대로
+        var before = File.ReadAllBytes(vault);
+        FluentActions.Invoking(() => SecureZip.AddFiles(vault, "틀림", [Path.Combine(more, "c.txt")], replace: true)).Should().Throw<Exception>();
+        File.ReadAllBytes(vault).Should().Equal(before);
+        File.Exists(vault + ".adding").Should().BeFalse();
+    }
+
     [Fact]
     public void Picked_entries_are_streamed_to_files_and_preview_reads_only_the_head()
     {

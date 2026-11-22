@@ -93,7 +93,7 @@ The strip on the far left holds features you use from either pane. Collapse it w
 - **Tools**: the remaining features are gathered into four groups. Clicking a group opens its menu.
   - 🔍 **Find**: file search, folder analysis, images only
   - 🧹 **Tidy**: tidy this folder, new folder from template, folder wizard, set a management style, tidy Desktop / Downloads / logs
-  - 🔒 **Protect**: new note, locked note, encrypt, vault, previous versions (right-click), Recycle Bin
+  - 🔒 **Protect**: new note, locked note, lock a file, vault, previous versions (right-click), Recycle Bin
   - 🔗 **Connect**: SFTP, Git view, terminal
 - **Recycle Bin**: shows how much has piled up; **Empty** empties it right away.
 - **At the bottom**: settings (**Ctrl+,**), help (**F1**), more (all commands **Ctrl+Shift+P**, theme, hidden files, list spacing, updates, bug report, tour, about Foldy).
@@ -498,7 +498,7 @@ When copying or moving with Foldy **overwrites** a file with the same name, Fold
 
 The Wi-Fi password, the door code — things you must remember but don't want written just anywhere. Put them in a **locked note**. It asks for the password every time you open it, and you can read and edit it right inside Foldy.
 
-- **Creating**: sidebar **Protect** → **New locked note**. `New note.memo.foldylock` appears in the current folder and the editor opens. Rename it with F2.
+- **Creating**: sidebar **Protect** → **🔒 Write a locked note**. `New note.memo.foldylock` appears in the current folder (in Documents if the current folder isn't on this PC) and the editor opens. Rename it with F2. Foldy then selects the new file in the list and shows where it was saved at the top of the note window.
 - **Opening**: double-click, enter the password, and the editor opens. Text on the left, preview on the right (Markdown).
 - **Pictures**: capture the screen and paste with **Ctrl+V**, or drag in a picture file, and it's stored inside the note.
 ![Locked note editor](images/en/memo.png)
@@ -507,19 +507,20 @@ The Wi-Fi password, the door code — things you must remember but don't want wr
 - The content is decrypted in memory only. Decrypted text never stays on disk (temporary files included).
 - 💡 If you have lots of important passwords, a password manager such as Bitwarden or KeePass is also worth using.
 
-### Encrypting a file
+### Locking a file
 
-You can put a password on an existing file, such as a contract. Right-click the file → **🔒 Encrypt…**. `contract.pdf.foldylock` appears in the same folder; after checking that it decrypts correctly, Foldy asks "Send the original to the Recycle Bin?".
+You can lock an existing file, such as a contract. Right-click the file → **🔒 Lock (password)…**, or sidebar **Protect** → **🔒 Lock a file** (if no file is selected, a window opens to choose one). `contract.pdf.foldylock` appears in the same folder; after checking that it decrypts correctly, Foldy asks "Send the original to the Recycle Bin?".
 
 - Double-click to enter the password; pictures and text are shown right inside Foldy. For other files, Foldy says "Open it with its usual program" and **[Decrypt and open]** turns it back into the original file and opens it.
 - You get back exactly what you locked. Not a single byte changes.
 
 ### Vault
 
-Put an important folder into a vault, whole. Right-click the folder → **🔒 Put in vault…**. A single `foldername.foldyvault` file appears; after checking each file by decrypting it, Foldy asks whether to send the original folder to the Recycle Bin.
+Put an important folder into a vault, whole. Right-click the folder → **🔒 Put in vault…**, or sidebar **Protect** → **🔒 Put a folder in a vault** (if no folder is selected, a window opens to choose one). A single `foldername.foldyvault` file appears; after checking each file by decrypting it, Foldy asks whether to send the original folder to the Recycle Bin.
 
 - **There's no size limit.** Files over 4 GB go in and come out fine. Foldy keeps the originals until it's done, though, so it needs that much extra free space, and an older USB stick formatted as FAT32 can't hold a vault over 4 GB. Foldy checks **before** asking for a password, tells you right away if space is short, and offers [Free up space] to help you clear some.
-- Double-click to enter the password and see the list of files inside. Pick files to **preview** (in memory only), **extract**, or **extract all**.
+- Double-click to enter the password and see the list of files inside. Pick files to **preview** (in memory only), **extract**, or **extract all**. Files you take out go, without a password, into a folder with the same name next to the vault; they also stay in the vault.
+- **Adding more files**: in the opened vault, press **[Add more files]** and choose files (several at once is fine). If a name already exists, Foldy asks whether to keep both or replace the one in the vault. The vault is rewritten and every file is checked before it replaces the old one, so if anything fails the original vault stays as it was. At the end Foldy asks what to do with the original files you added.
 
 ### About locked files
 
