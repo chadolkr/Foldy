@@ -53,6 +53,29 @@ public static class QuickSearchMatch
         return 0;
     }
 
+    private static readonly char[] WordBreaks = [' ', '/', ',', '·', '+', '&', '\t'];
+
+    /// <summary>
+    /// 쉬운 말 목록에 맞추기: 친 말을 띄어쓰기·"/"·","로 나눠, 나눈 낱말이 모두 <paramref name="words"/> 어딘가에 있으면 맞다
+    /// ("프로그램 추가/삭제" → 프로그램·추가·삭제). 낱말 여럿이 다 맞으면 45, 하나면 35. 0이면 안 맞음.
+    /// </summary>
+    public static int ScoreWords(string words, string query)
+    {
+        if (string.IsNullOrEmpty(words))
+        {
+            return 0;
+        }
+
+        var parts = query.Split(WordBreaks, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+        {
+            return 0;
+        }
+
+        var cmp = StringComparison.CurrentCultureIgnoreCase;
+        return parts.All(p => words.Contains(p, cmp)) ? (parts.Length > 1 ? 45 : 35) : 0;
+    }
+
     /// <summary>한글 음절은 초성으로, 나머지는 그대로 (공백 제외).</summary>
     public static string Initials(string s)
     {

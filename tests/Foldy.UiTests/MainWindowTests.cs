@@ -184,6 +184,48 @@ public sealed partial class MainWindowTests
     }
 
     /// <summary>
+    /// 2026-11-22 사용자: "ctrl+space → 제어판 프로그램 추가/삭제 등 검색이 안 보인다. 윈도우 검색처럼 그룹핑이 되어야".
+    /// 제어판 항목이 설정 묶음에 나오고, 위의 보기 단추로 한 묶음만 볼 수 있다. (열지는 않는다)
+    /// 결과 줄(Border)은 UI 자동화에 드러나지 않아, 줄 안의 제목 글자로 찾는다 (계산 시험과 같은 방식).
+    /// </summary>
+    [Fact]
+    public void Quick_search_finds_control_panel_and_filters_by_group()
+    {
+        using var app = FoldyApp.Start();
+        AutomationElement? hit = null;
+        Window? qs = null;
+        for (var attempt = 0; attempt < 3 && hit is null; attempt++)
+        {
+            try
+            {
+                app.Find("찾기").AsButton().Invoke();
+                var item = Retry.WhileNull(
+                    () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName("빠른 검색 (파일·앱·설정·기능·계산)").And(app.By.ByControlType(ControlType.MenuItem))),
+                    TimeSpan.FromSeconds(10), ignoreException: true).Result;
+                item!.AsMenuItem().Invoke();
+                qs = app.FindWindow("Foldy 빠른 검색", 15);
+                Thread.Sleep(500);
+                qs.FindFirstDescendant(app.By.ByControlType(ControlType.Edit))!.AsTextBox().Text = "프로그램 추가/삭제";
+                hit = Retry.WhileNull(() => qs.FindFirstDescendant(app.By.ByName("프로그램 추가/제거")), TimeSpan.FromSeconds(5), ignoreException: true).Result;
+            }
+            catch (Exception e) when (e is InvalidOperationException or System.Runtime.InteropServices.COMException or FlaUI.Core.Exceptions.ElementNotAvailableException or NullReferenceException)
+            {
+                Thread.Sleep(1000);
+            }
+        }
+
+        hit.Should().NotBeNull("제어판의 프로그램 추가/제거가 설정 묶음에 나와야 한다");
+        qs!.FindFirstDescendant(app.By.ByName("보기: 앱"))!.AsButton().Invoke();
+        Retry.WhileTrue(() => qs.FindFirstDescendant(app.By.ByName("프로그램 추가/제거")) is not null, TimeSpan.FromSeconds(5), ignoreException: true);
+        qs.FindFirstDescendant(app.By.ByName("프로그램 추가/제거")).Should().BeNull("앱만 보면 설정은 숨는다");
+        qs.FindFirstDescendant(app.By.ByName("보기: 설정"))!.AsButton().Invoke();
+        Retry.WhileNull(() => qs.FindFirstDescendant(app.By.ByName("프로그램 추가/제거")), TimeSpan.FromSeconds(5), ignoreException: true)
+            .Result.Should().NotBeNull("설정만 보면 다시 나온다");
+        qs.FindFirstDescendant(app.By.ByName("열기")).Should().NotBeNull("오른쪽에 [열기] 단추가 있어야 한다");
+        qs.Close();
+    }
+
+    /// <summary>
     /// 2026-11-21 사용자: "양쪽 탐색기에 현재 폴더 위치가 표시되어야". 트리가 지금 폴더까지 펼쳐지고 그 폴더가 강조된다.
     /// </summary>
     [Fact]

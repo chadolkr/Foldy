@@ -10,7 +10,8 @@ namespace Foldy.App;
 
 /// <summary>
 /// 빠른 검색 창 (Ctrl+Space, macOS Spotlight처럼): 화면 가운데 큰 입력 칸 하나에서 계산·단위 변환, 앱, Windows 설정,
-/// 자주 쓰는 폴더, Foldy 기능, 파일을 함께 찾는다. 맨 위에 "가장 알맞은 것" 하나, 오른쪽에 미리보기.
+/// 자주 쓰는 폴더, Foldy 기능, 파일을 함께 찾는다. 맨 위에 "가장 알맞은 것" 하나, 오른쪽에 미리보기와 [열기].
+/// Windows 검색처럼 결과를 묶음(앱·설정·폴더·Foldy 기능·파일)으로 나눠 보여 주고, 위의 단추(모두·앱·설정…)나 Tab으로 한 묶음만 볼 수 있다.
 /// Enter 열기·실행, Ctrl+Enter 들어 있는 폴더 보기, Esc 또는 다른 곳을 누르면 닫힌다. 밖으로 아무것도 보내지 않는다.
 /// </summary>
 internal sealed class QuickSearchWindow : Window
@@ -26,7 +27,21 @@ internal sealed class QuickSearchWindow : Window
     public const int MaxFiles = 30;
 
     /// <summary>묶음 순서 (Spotlight처럼 바로 답 → 앱 → 설정 → 폴더 → 기능 → 파일).</summary>
-    public static readonly string[] GroupOrder = [Foldy.Core.Localization.Loc.T("qs.calc"), Foldy.Core.Localization.Loc.T("qs.units"), Foldy.Core.Localization.Loc.T("sw.qs.app"), Foldy.Core.Localization.Loc.T("cmd.settings"), Foldy.Core.Localization.Loc.T("sw.qs.folder"), Foldy.Core.Localization.Loc.T("sw.qs.feature0"), Foldy.Core.Localization.Loc.T("sw.qs.file")];
+    public static readonly string[] GroupOrder = [Foldy.Core.Localization.Loc.T("qs.calc"), Foldy.Core.Localization.Loc.T("qs.units"), Foldy.Core.Localization.Loc.T("sw.qs.app"), Foldy.Core.Localization.Loc.T("qs.grp.settings"), Foldy.Core.Localization.Loc.T("sw.qs.folder"), Foldy.Core.Localization.Loc.T("qs.grp.feature"), Foldy.Core.Localization.Loc.T("sw.qs.file")];
+
+    /// <summary>위의 보기 단추: (단추 글자, 보여 줄 묶음). 묶음이 null이면 모두.</summary>
+    public static readonly (string Label, string? Group)[] Filters =
+    [
+        (Foldy.Core.Localization.Loc.T("qs.filter.all"), null),
+        (Foldy.Core.Localization.Loc.T("sw.qs.app"), Foldy.Core.Localization.Loc.T("sw.qs.app")),
+        (Foldy.Core.Localization.Loc.T("qs.grp.settings"), Foldy.Core.Localization.Loc.T("qs.grp.settings")),
+        (Foldy.Core.Localization.Loc.T("sw.qs.folder"), Foldy.Core.Localization.Loc.T("sw.qs.folder")),
+        (Foldy.Core.Localization.Loc.T("qs.filter.files"), Foldy.Core.Localization.Loc.T("sw.qs.file")),
+        (Foldy.Core.Localization.Loc.T("qs.grp.feature"), Foldy.Core.Localization.Loc.T("qs.grp.feature")),
+    ];
+
+    /// <summary>한 묶음만 볼 때 그 묶음에서 보여 줄 수.</summary>
+    public const int MaxFiltered = 50;
 
     private readonly Func<string, IEnumerable<Hit>> _instant;
     private readonly Func<string, CancellationToken, IAsyncEnumerable<IReadOnlyList<FsEntry>>> _files;
@@ -38,6 +53,8 @@ internal sealed class QuickSearchWindow : Window
     private readonly Border _preview;
     private readonly TextBlock _footer;
     private readonly List<(Border Row, Hit Hit)> _hits = [];
+    private readonly List<(Button Chip, string? Group)> _chips = [];
+    private string? _filter;
 
     /// <summary>맨 위 결과 줄 (문서 캡처가 짧은 소개의 초점으로 쓴다).</summary>
     internal FrameworkElement? TopResult => _hits.Count > 0 ? _hits[0].Row : null;
@@ -91,6 +108,18 @@ internal sealed class QuickSearchWindow : Window
         top.Children.Add(icon);
         top.Children.Add(inputGrid);
 
+        // 보기 단추 (Windows 검색처럼): 모두 · 앱 · 설정 · 폴더 · 파일 · Foldy 기능
+        var chipRow = new WrapPanel { Margin = new Thickness(14, 0, 14, 8) };
+        foreach (var (label, group) in Filters)
+        {
+            var chip = new Button { Content = label, FontSize = 15, MinHeight = 34, MinWidth = 56, Padding = new Thickness(14, 2, 14, 2), Margin = new Thickness(0, 0, 6, 0), Focusable = false, Cursor = Cursors.Hand };
+            System.Windows.Automation.AutomationProperties.SetName(chip, Foldy.Core.Localization.Loc.F("qs.filter.name", label));
+            var g = group;
+            chip.Click += (_, _) => SetFilter(g);
+            _chips.Add((chip, g));
+            chipRow.Children.Add(chip);
+        }
+
         _scroll = new ScrollViewer { Content = _rows, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(6, 0, 6, 0) };
         _preview = new Border { Width = 300, Padding = new Thickness(16, 12, 16, 12), BorderThickness = new Thickness(1, 0, 0, 0), Visibility = Visibility.Collapsed };
         _preview.SetResourceReference(Border.BorderBrushProperty, "Brush.Border");
@@ -106,6 +135,7 @@ internal sealed class QuickSearchWindow : Window
         line.SetResourceReference(Border.BackgroundProperty, "Brush.Border");
         var body = new StackPanel();
         body.Children.Add(top);
+        body.Children.Add(chipRow);
         body.Children.Add(line);
         body.Children.Add(middle);
         body.Children.Add(_dog);
@@ -144,8 +174,39 @@ internal sealed class QuickSearchWindow : Window
             Top = wa.Top + wa.Height * 0.15;
             Activate();
             _input.Focus();
+            MarkChips();
             _ = SearchAsync("");
         };
+    }
+
+    /// <summary>지금 보는 묶음 (null이면 모두).</summary>
+    public string? Filter => _filter;
+
+    /// <summary>한 묶음만 보기 (null이면 모두). 같은 글자로 다시 찾는다.</summary>
+    public void SetFilter(string? group)
+    {
+        _filter = group;
+        MarkChips();
+        _input.Focus();
+        _ = SearchAsync(_input.Text);
+    }
+
+    private void MarkChips()
+    {
+        foreach (var (chip, g) in _chips)
+        {
+            var on = g == _filter;
+            chip.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
+            chip.BorderThickness = new Thickness(on ? 2 : 1);
+            if (on)
+            {
+                chip.SetResourceReference(Control.BorderBrushProperty, "Brush.Accent");
+            }
+            else
+            {
+                chip.SetResourceReference(Control.BorderBrushProperty, "Brush.Border");
+            }
+        }
     }
 
     /// <summary>테스트·문서 캡처: 입력 칸에 글자를 넣는다.</summary>
@@ -175,6 +236,13 @@ internal sealed class QuickSearchWindow : Window
                 SafeClose();
                 e.Handled = true;
                 break;
+            case Key.Tab:
+                // Tab: 다음 묶음만 보기, Shift+Tab: 앞 묶음 (Windows 검색처럼)
+                var i = _chips.FindIndex(c => c.Group == _filter);
+                var step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1;
+                SetFilter(_chips[(i + step + _chips.Count) % _chips.Count].Group);
+                e.Handled = true;
+                break;
             case Key.Down:
                 Select(Math.Min(_hits.Count - 1, _selected + 1));
                 e.Handled = true;
@@ -202,15 +270,19 @@ internal sealed class QuickSearchWindow : Window
         a();
     }
 
-    /// <summary>바로 찾는 것(계산·앱·설정·폴더·기능)을 묶음으로 나누고, 점수가 가장 높은 하나를 맨 위로.</summary>
-    public static (Hit? Top, IReadOnlyList<(string Group, IReadOnlyList<Hit> Hits)> Groups) Arrange(IEnumerable<Hit> hits)
+    /// <summary>
+    /// 바로 찾는 것(계산·앱·설정·폴더·기능)을 묶음으로 나누고, 점수가 가장 높은 하나를 맨 위로.
+    /// <paramref name="filter"/>가 있으면 그 묶음만 (더 많이). <c>Total</c>은 그 묶음에서 찾은 수 (보여 준 것보다 많으면 "더 보기").
+    /// </summary>
+    public static (Hit? Top, IReadOnlyList<(string Group, IReadOnlyList<Hit> Hits, int Total)> Groups) Arrange(IEnumerable<Hit> hits, string? filter = null)
     {
-        var all = hits.ToList();
+        var all = hits.Where(h => filter is null || h.Group == filter).ToList();
         var top = all.Where(h => h.Score > 0).OrderByDescending(h => h.Score).ThenBy(h => Array.IndexOf(GroupOrder, h.Group)).FirstOrDefault();
+        var take = filter is null ? MaxPerGroup : MaxFiltered;
         var groups = all.Where(h => !ReferenceEquals(h, top))
             .GroupBy(h => h.Group)
             .OrderBy(g => Array.IndexOf(GroupOrder, g.Key) is var i && i < 0 ? 99 : i)
-            .Select(g => (g.Key, (IReadOnlyList<Hit>)[.. g.OrderByDescending(h => h.Score).Take(MaxPerGroup)]))
+            .Select(g => (g.Key, (IReadOnlyList<Hit>)[.. g.OrderByDescending(h => h.Score).Take(take)], g.Count()))
             .ToList();
         return (top, groups);
     }
@@ -226,16 +298,19 @@ internal sealed class QuickSearchWindow : Window
         _selected = -1;
         var query = q.Trim();
 
-        var (topHit, groups) = Arrange(_instant(query));
+        var filter = _filter;
+        var fileGroup = Foldy.Core.Localization.Loc.T("sw.qs.file");
+        var folderGroup = Foldy.Core.Localization.Loc.T("sw.qs.folder");
+        var (topHit, groups) = Arrange(_instant(query), filter);
         if (topHit is not null)
         {
             AddHeader(TopGroup);
             AddRow(topHit, big: true);
         }
 
-        foreach (var (group, hits) in groups)
+        foreach (var (group, hits, total) in groups)
         {
-            AddHeader(group);
+            AddHeader(group, filter is null && total > hits.Count ? group : null);
             foreach (var h in hits)
             {
                 AddRow(h);
@@ -243,10 +318,12 @@ internal sealed class QuickSearchWindow : Window
         }
 
         Select(_hits.Count > 0 ? 0 : -1);
-        if (query.Length < 2)
+        if (query.Length < 2 || (filter is not null && filter != fileGroup && filter != folderGroup))
         {
-            return; // 파일은 두 글자부터 (한 글자는 너무 많이 나온다)
+            return; // 파일은 두 글자부터 (한 글자는 너무 많이 나온다). 앱·설정·기능만 볼 때는 파일을 찾지 않는다
         }
+
+        var maxFiles = filter is null ? MaxFiles : MaxFiltered;
 
         try
         {
@@ -261,8 +338,12 @@ internal sealed class QuickSearchWindow : Window
                     return;
                 }
 
-                total += batch.Count; // 보여 주는 건 30개까지, 센 것은 전부
-                foreach (var f in batch.Take(MaxFiles - shown))
+                // 폴더만 볼 때는 폴더, 파일만 볼 때는 파일만
+                IReadOnlyList<FsEntry> wanted = filter == folderGroup ? batch.Where(f => f.Kind == FsKind.Folder).ToList()
+                    : filter == fileGroup ? batch.Where(f => f.Kind != FsKind.Folder).ToList()
+                    : batch;
+                total += wanted.Count; // 보여 주는 건 30개까지, 센 것은 전부
+                foreach (var f in wanted.Take(Math.Max(0, maxFiles - shown)))
                 {
                     if (shown == 0 && _hits.Count == 0)
                     {
@@ -273,7 +354,7 @@ internal sealed class QuickSearchWindow : Window
                     {
                         if (shown == 0 || (shown == 1 && _rows.Children.Count == 2))
                         {
-                            AddHeader(Foldy.Core.Localization.Loc.T("sw.qs.file"));
+                            AddHeader(filter == folderGroup ? folderGroup : fileGroup, filter is null ? fileGroup : null);
                         }
 
                         AddRow(_fileHit(f));
@@ -307,11 +388,26 @@ internal sealed class QuickSearchWindow : Window
         }
     }
 
-    private void AddHeader(string text)
+    /// <summary>묶음 이름. <paramref name="more"/>가 있으면 오른쪽에 "더 보기 ›" (누르면 그 묶음만 본다).</summary>
+    private void AddHeader(string text, string? more = null)
     {
-        var t = new TextBlock { Text = text, FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new Thickness(10, 10, 10, 4) };
+        var t = new TextBlock { Text = text, FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
         t.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
-        _rows.Children.Add(t);
+        if (more is null)
+        {
+            t.Margin = new Thickness(10, 10, 10, 4);
+            _rows.Children.Add(t);
+            return;
+        }
+
+        var link = new TextBlock { Text = Foldy.Core.Localization.Loc.T("qs.more") + " ›", FontSize = 14, Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center };
+        link.SetResourceReference(ForegroundProperty, "Brush.Accent");
+        link.MouseLeftButtonUp += (_, e) => { e.Handled = true; SetFilter(more); };
+        var dock = new DockPanel { Margin = new Thickness(10, 10, 10, 4), LastChildFill = false };
+        DockPanel.SetDock(link, Dock.Right);
+        dock.Children.Add(t);
+        dock.Children.Add(link);
+        _rows.Children.Add(dock);
     }
 
     private void AddRow(Hit h, bool big = false)
@@ -401,6 +497,17 @@ internal sealed class QuickSearchWindow : Window
         if (content is not null)
         {
             panel.Children.Add(content);
+        }
+
+        // [열기] (Windows 검색처럼 오른쪽에 큰 단추): 키보드를 몰라도 누를 수 있게
+        var open = new Button { Content = h.Group == Foldy.Core.Localization.Loc.T("qs.calc") || h.Group == Foldy.Core.Localization.Loc.T("qs.units") ? Foldy.Core.Localization.Loc.T("ops.copy") : Foldy.Core.Localization.Loc.T("qs.open"), FontSize = 16, MinHeight = 40, MinWidth = 140, Padding = new Thickness(18, 4, 18, 4), Margin = new Thickness(0, 12, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, Focusable = false };
+        open.Click += (_, _) => Run(h.Run);
+        panel.Children.Add(open);
+        if (h.Reveal is { } reveal)
+        {
+            var folder = new Button { Content = Foldy.Core.Localization.Loc.T("qs.openFolder"), FontSize = 14, MinHeight = 34, Padding = new Thickness(12, 2, 12, 2), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, Focusable = false };
+            folder.Click += (_, _) => Run(reveal);
+            panel.Children.Add(folder);
         }
 
         var hint = new TextBlock { Text = h.Reveal is not null ? Foldy.Core.Localization.Loc.T("qs.hintOpen") : h.Group == Foldy.Core.Localization.Loc.T("qs.calc") || h.Group == Foldy.Core.Localization.Loc.T("qs.units") ? Foldy.Core.Localization.Loc.T("qs.hintCopy") : Foldy.Core.Localization.Loc.T("qs.hintRun"), FontSize = 12, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 10, 0, 0) };

@@ -1,51 +1,122 @@
 namespace Foldy.Core.QuickSearch;
 
-/// <summary>Windows 설정 한 화면 (ms-settings: 주소). <see cref="Keywords"/>로도 찾는다.</summary>
-public sealed record SettingsPage(string Title, string Uri, string Keywords);
+/// <summary>빠른 검색에 나오는 Windows 항목의 종류: 설정 앱 화면, 예전 제어판, 관리 도구.</summary>
+public enum SystemItemKind
+{
+    Settings,
+    ControlPanel,
+    Tool,
+}
+
+/// <summary>
+/// Windows 설정 한 화면(ms-settings: 주소) 또는 제어판·관리 도구 하나. <see cref="Keywords"/>(쉬운 말)로도 찾는다.
+/// 제어판·도구의 <see cref="Uri"/>는 System32 안의 파일 이름(appwiz.cpl, devmgmt.msc 등)이고 <see cref="Arguments"/>가 붙을 수 있다.
+/// </summary>
+public sealed record SettingsPage(string Title, string Uri, string Keywords, string Arguments = "", SystemItemKind Kind = SystemItemKind.Settings)
+{
+    /// <summary>
+    /// 실행할 것: ms-settings는 주소 그대로, 나머지는 System32의 전체 경로 (다른 폴더의 같은 이름 파일이 대신 실행되지 않게).
+    /// </summary>
+    public (string File, string Arguments) LaunchTarget(string? systemDirectory = null) =>
+        Uri.StartsWith("ms-settings:", StringComparison.OrdinalIgnoreCase)
+            ? (Uri, "")
+            : (Path.Combine(systemDirectory ?? Environment.SystemDirectory, Uri), Arguments);
+}
 
 /// <summary>시작 메뉴의 앱 (바로 가기 파일).</summary>
 public sealed record StartApp(string Name, string ShortcutPath);
 
-/// <summary>빠른 검색이 찾는 Windows 것들: 설정 화면 목록과 시작 메뉴 앱.</summary>
+/// <summary>빠른 검색이 찾는 Windows 것들: 설정 화면·제어판·관리 도구 목록과 시작 메뉴 앱.</summary>
 public static class SystemCatalog
 {
-    /// <summary>자주 찾는 Windows 설정 화면 (Microsoft 문서의 ms-settings URI).</summary>
+    private static SettingsPage S(string key, string uri) => new(Foldy.Core.Localization.Loc.T("ws." + key), uri, Foldy.Core.Localization.Loc.T("ws." + key + ".k"));
+
+    private static SettingsPage C(string key, string file, string args = "") =>
+        new(Foldy.Core.Localization.Loc.T("cp." + key), file, Foldy.Core.Localization.Loc.T("cp." + key + ".k"), args, SystemItemKind.ControlPanel);
+
+    private static SettingsPage T(string key, string file, string args = "") =>
+        new(Foldy.Core.Localization.Loc.T("cp." + key), file, Foldy.Core.Localization.Loc.T("cp." + key + ".k"), args, SystemItemKind.Tool);
+
+    /// <summary>
+    /// 자주 찾는 Windows 설정 화면(Microsoft 문서의 ms-settings URI)과, 아직 사람들이 제어판 이름으로 찾는 것들
+    /// (2026-11-22 사용자: "제어판 프로그램 추가/삭제 등 검색이 안 보인다").
+    /// </summary>
     public static IReadOnlyList<SettingsPage> SettingsPages { get; } =
     [
-        new(Foldy.Core.Localization.Loc.T("ws.display"), "ms-settings:display", Foldy.Core.Localization.Loc.T("ws.display.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.sound"), "ms-settings:sound", Foldy.Core.Localization.Loc.T("ws.sound.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.notifications"), "ms-settings:notifications", Foldy.Core.Localization.Loc.T("ws.notifications.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.power"), "ms-settings:powersleep", Foldy.Core.Localization.Loc.T("ws.power.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.storage"), "ms-settings:storagesense", Foldy.Core.Localization.Loc.T("ws.storage.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.multitasking"), "ms-settings:multitasking", Foldy.Core.Localization.Loc.T("ws.multitasking.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.about"), "ms-settings:about", Foldy.Core.Localization.Loc.T("ws.about.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.bluetooth"), "ms-settings:bluetooth", Foldy.Core.Localization.Loc.T("ws.bluetooth.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.printers"), "ms-settings:printers", Foldy.Core.Localization.Loc.T("ws.printers.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.mouse"), "ms-settings:mousetouchpad", Foldy.Core.Localization.Loc.T("ws.mouse.k")),
+        S("display", "ms-settings:display"),
+        S("sound", "ms-settings:sound"),
+        S("notifications", "ms-settings:notifications"),
+        S("power", "ms-settings:powersleep"),
+        S("storage", "ms-settings:storagesense"),
+        S("multitasking", "ms-settings:multitasking"),
+        S("about", "ms-settings:about"),
+        S("bluetooth", "ms-settings:bluetooth"),
+        S("printers", "ms-settings:printers"),
+        S("mouse", "ms-settings:mousetouchpad"),
         new("Wi-Fi", "ms-settings:network-wifi", Foldy.Core.Localization.Loc.T("ws.wifi.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.network"), "ms-settings:network", Foldy.Core.Localization.Loc.T("ws.network.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.proxy"), "ms-settings:network-proxy", Foldy.Core.Localization.Loc.T("ws.proxy.k")),
+        S("network", "ms-settings:network"),
+        S("proxy", "ms-settings:network-proxy"),
         new("VPN", "ms-settings:network-vpn", "vpn"),
-        new(Foldy.Core.Localization.Loc.T("ws.background"), "ms-settings:personalization-background", Foldy.Core.Localization.Loc.T("ws.background.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.colors"), "ms-settings:colors", Foldy.Core.Localization.Loc.T("ws.colors.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.taskbar"), "ms-settings:taskbar", Foldy.Core.Localization.Loc.T("ws.taskbar.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.fonts"), "ms-settings:fonts", Foldy.Core.Localization.Loc.T("ws.fonts.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.apps"), "ms-settings:appsfeatures", Foldy.Core.Localization.Loc.T("ws.apps.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.defaultApps"), "ms-settings:defaultapps", Foldy.Core.Localization.Loc.T("ws.defaultApps.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.startup"), "ms-settings:startupapps", Foldy.Core.Localization.Loc.T("ws.startup.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.account"), "ms-settings:yourinfo", Foldy.Core.Localization.Loc.T("ws.account.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.signin"), "ms-settings:signinoptions", Foldy.Core.Localization.Loc.T("ws.signin.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.time"), "ms-settings:dateandtime", Foldy.Core.Localization.Loc.T("ws.time.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.language"), "ms-settings:regionlanguage", Foldy.Core.Localization.Loc.T("ws.language.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.typing"), "ms-settings:typing", Foldy.Core.Localization.Loc.T("ws.typing.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.textSize"), "ms-settings:easeofaccess-display", Foldy.Core.Localization.Loc.T("ws.textSize.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.magnifier"), "ms-settings:easeofaccess-magnifier", Foldy.Core.Localization.Loc.T("ws.magnifier.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.pointer"), "ms-settings:easeofaccess-mousepointer", Foldy.Core.Localization.Loc.T("ws.pointer.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.update"), "ms-settings:windowsupdate", Foldy.Core.Localization.Loc.T("ws.update.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.security"), "ms-settings:windowsdefender", Foldy.Core.Localization.Loc.T("ws.security.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.privacy"), "ms-settings:privacy", Foldy.Core.Localization.Loc.T("ws.privacy.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.recovery"), "ms-settings:recovery", Foldy.Core.Localization.Loc.T("ws.recovery.k")),
-        new(Foldy.Core.Localization.Loc.T("ws.backup"), "ms-settings:backup", Foldy.Core.Localization.Loc.T("ws.backup.k")),
+        S("background", "ms-settings:personalization-background"),
+        S("colors", "ms-settings:colors"),
+        S("taskbar", "ms-settings:taskbar"),
+        S("fonts", "ms-settings:fonts"),
+        S("apps", "ms-settings:appsfeatures"),
+        S("defaultApps", "ms-settings:defaultapps"),
+        S("startup", "ms-settings:startupapps"),
+        S("account", "ms-settings:yourinfo"),
+        S("signin", "ms-settings:signinoptions"),
+        S("time", "ms-settings:dateandtime"),
+        S("language", "ms-settings:regionlanguage"),
+        S("typing", "ms-settings:typing"),
+        S("textSize", "ms-settings:easeofaccess-display"),
+        S("magnifier", "ms-settings:easeofaccess-magnifier"),
+        S("pointer", "ms-settings:easeofaccess-mousepointer"),
+        S("update", "ms-settings:windowsupdate"),
+        S("security", "ms-settings:windowsdefender"),
+        S("privacy", "ms-settings:privacy"),
+        S("recovery", "ms-settings:recovery"),
+        S("backup", "ms-settings:backup"),
+        S("clipboard", "ms-settings:clipboard"),
+        S("nightlight", "ms-settings:nightlight"),
+        S("themes", "ms-settings:themes"),
+        S("lockscreen", "ms-settings:lockscreen"),
+        S("start", "ms-settings:personalization-start"),
+        S("batterysaver", "ms-settings:batterysaver"),
+        S("hotspot", "ms-settings:network-mobilehotspot"),
+        S("microphone", "ms-settings:privacy-microphone"),
+        S("camera", "ms-settings:privacy-webcam"),
+        S("location", "ms-settings:privacy-location"),
+        S("narrator", "ms-settings:easeofaccess-narrator"),
+
+        // 제어판 (예전 이름으로 찾는 사람이 많다)
+        C("programs", "appwiz.cpl"),
+        C("control", "control.exe"),
+        C("features", "optionalfeatures.exe"),
+        C("network", "ncpa.cpl"),
+        C("users", "control.exe", "/name Microsoft.UserAccounts"),
+        C("credentials", "control.exe", "/name Microsoft.CredentialManager"),
+        C("printers", "control.exe", "printers"),
+        C("sound", "mmsys.cpl"),
+        C("mouse", "main.cpl"),
+        C("power", "powercfg.cpl"),
+        C("internet", "inetcpl.cpl"),
+        C("firewall", "firewall.cpl"),
+        C("region", "intl.cpl"),
+        C("system", "SystemPropertiesAdvanced.exe"),
+        C("envvars", "rundll32.exe", "sysdm.cpl,EditEnvironmentVariables"),
+        C("protection", "SystemPropertiesProtection.exe"),
+
+        // 관리 도구
+        T("taskmgr", "taskmgr.exe"),
+        T("devices", "devmgmt.msc"),
+        T("disk", "diskmgmt.msc"),
+        T("cleanup", "cleanmgr.exe"),
+        T("services", "services.msc"),
+        T("events", "eventvwr.msc"),
+        T("tasks", "taskschd.msc"),
+        T("compmgmt", "compmgmt.msc"),
+        T("sysinfo", "msinfo32.exe"),
     ];
 
     /// <summary>

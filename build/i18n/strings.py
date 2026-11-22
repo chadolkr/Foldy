@@ -99,7 +99,8 @@ from cs_strings import CS  # noqa: E402
 from mcp_strings import MCP  # noqa: E402
 from preview_strings import PREVIEW  # noqa: E402
 from discover_strings import DISCOVER  # noqa: E402
-for _k, _ko, _en, _es, _ja, _zh in SHELL + XAML + XAML2 + CS + MCP + PREVIEW + DISCOVER:
+from syscat_strings import SYSCAT  # noqa: E402
+for _k, _ko, _en, _es, _ja, _zh in SHELL + XAML + XAML2 + CS + MCP + PREVIEW + DISCOVER + SYSCAT:
     S[_k] = {"ko": _ko, "en": _en, "es": _es, "ja": _ja, "zh-Hans": _zh}
 
 

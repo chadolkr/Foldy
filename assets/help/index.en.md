@@ -206,13 +206,13 @@ Whatever program you're using, press **Ctrl+Space** and a big search box appears
 
 - **Files and folders**: searches every drive if the index service is installed, otherwise inside the current folder. A preview (picture, start of the text, size, date) appears on the right.
 - **Apps**: finds programs in the Start menu by name and runs them.
-- **Windows settings**: type something like "display", "wifi", "text size" or "printer" to open that settings page directly.
+- **Windows settings and Control Panel**: type something like "display", "wifi", "text size" or "printer" to open that settings page directly. Classic Control Panel and admin tool names such as "control panel", "add or remove programs", "device manager", "task manager" or "environment variables", and everyday words like "driver" or "not responding", work too.
 - **Pinned and recent folders** appear at the top.
 - **Foldy features**: run a feature by its name, like "settings" or "folder analysis".
 - **Plain language works (Korean)**: Foldy understands Korean requests such as "다운로드 정리해줘" (tidy my downloads) and shows "Do this?". In other languages, type the feature's name instead.
 - **Math and unit conversion**: type `12*3+4`, `200*15%`, `5 km to mi`, `100F` or `2 GB MB` for an instant answer; press Enter to copy the result.
 
-The **best match** appears large at the top, with the rest grouped by kind below. **Enter** opens or runs, **Ctrl+Enter** shows the containing folder in Foldy, and **Esc** or clicking outside closes it. It never searches the internet (nothing is sent outside).
+The **best match** appears large at the top, with the rest grouped by kind below (apps, settings, folders, Foldy features, files), like Windows search. Click **All, App, Settings, Folder, Files or Foldy features** under the search box, or press **Tab**, to see just one group with more results. **More ›** next to a group name does the same. You can also open the selected item with the large **[Open]** button on the right. **Enter** opens or runs, **Ctrl+Enter** shows the containing folder in Foldy, and **Esc** or clicking outside closes it. It never searches the internet (nothing is sent outside).
 
 When it finds files, a **sharp-nosed bloodhound** sniffs the floor, runs with its ears flapping and fetches them: "Sniff! Fetched 1,284 in 0.03 s". If nothing turns up, it tilts its head. Turn off "Use animations" in settings to see text only.
 
