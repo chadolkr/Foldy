@@ -168,7 +168,7 @@ SW = [
     ('sw.upd.ready', 'Foldy {0} 업데이트가 준비됐습니다', 'Foldy {0} update is ready', 'La actualización Foldy {0} está lista', 'Foldy {0} の更新の準備ができました', 'Foldy {0} 更新已就绪'),
     ('sw.upd.readyAsk', 'Foldy {0}이(가) 준비됐어요 (지금 {1}).\n지금 Foldy를 닫고 설치할까요? 1분쯤 뒤에 다시 열려요.', 'Foldy {0} is ready (you have {1}).\nClose Foldy and install now? It reopens in about a minute.', 'Foldy {0} está lista (tienes {1}).\n¿Cerrar Foldy e instalar ahora? Se volverá a abrir en un minuto.', 'Foldy {0} の準備ができました (現在 {1})。\n今すぐ Foldy を閉じてインストールしますか? 1 分ほどで再び開きます。', 'Foldy {0} 已就绪（当前 {1}）。\n要现在关闭 Foldy 并安装吗？大约一分钟后会重新打开。'),
     ('sw.upd.restart', 'Foldy {0} · 재시작하고 업데이트', 'Foldy {0} · restart and update', 'Foldy {0} · reiniciar y actualizar', 'Foldy {0} · 再起動して更新', 'Foldy {0} · 重启并更新'),
-    ('sw.upd.afterJobs', '작업이 끝나면 {0}(으)로 업데이트 · 취소', 'Update to {0} when jobs finish · cancel', 'Actualizar a {0} cuando terminen las tareas · cancelar', 'ジョブ終了後に {0} へ更新 · 取り消す', '任务完成后更新到 {0} · 取消'),
+    ('sw.upd.afterJobs', '작업이 끝나면 {0} 버전으로 업데이트 · 취소', 'Update to {0} when jobs finish · cancel', 'Actualizar a {0} cuando terminen las tareas · cancelar', 'ジョブ終了後に {0} へ更新 · 取り消す', '任务完成后更新到 {0} · 取消'),
     ('sw.upd.installFailed', '업데이트 설치를 시작하지 못했습니다: {0}', "Couldn't start the update install: {0}", 'No se pudo iniciar la instalación: {0}', '更新のインストールを開始できませんでした: {0}', '无法开始安装更新：{0}'),
     ('sw.scale.auto', '화면 크기: Windows 설정 따르기 ({0:0}%)', 'Display size: follow Windows ({0:0}%)', 'Tamaño: según Windows ({0:0}%)', '画面サイズ: Windows の設定に従う ({0:0}%)', '显示大小：跟随 Windows（{0:0}%）'),
     ('sw.scale.n', '화면 크기 {0:0}%', 'Display size {0:0}%', 'Tamaño {0:0}%', '画面サイズ {0:0}%', '显示大小 {0:0}%'),

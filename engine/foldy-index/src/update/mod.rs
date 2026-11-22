@@ -588,6 +588,14 @@ impl UpdateService {
             let (h, e) = (self.host.clone(), exe.clone());
             let running = tokio::task::spawn_blocking(move || !h.foldy_processes(&e).is_empty()).await.unwrap_or(true);
             if !running {
+                // 창이 다 닫혔으면, AI 앱이 띄운 AI 연결용 Foldy(--mcp, 창 없음)는 끝내고 설치한다 (사용자 2026-11-22:
+                // Claude·Antigravity가 띄운 것 때문에 "다른 Foldy 창이 닫히기를 기다리고 있어요"에서 멈췄다). AI 앱이 다음에 다시 띄운다.
+                let (h, e) = (self.host.clone(), exe.clone());
+                let ended = tokio::task::spawn_blocking(move || h.mcp_processes(&e).into_iter().filter(|&p| h.end_process(p)).count()).await.unwrap_or(0);
+                if ended > 0 {
+                    self.log(&format!("AI 연결용 Foldy {ended}개를 끝내고 설치"));
+                    tokio::time::sleep(self.cfg.poll.min(Duration::from_secs(1))).await;
+                }
                 break;
             }
             if tokio::time::Instant::now() >= deadline {

@@ -34,8 +34,8 @@ use windows_sys::Win32::System::ProcessStatus::K32EnumProcesses;
 use windows_sys::Win32::System::RemoteDesktop::{ProcessIdToSessionId, WTSGetActiveConsoleSessionId, WTSQueryUserToken};
 use windows_sys::Win32::System::Threading::{
     CREATE_BREAKAWAY_FROM_JOB, CREATE_NEW_PROCESS_GROUP, CREATE_UNICODE_ENVIRONMENT, CreateProcessAsUserW, DETACHED_PROCESS,
-    GetCurrentThread, OpenProcess, OpenProcessToken, PROCESS_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
-    STARTUPINFOW, SetThreadPriority, THREAD_MODE_BACKGROUND_BEGIN, THREAD_MODE_BACKGROUND_END,
+    GetCurrentThread, OpenProcess, OpenProcessToken, PROCESS_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_TERMINATE, QueryFullProcessImageNameW,
+    STARTUPINFOW, SetThreadPriority, TerminateProcess, THREAD_MODE_BACKGROUND_BEGIN, THREAD_MODE_BACKGROUND_END,
 };
 
 use super::host::Host;
@@ -101,19 +101,96 @@ fn wide(s: &std::ffi::OsStr) -> Vec<u16> {
     s.encode_wide().chain([0]).collect()
 }
 
+/// `exe`로 실행 중인 모든 프로세스 ID.
+fn processes_of(exe: &Path) -> Vec<u32> {
+    let want = exe.as_os_str().to_string_lossy().to_lowercase();
+    let mut pids = vec![0u32; 8192];
+    let mut needed = 0u32;
+    // SAFETY: pids는 바이트 크기를 정확히 넘긴 쓰기 가능한 버퍼다.
+    if unsafe { K32EnumProcesses(pids.as_mut_ptr(), (pids.len() * 4) as u32, &mut needed) } == 0 {
+        return Vec::new();
+    }
+    pids.truncate((needed / 4) as usize);
+    pids.into_iter()
+        .filter(|&pid| pid != 0 && image_path(pid).is_some_and(|p| p.to_lowercase() == want))
+        .collect()
+}
+
+/// 이 프로세스가 AI 연결용 Foldy(`Foldy.exe --mcp`)인가. 명령줄을 못 읽으면 아니라고 본다 (창 Foldy로 세어 기다린다).
+fn is_mcp_process(pid: u32) -> bool {
+    command_line(pid).is_some_and(|c| is_mcp_command_line(&c))
+}
+
+/// 명령줄에 `--mcp` 인자가 있나 (실행 파일 경로 뒤의 낱말 중에서).
+pub fn is_mcp_command_line(cmd: &str) -> bool {
+    let rest = if let Some(r) = cmd.trim_start().strip_prefix('"') {
+        r.split_once('"').map_or("", |(_, after)| after)
+    } else {
+        cmd.trim_start().split_once(char::is_whitespace).map_or("", |(_, after)| after)
+    };
+    rest.split_whitespace().any(|a| a.trim_matches('"').eq_ignore_ascii_case("--mcp"))
+}
+
+#[link(name = "ntdll")]
+unsafe extern "system" {
+    fn NtQueryInformationProcess(process: HANDLE, class: u32, info: *mut c_void, len: u32, ret: *mut u32) -> i32;
+}
+
+/// 다른 프로세스의 명령줄 (ProcessCommandLineInformation, 조회 전용 권한으로 된다).
+fn command_line(pid: u32) -> Option<String> {
+    const PROCESS_COMMAND_LINE_INFORMATION: u32 = 60;
+    // SAFETY: 조회 전용 권한으로 연다. 실패하면 null.
+    let h = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+    if h.is_null() {
+        return None;
+    }
+    // UNICODE_STRING { Length: u16, MaximumLength: u16, Buffer: *u16 } 뒤에 글자가 온다
+    let mut buf = vec![0u64; 8192 / 8];
+    let mut ret = 0u32;
+    // SAFETY: buf 바이트 크기를 정확히 넘긴다. 이어서 핸들을 닫는다.
+    let status = unsafe { NtQueryInformationProcess(h, PROCESS_COMMAND_LINE_INFORMATION, buf.as_mut_ptr().cast(), (buf.len() * 8) as u32, &mut ret) };
+    // SAFETY: 위에서 연 핸들을 한 번 닫는다.
+    unsafe { CloseHandle(h) };
+    if status < 0 {
+        return None;
+    }
+    let base = buf.as_ptr().cast::<u8>();
+    // SAFETY: 성공하면 buf 앞에 UNICODE_STRING이 있고, Buffer는 buf 안을 가리킨다. 길이를 buf 크기로 다시 확인한다.
+    unsafe {
+        let len = usize::from(*base.cast::<u16>()) / 2;
+        let ptr = *base.add(8).cast::<*const u16>();
+        let start = (ptr as usize).checked_sub(base as usize)?;
+        if ptr.is_null() || start + len * 2 > buf.len() * 8 {
+            return None;
+        }
+        Some(String::from_utf16_lossy(std::slice::from_raw_parts(ptr, len)))
+    }
+}
+
 impl Host for WinHost {
     fn foldy_processes(&self, exe: &Path) -> Vec<u32> {
-        let want = exe.as_os_str().to_string_lossy().to_lowercase();
-        let mut pids = vec![0u32; 8192];
-        let mut needed = 0u32;
-        // SAFETY: pids는 바이트 크기를 정확히 넘긴 쓰기 가능한 버퍼다.
-        if unsafe { K32EnumProcesses(pids.as_mut_ptr(), (pids.len() * 4) as u32, &mut needed) } == 0 {
-            return Vec::new();
+        processes_of(exe).into_iter().filter(|&p| !is_mcp_process(p)).collect()
+    }
+
+    fn mcp_processes(&self, exe: &Path) -> Vec<u32> {
+        processes_of(exe).into_iter().filter(|&p| is_mcp_process(p)).collect()
+    }
+
+    fn end_process(&self, pid: u32) -> bool {
+        // 끝내기 직전에 다시 확인한다 (그 사이 번호가 다른 프로세스에 다시 쓰였을 수 있다)
+        if !is_mcp_process(pid) {
+            return false;
         }
-        pids.truncate((needed / 4) as usize);
-        pids.into_iter()
-            .filter(|&pid| pid != 0 && image_path(pid).is_some_and(|p| p.to_lowercase() == want))
-            .collect()
+        // SAFETY: 끝내기 권한으로 열고, 끝낸 뒤 닫는다.
+        unsafe {
+            let h = OpenProcess(PROCESS_TERMINATE, 0, pid);
+            if h.is_null() {
+                return false;
+            }
+            let ok = TerminateProcess(h, 1) != 0;
+            CloseHandle(h);
+            ok
+        }
     }
 
     fn run_installer(&self, mut cmd: Command) -> io::Result<i32> {
@@ -430,6 +507,19 @@ mod tests {
         let pids = WinHost.foldy_processes(&me);
         assert!(pids.contains(&std::process::id()));
         assert!(WinHost.foldy_processes(Path::new(r"C:\없는\Foldy.exe")).is_empty());
+        // 시험 프로세스는 --mcp 없이 떴다: 창 Foldy로 센다
+        assert!(WinHost.mcp_processes(&me).is_empty());
+        assert!(command_line(std::process::id()).is_some_and(|c| !c.is_empty()));
+    }
+
+    #[test]
+    fn mcp_command_line_is_recognized() {
+        assert!(is_mcp_command_line(r#""C:\Program Files\Foldy\Foldy.exe" --mcp"#));
+        assert!(is_mcp_command_line(r"C:\Foldy\Foldy.exe --MCP"));
+        assert!(!is_mcp_command_line(r#""C:\Program Files\Foldy\Foldy.exe""#));
+        assert!(!is_mcp_command_line(r#""C:\Program Files\Foldy\Foldy.exe" "D:\--mcp 폴더""#));
+        assert!(!is_mcp_command_line(r#""C:\x --mcp\Foldy.exe" D:\"#)); // 경로 안의 글자는 인자가 아니다
+        assert!(!is_mcp_command_line(""));
     }
 
     #[test]

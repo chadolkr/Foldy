@@ -230,6 +230,38 @@ fn install_waits_for_foldy_to_exit_then_defers() {
     std::fs::remove_dir_all(&dir).ok();
 }
 
+/// 사용자 2026-11-22: Claude·Antigravity가 띄운 AI 연결용 Foldy(--mcp) 때문에 업데이트가 "다른 Foldy 창" 대기에서 멈췄다.
+/// 창 Foldy가 없으면 AI 연결용은 끝내고 설치한다. 창 Foldy가 있으면 그대로 기다린다 (복사 중일 수 있다).
+#[test]
+fn ai_connection_foldy_is_ended_before_install() {
+    let dir = temp_dir("mcp");
+    let srv = Server::start();
+    srv.release("1.2.3", &payload(5000, 3), &dir);
+    let host = Arc::new(FakeHost::new(None));
+    *host.mcp.lock().unwrap() = vec![501, 502];
+    *host.processes.lock().unwrap() = vec![77];
+    let svc = UpdateService::new(config(&srv, &dir, "1.0.0"), host.clone());
+    let rt = rt();
+    rt.spawn(svc.clone().run());
+    svc.handle(MsgType::CheckNow, &[], None);
+    wait_for(&svc, |s| s.state == update_state::READY_TO_INSTALL);
+
+    // 창 Foldy가 떠 있으면 AI 연결용도 건드리지 않고 미룬다
+    frame_status(&svc.handle(MsgType::InstallWhenIdle, &install_req(false, 1), None));
+    wait_for(&svc, |s| !s.last_error.is_empty());
+    assert!(host.ended.lock().unwrap().is_empty());
+    assert!(host.lines().is_empty());
+
+    // 창이 닫히면 AI 연결용을 끝내고 설치
+    host.processes.lock().unwrap().clear();
+    svc.handle(MsgType::InstallWhenIdle, &install_req(false, 1), None);
+    wait_for(&svc, |s| s.state == update_state::IDLE);
+    assert_eq!(*host.ended.lock().unwrap(), vec![501, 502]);
+    assert_eq!(host.lines().len(), 1, "{:?}", host.lines());
+    drop(rt);
+    std::fs::remove_dir_all(&dir).ok();
+}
+
 #[test]
 fn relaunch_asked_while_waiting_for_foldy_is_honored() {
     // 2026-11-21 실제 사례: Foldy를 닫아 "다시 띄우지 않는 설치"가 Foldy 종료를 기다리는 동안
