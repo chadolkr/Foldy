@@ -6,9 +6,10 @@ const es: Dictionary = {
   zoom: 'Haz clic para ampliar',
   shotsNote: 'Las capturas muestran la interfaz en coreano. La versión en español está en camino.',
   meta: {
-    title: 'Foldy · Un gestor de archivos rápido e inteligente, incluso sin conexión',
+    title: 'Foldy · Gestor de archivos rápido e inteligente para Windows, incluso sin conexión',
     description:
-      'Gestor de archivos gratuito y de código abierto para Windows. Encuentra lo que sea con Ctrl+Espacio, libera espacio y ordena el Escritorio y las Descargas paso a paso. Todo funciona sin internet.',
+      'Gestor de archivos de doble panel, gratuito y de código abierto, para Windows 10 y 11. Encuentra lo que sea con Ctrl+Espacio, mira qué llena tu disco y ordena el Escritorio y las Descargas paso a paso. Todo funciona sin internet.',
+    keywords: 'gestor de archivos, administrador de archivos, alternativa al Explorador de archivos, doble panel, buscar archivos, analizador de espacio en disco, liberar espacio, ordenar escritorio, organizar descargas, plantillas de carpetas, PARA, gratis, código abierto, Windows 11, Windows 10',
   },
   nav: {
     features: 'Funciones',

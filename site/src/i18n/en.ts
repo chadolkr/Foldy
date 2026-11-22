@@ -6,9 +6,10 @@ const en: Dictionary = {
   zoom: 'Click to enlarge',
   shotsNote: 'Screenshots show the Korean interface. An English interface is on the way.',
   meta: {
-    title: 'Foldy · A fast, smart file manager that works offline',
+    title: 'Foldy · Fast, smart file manager for Windows, even offline',
     description:
-      'A free, open-source file manager for Windows. Find anything with Ctrl+Space, free up disk space, and tidy your Desktop and Downloads step by step. Everything works without the internet.',
+      'A free, open-source dual-pane file manager for Windows 10 and 11. Find anything with Ctrl+Space, see what fills your disk, and tidy your Desktop and Downloads step by step. Works fully offline.',
+    keywords: 'file manager, Windows file manager, File Explorer alternative, dual-pane file manager, file search, instant search, disk space analyzer, treemap, desktop cleanup, downloads organizer, folder templates, PARA, SFTP client, Git, MCP server, free, open source, Windows 11, Windows 10',
   },
   nav: {
     features: 'Features',

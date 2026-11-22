@@ -192,7 +192,15 @@ jobs:
           $tag = '${{ github.ref_name }}'
           $files = Get-ChildItem artifacts/release -File | Where-Object Extension -ne '.wixpdb' | ForEach-Object FullName
           # SignPath Foundation 요건: 릴리스 페이지에 Code signing policy 링크
-          'Code signing policy: https://github.com/chadolkr/Foldy#code-signing-policy' | Set-Content release-notes-header.md -Encoding utf8
+          # 릴리스 페이지도 검색에 잡히므로 맨 위에 무엇인지 한 줄씩 (영어·한국어)
+          @(
+            '**Foldy** is a free, open-source dual-pane file manager for Windows 10/11: instant Ctrl+Space search, disk space analyzer, step-by-step Desktop and Downloads cleanup. Works offline.',
+            '빠르고 똑똑한 Windows 파일 관리자, 오프라인에서도. 무료 오픈소스.',
+            '',
+            'Website: https://chadolkr.github.io/Foldy/ · Install: download `Foldy-*-x64.msi` below and double-click it. Not code-signed yet, so SmartScreen may ask you to click More info → Run anyway.',
+            '',
+            'Code signing policy: https://github.com/chadolkr/Foldy#code-signing-policy'
+          ) | Set-Content release-notes-header.md -Encoding utf8
           $flags = @('--generate-notes', '--notes-file', 'release-notes-header.md', '--title', "Foldy $tag", '--verify-tag')
           if ('${{ steps.ver.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
           gh release create $tag @files @flags

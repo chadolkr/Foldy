@@ -8,6 +8,8 @@
 
 **한국어** · [English](README.en.md)
 
+> **English:** Foldy is a free, open-source dual-pane file manager for Windows 10/11 with instant Ctrl+Space search, a disk space analyzer and step-by-step Desktop and Downloads cleanup. Everything works offline. → [Read in English](README.en.md) · [Website](https://chadolkr.github.io/Foldy/en/)
+
 - **검색**은 0.003초
 - **느린 드라이브**는 알아서 가볍게
 - **Git 상태**는 폴더에 들어가는 순간 보이고
@@ -18,7 +20,7 @@
 
 *(이 문서의 모든 화면은 가짜 샘플 폴더로 찍은 실제 Foldy 화면입니다. 개인 정보는 들어 있지 않습니다.)*
 
-**[⬇ 최신 버전 내려받기 (MSI)](https://github.com/chadolkr/Foldy/releases/latest)** · Windows 10/11 x64 · 무료 오픈소스 (GPL-3.0)
+**[⬇ 최신 버전 내려받기 (MSI)](https://github.com/chadolkr/Foldy/releases/latest)** · Windows 10/11 x64 · 무료 오픈소스 (GPL-3.0) · [소개 사이트](https://chadolkr.github.io/Foldy/)
 
 ## 이런 게 좋아요
 
