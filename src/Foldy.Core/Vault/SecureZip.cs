@@ -442,6 +442,12 @@ public static class SecureZip
     {
         private readonly Dictionary<string, IndexItem> _byName;
 
+        /// <summary>
+        /// zip 항목 이름 → 항목. ZipFile.GetEntry는 매번 처음부터 찾으므로(파일 수만큼) 항목이 많은 금고를 꺼내거나 확인할 때
+        /// 파일 수의 제곱만큼 걸렸다 (7만 개 금고가 15분 넘게 걸림). 처음 쓸 때 한 번만 만든다.
+        /// </summary>
+        private Dictionary<string, ZipEntry>? _entries;
+
         private Archive(ZipFile zip, bool v2, List<IndexItem> items)
         {
             Zip = zip;
@@ -527,7 +533,7 @@ public static class SecureZip
         public Stream OpenStream(string name)
         {
             var item = _byName.GetValueOrDefault(name) ?? throw new FileNotFoundException(name);
-            var e = Zip.GetEntry(item.Entry) ?? throw new FileNotFoundException(name);
+            var e = EntryOf(item.Entry) ?? throw new FileNotFoundException(name);
             try
             {
                 return Zip.GetInputStream(e);
@@ -536,6 +542,23 @@ public static class SecureZip
             {
                 throw new WrongPasswordException();
             }
+        }
+
+        private ZipEntry? EntryOf(string entryName)
+        {
+            if (_entries is null)
+            {
+                // GetEntry와 같은 기준 (대소문자 무시, 같은 이름이면 앞의 것)
+                var d = new Dictionary<string, ZipEntry>(StringComparer.OrdinalIgnoreCase);
+                foreach (ZipEntry z in Zip)
+                {
+                    d.TryAdd(z.Name, z);
+                }
+
+                _entries = d;
+            }
+
+            return _entries.GetValueOrDefault(entryName);
         }
 
         public long SizeOf(string name) => (_byName.GetValueOrDefault(name) ?? throw new FileNotFoundException(name)).Size;

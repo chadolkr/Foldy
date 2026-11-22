@@ -74,6 +74,9 @@ pub struct Spec {
     /// 시험용: 파일 n개를 끝낸 뒤 크래시처럼 멈춘다 (저널 마무리 없음, 상태 Failed, FC_ERR_ABORTED).
     #[serde(default, rename = "_test_abort_after_files", skip_serializing)]
     pub test_abort_after_files: Option<u64>,
+    /// 시험용: 대상 드라이브의 빈 공간을 이 값으로 본다.
+    #[serde(default, rename = "_test_free_bytes", skip_serializing)]
+    pub test_free_bytes: Option<u64>,
 }
 
 impl Spec {

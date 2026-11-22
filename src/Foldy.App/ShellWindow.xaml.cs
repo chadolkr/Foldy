@@ -119,6 +119,7 @@ public partial class ShellWindow : Window, IPaneHost
             ConfirmAsync = msg => Task.FromResult(Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("dlg.ok"), msg, Foldy.Core.Localization.Loc.T("sw.deleteYes"), danger: true)), // SFTP 삭제처럼 되살릴 수 없는 일
             OpenSpecial = p => SecureFlows.TryOpen(this, p, Shell!),
             AskBigDeleteAsync = q => DeleteFlows.AskBigDeleteAsync(this, q),
+            FreeUpSpace = root => OpenAnalysis(root), // 공간이 모자라 멈춘 작업의 [공간 늘리기]
         };
 
         // Store(MSIX) 판은 Microsoft Store가 업데이트한다: 자체 업데이트(AppUpdater·서비스)는 쓰지 않는다 (docs/store.md)
@@ -1058,6 +1059,22 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private void OnClearJobs(object sender, RoutedEventArgs e) => Shell.ClearFinishedJobs();
+
+    private void OnJobFreeUp(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: JobViewModel j })
+        {
+            Shell.FreeUpSpaceFor(j);
+        }
+    }
+
+    private void OnJobRetry(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: JobViewModel j })
+        {
+            _ = Shell.RetryAsync(j);
+        }
+    }
 
     // ───────────── 명령 ─────────────
 

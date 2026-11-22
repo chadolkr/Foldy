@@ -136,7 +136,7 @@ public sealed class NativeCopyFileOperationService(
                         SafeInvoke(after);
                     }
 
-                    return Finish(p, job, journal);
+                    return Finish(p, job, journal, dest);
                 }
 
                 if (p.State == NativeJobState.NeedsAttention && resolver is not null && !ct.IsCancellationRequested)
@@ -233,10 +233,14 @@ public sealed class NativeCopyFileOperationService(
         }
     }
 
-    private static FileOpResult Finish(NativeProgress p, ICopyJob job, string? journal)
+    private static FileOpResult Finish(NativeProgress p, ICopyJob job, string? journal, string dest)
     {
         switch (p.State)
         {
+            case NativeJobState.Failed when p.LastError is NativeCopyErrors.NoSpace or NativeCopyErrors.FileTooBig:
+                // 시작 전에 멈춰 아무것도 쓰지 않았으니 이어 할 것도 없다 (사용자 원칙 2026-11-22)
+                TryDelete(journal);
+                return FileOpResult.NoSpace(SpaceFromEngine(p, dest));
             case NativeJobState.Done when p.FilesFailed == 0:
                 return FileOpResult.Ok();
             case NativeJobState.Done:
@@ -249,6 +253,23 @@ public sealed class NativeCopyFileOperationService(
             default:
                 return FileOpResult.Fail(Foldy.Core.Localization.Loc.F("copy.engineError", p.LastError));
         }
+    }
+
+    /// <summary>엔진이 본 필요한 양에 지금 남은 공간을 붙인다.</summary>
+    internal static Foldy.Core.Space.SpaceCheck SpaceFromEngine(NativeProgress p, string dest)
+    {
+        var problem = p.LastError == NativeCopyErrors.FileTooBig ? Foldy.Core.Space.SpaceProblem.Fat32TooBig : Foldy.Core.Space.SpaceProblem.NotEnoughSpace;
+        var need = (long)Math.Min(p.BytesTotal, long.MaxValue);
+        if (Foldy.Core.Space.DiskSpace.Probe(dest) is { } room)
+        {
+            return new Foldy.Core.Space.SpaceCheck(problem, need, room.Free, room.Root);
+        }
+
+        // 네트워크 공유 등: 폴더 분석은 열 수 없으니 [공간 늘리기] 없이 이름만 알린다
+        var root = Path.GetPathRoot(dest);
+        return root is { Length: > 2 } && root.StartsWith(@"\\", StringComparison.Ordinal)
+            ? new Foldy.Core.Space.SpaceCheck(problem, need, -1, null, root)
+            : new Foldy.Core.Space.SpaceCheck(problem, need, -1, string.IsNullOrEmpty(root) ? null : root);
     }
 
     private static string? SafeName(ICopyJob job)

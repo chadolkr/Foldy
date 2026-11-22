@@ -16,6 +16,7 @@ use crate::ffi::*;
 use crate::journal::{Journal, Record, ResumeState};
 use crate::plan::{self, Decision};
 use crate::scan;
+use crate::space;
 use crate::spec::{Mode, Spec};
 use crate::tuner::{self, AutoTuner, DriveKind, Gate};
 use crate::verify;
@@ -444,6 +445,40 @@ impl Job {
         if self.abort.load(Acquire) { Err(FC_ERR_ABORTED) } else { Ok(()) }
     }
 
+    /// 쓸 파일(복사 항목)이 대상 드라이브에 들어가는지 본다 (사용자 원칙 2026-11-22: 시작 전에 알린다).
+    /// 덮어쓰기·충돌 확인 대기는 지금 파일 자리를 다시 쓰므로 차이만 센다 (건너뛰기를 고르면 더 적게 든다).
+    fn check_space(&self, dest_root: &Path, small: &[WorkItem], large: &[WorkItem], asks: &[WorkItem]) -> Result<(), i32> {
+        let old = |it: &WorkItem| std::fs::metadata(&it.dst).ok().filter(|m| m.is_file()).map(|m| m.len());
+        let mut extra = 0u64;
+        let mut biggest: Option<&WorkItem> = None;
+        let planned = small.iter().chain(large).map(|it| (it, it.overwrite));
+        for (it, replaces) in planned.chain(asks.iter().map(|it| (it, true))) {
+            if it.op != Op::Copy {
+                continue;
+            }
+            extra = extra.saturating_add(space::extra(it.size, if replaces { old(it) } else { None }));
+            if biggest.is_none_or(|b| it.size > b.size) {
+                biggest = Some(it);
+            }
+        }
+        let Some(biggest) = biggest else { return Ok(()) };
+        let (free, fs) = win::volume_room(dest_root);
+        let free = self.spec.test_free_bytes.or(free);
+        match space::judge(extra, biggest.size, free, fs.as_deref()) {
+            space::Verdict::Ok => Ok(()),
+            space::Verdict::NoSpace { need, free } => {
+                self.bytes_total.store(need, Release);
+                self.push_issue(IssueKind::Failed, Path::new(""), dest_root, format!("빈 공간이 모자랍니다: {need} 바이트 필요, {free} 바이트 남음"));
+                Err(FC_ERR_NO_SPACE)
+            }
+            space::Verdict::TooBigForFat { size } => {
+                self.bytes_total.store(size, Release);
+                self.push_issue(IssueKind::Failed, &biggest.src, dest_root, "FAT32 드라이브에는 4GB가 넘는 파일을 쓸 수 없습니다".into());
+                Err(FC_ERR_FILE_TOO_BIG)
+            }
+        }
+    }
+
     fn open_journal(&self) -> Result<ResumeState, i32> {
         let Some(p) = self.spec.journal_path.as_deref() else { return Ok(ResumeState::default()) };
         let p = Path::new(p);
@@ -467,7 +502,6 @@ impl Job {
         if scan.tops.iter().any(|t| t.is_dir && plan::path_is_within(&dest_root, &t.src)) {
             return Err(FC_ERR_INVALID_ARG); // 폴더를 자기 안으로 복사
         }
-        std::fs::create_dir_all(&dest_root).map_err(|_| FC_ERR_IO)?;
         self.files_total.store((scan.files.len() + scan.errors.len()) as u64, Release);
         self.bytes_total.store(scan.bytes_total(), Release);
         let resume = self.open_journal()?;
@@ -506,10 +540,6 @@ impl Job {
                     large: false,
                 });
             }
-        }
-        // 폴더는 먼저 순서대로 만든다 (실패하면 그 안의 파일이 실패 목록으로 간다).
-        for d in scan.dirs.iter().filter(|d| !whole[d.top]) {
-            let _ = std::fs::create_dir_all(dest_root.join(&d.rel));
         }
         // 대상 폴더마다 한 번만 열거해 충돌을 확인한다 (파일마다 여는 것보다 훨씬 싸다).
         let index = DestIndex::default();
@@ -564,6 +594,13 @@ impl Job {
                 }
             }
             if item.large { large.push(item) } else { small.push(item) }
+        }
+        // 2.5) 공간 확인: 한 바이트도 쓰기 전에 (폴더도 만들기 전에) 본다. 모자라면 아무것도 바꾸지 않고 멈춘다.
+        self.check_space(&dest_root, &small, &large, &asks)?;
+        std::fs::create_dir_all(&dest_root).map_err(|_| FC_ERR_IO)?;
+        // 폴더는 먼저 순서대로 만든다 (실패하면 그 안의 파일이 실패 목록으로 간다).
+        for d in scan.dirs.iter().filter(|d| !whole[d.top]) {
+            let _ = std::fs::create_dir_all(dest_root.join(&d.rel));
         }
         // 큰 것부터 (끝 무렵 큰 파일 하나만 남아 늘어지지 않게)
         large.sort_by_key(|i| std::cmp::Reverse(i.size));

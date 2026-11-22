@@ -52,6 +52,9 @@ public interface ISftpClient : IDisposable
     /// <summary>경로의 정보. 없으면 null.</summary>
     SftpEntryInfo? Stat(string path);
 
+    /// <summary>그 경로가 있는 서버 디스크의 빈 공간(바이트). 서버가 알려 주지 않으면(statvfs 미지원) null.</summary>
+    long? FreeBytes(string path) => null;
+
     void CreateDirectory(string path);
 
     void DeleteFile(string path);

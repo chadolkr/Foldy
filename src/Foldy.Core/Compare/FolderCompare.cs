@@ -105,6 +105,50 @@ public static class FolderCompare
     }
 
     /// <summary>
+    /// 맞추기 전에 공간을 본다 (사용자 원칙 2026-11-22). 덮어쓰는 파일도 이전 버전으로 보관(같은 드라이브)하므로
+    /// 새로 쓰는 크기를 다 센다. 드라이브마다 보고 처음 모자란 곳을 돌려준다 (모두 되면 Ok).
+    /// </summary>
+    public static Foldy.Core.Space.SpaceCheck CheckSpace(IEnumerable<CopyStep> steps)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        Foldy.Core.Space.SpaceCheck? ok = null;
+        foreach (var g in steps.GroupBy(s => Path.GetPathRoot(s.Dst) ?? "", StringComparer.OrdinalIgnoreCase))
+        {
+            long need = 0, biggest = 0;
+            string? folder = null;
+            foreach (var s in g)
+            {
+                folder ??= Path.GetDirectoryName(s.Dst);
+                var size = SizeOf(s.Src);
+                need += Foldy.Core.Space.DiskSpace.OnDisk(size);
+                biggest = Math.Max(biggest, size);
+            }
+
+            var r = Foldy.Core.Space.DiskSpace.Check(folder ?? g.Key, need + Foldy.Core.Space.DiskSpace.Slack, biggest);
+            if (!r.Ok)
+            {
+                return r;
+            }
+
+            ok ??= r;
+        }
+
+        return ok ?? new Foldy.Core.Space.SpaceCheck(Foldy.Core.Space.SpaceProblem.None, 0, -1, null);
+    }
+
+    private static long SizeOf(string path)
+    {
+        try
+        {
+            return new FileInfo(path).Length;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// 복사한다. 덮어쓸 파일은 먼저 이전 버전으로 보관한다. 열려 있는 파일은 건너뛴다.
     /// 보관(옮기기) 뒤 복사가 안 되면 원래 파일을 제자리로 돌려놓는다. 중간에 취소해도 그때까지 한 것은 되돌리기 기록에 남긴다.
     /// </summary>

@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using Foldy.Core.Space;
 using Foldy.Core.Vault;
 using Foldy.Presentation.Files;
 using Foldy.Presentation.Shell;
@@ -135,6 +136,27 @@ public static class SecureFlows
         var w = Open(owner, Foldy.Core.Localization.Loc.T("sec.encrypt"));
         var name = Path.GetFileName(file);
         w.Say(Foldy.Core.Localization.Loc.F("sec.encryptAsk", name, name, SecureZip.LockExtension));
+
+        // 암호를 묻기 전에 공간부터 본다: 잠긴 파일은 옆에 새로 생기고 원본은 확인이 끝날 때까지 그대로다 (사용자 원칙 2026-11-22)
+        var dir = Path.GetDirectoryName(file)!;
+        long length;
+        try
+        {
+            length = new FileInfo(file).Length;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            length = 0;
+        }
+
+        var need = DiskSpace.VaultEstimate(length, 1);
+        if (!await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.Check(dir, need, need)))
+        {
+            w.Close();
+            return;
+        }
+
+        SpaceFlows.MentionIfBig(w, dir, need);
         w.Say(PolicyNote);
         var pw = await w.AskPasswordAsync(ForgetWarning, confirm: true, okLabel: Foldy.Core.Localization.Loc.T("sec.encrypt"));
         if (pw is null)
@@ -225,6 +247,11 @@ public static class SecureFlows
 
         Array.Clear(bytes);
         var c = await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.whatNow"), C("unlock", Foldy.Core.Localization.Loc.T("sec.decryptOpen")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+        if (c == "unlock" && !await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.CheckFiles(Path.GetDirectoryName(path)!, [size])))
+        {
+            c = "close"; // 시작 전에 공간이 모자라 그만둠 (암호 걸린 파일은 그대로)
+        }
+
         if (c == "unlock")
         {
             try
@@ -327,7 +354,7 @@ public static class SecureFlows
             await w.AskAsync(ok ? Foldy.Core.Localization.Loc.F("sec.restored", name, v.SavedUtc.ToLocalTime()) : Foldy.Core.Localization.Loc.T("sec.restoreFailed"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             await shell.RefreshFoldersAsync([Path.GetDirectoryName(file)!]);
         }
-        else if (c == "beside")
+        else if (c == "beside" && await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.CheckFiles(Path.GetDirectoryName(file)!, [v.Size])))
         {
             var dst = await Task.Run(() => Foldy.Core.History.VersionHistory.ExtractBeside(v));
             await w.AskAsync(dst is null ? Foldy.Core.Localization.Loc.T("sec.extractFailed") : Foldy.Core.Localization.Loc.F("sec.extractedBeside", Path.GetFileName(dst)), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
@@ -383,6 +410,18 @@ public static class SecureFlows
         }
 
         w.Say(Foldy.Core.Localization.Loc.F("sec.vaultAsk", name, count, FileItem.FormatBytes(size), name, SecureZip.VaultExtension));
+
+        // 암호를 묻고 오래 암호화하기 전에 공간부터 본다 (사용자 요청 2026-11-22: 시간 들인 뒤에 넘었다고 하지 말 것).
+        // 금고는 폴더 옆에 생기고, 원본은 확인이 끝날 때까지 그대로 두므로 넣는 크기만큼 더 든다. 크기 자체의 제한은 없다.
+        var parent = Path.GetDirectoryName(folder.TrimEnd('\\', '/')) ?? folder;
+        var need = DiskSpace.VaultEstimate(size, count);
+        if (!await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.Check(parent, need, need)))
+        {
+            w.Close();
+            return;
+        }
+
+        SpaceFlows.MentionIfBig(w, parent, need);
         w.Say(PolicyNote);
         var pw = await w.AskPasswordAsync(ForgetWarning, confirm: true, okLabel: Foldy.Core.Localization.Loc.T("sec.vault"));
         if (pw is null)
@@ -505,6 +544,14 @@ public static class SecureFlows
                 if (names.Count == 0)
                 {
                     w.Say(Foldy.Core.Localization.Loc.T("sec.pickExtract"));
+                    continue;
+                }
+
+                // 꺼내기 전에 공간부터 본다 (사용자 원칙 2026-11-22)
+                var chosen = new HashSet<string>(names, StringComparer.Ordinal);
+                var sizes = entries.Where(e => chosen.Contains(e.Name)).Select(e => e.Size).ToList();
+                if (!await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.CheckFiles(dest, sizes)))
+                {
                     continue;
                 }
 

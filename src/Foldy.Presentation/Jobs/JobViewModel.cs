@@ -30,6 +30,21 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
     [ObservableProperty]
     private JobState _state = JobState.Queued;
 
+    /// <summary>시작하기 전에 공간이 모자라 멈췄으면 그 결과 (작업 창에 [공간 늘리기]·[다시 시도] 단추가 보인다).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanFreeUp))]
+    [NotifyPropertyChangedFor(nameof(CanRetry))]
+    private Foldy.Core.Space.SpaceCheck? _space;
+
+    /// <summary>[공간 늘리기]: 이 PC의 드라이브일 때만 (SFTP 서버는 폴더 분석을 열 수 없다).</summary>
+    public bool CanFreeUp => Space?.Root is not null;
+
+    /// <summary>[다시 시도]: 공간을 늘린 뒤 같은 작업을 다시 한다.</summary>
+    public bool CanRetry => Space is not null && Retry is not null;
+
+    /// <summary>같은 작업을 다시 하는 방법 (작업을 만든 쪽이 채운다).</summary>
+    public Func<Task>? Retry { get; set; }
+
     /// <summary>마스코트(연주·우진) 장면을 고르는 작업 종류.</summary>
     public Foldy.Presentation.Mascot.JobKind MascotKind { get; init; } = Foldy.Presentation.Mascot.JobKind.Copy;
 
@@ -99,7 +114,8 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
         else
         {
             State = JobState.Failed;
-            Detail = r.Error ?? Foldy.Core.Localization.Loc.T("job.failed");
+            Detail = r.Space is { } space ? SpaceText.Brief(space) : r.Error ?? Foldy.Core.Localization.Loc.T("job.failed");
+            Space = r.Space;
         }
 
         _cts.Dispose();

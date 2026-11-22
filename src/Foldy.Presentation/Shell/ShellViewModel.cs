@@ -312,6 +312,7 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         var verb = move ? Foldy.Core.Localization.Loc.T("ops.move") : Foldy.Core.Localization.Loc.T("ops.copy");
         var job = StartJob($"{JobViewModel.Describe(src)} {verb} → {PathUtil.DisplayName(dest)}", move ? Mascot.JobKind.Move : Mascot.JobKind.Copy);
+        job.Retry = () => TransferAsync(src, dest, move);
         var r = move
             ? await _services.FileOps.MoveAsync(src, dest, job, job.Token)
             : await _services.FileOps.CopyAsync(src, dest, job, job.Token);
@@ -520,8 +521,8 @@ public sealed partial class ShellViewModel : ObservableObject
             _ = RemoveLaterAsync(job);
         }
 
-        // 실패했으면 누가 그 파일을 쓰고 있는지 알려 준다
-        if (!r.Aborted && !r.Succeeded && sources is { Count: > 0 } && FindLockers is { } find)
+        // 실패했으면 누가 그 파일을 쓰고 있는지 알려 준다 (공간이 모자라 시작하지 않은 것은 빼고)
+        if (!r.Aborted && !r.Succeeded && r.Space is null && sources is { Count: > 0 } && FindLockers is { } find)
         {
             _ = ExplainLockAsync(job, sources, find);
         }
@@ -553,6 +554,35 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         await Task.Delay(FinishedJobLinger);
         Jobs.Remove(job);
+    }
+
+    /// <summary>
+    /// 그 드라이브의 "공간 늘리기"(폴더 분석)를 연다 (UI가 연결한다). 공간이 모자라 멈춘 작업·안내에서 부른다
+    /// (사용자 아이디어 2026-11-22: 모자라면 폴더 분석 → 정리로 바로 이어지게).
+    /// </summary>
+    public Action<string>? FreeUpSpace { get; set; }
+
+    /// <summary>작업 창의 [공간 늘리기].</summary>
+    public void FreeUpSpaceFor(JobViewModel job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (job.Space?.Root is { } root)
+        {
+            FreeUpSpace?.Invoke(root);
+        }
+    }
+
+    /// <summary>작업 창의 [다시 시도]: 멈춘 줄을 지우고 같은 작업을 다시 한다 (다시 확인부터).</summary>
+    public async Task RetryAsync(JobViewModel job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (job.Retry is not { } retry || !job.IsFinished)
+        {
+            return;
+        }
+
+        Jobs.Remove(job);
+        await retry();
     }
 
     public void ClearFinishedJobs()
