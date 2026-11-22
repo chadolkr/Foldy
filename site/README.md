@@ -10,7 +10,7 @@ npm run build    # dist/ 에 만들어짐
 ```
 
 - **글자**: 모두 `src/i18n/ko.ts`에 있어요. 문구를 고칠 때는 이 파일만 고치면 돼요.
-- **화면 사진**: 저장소의 `docs/images`를 그대로 가져와요(사본 없음). README의 사진을 새로 찍으면 사이트도 같이 바뀌어요.
+- **화면 사진**: 그 언어의 앱 화면 `assets/help/images/<앱 언어>/`(en, es, ja, zh-Hans)이 있으면 그것을, 없으면 한국어판 `docs/images`를 써요. 한국어판으로 대신한 그림이 있는 언어에만 "화면 사진은 한국어판" 한 줄이 보여요. 언어별 화면은 `build/doc-screenshots.ps1 -Lang en -Out assets\help\images\en`으로 찍어요(앱의 짧은 소개도 같은 그림을 써요).
 - **다운로드 단추**: 만들 때 GitHub에서 최신 릴리스를 읽어 MSI 주소와 버전을 넣어요. 못 읽으면 Releases 최신 페이지로 보내요.
 - **배포**: `main`에 `site/`가 바뀌거나 새 릴리스가 나오면 `.github/workflows/pages.yml`이 다시 만들어 올려요.
 

@@ -4,21 +4,18 @@ import { locales, localeHref, type Locale } from '../i18n';
 import { getLatestRelease, RELEASES_URL, REPO } from '../lib/release';
 import Icon from './Icon.astro';
 
-// 화면 사진은 저장소의 docs/images에서 바로 가져온다 (앱 README와 같은 그림).
-import main from '../../../docs/images/main.png';
-import quicksearch from '../../../docs/images/quicksearch.png';
-import quicksearchCalc from '../../../docs/images/quicksearch-calc.png';
-import quicksearchTalk from '../../../docs/images/quicksearch-talk.png';
-import analysis from '../../../docs/images/analysis.png';
-import guide from '../../../docs/images/guide.png';
-import paraOrganize from '../../../docs/images/para-organize.png';
-import paraTemplate from '../../../docs/images/para-template.png';
-import mcp from '../../../docs/images/mcp.png';
 import appIcon from '../../../assets/icons/png/foldy-128.png';
 
-const images = { main, quicksearch, quicksearchCalc, quicksearchTalk, analysis, guide, paraOrganize, paraTemplate, mcp };
-type ImgKey = keyof typeof images;
-const img = (k: string) => images[k as ImgKey];
+// 화면 사진: 그 언어의 앱 화면(assets/help/images/<앱 언어>/)이 있으면 그것을, 없으면 한국어판(docs/images/).
+// 언어별 화면은 build/doc-screenshots.ps1 -Lang en -Out assets\help\images\en 으로 찍는다.
+type Img = { default: ImageMetadata };
+const korean = import.meta.glob<Img>('../../../docs/images/{main,quicksearch,quicksearch-calc,quicksearch-talk,analysis,guide,para-organize,para-template,mcp}.png', { eager: true });
+const localized = import.meta.glob<Img>('../../../assets/help/images/*/{main,quicksearch,quicksearch-calc,quicksearch-talk,analysis,guide,para-organize,para-template,mcp}.png', { eager: true });
+// (glob은 쓰는 그림만 고른다: 위 files와 같은 목록)
+const files: Record<string, string> = {
+  main: 'main.png', quicksearch: 'quicksearch.png', quicksearchCalc: 'quicksearch-calc.png', quicksearchTalk: 'quicksearch-talk.png',
+  analysis: 'analysis.png', guide: 'guide.png', paraOrganize: 'para-organize.png', paraTemplate: 'para-template.png', mcp: 'mcp.png',
+};
 
 interface Props {
   locale: Locale;
@@ -28,6 +25,17 @@ const t = locale.dict;
 const release = await getLatestRelease();
 const repoUrl = `https://github.com/${REPO}`;
 const lines = (s: string) => s.split('\n');
+
+let usedKorean = false;
+const img = (k: string): ImageMetadata => {
+  const file = files[k];
+  const own = localized[`../../../assets/help/images/${locale.appLang}/${file}`];
+  if (own && locale.appLang !== 'ko') return own.default;
+  if (locale.appLang !== 'ko') usedKorean = true;
+  return korean[`../../../docs/images/${file}`].default;
+};
+// 머리글보다 먼저 한 번 훑어서, 한국어판으로 대신한 그림이 있을 때만 안내 한 줄을 보인다.
+Object.keys(files).forEach(img);
 ---
 
 <a class="skip" href="#main">{t.nav.skip}</a>
@@ -78,9 +86,9 @@ const lines = (s: string) => s.split('\n');
     </div>
     <div class="wrap">
       <figure class="shot shot-hero">
-        <Image src={main} alt={t.hero.imageAlt} widths={[800, 1600]} sizes="(max-width: 1160px) 100vw, 1120px" loading="eager" />
+        <Image src={img('main')} alt={t.hero.imageAlt} widths={[800, 1600]} sizes="(max-width: 1160px) 100vw, 1120px" loading="eager" />
       </figure>
-      {t.shotsNote && <p class="shots-note">{t.shotsNote}</p>}
+      {usedKorean && t.shotsNote && <p class="shots-note">{t.shotsNote}</p>}
     </div>
   </section>
 
