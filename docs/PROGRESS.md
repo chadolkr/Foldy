@@ -18,10 +18,13 @@
 - 업데이트·다시 설치: AI 연결용 Foldy 강제 종료 후 설치. 제목 "… 버전으로".
 - 다른 스레드: 덮어쓰기 복구·금고 2GB+·빈 공간 확인(1.0.0), 금고 처음 쓰기·파일 더 넣기(1.1.0), 기능 찾기 쉽게(1.2.0), 창 숨김·짧은 소개 기억(1.2.1), 무엇이든 찾기 제어판·묶음(1.3.0), Store 등록 정보·개인정보 처리방침, 보안 근거(SBOM·체크섬 등).
 
+**마무리로 한 일 (2026-11-23 새벽)**
+- winget 제출: 패키지 DavidCHA.Foldy, https://github.com/microsoft/winget-pkgs/pull/486519 (검토 중).
+- Google Search Console에 사이트 등록, GitHub About 설명·태그(topics), Advanced Security(코드 스캔·비밀 검사) 켜기: 완료.
+
 **남은 일**
 - Store 인증 결과 확인, 통과하면 사이트·README에 Store 링크.
-- GitHub 저장소 설정: Advanced Security(코드 스캔·비밀 검사) 켜기, About 설명·태그(topics).
-- Google Search Console에 사이트 등록.
+- winget PR 검토 결과 확인, 병합되면 README·사이트에 `winget install DavidCHA.Foldy` 안내.
 - 홍보 (계획은 개인 노트로 옮김).
 
 ## 세션 정리 (2026-11-21 09:30 KST, 노트북 끄기 전)
