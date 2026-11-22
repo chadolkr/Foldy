@@ -216,6 +216,16 @@ const lines = (s: string) => s.split('\n');
       <p class="section-lead">{t.why.text}</p>
       <a class="link" href={`${repoUrl}/issues`}>{t.why.link} →</a>
     </div>
+    <div id="gpl" class="wrap narrow gpl">
+      <h3>{t.gpl.title}</h3>
+      <p class="muted">{t.gpl.lead}</p>
+      <ul>
+        {t.gpl.items.map((g) => (
+          <li><strong>{g.title}</strong><span>{g.text}</span></li>
+        ))}
+      </ul>
+      <a class="link" href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">{t.gpl.link} →</a>
+    </div>
   </section>
 
   <section id="install" class="section section-tint">

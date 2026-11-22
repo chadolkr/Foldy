@@ -171,6 +171,18 @@ const en: Dictionary = {
     text: 'That is why Foldy is released under GPL-3.0. If something bugs you or you have an idea, come join in.',
     link: 'Get involved on GitHub',
   },
+  gpl: {
+    title: 'What is the GPL-3.0 license?',
+    lead: 'It is the promise behind how Foldy is used and shared. In plain words:',
+    items: [
+      { title: 'Free for everyone', text: 'At home or at work, on as many PCs as you like, without paying.' },
+      { title: 'You can look inside', text: 'All of Foldy’s source code is public, so anyone can check what it does.' },
+      { title: 'Change it and share it', text: 'You may change Foldy to suit you and give it to others.' },
+      { title: 'Share it the same way', text: 'If you give a changed Foldy to others, it must stay under GPL-3.0 and come with its source code. That keeps Foldy open to everyone, whoever changes it.' },
+      { title: 'No warranty', text: 'Because it is shared for free, there is no guarantee if something goes wrong. That is true of most open source. Tell us about problems and we will fix them together.' },
+    ],
+    link: 'Read the full license',
+  },
   install: {
     eyebrow: 'Done in a minute',
     title: 'How to install',
