@@ -46,7 +46,7 @@ const ja: Dictionary = {
       { icon: 'globe', title: '5 つの言語', text: 'Windows の言語に合わせて 한국어・English・Español・日本語・简体中文 で起動します。説明書（F1）、短い紹介、テンプレートが作るフォルダー名もその言語になります。' },
       { icon: 'panes', title: 'やりたいことから', text: 'よく使う 4 つの機能が左上にあります。整理は質問を 1 つずつ聞き、動かす前に結果を見せ、いつでも元に戻せます。' },
       { icon: 'check', title: '13 種類のテンプレート', text: 'PARA のような手軽な方法から、プロジェクト管理（PMBOK）、IT 開発文書（ISO/IEC/IEEE 12207）、建設情報管理（ISO 19650）まで。フォルダーごとに何を入れるかの説明付きです。' },
-      { icon: 'shield', title: 'しっかり点検', text: '1.0 の前に、コードとセキュリティを最初から見直しました。更新はこれまでどおり、署名を確かめてからインストールします。' },
+      { icon: 'shield', title: 'より安全に', text: '始める前に空き容量を確かめ、上書きに失敗しても元のファイルはそのまま残ります。1.0 の前に、コードとセキュリティも最初から見直しました。' },
     ],
     link: 'すべての変更を見る',
   },
@@ -151,8 +151,8 @@ const ja: Dictionary = {
   ai: {
     eyebrow: 'もうひとつ',
     title: 'AI とつなげば、もっと便利に',
-    lead: 'Claude などの AI アプリに［AI に接続］ボタンを1回押すだけで、AI に聞くと Foldy があなたの PC から探してくれます。設定ファイルの知識は要りません。',
-    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code',
+    lead: 'Claude などの AI アプリに［AI に接続］ボタンを1回押すだけで、AI に聞くと Foldy があなたの PC から探してくれます。設定ファイルの知識は要りません。 接続したあと、アプリごとに次にすること（再起動、新しい会話を開くなど）も案内します。',
+    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code · Antigravity',
     examplesTitle: 'こんなふうに聞いてみて',
     examples: [
       '「去年の見積書を探して」',

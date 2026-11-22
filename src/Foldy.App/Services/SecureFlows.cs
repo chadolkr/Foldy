@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using Foldy.Core.Space;
 using Foldy.Core.Vault;
 using Foldy.Presentation.Files;
 using Foldy.Presentation.Shell;
@@ -14,8 +15,8 @@ namespace Foldy.App.Services;
 /// </summary>
 public static class SecureFlows
 {
-    private const string PolicyNote = "회사 PC라면 파일 암호화가 보안 정책에 맞는지 먼저 확인해 주세요.";
-    private const string ForgetWarning = "암호를 잊으면 Foldy도 열 수 없어요. 꼭 기억할 수 있는 암호로 정해 주세요.";
+    private static string PolicyNote => Foldy.Core.Localization.Loc.T("sec.policyNote");
+    private static string ForgetWarning => Foldy.Core.Localization.Loc.T("sec.forgetWarning");
 
     private static (string, string) C(string id, string label) => (id, label);
 
@@ -135,6 +136,27 @@ public static class SecureFlows
         var w = Open(owner, Foldy.Core.Localization.Loc.T("sec.encrypt"));
         var name = Path.GetFileName(file);
         w.Say(Foldy.Core.Localization.Loc.F("sec.encryptAsk", name, name, SecureZip.LockExtension));
+
+        // 암호를 묻기 전에 공간부터 본다: 잠긴 파일은 옆에 새로 생기고 원본은 확인이 끝날 때까지 그대로다 (사용자 원칙 2026-11-22)
+        var dir = Path.GetDirectoryName(file)!;
+        long length;
+        try
+        {
+            length = new FileInfo(file).Length;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            length = 0;
+        }
+
+        var need = DiskSpace.VaultEstimate(length, 1);
+        if (!await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.Check(dir, need, need)))
+        {
+            w.Close();
+            return;
+        }
+
+        SpaceFlows.MentionIfBig(w, dir, need);
         w.Say(PolicyNote);
         var pw = await w.AskPasswordAsync(ForgetWarning, confirm: true, okLabel: Foldy.Core.Localization.Loc.T("sec.encrypt"));
         if (pw is null)
@@ -178,6 +200,7 @@ public static class SecureFlows
         string? pw;
         string inner;
         byte[] bytes;
+        long size;
         while (true)
         {
             pw = await w.AskPasswordAsync(Foldy.Core.Localization.Loc.F("sec.pwFor", Path.GetFileName(path)), confirm: false, okLabel: Foldy.Core.Localization.Loc.T("sec.open"));
@@ -190,21 +213,29 @@ public static class SecureFlows
             try
             {
                 var p = pw;
-                (inner, bytes) = await Task.Run(() =>
+                // 미리보기에 쓸 만큼만 메모리로 (큰 동영상 등은 앞부분만 읽어 암호를 확인하고, 풀 때 파일로 바로 푼다)
+                (inner, bytes, size) = await Task.Run(() =>
                 {
                     var n = FileLocker.InnerName(path, p);
-                    return (n, SecureZip.ReadEntry(path, p, n));
+                    var (h, sz) = SecureZip.ReadEntryHead(path, p, n, PreviewLimit);
+                    return (n, h, sz);
                 });
                 break;
             }
-            catch (Exception ex) when (ex is WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException or IOException)
+            catch (Exception ex) when (ex is WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException)
             {
                 w.Say(Foldy.Core.Localization.Loc.T("sec.wrongPw"));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.decryptFailed") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+                w.Close();
+                return;
             }
         }
 
         var head = bytes.AsSpan(0, Math.Min(bytes.Length, 4096));
-        if (FileLocker.LooksPreviewable(inner, head) && Preview(inner, bytes) is { } view)
+        if (size <= PreviewLimit && FileLocker.LooksPreviewable(inner, head) && Preview(inner, bytes) is { } view)
         {
             w.Say(Foldy.Core.Localization.Loc.F("sec.memContent", inner));
             w.ShowContent(view);
@@ -216,6 +247,11 @@ public static class SecureFlows
 
         Array.Clear(bytes);
         var c = await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.whatNow"), C("unlock", Foldy.Core.Localization.Loc.T("sec.decryptOpen")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+        if (c == "unlock" && !await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.CheckFiles(Path.GetDirectoryName(path)!, [size])))
+        {
+            c = "close"; // 시작 전에 공간이 모자라 그만둠 (암호 걸린 파일은 그대로)
+        }
+
         if (c == "unlock")
         {
             try
@@ -237,7 +273,7 @@ public static class SecureFlows
                     await shell.RecycleAsync([path]);
                 }
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or WrongPasswordException or InvalidDataException or ICSharpCode.SharpZipLib.SharpZipBaseException)
             {
                 await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.decryptFailed") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             }
@@ -247,6 +283,9 @@ public static class SecureFlows
         SecureZip.ForgetKeys();
         w.Close();
     }
+
+    /// <summary>미리보기로 메모리에 읽는 최대 크기. 더 큰 파일은 미리 보지 않고 풀어서 연다.</summary>
+    private const int PreviewLimit = 32 << 20;
 
     private static FrameworkElement? Preview(string name, byte[] bytes)
     {
@@ -315,7 +354,7 @@ public static class SecureFlows
             await w.AskAsync(ok ? Foldy.Core.Localization.Loc.F("sec.restored", name, v.SavedUtc.ToLocalTime()) : Foldy.Core.Localization.Loc.T("sec.restoreFailed"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             await shell.RefreshFoldersAsync([Path.GetDirectoryName(file)!]);
         }
-        else if (c == "beside")
+        else if (c == "beside" && await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.CheckFiles(Path.GetDirectoryName(file)!, [v.Size])))
         {
             var dst = await Task.Run(() => Foldy.Core.History.VersionHistory.ExtractBeside(v));
             await w.AskAsync(dst is null ? Foldy.Core.Localization.Loc.T("sec.extractFailed") : Foldy.Core.Localization.Loc.F("sec.extractedBeside", Path.GetFileName(dst)), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
@@ -371,6 +410,18 @@ public static class SecureFlows
         }
 
         w.Say(Foldy.Core.Localization.Loc.F("sec.vaultAsk", name, count, FileItem.FormatBytes(size), name, SecureZip.VaultExtension));
+
+        // 암호를 묻고 오래 암호화하기 전에 공간부터 본다 (사용자 요청 2026-11-22: 시간 들인 뒤에 넘었다고 하지 말 것).
+        // 금고는 폴더 옆에 생기고, 원본은 확인이 끝날 때까지 그대로 두므로 넣는 크기만큼 더 든다. 크기 자체의 제한은 없다.
+        var parent = Path.GetDirectoryName(folder.TrimEnd('\\', '/')) ?? folder;
+        var need = DiskSpace.VaultEstimate(size, count);
+        if (!await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.Check(parent, need, need)))
+        {
+            w.Close();
+            return;
+        }
+
+        SpaceFlows.MentionIfBig(w, parent, need);
         w.Say(PolicyNote);
         var pw = await w.AskPasswordAsync(ForgetWarning, confirm: true, okLabel: Foldy.Core.Localization.Loc.T("sec.vault"));
         if (pw is null)
@@ -461,9 +512,20 @@ public static class SecureFlows
                 foreach (var n in picked.Take(5))
                 {
                     var p = pw;
-                    var bytes = await Task.Run(() => SecureZip.ReadEntry(vault, p, n));
+                    byte[] bytes;
+                    long size;
+                    try
+                    {
+                        (bytes, size) = await Task.Run(() => SecureZip.ReadEntryHead(vault, p, n, PreviewLimit));
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException)
+                    {
+                        w.Say(Foldy.Core.Localization.Loc.F("sec.cantPreviewN", n));
+                        continue;
+                    }
+
                     var head = bytes.AsSpan(0, Math.Min(bytes.Length, 4096));
-                    if (FileLocker.LooksPreviewable(n, head) && Preview(n, bytes) is { } view)
+                    if (size <= PreviewLimit && FileLocker.LooksPreviewable(n, head) && Preview(n, bytes) is { } view)
                     {
                         w.Say(n);
                         w.ShowContent(view);
@@ -485,26 +547,35 @@ public static class SecureFlows
                     continue;
                 }
 
-                var p = pw;
-                var n = await Task.Run(() =>
+                // 꺼내기 전에 공간부터 본다 (사용자 원칙 2026-11-22)
+                var chosen = new HashSet<string>(names, StringComparer.Ordinal);
+                var sizes = entries.Where(e => chosen.Contains(e.Name)).Select(e => e.Size).ToList();
+                if (!await SpaceFlows.EnsureAsync(w, shell, () => DiskSpace.CheckFiles(dest, sizes)))
                 {
-                    var done = 0;
-                    foreach (var name in names)
-                    {
-                        if (SecureZip.SafeTarget(dest, name) is not { } target)
-                        {
-                            continue; // 금고 밖으로 나가는 이름은 꺼내지 않는다
-                        }
+                    continue;
+                }
 
-                        var dst = SecureZip.Unique(target);
-                        Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
-                        File.WriteAllBytes(dst, SecureZip.ReadEntry(vault, p, name));
-                        done++;
-                    }
+                var p = pw;
+                int n;
+                IReadOnlyList<(string Name, string Reason)> failed;
+                try
+                {
+                    // 항목마다 파일로 바로 푼다 (2GB 넘는 파일도). 하나가 실패해도 나머지는 계속 (금고 밖으로 나가는 이름은 건너뜀)
+                    (n, failed) = await Task.Run(() => SecureZip.Extract(vault, p, names, dest));
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException)
+                {
+                    (n, failed) = (0, [(Path.GetFileName(vault), ex.Message)]);
+                }
 
-                    return done;
-                });
-                var c = await w.AskAsync(Foldy.Core.Localization.Loc.F("sec.extractedN", n, dest), C("open", Foldy.Core.Localization.Loc.T("cf.openFolder")), C("more", Foldy.Core.Localization.Loc.T("sec.keepViewing")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+                var msg = Foldy.Core.Localization.Loc.F("sec.extractedN", n, dest);
+                if (failed.Count > 0)
+                {
+                    msg += "\n\n" + Foldy.Core.Localization.Loc.F("sec.extractFailedN", failed.Count,
+                        string.Join("\n", failed.Take(5).Select(f => $"{f.Name} — {f.Reason}")));
+                }
+
+                var c = await w.AskAsync(msg, C("open", Foldy.Core.Localization.Loc.T("cf.openFolder")), C("more", Foldy.Core.Localization.Loc.T("sec.keepViewing")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
                 if (c == "open")
                 {
                     shell.ActivePane.NewFolderTab(dest);

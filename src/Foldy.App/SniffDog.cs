@@ -45,7 +45,7 @@ internal sealed class SniffDog : Border
     {
         Padding = new Thickness(14, 2, 14, 0);
         Visibility = Visibility.Collapsed;
-        System.Windows.Automation.AutomationProperties.SetName(this, "냄새 잘 맡는 개");
+        System.Windows.Automation.AutomationProperties.SetName(this, Foldy.Core.Localization.Loc.T("dog.name"));
         BuildDog();
         Canvas.SetLeft(_dog, DogStart);
         Canvas.SetTop(_dog, 4);

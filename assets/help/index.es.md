@@ -517,6 +517,7 @@ Puedes poner contraseña a un archivo existente, como un contrato. Botón derech
 
 Guarda una carpeta importante entera en una caja fuerte. Botón derecho en la carpeta → **🔒 Guardar en la caja fuerte…**. Aparece un único archivo `nombredecarpeta.foldyvault`; tras comprobar cada archivo descifrándolo, Foldy pregunta si envía la carpeta original a la papelera.
 
+- **No hay límite de tamaño.** Los archivos de más de 4 GB entran y salen sin problema. Eso sí, Foldy conserva los originales hasta terminar, así que necesita ese espacio libre extra, y una memoria USB antigua en FAT32 no puede guardar una caja fuerte de más de 4 GB. Foldy lo comprueba **antes** de pedir la contraseña, te avisa enseguida si falta espacio y te ofrece [Liberar espacio] para hacer sitio.
 - Doble clic para escribir la contraseña y ver la lista de archivos de dentro. Elige archivos para **previsualizar** (solo en memoria), **extraer** o **extraer todo**.
 
 ### Sobre los archivos bloqueados
@@ -611,7 +612,20 @@ Los botones de arriba a la derecha de una pestaña de carpeta local abren una te
 
 ![Ventana de conexión con IA](images/es/mcp.png)
 
-Puedes dejar que apps de IA como Claude encuentren archivos de tu PC a través de Foldy (un servidor MCP). Abre **Más (⋯) → Conectar IA (MCP)…** o "conexión con IA" en Ctrl+Space, y basta con pulsar **[Conectar a la IA]**. Solo se muestran las apps de IA instaladas en este PC (Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code); al pulsar, Foldy se añade a la configuración de esa app (la configuración original se guarda como copia). Reinicia la app y prueba "busca propuestas en la unidad D".
+Puedes dejar que apps de IA como Claude encuentren archivos de tu PC a través de Foldy (un servidor MCP). Abre **Más (⋯) → Conectar IA (MCP)…** o "conexión con IA" en Ctrl+Space, y basta con pulsar **[Conectar a la IA]**. Solo se muestran las apps de IA instaladas en este PC (Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code, Antigravity); al pulsar, Foldy se añade a la configuración de esa app (la configuración original se guarda como copia). Reinicia la app y prueba "busca propuestas en la unidad D".
+
+**Después de conectar** (la ventana muestra estos pasos para cada app)
+
+![Después de conectar](images/es/mcp-next.png)
+
+Las apps de IA solo leen su configuración al iniciarse, así que Foldy no aparecerá hasta que reinicies la app.
+
+1. **Cierra la app de IA por completo y vuelve a abrirla.** Cerrar Claude Desktop con la X no basta. Haz clic derecho en el icono de Claude en el área de notificación, abajo a la derecha, y sal, o pulsa **[Reiniciar Claude]** en la ventana (lo que Claude esté haciendo se detiene).
+2. **Abre un chat nuevo.** Los chats que ya estaban abiertos quizá no vean Foldy.
+3. Comprueba que **foldy** esté activado en el menú [+] o de herramientas del cuadro de mensaje. Cuando pida permiso la primera vez, elige **Permitir**.
+4. Pregunta "¿Cuánto espacio se usa en la unidad C?".
+
+Cada app es un poco distinta. En Claude Code, Gemini CLI y la línea de comandos de Codex, vuelve a iniciarlos y comprueba con `/mcp` que foldy está ahí; en Cursor y VS Code, reinicia y usa el modo Agent. En Antigravity basta con abrir una conversación nueva. Si aún no aparece, pulsa [Conectar a la IA] otra vez y cierra y vuelve a abrir la app.
 
 **Una vez conectado, prueba a preguntar** (haz clic en la ventana de conexión con IA para copiar):
 

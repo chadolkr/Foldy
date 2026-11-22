@@ -41,6 +41,11 @@ public sealed record FileOpResult(bool Succeeded, bool Aborted, string? Error, s
     public static FileOpResult Fail(string error) => new(false, false, error);
 
     public static readonly FileOpResult Canceled = new(false, true, null);
+
+    /// <summary>시작하기 전에 공간이 모자라 아무것도 하지 않음 (사용자 원칙 2026-11-22). 화면은 [공간 늘리기]·[다시 시도]를 보여 준다.</summary>
+    public Foldy.Core.Space.SpaceCheck? Space { get; init; }
+
+    public static FileOpResult NoSpace(Foldy.Core.Space.SpaceCheck check) => new(false, false, SpaceText.Explain(check)) { Space = check };
 }
 
 /// <summary>파일 열기: Markdown은 연결 앱이 없으면 내장 뷰어 (설계서 5.9).</summary>

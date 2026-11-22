@@ -46,7 +46,7 @@ const zhCN: Dictionary = {
       { icon: 'globe', title: '五种语言', text: 'Foldy 跟随 Windows 语言，以 한국어、English、Español、日本語 或 简体中文 启动。说明书（F1）、简短介绍和模板创建的文件夹名称也都随之改变。' },
       { icon: 'panes', title: '从想做的事开始', text: '最常用的四项功能就在左上角。整理时一次只问一个问题，移动前先给你看结果，随时都能撤销。' },
       { icon: 'check', title: '13 种文件夹模板', text: '从 PARA 这样简单的方法，到项目管理（PMBOK）、IT 开发文档（ISO/IEC/IEEE 12207）和建筑信息管理（ISO 19650），每个文件夹都说明该放什么。' },
-      { icon: 'shield', title: '认真检查过', text: '发布 1.0 之前，我们从头重新检查了代码和安全。更新仍然只在验证签名之后才安装。' },
+      { icon: 'shield', title: '更安全', text: '开始前先检查可用空间；覆盖失败时，原文件仍留在原处。发布 1.0 之前，我们还从头重新检查了代码和安全。' },
     ],
     link: '查看全部变化',
   },
@@ -151,8 +151,8 @@ const zhCN: Dictionary = {
   ai: {
     eyebrow: '还有一点',
     title: '连接 AI，更加方便',
-    lead: '在 Claude 等 AI 应用上点一次［连接 AI］，问 AI 时 Foldy 就会在你的电脑里帮你找。无需了解配置文件。',
-    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code',
+    lead: '在 Claude 等 AI 应用上点一次［连接 AI］，问 AI 时 Foldy 就会在你的电脑里帮你找。无需了解配置文件。 连接后，还会告诉你在每个应用里下一步该做什么，比如重启或打开新对话。',
+    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code · Antigravity',
     examplesTitle: '试着这样问',
     examples: [
       '"帮我找去年的报价单"',

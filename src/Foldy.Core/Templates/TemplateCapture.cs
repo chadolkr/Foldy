@@ -47,7 +47,7 @@ public static partial class TemplateCapture
         {
             Id = MakeId(name),
             Name = name,
-            Description = $"{root.Name} 폴더 구조에서 만든 템플릿",
+            Description = Foldy.Core.Localization.Loc.F("tpl.capturedDesc", root.Name),
         };
         var result = new TemplateCaptureResult { Template = t };
         var count = 0;

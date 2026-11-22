@@ -104,52 +104,136 @@ public static class FolderCompare
         return steps;
     }
 
-    /// <summary>복사한다. 덮어쓸 파일은 먼저 이전 버전으로 보관한다. 열려 있는 파일은 건너뛴다.</summary>
+    /// <summary>
+    /// 맞추기 전에 공간을 본다 (사용자 원칙 2026-11-22). 덮어쓰는 파일도 이전 버전으로 보관(같은 드라이브)하므로
+    /// 새로 쓰는 크기를 다 센다. 드라이브마다 보고 처음 모자란 곳을 돌려준다 (모두 되면 Ok).
+    /// </summary>
+    public static Foldy.Core.Space.SpaceCheck CheckSpace(IEnumerable<CopyStep> steps)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        Foldy.Core.Space.SpaceCheck? ok = null;
+        foreach (var g in steps.GroupBy(s => Path.GetPathRoot(s.Dst) ?? "", StringComparer.OrdinalIgnoreCase))
+        {
+            long need = 0, biggest = 0;
+            string? folder = null;
+            foreach (var s in g)
+            {
+                folder ??= Path.GetDirectoryName(s.Dst);
+                var size = SizeOf(s.Src);
+                need += Foldy.Core.Space.DiskSpace.OnDisk(size);
+                biggest = Math.Max(biggest, size);
+            }
+
+            var r = Foldy.Core.Space.DiskSpace.Check(folder ?? g.Key, need + Foldy.Core.Space.DiskSpace.Slack, biggest);
+            if (!r.Ok)
+            {
+                return r;
+            }
+
+            ok ??= r;
+        }
+
+        return ok ?? new Foldy.Core.Space.SpaceCheck(Foldy.Core.Space.SpaceProblem.None, 0, -1, null);
+    }
+
+    private static long SizeOf(string path)
+    {
+        try
+        {
+            return new FileInfo(path).Length;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// 복사한다. 덮어쓸 파일은 먼저 이전 버전으로 보관한다. 열려 있는 파일은 건너뛴다.
+    /// 보관(옮기기) 뒤 복사가 안 되면 원래 파일을 제자리로 돌려놓는다. 중간에 취소해도 그때까지 한 것은 되돌리기 기록에 남긴다.
+    /// </summary>
     public static (IReadOnlyList<MergeRecord> Done, IReadOnlyList<(string Path, string Reason)> Skipped) Apply(IEnumerable<CopyStep> steps, string journalPath, CancellationToken ct = default)
     {
         var done = new List<MergeRecord>();
         var skipped = new List<(string, string)>();
-        foreach (var s in steps)
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            try
+            foreach (var s in steps)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(s.Dst)!);
-                string? saved = null;
-                var existed = File.Exists(s.Dst);
-                if (existed)
+                ct.ThrowIfCancellationRequested();
+                SavedVersion? version = null;
+                string? bak = null;
+                try
                 {
-                    saved = VersionHistory.Preserve(s.Dst)?.Saved;
-                    if (saved is null)
+                    Directory.CreateDirectory(Path.GetDirectoryName(s.Dst)!);
+                    string? saved = null;
+                    var existed = File.Exists(s.Dst);
+                    if (existed)
                     {
-                        // 이전 버전을 보관할 수 없는 드라이브(이동식·네트워크): 옆에 .foldy-bak으로 남긴다
-                        var bak = s.Dst + ".foldy-bak";
-                        File.Copy(s.Dst, bak, overwrite: true);
-                        saved = bak;
+                        version = VersionHistory.Preserve(s.Dst);
+                        saved = version?.Saved;
+                        if (saved is null)
+                        {
+                            // 이전 버전을 보관할 수 없는 드라이브(이동식·네트워크): 옆에 .foldy-bak으로 남긴다
+                            bak = s.Dst + ".foldy-bak";
+                            File.Copy(s.Dst, bak, overwrite: true);
+                            saved = bak;
+                        }
                     }
-                }
 
-                File.Copy(s.Src, s.Dst, overwrite: true);
-                File.SetLastWriteTimeUtc(s.Dst, File.GetLastWriteTimeUtc(s.Src));
-                done.Add(new MergeRecord(s.Dst, saved, !existed));
-            }
-            catch (IOException)
-            {
-                skipped.Add((s.RelPath, Foldy.Core.Localization.Loc.T("mf.skipOpen")));
-            }
-            catch (UnauthorizedAccessException)
-            {
-                skipped.Add((s.RelPath, Foldy.Core.Localization.Loc.T("mf.skipPermission")));
+                    File.Copy(s.Src, s.Dst, overwrite: true);
+                    File.SetLastWriteTimeUtc(s.Dst, File.GetLastWriteTimeUtc(s.Src));
+                    done.Add(new MergeRecord(s.Dst, saved, !existed));
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    PutBackOne(s.Dst, version, bak);
+                    skipped.Add((s.RelPath, Foldy.Core.Localization.Loc.T(ex is IOException ? "mf.skipOpen" : "mf.skipPermission")));
+                }
             }
         }
-
-        if (done.Count > 0)
+        finally
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(journalPath)!);
-            File.WriteAllText(journalPath, JsonSerializer.Serialize(done));
+            if (done.Count > 0)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(journalPath)!);
+                File.WriteAllText(journalPath, JsonSerializer.Serialize(done));
+            }
         }
 
         return (done, skipped);
+
+        // 이 파일 하나를 하던 중 실패: 옮겨 둔 원래 파일은 제자리로. 옆에 만든 .foldy-bak은 원래 파일이 그대로일 때만 지우고,
+        // 자리가 비었으면 되돌려 놓고, 반쯤 쓰였을 수 있으면 그대로 남긴다 (사용자가 꺼낼 수 있게).
+        static void PutBackOne(string dst, SavedVersion? version, string? bak)
+        {
+            if (version is not null)
+            {
+                VersionHistory.PutBack(version);
+            }
+
+            if (bak is null || !File.Exists(bak))
+            {
+                return;
+            }
+
+            try
+            {
+                var b = new FileInfo(bak);
+                var d = new FileInfo(dst);
+                if (!d.Exists)
+                {
+                    File.Move(bak, dst);
+                }
+                else if (d.Length == b.Length && d.LastWriteTimeUtc == b.LastWriteTimeUtc)
+                {
+                    File.Delete(bak);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
     }
 
     /// <summary>지난번 맞추기를 되돌린다: 새로 만든 파일은 지우고, 덮어쓴 파일은 보관한 이전 버전으로. 되돌린 개수.</summary>

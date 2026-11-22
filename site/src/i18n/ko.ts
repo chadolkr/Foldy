@@ -47,7 +47,7 @@ const ko = {
       { icon: 'globe', title: '다섯 언어로', text: 'Windows 언어를 따라 한국어, English, Español, 日本語, 简体中文으로 켜져요. 설명서(F1), 짧은 소개, 템플릿이 만드는 폴더 이름까지 그 언어로요.' },
       { icon: 'panes', title: '하고 싶은 일부터', text: '자주 쓰는 네 가지가 왼쪽 맨 위에 있어요. 정리는 질문을 하나씩 하고, 정리한 뒤 모습을 먼저 보여 주고, 언제든 되돌릴 수 있어요.' },
       { icon: 'check', title: '템플릿 13가지', text: 'PARA 같은 쉬운 정리법부터 프로젝트 관리(PMBOK), IT 개발 문서(ISO/IEC/IEEE 12207), 건설 정보 관리(ISO 19650)까지. 폴더마다 무엇을 넣는지 설명이 있어요.' },
-      { icon: 'shield', title: '꼼꼼히 점검했어요', text: '1.0을 내기 전에 코드와 보안을 처음부터 다시 봤어요. 업데이트는 지금처럼 서명을 확인한 뒤에만 설치해요.' },
+      { icon: 'shield', title: '더 안전하게', text: '공간이 모자라면 시작하기 전에 알려 주고, 덮어쓰다 실패해도 원래 파일은 제자리에 있어요. 1.0을 내기 전에 코드와 보안도 처음부터 다시 봤어요.' },
     ],
     link: '바뀐 점 전체 보기',
   },
@@ -152,8 +152,8 @@ const ko = {
   ai: {
     eyebrow: '하나 더',
     title: 'AI와 연결하면 더 편하게',
-    lead: 'Claude 같은 AI 앱에 [AI에 연결] 단추 한 번이면, AI에게 물어볼 때 Foldy가 내 PC에서 찾아 줘요. 설정 파일을 몰라도 돼요.',
-    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code',
+    lead: 'Claude 같은 AI 앱에 [AI에 연결] 단추 한 번이면, AI에게 물어볼 때 Foldy가 내 PC에서 찾아 줘요. 설정 파일을 몰라도 돼요. 연결한 뒤 할 일(다시 켜기, 새 대화 열기)도 앱마다 알려 줘요.',
+    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code · Antigravity',
     examplesTitle: '이렇게 물어보세요',
     examples: [
       '"작년 견적서 찾아 줘"',

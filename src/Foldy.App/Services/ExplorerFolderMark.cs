@@ -21,14 +21,14 @@ public static class ExplorerFolderMark
     {
         if (CloudVolumes.IsCloudPath(folder))
         {
-            return "동기화 폴더예요 (Google Drive). 옮기면 다른 PC에도 똑같이 반영되고, 파일을 내려받을 수 있어요.";
+            return Foldy.Core.Localization.Loc.F("sync.warn", "Google Drive");
         }
 
         foreach (var v in new[] { "OneDrive", "OneDriveConsumer", "OneDriveCommercial" })
         {
             if (Environment.GetEnvironmentVariable(v) is { Length: > 0 } od && folder.StartsWith(od, StringComparison.OrdinalIgnoreCase))
             {
-                return "동기화 폴더예요 (OneDrive). 옮기면 다른 PC에도 똑같이 반영되고, 파일을 내려받을 수 있어요.";
+                return Foldy.Core.Localization.Loc.F("sync.warn", "OneDrive");
             }
         }
 

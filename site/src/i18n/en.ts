@@ -46,7 +46,7 @@ const en: Dictionary = {
       { icon: 'globe', title: 'Five languages', text: 'Foldy starts in your Windows language: 한국어, English, Español, 日本語 or 简体中文. The manual (F1), the short intro and the folders templates create all follow it.' },
       { icon: 'panes', title: 'Start with what you want to do', text: 'The four things people do most sit at the top left. Tidying asks one question at a time, shows the result before anything moves, and can always be undone.' },
       { icon: 'check', title: '13 folder templates', text: 'From easy methods like PARA to project management (PMBOK), IT development documents (ISO/IEC/IEEE 12207) and construction information (ISO 19650), each folder explains what goes in it.' },
-      { icon: 'shield', title: 'Checked carefully', text: 'Before 1.0 we reviewed the code and security again from the start. Updates still install only after their signature is verified.' },
+      { icon: 'shield', title: 'Safer', text: 'Foldy checks free space before it starts, and if an overwrite fails, the original file stays where it was. Before 1.0 we also reviewed the code and security again from the start.' },
     ],
     link: 'See everything that changed',
   },
@@ -151,8 +151,8 @@ const en: Dictionary = {
   ai: {
     eyebrow: 'One more thing',
     title: 'Even better when you connect your AI',
-    lead: 'Click [Connect to AI] once and AI apps like Claude can ask Foldy to find things on your PC. No config files to edit.',
-    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code',
+    lead: 'Click [Connect to AI] once and AI apps like Claude can ask Foldy to find things on your PC. No config files to edit. After connecting, it tells you what to do next in each app, like restarting it or opening a new chat.',
+    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code · Antigravity',
     examplesTitle: 'Try asking',
     examples: [
       '“Find last year’s quote.”',

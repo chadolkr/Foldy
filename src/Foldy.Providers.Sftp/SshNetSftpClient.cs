@@ -81,6 +81,26 @@ internal sealed class SshNetSftpClient : ISftpClient
         }
     }
 
+    public long? FreeBytes(string path)
+    {
+        try
+        {
+            // statvfs@openssh.com: 사용자가 쓸 수 있는 블록 × 블록 크기. 값이 비면 모르는 것으로 본다.
+            var st = Guard(() => Connected().GetStatus(path));
+            if (st.TotalBlocks == 0 || st.BlockSize == 0)
+            {
+                return null;
+            }
+
+            var free = (decimal)st.AvailableBlocks * st.BlockSize;
+            return free >= long.MaxValue ? long.MaxValue : (long)free;
+        }
+        catch (Exception ex) when (ex is SshException or NotSupportedException or InvalidOperationException)
+        {
+            return null; // 서버가 지원하지 않음: 막지 않는다
+        }
+    }
+
     public void CreateDirectory(string path) => Guard(() => Connected().CreateDirectory(path));
 
     public void DeleteFile(string path) => Guard(() => Connected().DeleteFile(path));

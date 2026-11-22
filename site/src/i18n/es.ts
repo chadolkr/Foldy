@@ -46,7 +46,7 @@ const es: Dictionary = {
       { icon: 'globe', title: 'Cinco idiomas', text: 'Foldy se abre en el idioma de Windows: 한국어, English, Español, 日本語 o 简体中文. El manual (F1), la presentación corta y las carpetas que crean las plantillas también.' },
       { icon: 'panes', title: 'Empieza por lo que quieres hacer', text: 'Las cuatro tareas más comunes están arriba a la izquierda. Al ordenar, Foldy pregunta una cosa cada vez, te enseña el resultado antes de mover nada y siempre puedes deshacerlo.' },
       { icon: 'check', title: '13 plantillas de carpetas', text: 'Desde métodos sencillos como PARA hasta gestión de proyectos (PMBOK), documentación de desarrollo de TI (ISO/IEC/IEEE 12207) e información de construcción (ISO 19650). Cada carpeta explica qué guardar en ella.' },
-      { icon: 'shield', title: 'Revisado con calma', text: 'Antes de la 1.0 volvimos a revisar el código y la seguridad desde el principio. Las actualizaciones se siguen instalando solo después de comprobar su firma.' },
+      { icon: 'shield', title: 'Más seguro', text: 'Foldy comprueba el espacio libre antes de empezar y, si falla al sobrescribir, el archivo original se queda donde estaba. Antes de la 1.0 también revisamos el código y la seguridad desde el principio.' },
     ],
     link: 'Ver todos los cambios',
   },
@@ -151,8 +151,8 @@ const es: Dictionary = {
   ai: {
     eyebrow: 'Una cosa más',
     title: 'Y aún mejor si lo conectas a tu IA',
-    lead: 'Pulsa [Conectar con IA] una vez y apps de IA como Claude podrán pedirle a Foldy que busque en tu PC. Sin tocar archivos de configuración.',
-    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code',
+    lead: 'Pulsa [Conectar con IA] una vez y apps de IA como Claude podrán pedirle a Foldy que busque en tu PC. Sin tocar archivos de configuración. Después de conectar, te dice qué hacer en cada app, como reiniciarla o abrir una conversación nueva.',
+    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code · Antigravity',
     examplesTitle: 'Prueba a preguntar',
     examples: [
       '«Encuentra el presupuesto del año pasado.»',

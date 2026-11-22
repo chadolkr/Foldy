@@ -109,20 +109,113 @@ public static class SecureZip
         using var a = Archive.Open(path, password);
         var list = a.Items.Select(i => (i.Name, i.Size)).ToList();
 
-        // 형식 1은 목록이 암호 없이도 보이므로 첫 항목을 풀어 보며 암호를 확인한다 (형식 2는 index를 풀면서 확인됨)
+        // 형식 1은 목록이 암호 없이도 보이므로 첫 항목을 풀어 보며 암호를 확인한다 (형식 2는 index를 풀면서 확인됨).
+        // 메모리에 담지 않고 끝까지 읽기만 한다 (2GB가 넘는 파일도 확인할 수 있게).
         if (!a.IsV2 && list.Count > 0)
         {
-            _ = a.Read(list[0].Name);
+            a.Drain(list[0].Name);
         }
 
         return list;
     }
 
-    /// <summary>항목 하나를 메모리로 푼다.</summary>
+    /// <summary>항목 하나를 메모리로 푼다. 작은 것(잠긴 메모 등)만. 큰 파일은 <see cref="ExtractEntry"/>·<see cref="ReadEntryHead"/>.</summary>
     public static byte[] ReadEntry(string path, string password, string name)
     {
         using var a = Archive.Open(path, password);
         return a.Read(name);
+    }
+
+    /// <summary>
+    /// 항목 하나의 앞부분(최대 <paramref name="maxBytes"/>)만 메모리로 읽는다 (미리보기용). 항목 전체 크기도 돌려준다.
+    /// 전체 크기가 maxBytes 이하면 Head가 내용 전부다.
+    /// </summary>
+    public static (byte[] Head, long Size) ReadEntryHead(string path, string password, string name, int maxBytes)
+    {
+        using var a = Archive.Open(path, password);
+        var size = a.SizeOf(name);
+        try
+        {
+            using var s = a.OpenStream(name);
+            var buf = new byte[(int)Math.Min(maxBytes, Math.Max(size, 0))];
+            var n = 0;
+            while (n < buf.Length)
+            {
+                var r = s.Read(buf, n, buf.Length - n);
+                if (r == 0)
+                {
+                    break;
+                }
+
+                n += r;
+            }
+
+            return (n == buf.Length ? buf : buf[..n], size);
+        }
+        catch (ZipException ex) when (IsAuthFailure(ex))
+        {
+            throw new WrongPasswordException();
+        }
+    }
+
+    /// <summary>
+    /// 항목 하나를 파일로 바로 푼다 (메모리에 다 올리지 않으므로 2GB가 넘는 파일도 된다).
+    /// 실패하면 쓰다 만 파일을 지우고 예외를 그대로 던진다.
+    /// </summary>
+    public static void ExtractEntry(string path, string password, string name, string dst, CancellationToken ct = default)
+    {
+        using var a = Archive.Open(path, password);
+        a.ExtractTo(name, dst, ct);
+    }
+
+    /// <summary>항목 하나의 SHA-256 (메모리에 다 올리지 않음).</summary>
+    public static byte[] HashEntry(string path, string password, string name)
+    {
+        using var a = Archive.Open(path, password);
+        try
+        {
+            using var s = a.OpenStream(name);
+            return SHA256.HashData(s);
+        }
+        catch (ZipException ex) when (IsAuthFailure(ex))
+        {
+            throw new WrongPasswordException();
+        }
+    }
+
+    /// <summary>
+    /// 고른 항목들을 폴더로 꺼낸다 (항목마다 파일로 바로 풀어 큰 파일도 된다). 이미 있는 파일은 덮어쓰지 않고 " (2)"를 붙이고,
+    /// 폴더 밖으로 나가는 이름은 건너뛴다. 한 항목이 실패해도(디스크 부족, 손상) 쓰다 만 파일만 지우고 다음 것을 계속한다.
+    /// 꺼낸 개수와 못 꺼낸 이름·이유.
+    /// </summary>
+    public static (int Done, IReadOnlyList<(string Name, string Reason)> Failed) Extract(string path, string password, IEnumerable<string> names, string destFolder, CancellationToken ct = default)
+    {
+        using var a = Archive.Open(path, password);
+        var root = Path.GetFullPath(destFolder);
+        var done = 0;
+        var failed = new List<(string, string)>();
+        foreach (var name in names)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (SafeTarget(root, name) is not { } target)
+            {
+                continue; // 금고 밖으로 나가는 이름은 꺼내지 않는다
+            }
+
+            try
+            {
+                var dst = Unique(target);
+                Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
+                a.ExtractTo(name, dst, ct);
+                done++;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ZipException or WrongPasswordException or InvalidDataException)
+            {
+                failed.Add((name, ex.Message));
+            }
+        }
+
+        return (done, failed);
     }
 
     /// <summary>모든 항목을 메모리로 푼다 (잠긴 메모처럼 작은 것만).</summary>
@@ -349,6 +442,12 @@ public static class SecureZip
     {
         private readonly Dictionary<string, IndexItem> _byName;
 
+        /// <summary>
+        /// zip 항목 이름 → 항목. ZipFile.GetEntry는 매번 처음부터 찾으므로(파일 수만큼) 항목이 많은 금고를 꺼내거나 확인할 때
+        /// 파일 수의 제곱만큼 걸렸다 (7만 개 금고가 15분 넘게 걸림). 처음 쓸 때 한 번만 만든다.
+        /// </summary>
+        private Dictionary<string, ZipEntry>? _entries;
+
         private Archive(ZipFile zip, bool v2, List<IndexItem> items)
         {
             Zip = zip;
@@ -434,7 +533,7 @@ public static class SecureZip
         public Stream OpenStream(string name)
         {
             var item = _byName.GetValueOrDefault(name) ?? throw new FileNotFoundException(name);
-            var e = Zip.GetEntry(item.Entry) ?? throw new FileNotFoundException(name);
+            var e = EntryOf(item.Entry) ?? throw new FileNotFoundException(name);
             try
             {
                 return Zip.GetInputStream(e);
@@ -442,6 +541,76 @@ public static class SecureZip
             catch (ZipException ex) when (IsAuthFailure(ex))
             {
                 throw new WrongPasswordException();
+            }
+        }
+
+        private ZipEntry? EntryOf(string entryName)
+        {
+            if (_entries is null)
+            {
+                // GetEntry와 같은 기준 (대소문자 무시, 같은 이름이면 앞의 것)
+                var d = new Dictionary<string, ZipEntry>(StringComparer.OrdinalIgnoreCase);
+                foreach (ZipEntry z in Zip)
+                {
+                    d.TryAdd(z.Name, z);
+                }
+
+                _entries = d;
+            }
+
+            return _entries.GetValueOrDefault(entryName);
+        }
+
+        public long SizeOf(string name) => (_byName.GetValueOrDefault(name) ?? throw new FileNotFoundException(name)).Size;
+
+        /// <summary>끝까지 읽기만 한다 (형식 1 암호 확인: 마지막에 인증 값을 확인한다).</summary>
+        public void Drain(string name)
+        {
+            try
+            {
+                using var s = OpenStream(name);
+                s.CopyTo(Stream.Null);
+            }
+            catch (ZipException ex) when (IsAuthFailure(ex))
+            {
+                throw new WrongPasswordException();
+            }
+        }
+
+        /// <summary>파일로 바로 푼다 (이미 있는 이름이면 실패). 실패하거나 취소되면 쓰다 만 파일을 지운다.</summary>
+        public void ExtractTo(string name, string dst, CancellationToken ct)
+        {
+            using var s = OpenStream(name);
+            var o = new FileStream(dst, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16);
+            try
+            {
+                var buf = new byte[1 << 20];
+                int r;
+                while ((r = s.Read(buf, 0, buf.Length)) > 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    o.Write(buf, 0, r);
+                }
+
+                o.Dispose();
+            }
+            catch (Exception ex)
+            {
+                o.Dispose();
+                try
+                {
+                    File.Delete(dst);
+                }
+                catch (Exception ex2) when (ex2 is IOException or UnauthorizedAccessException)
+                {
+                }
+
+                if (ex is ZipException z && IsAuthFailure(z))
+                {
+                    throw new WrongPasswordException();
+                }
+
+                throw;
             }
         }
 
@@ -529,8 +698,17 @@ public static class FileLocker
         }
 
         SecureZip.Write(lockPath, [(name, () => File.OpenRead(file))], password);
-        var back = SecureZip.ReadEntry(lockPath, password, name);
-        if (!System.Security.Cryptography.SHA256.HashData(back).AsSpan().SequenceEqual(hash))
+        byte[] back;
+        try
+        {
+            back = SecureZip.HashEntry(lockPath, password, name); // 메모리에 다 올리지 않고 확인 (큰 파일도)
+        }
+        catch (Exception ex) when (ex is ZipException or WrongPasswordException or InvalidDataException)
+        {
+            back = [];
+        }
+
+        if (!back.AsSpan().SequenceEqual(hash))
         {
             File.Delete(lockPath);
             return (false, lockPath);
@@ -547,7 +725,7 @@ public static class FileLocker
     {
         var name = InnerName(lockPath, password);
         var dst = SecureZip.Unique(Path.Combine(Path.GetDirectoryName(lockPath)!, Path.GetFileName(name)));
-        File.WriteAllBytes(dst, SecureZip.ReadEntry(lockPath, password, name));
+        SecureZip.ExtractEntry(lockPath, password, name, dst); // 파일로 바로 풀기 (2GB 넘는 파일도)
         return dst;
     }
 

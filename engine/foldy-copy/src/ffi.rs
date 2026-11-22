@@ -19,6 +19,10 @@ pub const FC_ERR_BUFFER_TOO_SMALL: i32 = -6;
 pub const FC_ERR_NOT_FOUND: i32 = -7;
 /// 시험용 크래시 흉내로 멈춤 (_test_abort_after_files).
 pub const FC_ERR_ABORTED: i32 = -8;
+/// 대상 드라이브의 빈 공간이 모자라 시작하지 않음 (아무것도 쓰지 않았다). `bytes_total`에 필요한 바이트가 들어 있다.
+pub const FC_ERR_NO_SPACE: i32 = -9;
+/// 대상이 FAT32 드라이브라 4GB가 넘는 파일을 담을 수 없어 시작하지 않음. `bytes_total`에 그 파일 크기가 들어 있다.
+pub const FC_ERR_FILE_TOO_BIG: i32 = -10;
 
 /// 진행 상황 스냅샷. C#의 바인딩 구조체와 배치가 같아야 한다 (80바이트).
 #[repr(C)]

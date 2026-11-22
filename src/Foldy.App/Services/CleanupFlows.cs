@@ -114,6 +114,18 @@ public static class CleanupFlows
             return;
         }
 
+        // 압축하기 전에 공간부터 본다 (사용자 원칙 2026-11-22)
+        var zipNeed = LogPlanner.SpaceNeeded(picked);
+        if (!await SpaceFlows.EnsureAsync(w, shell, () => Foldy.Core.Space.DiskSpace.Check(picked[0].Folder, zipNeed)))
+        {
+            if (!w.IsClosed)
+            {
+                w.Close();
+            }
+
+            return;
+        }
+
         w.Busy();
         var status = w.Say(Foldy.Core.Localization.Loc.T("cf.log.zipping"));
         long freed = 0;
@@ -316,7 +328,7 @@ public static class CleanupFlows
             return;
         }
 
-        var byType = string.Join(", ", plan.GroupBy(m => m.Group).OrderByDescending(g => g.Count()).Select(g => Foldy.Core.Localization.Loc.F("cf.dt.typeCount", g.Key, g.Count())));
+        var byType = string.Join(", ", plan.GroupBy(m => m.Group).OrderByDescending(g => g.Count()).Select(g => Foldy.Core.Localization.Loc.F("cf.dt.typeCount", Foldy.Core.Organize.FileTypeGroups.DisplayName(g.Key), g.Count())));
         w.Say(Foldy.Core.Localization.Loc.F("cf.dt.found", plan.Count, byType, DesktopTidy.RecentDays));
         var choice = await w.AskAsync(
             Foldy.Core.Localization.Loc.T("cf.dt.plan"),

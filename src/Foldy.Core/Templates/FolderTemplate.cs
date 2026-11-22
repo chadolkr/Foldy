@@ -56,7 +56,7 @@ public sealed class FolderTemplate
 
     /// <summary>목록에 보일 묶음 이름 (비어 있으면 내장은 "기타", 내 템플릿은 "내 템플릿").</summary>
     [System.Text.Json.Serialization.JsonIgnore]
-    public string DisplayCategory => string.IsNullOrWhiteSpace(Category) ? (IsBuiltIn ? "기타" : TemplateCategories.User) : Category!.Trim();
+    public string DisplayCategory => string.IsNullOrWhiteSpace(Category) ? (IsBuiltIn ? Foldy.Core.Localization.Loc.T("at.other") : TemplateCategories.User) : Category!.Trim();
 
     public string DisplayBadge => string.IsNullOrWhiteSpace(Badge) ? Name : Badge!;
 }
@@ -144,7 +144,7 @@ public sealed class TemplateOrganizeRule
 /// <summary>템플릿 묶음의 표시 순서.</summary>
 public static class TemplateCategories
 {
-    public const string User = "내 템플릿";
+    public static string User => Foldy.Core.Localization.Loc.T("tpl.mine");
 
     /// <summary>
     /// 묶음 순서: 일반 문서 관리만 (사용자 2026-11-21: "개발용은 이미 정해진 폴더링이 있으니 유용하지 않다" → 내장 개발 템플릿을 뺐다).

@@ -175,10 +175,25 @@ public sealed class SftpAwareFileOperationService(
 
             // 서버 안에서 이름만 바꾸면 되는 항목은 바이트가 없다. 나머지는 재귀로 총량을 미리 센다.
             var renames = move ? sources.Where(s => IsServerSideMove(s, dest)).ToHashSet(StringComparer.Ordinal) : [];
+            long payload = 0;
             foreach (var s in sources)
             {
                 ct.ThrowIfCancellationRequested();
-                run.Total += renames.Contains(s) ? 1 : await ScanAsync(EndpointFor(s), s, ct).ConfigureAwait(false) * Factor(s, dest);
+                if (renames.Contains(s))
+                {
+                    run.Total += 1;
+                    continue;
+                }
+
+                var bytes = await ScanAsync(EndpointFor(s), s, ct).ConfigureAwait(false);
+                payload += bytes;
+                run.Total += bytes * Factor(s, dest);
+            }
+
+            // 보내기 전에 받는 쪽 공간을 본다 (사용자 원칙 2026-11-22). 서버가 빈 공간을 알려 주지 않으면 막지 않는다.
+            if (payload > 0 && await destEp.CheckSpaceAsync(dest, payload + Foldy.Core.Space.DiskSpace.Slack, ct).ConfigureAwait(false) is { Ok: false } lack)
+            {
+                return FileOpResult.NoSpace(lack);
             }
 
             run.Report(force: true);
@@ -491,6 +506,9 @@ public sealed class SftpAwareFileOperationService(
 
         /// <summary>임시 파일을 목적지로 바꿔 넣는다(목적지가 있으면 교체).</summary>
         Task ReplaceAsync(string temp, string target, CancellationToken ct);
+
+        /// <summary>그 폴더에 need바이트를 쓸 수 있나 (모르면 Ok).</summary>
+        Task<Foldy.Core.Space.SpaceCheck> CheckSpaceAsync(string folder, long need, CancellationToken ct);
     }
 
     private sealed class LocalEndpoint : IEndpoint
@@ -500,6 +518,9 @@ public sealed class SftpAwareFileOperationService(
         public bool IsRemote => false;
 
         public string Combine(string folder, string name) => Path.Combine(folder, name);
+
+        public Task<Foldy.Core.Space.SpaceCheck> CheckSpaceAsync(string folder, long need, CancellationToken ct) =>
+            Task.FromResult(Foldy.Core.Space.DiskSpace.Check(folder, need));
 
         public Task<Node?> StatAsync(string path, CancellationToken ct)
         {
@@ -604,6 +625,13 @@ public sealed class SftpAwareFileOperationService(
         public bool IsRemote => true;
 
         public string Combine(string folder, string name) => SftpLocation.Parse(folder).Combine(name).ToString();
+
+        public async Task<Foldy.Core.Space.SpaceCheck> CheckSpaceAsync(string folder, long need, CancellationToken ct)
+        {
+            var free = await sftp.FreeBytesAsync(new FsPath(ProviderId.Sftp, folder), ct).ConfigureAwait(false);
+            var problem = free is { } f && need > f ? Foldy.Core.Space.SpaceProblem.NotEnoughSpace : Foldy.Core.Space.SpaceProblem.None;
+            return new Foldy.Core.Space.SpaceCheck(problem, need, free ?? -1, null, SftpLocation.Parse(folder).Host);
+        }
 
         public async Task<Node?> StatAsync(string path, CancellationToken ct)
         {

@@ -14,6 +14,7 @@ mod job;
 pub mod journal;
 pub mod plan;
 pub mod scan;
+pub mod space;
 pub mod spec;
 pub mod tuner;
 pub mod verify;

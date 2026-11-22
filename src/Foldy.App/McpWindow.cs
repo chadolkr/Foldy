@@ -22,6 +22,9 @@ public sealed class McpWindow : Window
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), FontSize = 15 };
     private readonly CheckBox _enabled = new() { FontSize = 16, VerticalContentAlignment = VerticalAlignment.Center };
 
+    /// <summary>연결한 뒤 할 일 (앱마다). 연결하면 보인다.</summary>
+    private readonly StackPanel _next = new() { Visibility = Visibility.Collapsed, Margin = new Thickness(0, 12, 0, 0) };
+
     /// <param name="apps">AI 앱 목록 (보통 <see cref="McpClientConfig.Known"/>).</param>
     /// <param name="exePath">AI 앱이 띄울 Foldy.exe.</param>
     /// <param name="isEnabled">설정의 "AI 연결 켜기".</param>
@@ -103,6 +106,7 @@ public sealed class McpWindow : Window
         stack.Children.Add(connect);
         _status.SetResourceReference(ForegroundProperty, "Brush.Text");
         stack.Children.Add(_status);
+        stack.Children.Add(_next);
 
         _enabled.Content = Foldy.Core.Localization.Loc.T("mcp.enable");
         _enabled.IsChecked = isEnabled();
@@ -149,6 +153,9 @@ public sealed class McpWindow : Window
             }
         };
     }
+
+    /// <summary>연결한 뒤 할 일 칸 (문서 캡처가 이곳으로 다가간다).</summary>
+    internal FrameworkElement NextPanel => _next;
 
     private void Say(string s) => _status.Text = s;
 
@@ -205,6 +212,7 @@ public sealed class McpWindow : Window
         }
 
         Say(parts.Count == 0 ? Foldy.Core.Localization.Loc.T("mcp.pickApps") : string.Join(" ", parts));
+        ShowNext(added.Count > 0 ? [.. _checks.Where(c => added.Contains(c.App.Name)).Select(c => c.App)] : []);
         foreach (var (app, box) in _checks)
         {
             if (box.Content is TextBlock tb)
@@ -212,6 +220,127 @@ public sealed class McpWindow : Window
                 tb.Text = app.Name + (box.IsChecked == true && !failed.Contains(app.Name) ? Foldy.Core.Localization.Loc.T("mcp.connected") : "");
             }
         }
+    }
+
+    /// <summary>
+    /// 연결한 뒤 할 일 (사용자 2026-11-22: 연결했는데 Claude 새 대화에 Foldy가 없다고 나왔다).
+    /// AI 앱은 설정을 켤 때만 읽으니 다시 켜기, 새 대화 열기, 처음 쓸 때 허용, 해 볼 질문을 앱마다 쉬운 말로 보여 준다.
+    /// </summary>
+    internal void ShowNext(IReadOnlyList<McpClientApp> apps)
+    {
+        _next.Children.Clear();
+        if (apps.Count == 0)
+        {
+            _next.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        foreach (var app in apps)
+        {
+            var card = new StackPanel();
+            card.Children.Add(Text(Foldy.Core.Localization.Loc.F("mcp.next.head", app.Name), 16, bold: true, margin: new Thickness(0, 0, 0, 6)));
+            var steps = McpNextSteps.For(app.Name);
+            for (var i = 0; i < steps.Count; i++)
+            {
+                card.Children.Add(Text($"{i + 1}. {steps[i]}", 14.5, margin: new Thickness(0, 2, 0, 2)));
+            }
+
+            if (McpNextSteps.CanRestart(app.Name))
+            {
+                card.Children.Add(RestartRow());
+            }
+
+            var b = new Border { Child = card, Padding = new Thickness(14, 10, 14, 12), Margin = new Thickness(0, 0, 0, 8), CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1) };
+            b.SetResourceReference(Border.BorderBrushProperty, "Brush.Accent");
+            b.SetResourceReference(Border.BackgroundProperty, "Brush.Surface");
+            System.Windows.Automation.AutomationProperties.SetName(b, Foldy.Core.Localization.Loc.F("mcp.next.head", app.Name));
+            _next.Children.Add(b);
+        }
+
+        // 해 볼 질문: 누르면 복사
+        var ask = McpNextSteps.FirstAsk;
+        var askRow = new WrapPanel { Margin = new Thickness(0, 4, 0, 0) };
+        askRow.Children.Add(Text(Foldy.Core.Localization.Loc.T("mcp.next.try"), 14.5, bold: true, margin: new Thickness(0, 6, 10, 0)));
+        var askButton = new Button { Content = "“" + ask + "”", Padding = new Thickness(12, 5, 12, 5), FontSize = 15, ToolTip = Foldy.Core.Localization.Loc.T("ops.copy") };
+        System.Windows.Automation.AutomationProperties.SetName(askButton, ask);
+        askButton.Click += (_, _) =>
+        {
+            try
+            {
+                Clipboard.SetText(ask);
+                Say(Foldy.Core.Localization.Loc.F("mcp.copiedAsk", ask));
+            }
+            catch (System.Runtime.InteropServices.ExternalException)
+            {
+                Say(Foldy.Core.Localization.Loc.T("mcp.noClipboard"));
+            }
+        };
+        askRow.Children.Add(askButton);
+        _next.Children.Add(askRow);
+        _next.Children.Add(Text(Foldy.Core.Localization.Loc.T("mcp.next.stuck"), 13.5, secondary: true, margin: new Thickness(0, 8, 0, 0)));
+        _next.Visibility = Visibility.Visible;
+        _next.BringIntoView();
+    }
+
+    /// <summary>[Claude 다시 시작]: 한 번 더 묻고(Claude에서 하던 일이 멈춘다) 끄고 다시 켠다.</summary>
+    private StackPanel RestartRow()
+    {
+        var panel = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
+        var row = new WrapPanel();
+        var restart = new Button { Content = Foldy.Core.Localization.Loc.T("mcp.next.restart"), MinHeight = 36, Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(0, 0, 8, 0) };
+        restart.FontWeight = FontWeights.SemiBold;
+        var yes = new Button { Content = Foldy.Core.Localization.Loc.T("mcp.next.restartYes"), MinHeight = 36, Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(0, 0, 8, 0), Visibility = Visibility.Collapsed };
+        var no = new Button { Content = Foldy.Core.Localization.Loc.T("dlg.cancel"), MinHeight = 36, Padding = new Thickness(14, 4, 14, 4), Visibility = Visibility.Collapsed };
+        var note = Text("", 13.5, secondary: true, margin: new Thickness(0, 6, 0, 0));
+        note.Visibility = Visibility.Collapsed;
+        void Note(string text)
+        {
+            note.Text = text;
+            note.Visibility = text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        void Asking(bool on)
+        {
+            restart.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+            yes.Visibility = no.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        restart.Click += (_, _) =>
+        {
+            if (!_preview && Services.ClaudeRestart.RunningExe() is null)
+            {
+                Note(Foldy.Core.Localization.Loc.T("mcp.next.notRunning"));
+                return;
+            }
+
+            Note(Foldy.Core.Localization.Loc.T("mcp.next.restartAsk"));
+            Asking(true);
+        };
+        no.Click += (_, _) =>
+        {
+            Note("");
+            Asking(false);
+        };
+        yes.Click += async (_, _) =>
+        {
+            yes.IsEnabled = no.IsEnabled = false;
+            Note(Foldy.Core.Localization.Loc.T("mcp.next.restarting"));
+            var r = _preview ? Services.ClaudeRestart.Result.Restarted : await Services.ClaudeRestart.RestartAsync();
+            Note(r switch
+            {
+                Services.ClaudeRestart.Result.Restarted => Foldy.Core.Localization.Loc.T("mcp.next.restarted"),
+                Services.ClaudeRestart.Result.NotRunning => Foldy.Core.Localization.Loc.T("mcp.next.notRunning"),
+                _ => Foldy.Core.Localization.Loc.T("mcp.next.restartFailed"),
+            });
+            yes.IsEnabled = no.IsEnabled = true;
+            Asking(false);
+        };
+        row.Children.Add(restart);
+        row.Children.Add(yes);
+        row.Children.Add(no);
+        panel.Children.Add(row);
+        panel.Children.Add(note);
+        return panel;
     }
 
     private static TextBlock Text(string s, double size, bool bold = false, bool secondary = false, Thickness? margin = null)
@@ -239,19 +368,19 @@ public sealed class McpWindow : Window
         var name = new TextBlock { Text = t.Name, FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 10, 0) };
         name.SetResourceReference(ForegroundProperty, "Brush.Accent");
         head.Children.Add(name);
-        head.Children.Add(Text(t.Title, 15, bold: true));
+        head.Children.Add(Text(Shown($"mcp.tool.{t.Name}", t.Title), 15, bold: true));
         var badge = new Border { CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         badge.SetResourceReference(Border.BackgroundProperty, "Brush.Surface");
         badge.Child = Text(t.ReadOnly ? Foldy.Core.Localization.Loc.T("mcp.readOnly") : Foldy.Core.Localization.Loc.T("mcp.confirmFirst"), 12, secondary: true);
         head.Children.Add(badge);
         p.Children.Add(head);
-        p.Children.Add(Text(t.Description, 14, secondary: true, margin: new Thickness(0, 4, 0, 4)));
+        p.Children.Add(Text(Shown($"mcp.tool.{t.Name}.desc", t.Description), 14, secondary: true, margin: new Thickness(0, 4, 0, 4)));
         foreach (var a in t.Params)
         {
             var row = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 13.5, Margin = new Thickness(12, 2, 0, 0) };
             var n = new System.Windows.Documents.Run(a.Name) { FontFamily = new FontFamily("Cascadia Mono, Consolas") };
             row.Inlines.Add(n);
-            row.Inlines.Add(new System.Windows.Documents.Run($"  {TypeName(a.Type)}{(a.Required ? Foldy.Core.Localization.Loc.T("mcp.required") : "")}  —  {a.Description}"));
+            row.Inlines.Add(new System.Windows.Documents.Run($"  {TypeName(a.Type)}{(a.Required ? Foldy.Core.Localization.Loc.T("mcp.required") : "")}  —  {Shown($"mcp.param.{a.Name}", a.Description)}"));
             row.SetResourceReference(ForegroundProperty, "Brush.Text");
             p.Children.Add(row);
         }
@@ -264,6 +393,16 @@ public sealed class McpWindow : Window
         var b = new Border { Child = p, Padding = new Thickness(14, 10, 14, 10), Margin = new Thickness(0, 0, 0, 8), CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1) };
         b.SetResourceReference(Border.BorderBrushProperty, "Brush.Border");
         return b;
+    }
+
+    /// <summary>
+    /// 도구 설명을 화면 언어로. AI에게 보내는 설명(McpTool)은 그대로 두고 이 화면에서만 바꾼다.
+    /// 번역이 없는 새 도구·입력값이면 원래 설명을 보인다.
+    /// </summary>
+    private static string Shown(string key, string original)
+    {
+        var s = Foldy.Core.Localization.Loc.T(key);
+        return s == key ? original : s;
     }
 
     private static string TypeName(string t) => t switch

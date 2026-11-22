@@ -1,0 +1,12 @@
+---
+import Base from '../layouts/Base.astro';
+import Privacy from '../components/Privacy.astro';
+import { locales, defaultLocale } from '../i18n';
+import { privacy } from '../i18n/privacy';
+
+const locale = locales.find((l) => l.path === defaultLocale)!;
+const c = privacy[locale.path];
+---
+<Base locale={locale} page={{ title: c.title, description: c.description, sub: 'privacy' }}>
+  <Privacy locale={locale} />
+</Base>

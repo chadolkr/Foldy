@@ -15,7 +15,8 @@ use windows_sys::Win32::Foundation::{GetLastError, HANDLE};
 use windows_sys::Win32::Storage::FileSystem::{
     COPYFILE2_CALLBACK_CHUNK_FINISHED, COPYFILE2_EXTENDED_PARAMETERS, COPYFILE2_MESSAGE, COPYFILE2_MESSAGE_ACTION,
     COPYFILE2_PROGRESS_CANCEL, COPYFILE2_PROGRESS_CONTINUE, CopyFile2, FILE_ATTRIBUTE_DIRECTORY, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_READ, FILE_SHARE_WRITE,
-    FILE_WRITE_ATTRIBUTES, GetDriveTypeW, GetFileAttributesExW, GetFileExInfoStandard, GetVolumePathNameW,
+    FILE_WRITE_ATTRIBUTES, GetDiskFreeSpaceExW, GetDriveTypeW, GetFileAttributesExW, GetFileExInfoStandard, GetVolumeInformationW,
+    GetVolumePathNameW,
     MOVEFILE_REPLACE_EXISTING, MoveFileExW, WIN32_FILE_ATTRIBUTE_DATA,
 };
 use windows_sys::Win32::System::IO::DeviceIoControl;
@@ -146,6 +147,39 @@ pub fn volume_root(p: &Path) -> Option<String> {
     } else {
         s
     })
+}
+
+/// 그 경로가 있는 볼륨에서 이 사용자가 쓸 수 있는 빈 공간과 파일 시스템 이름 ("NTFS", "FAT32", "exFAT" …).
+/// 알 수 없으면 None (경로가 아직 없어도 드라이브가 있으면 안다).
+pub fn volume_room(p: &Path) -> (Option<u64>, Option<String>) {
+    let Some(root) = volume_root(p) else { return (None, None) };
+    let mut w: Vec<u16> = root.encode_utf16().collect();
+    if w.last() != Some(&BS) {
+        w.push(BS);
+    }
+    w.push(0);
+    let mut free = 0u64;
+    // SAFETY: w는 NUL로 끝나는 UTF-16, free는 쓸 수 있는 u64, 나머지 출력은 null(받지 않음)이다.
+    let ok = unsafe { GetDiskFreeSpaceExW(w.as_ptr(), &mut free, std::ptr::null_mut(), std::ptr::null_mut()) };
+    let mut fs = [0u16; 64];
+    // SAFETY: w는 NUL로 끝나고, fs는 fs.len()개 u16을 쓸 수 있으며, 받지 않는 출력은 null이다.
+    let ok_fs = unsafe {
+        GetVolumeInformationW(
+            w.as_ptr(),
+            std::ptr::null_mut(),
+            0,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            fs.as_mut_ptr(),
+            fs.len() as u32,
+        )
+    };
+    let name = (ok_fs != 0).then(|| {
+        let n = fs.iter().position(|&c| c == 0).unwrap_or(fs.len());
+        String::from_utf16_lossy(&fs[..n])
+    });
+    ((ok != 0).then_some(free), name)
 }
 
 pub fn same_volume(a: &Path, b: &Path) -> bool {

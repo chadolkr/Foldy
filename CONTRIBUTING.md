@@ -7,3 +7,4 @@
 3. 코드·이슈·화면 캡처에 회사·개인 정보를 넣지 말아 주세요 ([no-company-info.md](docs/no-company-info.md)).
 4. 기여한 코드는 GPL-3.0-or-later로 배포됩니다.
 5. 버전은 세계 표준 유의적 버전(SemVer)을 따릅니다: 호환이 깨지면 주, 기능 추가는 부, 버그 수정은 수를 올립니다 ([버전 규칙](docs/versioning.md)).
+6. AI 도구(Claude, Copilot 등)를 써도 돼요. 보내는 사람이 내용을 직접 확인하고, PR 설명에 썼다고 적어 주세요. AI 도구용 안내는 [AGENTS.md](AGENTS.md)에 있어요.

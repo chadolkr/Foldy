@@ -6,6 +6,16 @@ namespace Foldy.Copy.Native;
 
 public enum NativeJobState : uint { Created = 0, Running = 1, Paused = 2, Done = 3, Failed = 4, Canceled = 5, NeedsAttention = 6 }
 
+/// <summary>엔진 오류 코드 중 화면이 따로 다루는 것 (docs/copy-engine.md).</summary>
+public static class NativeCopyErrors
+{
+    /// <summary>시작 전에 본 대상 드라이브 빈 공간이 모자람. 아무것도 쓰지 않았고 BytesTotal = 필요한 바이트.</summary>
+    public const int NoSpace = -9;
+
+    /// <summary>대상이 FAT32라 4GB가 넘는 파일을 담을 수 없음. 아무것도 쓰지 않았고 BytesTotal = 그 파일 크기.</summary>
+    public const int FileTooBig = -10;
+}
+
 /// <summary>엔진 파이프라인 단계 (스캐너 → 계획기 → 워커 → 마무리).</summary>
 public enum CopyPhase : uint { Pending = 0, Scanning = 1, Planning = 2, Copying = 3, Finalizing = 4, Finished = 5 }
 

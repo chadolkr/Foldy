@@ -31,12 +31,24 @@ Claude 같은 AI 앱이 Foldy를 통해 사용자 PC의 파일을 찾고 폴더�
 
 | AI 앱 | 설정 파일 | 형식 |
 | --- | --- | --- |
-| Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` (Store판은 패키지 폴더 안) | `mcpServers.foldy = { command, args }` |
+| Claude Desktop | 판마다 다름 (아래) | `mcpServers.foldy = { command, args }` |
 | Claude Code | `%USERPROFILE%\.claude.json` (사용자 범위) | `mcpServers.foldy = { type: "stdio", command, args }` |
 | Codex (CLI·앱) | `%USERPROFILE%\.codex\config.toml` | `[mcp_servers.foldy]` `command`, `args` |
 | Gemini CLI | `%USERPROFILE%\.gemini\settings.json` | `mcpServers.foldy` |
 | Cursor | `%USERPROFILE%\.cursor\mcp.json` | `mcpServers.foldy` |
 | VS Code | `%APPDATA%\Code\User\mcp.json` | `servers.foldy = { type: "stdio", … }` |
+| Antigravity | `%USERPROFILE%\.gemini\config\mcp_config.json` (예전 판은 `.gemini\antigravity\mcp_config.json`) | `mcpServers.foldy` |
+
+**Claude Desktop 설정 위치** (2026-11-22, 연결했는데 Claude 새 대화에 Foldy가 없던 일에서 확인):
+
+- 새 판(Store판 `AnthropicPBC.Claude_…`): `%LOCALAPPDATA%\Claude-Data\<패키지 계열 이름, 소문자>\claude_desktop_config.json`. 예전 판도 `Claude-Data\claude_…`로 옮겨졌다.
+- 설치 프로그램판: `%APPDATA%\Claude\claude_desktop_config.json`.
+- 예전 Store판: `%LOCALAPPDATA%\Packages\…Claude_…\LocalCache\Roaming\Claude`.
+- 데이터가 옮겨 간 폴더에는 `.user-data-left.<패키지>` 표시 파일만 남는다. 그 폴더의 설정은 아무도 읽지 않으므로 쓰지 않는다.
+- 여러 판이 있으면 모두에 넣고(어느 쪽 Claude를 켜도 보이게), 연결됐는지는 가장 최근에 쓴 폴더로 본다. 코드: `McpClientConfig.ClaudeDesktopDirs`.
+- 일반 프로그램에서 `%APPDATA%\Claude`가 Store판 패키지 폴더로 이어져 보이지만 .NET `Directory.Exists`는 false라서, 예전 코드는 예전 Store판 폴더에 썼다.
+
+**연결한 뒤 할 일** (사용자 2026-11-22): AI 앱은 설정을 켤 때만 읽는다. [AI에 연결]을 누르면 화면에 앱마다 다음 단계가 나온다(`McpNextSteps`): 완전히 껐다 켜기(Claude Desktop은 창의 X로 안 꺼지고 알림 영역에 남는다), 새 대화, 도구 메뉴에서 foldy 켜기, 처음 쓸 때 허용, 해 볼 질문("C 드라이브 사용량을 보여 줘", 누르면 복사). Claude Desktop에는 **[Claude 다시 시작]**이 있다: 한 번 더 묻고(Claude에서 하던 일이 멈춘다) Claude Desktop 프로세스만 끝낸 뒤(같은 이름의 Claude Code 명령줄 claude.exe는 건드리지 않음) Store판은 `shell:AppsFolder\<패키지 계열>!<앱 ID>`, 설치 프로그램판은 실행 파일로 다시 켠다(`ClaudeDesktopApp`, `ClaudeRestart`).
 
 실행 명령은 모두 `Foldy.exe --mcp`.
 **ChatGPT는 넣지 않는다**: 인터넷(원격) MCP만 받아서, PC 안의 Foldy를 밖에 열어야 한다. 보안상 하지 않는다.

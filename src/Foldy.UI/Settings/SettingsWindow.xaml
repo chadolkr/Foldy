@@ -412,7 +412,7 @@
                             <Setter Property="Text" Value="{Binding GestureText}" />
                             <Style.Triggers>
                               <DataTrigger Binding="{Binding IsRecording}" Value="True">
-                                <Setter Property="Text" Value="키를 누르세요…" />
+                                <Setter Property="Text" Value="{loc:T set.pressKey}" />
                                 <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
                               </DataTrigger>
                             </Style.Triggers>

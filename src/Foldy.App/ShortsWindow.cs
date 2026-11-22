@@ -81,7 +81,7 @@ internal sealed class ShortsWindow : Window
 
     public ShortsWindow()
     {
-        Title = "Foldy 짧은 소개";
+        Title = Foldy.Core.Localization.Loc.T("tour.windowTitle");
         SetResourceReference(StyleProperty, "Foldy.Window");
         SetResourceReference(BackgroundProperty, "Brush.Window");
         Width = 440;

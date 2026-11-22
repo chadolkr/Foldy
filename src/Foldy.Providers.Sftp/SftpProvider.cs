@@ -137,6 +137,13 @@ public sealed class SftpProvider : IFileSystemProvider, IAsyncDisposable
         return RunOnQueueAsync(loc, (client, _) => client.Stat(loc.Path), ct);
     }
 
+    /// <summary>그 경로가 있는 서버 디스크의 빈 공간 (모르면 null). 큐에서 실행한다.</summary>
+    public Task<long?> FreeBytesAsync(FsPath path, CancellationToken ct)
+    {
+        var loc = ParsePath(path);
+        return RunOnQueueAsync(loc, (client, _) => client.FreeBytes(loc.Path), ct);
+    }
+
     public async Task<bool> ExistsAsync(FsPath path, CancellationToken ct) => await StatAsync(path, ct).ConfigureAwait(false) is not null;
 
     /// <summary>폴더를 만든다(부모는 있어야 한다).</summary>

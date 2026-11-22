@@ -36,7 +36,7 @@ They sit at the top of the sidebar, one click away.
 - **SFTP**: open a server as a tab and drag files in and out.
 - **Locked notes, password-protected files and a vault** for things you want to keep private.
 - **Who is using this file?**: when a copy, move or delete fails, Foldy names the program holding the file.
-- **AI connection (MCP, optional)**: connect Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor or VS Code with one button. Your AI can then find files, look inside folders and check folder sizes through Foldy. It is read-only, sees only what your account can see, and is off by default.
+- **AI connection (MCP, optional)**: connect Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code or Antigravity with one button. Your AI can then find files, look inside folders and check folder sizes through Foldy. It is read-only, sees only what your account can see, and is off by default.
 - **Automatic updates**, including behind company proxies, installed only after your running jobs finish.
 
 ## Languages
