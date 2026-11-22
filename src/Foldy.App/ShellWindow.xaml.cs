@@ -371,14 +371,16 @@ public partial class ShellWindow : Window, IPaneHost
         }
         else if (_hadSettings || FirstRunTour.Shown)
         {
-            // 업데이트·다시 설치: 설정은 그대로라 묻지 않는다. 이 버전에서 아직 안 봤으면 짧은 소개만 (사용자 요청 2026-11-21)
+            // 업데이트·다시 설치: 설정은 그대로라 묻지 않는다. 짧은 소개는 아직 안 본 (새로 생긴) 장면만 한 번
+            // (사용자 결정 2026-11-22 "한번 본것은 안보게", "새로운 것은 쇼츠를 보게")
             _ = EnsureQuickSearchHotkeyAsync(null); // 묻지 않고 등록만, 겹칠 때만 알린다
-            if (!FirstRunTour.ShownForThisVersion)
+            var unseen = FirstRunTour.UnseenScenes();
+            if (unseen.Count > 0)
             {
                 _ = Dispatcher.InvokeAsync(async () =>
                 {
                     await Task.Delay(1500);
-                    await FirstRunTour.RunAsync(this);
+                    await FirstRunTour.RunAsync(this, unseen);
                 }, DispatcherPriority.ApplicationIdle);
             }
         }
