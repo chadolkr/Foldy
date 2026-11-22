@@ -363,6 +363,16 @@
                          Foreground="{DynamicResource Brush.TextSecondary}" />
               <Button x:Name="EmptyExplorerButton" Content="{loc:T pane.openExplorer}" HorizontalAlignment="Center" Margin="0,12,0,0" Padding="12,4"
                       Visibility="Collapsed" Click="OnOpenInExplorer" />
+              <!-- 빈 폴더는 무엇을 할 수 있는지 알려 주기 좋은 순간 (2026-11-22 기능 찾기): 끌어 놓기·F7 한 줄과 [템플릿으로 폴더 만들기] -->
+              <TextBlock x:Name="EmptyTip" Text="{loc:T pane.empty.tip}" Margin="0,6,0,0" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                         FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Visibility="Collapsed" />
+              <Button x:Name="EmptyTemplateButton" HorizontalAlignment="Center" Margin="0,12,0,0" Padding="12,4" MinHeight="32"
+                      Visibility="Collapsed" Click="OnEmptyTemplate" ToolTip="{loc:T side.template.tip}" AutomationProperties.Name="{loc:T side.template}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xE8F4;" FontFamily="{DynamicResource Font.Icon}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="{loc:T side.template}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
             </StackPanel>
             <TextBlock x:Name="LoadingText" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="12"
                        Foreground="{DynamicResource Brush.TextSecondary}" Visibility="Collapsed" />

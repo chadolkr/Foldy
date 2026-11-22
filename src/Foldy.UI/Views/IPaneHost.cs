@@ -52,6 +52,9 @@ public interface IPaneHost
 
     /// <summary>이 패널에서 SFTP 서버에 연결한다 (탭 줄 드라이브 끝의 SFTP 버튼).</summary>
     void ConnectSftp(PaneViewModel pane);
+
+    /// <summary>명령 목록의 기능 하나를 id로 실행한다 (예: 빈 폴더의 [템플릿으로 폴더 만들기] → folder.fromTemplate).</summary>
+    void RunCommand(string id);
 }
 
 /// <summary>Git 바의 버튼.</summary>

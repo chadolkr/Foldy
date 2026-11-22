@@ -1193,6 +1193,19 @@ public partial class ShellWindow : Window, IPaneHost
                 Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.vaultNeed");
             }
         });
+        Add("file.versions", Foldy.Core.Localization.Loc.T("sw.c.versions"), () =>
+        {
+            // 덮어쓴 파일 되살리기: 오른쪽 클릭에만 있던 것을 지키기 메뉴·무엇이든 찾기에서도 (2026-11-22 기능 찾기)
+            var sel = ShellViewModel.SelectedPaths(Shell.ActivePane);
+            if (sel.Count == 1 && File.Exists(sel[0]))
+            {
+                ShowVersions(sel[0]);
+            }
+            else
+            {
+                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.versionsNeed");
+            }
+        });
         Add("tag.done", Foldy.Core.Localization.Loc.T("sw.c.done"), () => ActiveView.ToggleTag(Foldy.Core.Tags.FileTags.Default), gesture: "Ctrl+D");
         foreach (var t in Foldy.Core.Tags.FileTags.Builtin.Skip(1))
         {
@@ -2371,8 +2384,11 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        _commands.FirstOrDefault(c => c.Id == id)?.Run();
+        RunCommand(id);
     }
+
+    /// <summary>명령 목록의 기능 하나를 id로 실행한다 (사이드바 메뉴·한 줄 제안·빈 폴더 단추).</summary>
+    public void RunCommand(string id) => _commands.FirstOrDefault(c => c.Id == id)?.Run();
 
     private void OnSideGroup(object sender, RoutedEventArgs e) => OnSideCleanupTools(sender, e);
 
@@ -2666,6 +2682,12 @@ public partial class ShellWindow : Window, IPaneHost
             case "managed":
                 ShowManagedSuggestions(_cleanupFinding.Target);
                 break;
+            case "rebuildable":
+                OpenRebuildable(_cleanupFinding.Target);
+                break;
+            case { } t when t.StartsWith("cmd:", StringComparison.Ordinal):
+                RunCommand(t[4..]);
+                break;
             default:
                 OpenDesktopTidy();
                 break;
@@ -2725,13 +2747,22 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        if (ContextHints.For(path, tab.Items) is { } hint)
+        var other = (Shell.ActivePane == Shell.Left ? Shell.Right : Shell.Left).ActiveFolder?.Path;
+        if (ContextHints.For(path, tab.Items, other, ActiveView.ImagesOn) is { } hint)
         {
             _hintKey = hint.Key;
             _cleanupFinding = hint.Finding;
             CleanupNoticeText.Text = hint.Finding.Text;
             CleanupNoticeButton.Content = hint.Button;
+            CleanupNoticeClose.Content = Foldy.Core.Localization.Loc.T("common.close");
+            CleanupNoticeNever.Visibility = Visibility.Collapsed;
             CleanupNotice.Visibility = Visibility.Visible;
+            if (hint.Once)
+            {
+                // 기능 찾기 제안은 평생 한 번: 띄우는 순간 기억하고, 그냥 두면 저절로 사라진다 (누를 것을 강요하지 않는다)
+                ContextHints.Dismiss(hint.Key);
+                AutoHideNotice(hint.Finding.Tool);
+            }
         }
     }
 
