@@ -1,4 +1,4 @@
-# Foldy 진행 현황 (2026-11-22 기준, 0.9.40)
+# Foldy 진행 현황 (2026-11-22 기준, 0.9.41)
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
@@ -37,6 +37,7 @@
 - 0.9.7: 탭 줄 SFTP 단추, 서버 트리 한 단계 펼치기.
 - 0.9.8: 수다쟁이 Foldy(원칙 1.4), 업데이트 진행 창, 트리 "불러오는 중".
 - 0.9.9: 이미지만 보기 안내 줄과 [모든 파일 보기].
+- 0.9.41: 사용 설명서 assets/help/index.<언어>.md (en·es·ja·zh-Hans), 그림 help/images/<언어>/ (doc-screenshots -Lang으로 찍음, 업데이트 진행 창 그림만 한국어판 공용). 남은 것: 템플릿 사용법(.guide.md) 번역, 문서 캡처 예시 파일 이름의 언어별화, 검수, App.TranslationComplete=true.
 - 0.9.40: 번역 7단계(업데이트 진행 창은 스크립트 화면 문구만 바꿔 넣고 서비스 기록의 표시 말은 그대로), 불안정 시험 2개 안정화.
 - 0.9.39: 번역 6단계(Presentation 층, 빠른 검색 Windows 설정 목록, 폴더 관리 방식: FolderMethod.DisplayName·ExplanationText, .foldy.md의 "정리 방법:" 줄은 한국어 그대로 읽고 씀). 일부러 옮기지 않는 것: QuickIntent·QuickCalc의 한국어 말 알아듣기 낱말, 로그 문장.
 - 0.9.38: Foldy가 만드는 폴더 이름을 그때 앱 언어로(템플릿 449개 글 × 4개 언어, TemplateI18n, FolderNames.Pick), 언어별 시험(LanguageTests UI, LanguageFolderTests).
