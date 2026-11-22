@@ -8,11 +8,11 @@ namespace Foldy.App;
 /// <summary>병렬 복사 중 같은 이름이 있을 때 묻는 작은 창 (덮어쓰기 / 건너뛰기 / 둘 다 유지, 나머지에도 적용).</summary>
 public sealed class ConflictWindow : Window
 {
-    private readonly CheckBox _all = new() { Content = "남은 충돌에도 똑같이", Margin = new Thickness(0, 12, 0, 0) };
+    private readonly CheckBox _all = new() { Content = Foldy.Core.Localization.Loc.T("conf.applyAll"), Margin = new Thickness(0, 12, 0, 0) };
 
     private ConflictWindow(CopyIssue issue)
     {
-        Title = "Foldy · 같은 이름의 파일";
+        Title = Foldy.Core.Localization.Loc.T("conf.title");
         SizeToContent = SizeToContent.WidthAndHeight;
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -21,16 +21,16 @@ public sealed class ConflictWindow : Window
         _all.SetResourceReference(ForegroundProperty, "Brush.Text");
 
         var panel = new StackPanel { Margin = new Thickness(20), MaxWidth = 520 };
-        panel.Children.Add(new TextBlock { Text = $"'{Path.GetFileName(issue.Dest)}'이(가) 대상 폴더에 이미 있습니다.", FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
-        var detail = new TextBlock { Text = $"원본: {issue.Source}\n대상: {issue.Dest}", Margin = new Thickness(0, 8, 0, 0), TextWrapping = TextWrapping.Wrap };
+        panel.Children.Add(new TextBlock { Text = Foldy.Core.Localization.Loc.F("conf.exists", Path.GetFileName(issue.Dest)), FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        var detail = new TextBlock { Text = Foldy.Core.Localization.Loc.F("conf.paths", issue.Source, issue.Dest), Margin = new Thickness(0, 8, 0, 0), TextWrapping = TextWrapping.Wrap };
         detail.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextSecondary");
         panel.Children.Add(detail);
         panel.Children.Add(_all);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
-        buttons.Children.Add(Make("둘 다 유지", ConflictAction.Rename, isDefault: true));
-        buttons.Children.Add(Make("덮어쓰기", ConflictAction.Overwrite));
-        buttons.Children.Add(Make("건너뛰기", ConflictAction.Skip, isCancel: true));
+        buttons.Children.Add(Make(Foldy.Core.Localization.Loc.T("conf.keepBoth"), ConflictAction.Rename, isDefault: true));
+        buttons.Children.Add(Make(Foldy.Core.Localization.Loc.T("conf.overwrite"), ConflictAction.Overwrite));
+        buttons.Children.Add(Make(Foldy.Core.Localization.Loc.T("conf.skip"), ConflictAction.Skip, isCancel: true));
         panel.Children.Add(buttons);
         Content = panel;
     }

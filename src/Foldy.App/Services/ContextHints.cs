@@ -33,18 +33,18 @@ public static class ContextHints
 
         if (CleanupPaths.Downloads() is { } dl && Same(folder, dl) && files >= 40)
         {
-            return Make("downloads", $"다운로드에 파일이 {files:N0}개 쌓였어요. 이미 설치한 설치 파일이나 중복 파일을 골라 드릴까요?", "다운로드 정리", "downloads", dl);
+            return Make("downloads", Foldy.Core.Localization.Loc.F("hint.downloads", files), Foldy.Core.Localization.Loc.T("sw.c.downloads"), "downloads", dl);
         }
 
         if (Same(folder, CleanupPaths.Desktop) && files >= 50)
         {
-            return Make("desktop", $"바탕화면에 파일이 {files:N0}개 있어요. 버리지 않고 종류별로 보관해 드릴까요?", "바탕화면 정리", "desktop", folder);
+            return Make("desktop", Foldy.Core.Localization.Loc.F("hint.desktop", files), Foldy.Core.Localization.Loc.T("sw.c.desktop"), "desktop", folder);
         }
 
         var logs = list.Count(i => !i.IsFolder && i.Name.EndsWith(".log", StringComparison.OrdinalIgnoreCase));
         if (logs >= 20)
         {
-            return Make("logs", $"이 폴더에 로그 파일이 {logs:N0}개 있어요. 오래된 로그를 달마다 zip으로 묶어 공간을 줄일까요?", "로그 정리", "logs", Path.GetPathRoot(folder)!);
+            return Make("logs", Foldy.Core.Localization.Loc.F("hint.logs", logs), Foldy.Core.Localization.Loc.T("sw.logs.title"), "logs", Path.GetPathRoot(folder)!);
         }
 
         return null;

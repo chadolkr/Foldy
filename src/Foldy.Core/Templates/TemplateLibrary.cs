@@ -90,7 +90,7 @@ public sealed class TemplateLibrary
         var issues = TemplateValidator.Validate(t);
         if (issues.Count > 0)
         {
-            throw new InvalidDataException($"가져올 수 없는 템플릿입니다: {issues[0].Message} ({issues[0].Path})");
+            throw new InvalidDataException(Foldy.Core.Localization.Loc.F("tl.cantImport", issues[0].Message, issues[0].Path));
         }
 
         t.SourcePath = null;
@@ -148,7 +148,7 @@ public sealed class TemplateLibrary
     public static WizardDefinition LoadWizard()
     {
         var json = ReadResource(typeof(TemplateLibrary).Assembly, ResourcePrefix + "wizard.json")
-            ?? throw new InvalidOperationException("wizard.json이 포함되지 않았습니다.");
+            ?? throw new InvalidOperationException(Foldy.Core.Localization.Loc.T("tl.noWizard"));
         return WizardDefinition.Parse(TemplateI18n.Localize(json));
     }
 

@@ -68,11 +68,11 @@ internal static class CrashConsentPrompt
     private static Choice Ask(Window owner, IReadOnlyList<StoredCrash> pending)
     {
         var fatal = pending.Count(p => p.Fatal);
-        var what = fatal > 0 ? "지난번에 Foldy가 비정상 종료되었습니다." : $"Foldy에서 오류가 {pending.Count}건 기록되었습니다.";
+        var what = fatal > 0 ? Foldy.Core.Localization.Loc.T("crash.lastTime") : Foldy.Core.Localization.Loc.F("crash.count", pending.Count);
         var result = Choice.Never;
         var win = new Window
         {
-            Title = "오류 보고서 보내기",
+            Title = Foldy.Core.Localization.Loc.T("crash.send"),
             Owner = owner,
             SizeToContent = SizeToContent.WidthAndHeight,
             ResizeMode = ResizeMode.NoResize,
@@ -84,9 +84,9 @@ internal static class CrashConsentPrompt
         win.SetResourceReference(Control.FontFamilyProperty, "Font.UI");
         var text = new TextBlock
         {
-            Text = what + "\n\n오류 보고서를 개발자에게 보내 주시면 고치는 데 큰 도움이 됩니다.\n" +
-                   "보고서에는 앱·Windows 버전, 오류 내용, 최근 로그가 들어가며 파일 경로와 사용자 이름은 지웁니다. " +
-                   "같은 오류는 하나의 GitHub 공개 이슈로 묶입니다. 설정 → 일반에서 언제든 바꿀 수 있습니다.",
+            Text = what + Foldy.Core.Localization.Loc.T("crash.help") +
+                   Foldy.Core.Localization.Loc.T("crash.contents") +
+                   Foldy.Core.Localization.Loc.T("crash.grouped"),
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = 440,
         };
@@ -99,9 +99,9 @@ internal static class CrashConsentPrompt
         }
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
-        buttons.Children.Add(Make("항상 자동으로 보내기", Choice.Always, isDefault: true));
-        buttons.Children.Add(Make("이번만 보내기", Choice.Once));
-        buttons.Children.Add(Make("보내지 않기", Choice.Never, isCancel: true)); // Esc = 보내지 않기 (가장 안전한 쪽)
+        buttons.Children.Add(Make(Foldy.Core.Localization.Loc.T("crash.always"), Choice.Always, isDefault: true));
+        buttons.Children.Add(Make(Foldy.Core.Localization.Loc.T("crash.once"), Choice.Once));
+        buttons.Children.Add(Make(Foldy.Core.Localization.Loc.T("sw.diag.dontSend"), Choice.Never, isCancel: true)); // Esc = 보내지 않기 (가장 안전한 쪽)
         var panel = new StackPanel { Margin = new Thickness(16) };
         panel.Children.Add(text);
         panel.Children.Add(buttons);

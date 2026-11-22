@@ -27,7 +27,7 @@ public sealed partial class LanguageTests
         try
         {
             using var app = FoldyApp.Start(openPath: sample, language: language);
-            Retry.WhileNull(() => app.Main.FindFirstDescendant(app.By.ByClassName("FastFileList")), TimeSpan.FromSeconds(20));
+            Retry.WhileNull(() => app.Main.FindFirstDescendant(app.By.ByClassName("FastFileList")), TimeSpan.FromSeconds(20), ignoreException: true);
             Thread.Sleep(1500); // 목록·상태 줄이 그려질 때까지
 
             var found = new SortedSet<string>(StringComparer.Ordinal);
@@ -39,7 +39,7 @@ public sealed partial class LanguageTests
             var settings = Retry.WhileNull(
                 () => app.App.GetAllTopLevelWindows(app.Automation).FirstOrDefault(w => w.Title != app.Main.Title)
                       ?? app.Main.FindFirstChild(app.By.ByControlType(ControlType.Window))?.AsWindow(),
-                TimeSpan.FromSeconds(10)).Result;
+                TimeSpan.FromSeconds(10), ignoreException: true).Result;
             if (settings is not null)
             {
                 Thread.Sleep(800);

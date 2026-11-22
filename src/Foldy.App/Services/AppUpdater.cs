@@ -98,7 +98,7 @@ public sealed class AppUpdater : IDisposable
             }
 
             var asset = info.Assets.FirstOrDefault(a => a.Name.EndsWith("-x64.msi", StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidDataException("update.json에 MSI가 없습니다");
+                ?? throw new InvalidDataException(Foldy.Core.Localization.Loc.T("au.noMsi"));
             var dir = Path.Combine(_root, version);
             Directory.CreateDirectory(dir);
             var msi = Path.Combine(dir, asset.Name);
@@ -108,7 +108,7 @@ public sealed class AppUpdater : IDisposable
                 if (!await MatchesAsync(msi, asset, ct))
                 {
                     File.Delete(msi);
-                    throw new CryptographicException("내려받은 MSI가 update.json과 다릅니다 (크기 또는 SHA-256)");
+                    throw new CryptographicException(Foldy.Core.Localization.Loc.T("au.mismatch"));
                 }
             }
 
@@ -183,7 +183,7 @@ public sealed class AppUpdater : IDisposable
         await p.WaitForExitAsync(ct);
         if (p.ExitCode != 0)
         {
-            throw new CryptographicException("update.json 서명이 맞지 않습니다: " + (await p.StandardError.ReadToEndAsync(ct)).Trim());
+            throw new CryptographicException(Foldy.Core.Localization.Loc.T("au.badSignature") + (await p.StandardError.ReadToEndAsync(ct)).Trim());
         }
     }
 

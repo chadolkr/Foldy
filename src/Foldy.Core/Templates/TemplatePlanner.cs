@@ -285,7 +285,7 @@ public static partial class TemplatePlanner
         if (pn.FullPath.Length > TemplateValidator.MaxPathLength)
         {
             pn.State = PlannedState.Blocked;
-            pn.Problem = "전체 경로가 너무 깁니다.";
+            pn.Problem = Foldy.Core.Localization.Loc.T("tp.tooLong");
             if (!excluded)
             {
                 plan.Issues.Add(new(TemplateIssueKind.PathTooLong, pn.RelativePath, pn.Problem));
@@ -305,7 +305,7 @@ public static partial class TemplatePlanner
         if (pn.IsFile ? dirExists : fileExists)
         {
             pn.State = PlannedState.Blocked;
-            pn.Problem = pn.IsFile ? "같은 이름의 폴더가 있어 파일을 만들 수 없습니다." : "같은 이름의 파일이 있어 폴더를 만들 수 없습니다.";
+            pn.Problem = pn.IsFile ? Foldy.Core.Localization.Loc.T("tp.folderExists") : Foldy.Core.Localization.Loc.T("tp.fileExists");
             return;
         }
 
