@@ -1,4 +1,4 @@
-# Foldy 진행 현황 (2026-11-22 기준, 0.9.37)
+# Foldy 진행 현황 (2026-11-22 기준, 0.9.44)
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
@@ -37,6 +37,13 @@
 - 0.9.7: 탭 줄 SFTP 단추, 서버 트리 한 단계 펼치기.
 - 0.9.8: 수다쟁이 Foldy(원칙 1.4), 업데이트 진행 창, 트리 "불러오는 중".
 - 0.9.9: 이미지만 보기 안내 줄과 [모든 파일 보기].
+- 0.9.44: 짧은 소개 초점(문서 캡처가 <그림>.focus.json에 실제 요소 위치를 적고 ShortsWindow.Camera가 그리로 다가감, 시험 Short_intro_images_have_a_focus_area), 남은 한국어(qs.top, dog.*, mcpex.*), SemVer 규칙 docs/versioning.md.
+- 0.9.43: App.TranslationComplete = true (auto = Windows 언어). 문서 캡처 예시 폴더·대화·예시 Markdown을 언어별로(cs_strings_demo*.py), 언어별 그림 다시 찍음. 일부러 옮기지 않은 것: QuickIntent·QuickCalc 한국어 낱말, 로그, McpRunner(AI에게 주는 답), FileTags 태그 이름(폴더에 저장되는 값), 진단 기록.
+- 0.9.42: 템플릿 사용법 <id>.guide.<언어>.md 52개 (원본 build/i18n/guides_<언어>.py → python build/i18n/guides.py). EmbeddedResource에 WithCulture=false (이름의 .en 때문에 위성 어셈블리로 빠지던 것).
+- 0.9.41: 사용 설명서 assets/help/index.<언어>.md (en·es·ja·zh-Hans), 그림 help/images/<언어>/ (doc-screenshots -Lang으로 찍음, 업데이트 진행 창 그림만 한국어판 공용). 남은 것: 템플릿 사용법(.guide.md) 번역, 문서 캡처 예시 파일 이름의 언어별화, 검수, App.TranslationComplete=true.
+- 0.9.40: 번역 7단계(업데이트 진행 창은 스크립트 화면 문구만 바꿔 넣고 서비스 기록의 표시 말은 그대로), 불안정 시험 2개 안정화.
+- 0.9.39: 번역 6단계(Presentation 층, 빠른 검색 Windows 설정 목록, 폴더 관리 방식: FolderMethod.DisplayName·ExplanationText, .foldy.md의 "정리 방법:" 줄은 한국어 그대로 읽고 씀). 일부러 옮기지 않는 것: QuickIntent·QuickCalc의 한국어 말 알아듣기 낱말, 로그 문장.
+- 0.9.38: Foldy가 만드는 폴더 이름을 그때 앱 언어로(템플릿 449개 글 × 4개 언어, TemplateI18n, FolderNames.Pick), 언어별 시험(LanguageTests UI, LanguageFolderTests).
 - 0.9.37: 번역 5단계(정리 대화·지키기·비교·개발자 정리·지우기 확인·AI 연결 창·파일 창·빠른 검색·메모·단축키). cs_tool.py가 보간 글도 Loc.F로 바꾸고 원시 문자열(""")은 건너뛴다. 남은 것: 업데이트 진행 창(PowerShell), Core(빠른 검색 카탈로그·의도·계산·관리 방식·MCP 도구 설명·템플릿 검사), Presentation(Git 탭·정리·분석), Foldy가 만드는 폴더 이름.
 - 0.9.36: 번역 4단계(코드 안 글: 명령 이름·설정 선택지·확인 창·파일 작업·주 창 상태 줄). 도구: build/i18n/cs_tool.py, 표 cs_strings.py·cs_strings_sw.py. 시험이 코드가 쓰는 키가 언어 파일에 있는지 본다.
 - 0.9.35: 번역 3단계(나머지 XAML 화면), 문서 캡처에서 트리 따라가기 끔·그림 다시 찍음.

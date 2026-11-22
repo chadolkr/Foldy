@@ -51,7 +51,7 @@ public partial class GitView : UserControl
         if (Vm is { Confirm: null } vm)
         {
             vm.Confirm = message => Task.FromResult(
-                Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), "Git", message, "계속하기", danger: true));
+                Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), "Git", message, Foldy.Core.Localization.Loc.T("gv.continue"), danger: true));
         }
     }
 
@@ -138,7 +138,7 @@ public partial class GitView : UserControl
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            if (Vm is { } vm) vm.ErrorText = "브라우저를 열 수 없습니다. https://git-scm.com/download/win 을 직접 여세요.";
+            if (Vm is { } vm) vm.ErrorText = Foldy.Core.Localization.Loc.T("gv.browserFailed");
         }
     }
     private void OnGraphReachedEnd(object? sender, EventArgs e)

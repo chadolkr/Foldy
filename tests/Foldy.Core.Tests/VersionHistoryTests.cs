@@ -16,6 +16,8 @@ public sealed class VersionHistoryTests : IDisposable
     public void Dispose()
     {
         VersionHistory.RootOverride = null;
+        VersionHistory.LocalDriveOverride = null;
+        VersionHistory.CapOverride = null;
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -59,8 +61,80 @@ public sealed class VersionHistoryTests : IDisposable
     }
 
     [Fact]
+    public void Put_back_returns_the_original_only_when_the_overwrite_never_happened()
+    {
+        // 1.0 점검 B1: 보관(옮기기) 뒤 덮어쓰기가 취소·실패하면 원래 파일을 제자리로
+        var f = Path.Combine(_root, "견적서.xlsx");
+        File.WriteAllText(f, "원래");
+        var v = VersionHistory.Preserve(f)!;
+        File.Exists(f).Should().BeFalse();
+        VersionHistory.PutBack(v).Should().BeTrue();
+        File.ReadAllText(f).Should().Be("원래");
+        VersionHistory.VersionsOf(f).Should().BeEmpty("보관본은 제자리로 돌아갔다");
+
+        var w = VersionHistory.Preserve(f)!;
+        File.WriteAllText(f, "새것"); // 덮어쓰기 성공
+        VersionHistory.PutBack(w).Should().BeFalse("덮어쓴 파일은 건드리지 않는다");
+        File.ReadAllText(f).Should().Be("새것");
+        File.ReadAllText(w.Saved).Should().Be("원래");
+    }
+
+    [Fact]
+    public void A_batch_of_overwrites_keeps_every_original_until_the_job_ends()
+    {
+        // 1.0 점검 B1: 한 작업에서 여러 파일을 보관할 때, 앞 파일의 보관본이 한도 때문에 덮어쓰기 전에 지워지면 안 된다
+        VersionHistory.CapOverride = 10;
+        var a = Path.Combine(_root, "a.txt");
+        var b = Path.Combine(_root, "b.txt");
+        File.WriteAllText(a, "aaaaaaaa");
+        File.WriteAllText(b, "bbbbbbbb");
+        var va = VersionHistory.Preserve(a, prune: false)!;
+        var vb = VersionHistory.Preserve(b, prune: false)!;
+        File.Exists(va.Saved).Should().BeTrue("16바이트 > 한도 10이어도 작업 중에는 지우지 않는다");
+        File.Exists(vb.Saved).Should().BeTrue();
+
+        File.WriteAllText(a, "new a"); // a만 덮어쓰기 됨, b는 실패
+        VersionHistory.PrunePending();
+        File.Exists(va.Saved).Should().BeFalse("덮어쓰기가 끝난 a의 예전 내용은 한도 때문에 정리된다");
+        File.Exists(vb.Saved).Should().BeTrue("자리가 빈 b의 보관본은 유일한 사본이라 한도 때문에 지우지 않는다");
+        VersionHistory.PutBack(vb).Should().BeTrue();
+        File.ReadAllText(b).Should().Be("bbbbbbbb");
+    }
+
+    [Fact]
     public void Missing_files_are_not_preserved()
     {
         VersionHistory.Preserve(Path.Combine(_root, "없음.txt")).Should().BeNull();
+    }
+
+    [Fact]
+    public void A_tampered_index_cannot_make_foldy_delete_or_move_files_outside_the_history_folder()
+    {
+        // 보안 리뷰 2026-11-22 V1: 같은 공유 드라이브를 쓰는 다른 사람이 index.jsonl을 고쳐 둔 경우
+        var victim = Path.Combine(_root, "중요한 파일.docx");
+        File.WriteAllText(victim, "지키기");
+        var f = Path.Combine(_root, "a.txt");
+        File.WriteAllText(f, "1");
+        var history = VersionHistory.HistoryRoot(f);
+        Directory.CreateDirectory(history);
+        var forged = new SavedVersion(Path.GetFullPath(f), victim, DateTime.UtcNow.AddDays(-30), 5);
+        File.WriteAllText(Path.Combine(history, "index.jsonl"), System.Text.Json.JsonSerializer.Serialize(forged) + "\n");
+
+        VersionHistory.Prune(f);
+        File.Exists(victim).Should().BeTrue("보관 폴더 밖의 파일은 지우지 않는다");
+        VersionHistory.VersionsOf(f).Should().BeEmpty("보관 폴더 밖을 가리키는 기록은 보여 주지 않는다");
+        VersionHistory.Restore(forged).Should().BeFalse();
+        VersionHistory.ExtractBeside(forged).Should().BeNull();
+        File.ReadAllText(f).Should().Be("1");
+    }
+
+    [Fact]
+    public void Files_on_network_or_removable_drives_are_not_kept()
+    {
+        VersionHistory.LocalDriveOverride = _ => false;
+        var f = Path.Combine(_root, "공유.txt");
+        File.WriteAllText(f, "1");
+        VersionHistory.Preserve(f).Should().BeNull("공유 폴더·USB에는 예전 내용을 남기지 않는다");
+        File.Exists(f).Should().BeTrue();
     }
 }

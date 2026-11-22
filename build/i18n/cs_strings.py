@@ -107,3 +107,25 @@ from cs_strings_b3 import B3  # noqa: E402
 CS = CS + B3
 from cs_strings_b4 import B4  # noqa: E402
 CS = CS + B4
+from cs_strings_folders import FOLDERS  # noqa: E402
+CS = CS + FOLDERS
+from cs_strings_pres import PRES  # noqa: E402
+CS = CS + PRES
+from cs_strings_core import CORE  # noqa: E402
+CS = CS + CORE
+from cs_strings_managed import MANAGED  # noqa: E402
+CS = CS + MANAGED
+from cs_strings_b7 import B7  # noqa: E402
+CS = CS + B7
+from cs_strings_up import UP  # noqa: E402
+CS = CS + UP
+from cs_strings_b8 import B8  # noqa: E402
+CS = CS + B8
+from cs_strings_demo import DEMO  # noqa: E402
+CS = CS + DEMO
+from cs_strings_demo2 import DEMO2  # noqa: E402
+CS = CS + DEMO2
+from cs_strings_rc1 import RC1  # noqa: E402
+CS = CS + RC1
+from cs_strings_rc2 import RC2  # noqa: E402
+CS = CS + RC2

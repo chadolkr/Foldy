@@ -118,15 +118,15 @@ public sealed class FolderTreeViewModel
         _provider = provider;
         (Environment.SpecialFolder Folder, string Name, string Glyph)[] quick =
         [
-            (Environment.SpecialFolder.Desktop, "바탕 화면", ""),
-            (Environment.SpecialFolder.MyDocuments, "문서", ""),
-            (Environment.SpecialFolder.UserProfile, "다운로드", ""),
-            (Environment.SpecialFolder.MyPictures, "사진", ""),
+            (Environment.SpecialFolder.Desktop, Foldy.Core.Localization.Loc.T("tree.desktop"), ""),
+            (Environment.SpecialFolder.MyDocuments, Foldy.Core.Localization.Loc.T("ftg.documents"), ""),
+            (Environment.SpecialFolder.UserProfile, Foldy.Core.Localization.Loc.T("tree.downloads"), ""),
+            (Environment.SpecialFolder.MyPictures, Foldy.Core.Localization.Loc.T("cf.demo.photos"), ""),
         ];
         foreach (var (folder, name, glyph) in quick)
         {
             var p = Environment.GetFolderPath(folder);
-            if (name == "다운로드")
+            if (name == Foldy.Core.Localization.Loc.T("tree.downloads"))
             {
                 p = System.IO.Path.Combine(p, "Downloads");
             }

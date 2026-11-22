@@ -13,12 +13,12 @@ public sealed record GitCommitFile(string Status, string Path, string? OrigPath 
     /// <summary>목록 배지 글자 (한국어).</summary>
     public string Label => Status switch
     {
-        "A" => "추가",
-        "M" => "수정",
-        "D" => "삭제",
-        "R" => "이름 변경",
-        "C" => "복사",
-        "T" => "형식 변경",
+        "A" => Foldy.Core.Localization.Loc.T("pane.git.added"),
+        "M" => Foldy.Core.Localization.Loc.T("pane.col.modified"),
+        "D" => Foldy.Core.Localization.Loc.T("git.kind.deleted"),
+        "R" => Foldy.Core.Localization.Loc.T("git.kind.renamed"),
+        "C" => Foldy.Core.Localization.Loc.T("ops.copy"),
+        "T" => Foldy.Core.Localization.Loc.T("git.kind.typeChanged"),
         _ => Status,
     };
 

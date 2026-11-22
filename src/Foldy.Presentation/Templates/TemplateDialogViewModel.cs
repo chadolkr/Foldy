@@ -117,7 +117,7 @@ public sealed partial class TemplateDialogViewModel : ObservableObject
             Result = TemplateApplier.Apply(plan, template, _fs, new TemplateApplyOptions { WriteDescription = WriteDescription });
             if (!Result.Succeeded)
             {
-                Error = "일부를 만들지 못했습니다: " + string.Join(", ", Result.Failed.Select(f => Path.GetFileName(f.Path)));
+                Error = Foldy.Core.Localization.Loc.T("wiz.partial") + string.Join(", ", Result.Failed.Select(f => Path.GetFileName(f.Path)));
                 return;
             }
 

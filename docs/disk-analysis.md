@@ -87,6 +87,7 @@ C# 디코더는 `analysis` 목록이 없는 옛 서비스 응답도 읽는다. �
   최신 경로는 `AnalysisInfo`(서비스) 또는 `AnalysisPaths.ListSnapshots`(폴더 목록)로 찾는다.
 - 보관: 최신 1개 + 바로 이전 1개 + 그보다 오래된 것은 앞서 남긴 것보다 6.5일 이상 오래된 것만, 이전 스냅샷 최대 4개 (`retention_plan` = `AnalysisPaths.RetentionPlan`). 열려 있어 못 지운 파일은 다음 분석 때 다시 지운다.
 - 서비스 폴더 `%ProgramData%\Foldy\Analysis`의 ACL: 상속을 끊고 SYSTEM·Administrators·서비스 계정 자신은 모두, 그리고 **Foldy에서 분석을 요청한 사용자만 읽기** (0.9.22, 예전에는 Interactive 읽기). 서비스가 파이프로 연결한 사용자의 SID를 기억해 사용자마다 처음 한 번만 폴더 권한을 다시 쓴다(이미 있는 DB에도 이어짐). ProgramData 기본 ACL은 Users에게 쓰기까지 주므로, 일반 사용자가 가짜 DB를 넣지 못하게 막는 의미도 있다.
+- **사람마다 따로 (2026-11-22, 보안 리뷰 2차 V4)**: DB 이름은 `<볼륨 키>-u<SID 해시>.<시각>.db`. 폴더의 읽기 권한은 폴더 자신에만 있고 안으로 물려주지 않으며, DB 파일마다 상속을 끊고 그 DB를 요청한 사람만 읽게 한다. 요청한 사람에게 보이면 안 되는 폴더(다른 사용자 프로필)는 그 폴더 한 줄과 하위 합계 크기만 남긴다(`analysis::hide_folders`). 사람 구분 없는 예전 DB는 다음 분석 때 지운다.
 - DB에는 권한 없는 폴더의 이름도 들어간다 (색인과 같음). 업무용 PC라면 ACL 필터링이 필요하다 (설계서 12장 결정 사항).
 
 ## 정리 규칙 (cleanup-rules.json)

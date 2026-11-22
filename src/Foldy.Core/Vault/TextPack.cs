@@ -26,7 +26,7 @@ public static class TextPack
         using var zip = ZipFile.OpenRead(path);
         if (zip.Entries.Count > MaxEntries)
         {
-            throw new InvalidDataException("항목이 너무 많은 파일이에요.");
+            throw new InvalidDataException(Foldy.Core.Localization.Loc.T("pack.tooMany"));
         }
 
         var note = new LockedNote();
@@ -46,7 +46,7 @@ public static class TextPack
 
             if (e.Length > MaxEntryBytes || (total += e.Length) > MaxTotalBytes)
             {
-                throw new InvalidDataException("너무 큰 파일이에요.");
+                throw new InvalidDataException(Foldy.Core.Localization.Loc.T("pack.tooBig"));
             }
 
             if (name.Equals(TextEntry, StringComparison.OrdinalIgnoreCase))
@@ -92,12 +92,20 @@ public static class TextPack
 
     private static byte[] Read(ZipArchiveEntry e)
     {
+        // 머리의 크기(e.Length)는 파일을 만든 쪽이 적은 값이라 믿지 않는다: 실제로 풀리는 양을 세며 읽고, 한도를 넘으면 바로 멈춘다
+        // (작다고 적어 두고 수 GB로 풀리는 압축 폭탄으로 메모리를 다 쓰게 하는 것 막기, 보안 리뷰 2026-11-22)
         using var s = e.Open();
         using var ms = new MemoryStream();
-        s.CopyTo(ms);
-        if (ms.Length > MaxEntryBytes)
+        var buf = new byte[81920];
+        int n;
+        while ((n = s.Read(buf, 0, buf.Length)) > 0)
         {
-            throw new InvalidDataException("너무 큰 파일이에요.");
+            if (ms.Length + n > MaxEntryBytes)
+            {
+                throw new InvalidDataException(Foldy.Core.Localization.Loc.T("pack.tooBig"));
+            }
+
+            ms.Write(buf, 0, n);
         }
 
         return ms.ToArray();

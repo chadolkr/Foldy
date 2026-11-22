@@ -40,6 +40,38 @@ public static class FileTypeGroups
         return m;
     }
 
+    /// <summary>
+    /// 종류 폴더 이름: 지금 앱 언어로 (문서 → Documents …). 그룹 값(위)은 규칙·템플릿이 쓰는 이름이라 한국어 그대로 둔다.
+    /// <paramref name="parent"/>에 예전 한국어 폴더가 있으면 그 이름을 계속 쓴다.
+    /// </summary>
+    public static string FolderName(string group, string? parent)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        var key = KeyOf(group);
+        return key is null ? group : Foldy.Core.Localization.FolderNames.Pick(parent, group, Foldy.Core.Localization.Loc.T(key));
+    }
+
+    /// <summary>화면에 보일 그룹 이름 (앱 언어). 예: 문서 → Documents.</summary>
+    public static string DisplayName(string group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        return KeyOf(group) is { } key ? Foldy.Core.Localization.Loc.T(key) : group;
+    }
+
+    private static string? KeyOf(string group) =>
+        group switch
+        {
+            Documents => "ftg.documents",
+            Images => "ftg.images",
+            Videos => "ftg.videos",
+            Music => "ftg.music",
+            Archives => "ftg.archives",
+            Installers => "ftg.installers",
+            Code => "ftg.code",
+            Other => "ftg.other",
+            _ => null,
+        };
+
     public static string GroupOf(string fileName)
     {
         ArgumentNullException.ThrowIfNull(fileName);

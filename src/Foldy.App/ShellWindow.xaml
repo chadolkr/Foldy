@@ -415,6 +415,12 @@
                   <Button x:Name="CancelBtn" Grid.Column="3" Style="{DynamicResource Foldy.ToolButton}" Width="24" Height="24" FontSize="9"
                           Content="&#xE711;" ToolTip="{loc:T shell.cancel}" AutomationProperties.Name="{loc:T shell.jobs.cancel}" Click="OnCancelJob" Tag="{Binding}" />
                 </Grid>
+                <!-- 시작 전에 공간이 모자라 멈춘 작업: 그 드라이브 정리로 바로 가고, 정리한 뒤 같은 작업을 다시 (사용자 2026-11-22) -->
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding CanRetry, Converter={StaticResource BoolToVis}}">
+                  <Button Content="{loc:T side.space}" ToolTip="{loc:T side.space.tip}" Padding="10,2" Margin="0,0,6,0" Click="OnJobFreeUp" Tag="{Binding}"
+                          Visibility="{Binding CanFreeUp, Converter={StaticResource BoolToVis}}" />
+                  <Button Content="{loc:T pane.retry}" ToolTip="{loc:T space.retryTip}" Padding="10,2" Click="OnJobRetry" Tag="{Binding}" />
+                </StackPanel>
                 <mascot:MascotView Kind="{Binding MascotKind, Mode=OneTime}" State="{Binding State}" Progress="{Binding Progress}"
                                    IsMascotEnabled="{Binding MascotEnabled, Mode=OneTime}" HorizontalAlignment="Left" Margin="0,4,0,0" />
                 </StackPanel>

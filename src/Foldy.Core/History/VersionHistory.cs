@@ -24,6 +24,11 @@ public static class VersionHistory
     /// <summary>보관 한도 (드라이브 크기를 알면 그 5%와 2GB 중 작은 쪽).</summary>
     public static long CapFor(string path)
     {
+        if (CapOverride is { } cap)
+        {
+            return cap;
+        }
+
         try
         {
             var total = new DriveInfo(Path.GetPathRoot(path)!).TotalSize;
@@ -35,8 +40,72 @@ public static class VersionHistory
         }
     }
 
+    /// <summary>테스트용: 보관 한도를 바꾼다.</summary>
+    internal static long? CapOverride { get; set; }
+
     /// <summary>테스트용: 보관 폴더 위치를 바꾼다.</summary>
     internal static Func<string, string>? RootOverride { get; set; }
+
+    /// <summary>테스트용: 보관해도 되는 드라이브인지 판단을 바꾼다.</summary>
+    internal static Func<string, bool>? LocalDriveOverride { get; set; }
+
+    /// <summary>
+    /// 보관해도 되는 드라이브인가: 이 PC에 붙은 고정 디스크(DriveType.Fixed)만.
+    /// 네트워크 드라이브·USB에 두면 (1) 덮어쓴 파일의 예전 내용이 공유 폴더 맨 위나 남에게 건넨 USB에 7일 동안 남고,
+    /// (2) 같은 공유를 쓰는 다른 사람이 index.jsonl을 바꿔 이 PC의 다른 파일을 지우게 만들 수 있다 (보안 리뷰 2026-11-22 V1).
+    /// </summary>
+    public static bool IsLocalDrive(string path)
+    {
+        if (LocalDriveOverride is { } o)
+        {
+            return o(path);
+        }
+
+        try
+        {
+            if (path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var root = Path.GetPathRoot(Path.GetFullPath(path));
+            return !string.IsNullOrEmpty(root) && new DriveInfo(root).DriveType == DriveType.Fixed;
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 기록 한 줄을 믿어도 되나: 보관본은 이 드라이브의 보관 폴더 안, 원래 파일은 같은 드라이브여야 한다.
+    /// index.jsonl은 사용자가 아닌 누군가가 고칠 수 있는 파일일 수 있으므로, 지우기·옮기기 전에 꼭 확인한다.
+    /// </summary>
+    internal static bool IsTrusted(SavedVersion v, string historyRoot)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(v.Saved) || string.IsNullOrEmpty(v.Original) || !Path.IsPathFullyQualified(v.Saved) || !Path.IsPathFullyQualified(v.Original))
+            {
+                return false;
+            }
+
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(historyRoot)) + Path.DirectorySeparatorChar;
+            var saved = Path.GetFullPath(v.Saved);
+            if (!saved.StartsWith(root, StringComparison.OrdinalIgnoreCase) || saved.Length <= root.Length)
+            {
+                return false;
+            }
+
+            // 원래 파일의 보관 폴더가 바로 이 폴더여야 한다 (다른 드라이브의 파일을 가리키는 기록은 받지 않는다)
+            var own = Path.TrimEndingDirectorySeparator(Path.GetFullPath(HistoryRoot(v.Original))) + Path.DirectorySeparatorChar;
+            return string.Equals(own, root, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+    }
 
     /// <summary>
     /// 보관 폴더. 같은 드라이브여야 옮기기가 즉시 끝난다. 시스템 드라이브(C:)는 루트에 쓰지 않고
@@ -58,14 +127,17 @@ public static class VersionHistory
 
     /// <summary>
     /// 덮어쓸 파일을 보관한다. 보관했으면 그 기록, 못 했으면(파일 없음, 너무 큼, 권한 없음, 로컬 드라이브 아님) null.
+    /// 보관은 파일을 <b>옮기는</b> 것이므로, 그 뒤 덮어쓰기가 안 되면 부르는 쪽이 <see cref="PutBack"/>으로 제자리에 돌려놓아야 한다.
+    /// <paramref name="prune"/>가 false면 오래된 보관본 정리를 미룬다(여러 파일을 한꺼번에 덮어쓰는 복사 작업:
+    /// 앞서 보관한 파일이 아직 덮어써지기 전에 한도 때문에 지워지지 않게). 미룬 정리는 <see cref="PrunePending"/>.
     /// </summary>
-    public static SavedVersion? Preserve(string file, DateTime? nowUtc = null)
+    public static SavedVersion? Preserve(string file, DateTime? nowUtc = null, bool prune = true)
     {
         var now = nowUtc ?? DateTime.UtcNow;
         try
         {
             var fi = new FileInfo(file);
-            if (!fi.Exists || file.Length < 3 || file[1] != ':' || fi.Length > CapFor(file))
+            if (!fi.Exists || file.Length < 3 || file[1] != ':' || !IsLocalDrive(file) || fi.Length > CapFor(file))
             {
                 return null;
             }
@@ -88,12 +160,71 @@ public static class VersionHistory
                 File.AppendAllText(Path.Combine(root, IndexName), JsonSerializer.Serialize(v) + "\n");
             }
 
-            Prune(file, now);
+            if (prune)
+            {
+                Prune(file, now);
+            }
+            else
+            {
+                lock (Gate)
+                {
+                    PendingPrune.TryAdd(root, file);
+                }
+            }
+
             return v;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             return null;
+        }
+    }
+
+    /// <summary>정리를 미룬 보관 폴더 → 그 드라이브의 파일 하나.</summary>
+    private static readonly Dictionary<string, string> PendingPrune = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 덮어쓰기가 끝내 안 됐을 때(취소·실패·원본이 열려 있음) 보관본을 제자리로 돌려놓는다.
+    /// 그 자리에 이미 파일이 있으면(덮어쓰기가 됐으면) 아무것도 하지 않는다. 돌려놓았으면 true.
+    /// </summary>
+    public static bool PutBack(SavedVersion v)
+    {
+        try
+        {
+            if (File.Exists(v.Original) || Directory.Exists(v.Original) || !File.Exists(v.Saved) || !IsTrusted(v, HistoryRoot(v.Original)))
+            {
+                return false;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(v.Original)!);
+            File.Move(v.Saved, v.Original);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>미뤄 둔 정리(<see cref="Preserve"/>의 prune: false)를 한다.</summary>
+    public static void PrunePending(DateTime? nowUtc = null)
+    {
+        string[] roots;
+        lock (Gate)
+        {
+            roots = [.. PendingPrune.Values];
+            PendingPrune.Clear();
+        }
+
+        foreach (var anyFile in roots)
+        {
+            try
+            {
+                Prune(anyFile, nowUtc);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+            }
         }
     }
 
@@ -109,7 +240,7 @@ public static class VersionHistory
     {
         try
         {
-            if (!File.Exists(v.Saved))
+            if (!IsTrusted(v, HistoryRoot(v.Original)) || !File.Exists(v.Saved))
             {
                 return false;
             }
@@ -139,12 +270,17 @@ public static class VersionHistory
     {
         try
         {
+            if (!IsTrusted(v, HistoryRoot(v.Original)))
+            {
+                return null;
+            }
+
             var dir = Path.GetDirectoryName(v.Original)!;
             var when = v.SavedUtc.ToLocalTime().ToString("yyyy-MM-dd HHmm", System.Globalization.CultureInfo.InvariantCulture);
-            var dst = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(v.Original)} (이전 버전 {when}){Path.GetExtension(v.Original)}");
+            var dst = Path.Combine(dir, Foldy.Core.Localization.Loc.F("vh.name", Path.GetFileNameWithoutExtension(v.Original), when, Path.GetExtension(v.Original)));
             for (var i = 2; File.Exists(dst); i++)
             {
-                dst = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(v.Original)} (이전 버전 {when} {i}){Path.GetExtension(v.Original)}");
+                dst = Path.Combine(dir, Foldy.Core.Localization.Loc.F("vh.nameN", Path.GetFileNameWithoutExtension(v.Original), when, i, Path.GetExtension(v.Original)));
             }
 
             File.Copy(v.Saved, dst);
@@ -156,7 +292,10 @@ public static class VersionHistory
         }
     }
 
-    /// <summary>7일이 지났거나 한도를 넘은 오래된 보관본을 지운다.</summary>
+    /// <summary>
+    /// 7일이 지났거나 한도를 넘은 오래된 보관본을 지운다. 단, 원래 자리에 파일이 없는 보관본은 그 내용의 유일한 사본일 수 있으므로
+    /// (덮어쓰기 중이거나 실패해 돌려놓기를 기다림) 한도 때문에는 지우지 않고 7일이 지날 때만 지운다.
+    /// </summary>
     public static void Prune(string anyPathOnDrive, DateTime? nowUtc = null)
     {
         var now = nowUtc ?? DateTime.UtcNow;
@@ -169,7 +308,7 @@ public static class VersionHistory
             var keep = new List<SavedVersion>();
             foreach (var v in all)
             {
-                if (now - v.SavedUtc > Keep || total > cap)
+                if (now - v.SavedUtc > Keep || (total > cap && File.Exists(v.Original)))
                 {
                     try
                     {
@@ -221,7 +360,7 @@ public static class VersionHistory
                 {
                     try
                     {
-                        if (JsonSerializer.Deserialize<SavedVersion>(line) is { } v)
+                        if (JsonSerializer.Deserialize<SavedVersion>(line) is { } v && IsTrusted(v, HistoryRoot(anyPathOnDrive)))
                         {
                             list.Add(v);
                         }

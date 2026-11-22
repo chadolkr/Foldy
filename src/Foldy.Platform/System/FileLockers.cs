@@ -14,6 +14,11 @@ public sealed record FileLocker(string Name, int ProcessId);
 /// </summary>
 public static partial class FileLockers
 {
+    /// <summary>이름을 모르는 프로그램의 표시 이름 (앱이 화면 언어로 바꿔 끼운다).</summary>
+    public static Func<uint, string>? ProgramLabel { get; set; }
+
+    private static string ProgramName(uint pid) => ProgramLabel?.Invoke(pid) ?? $"프로그램 {pid}";
+
     /// <summary>한 번에 물어보는 파일 수 상한 (폴더 안을 훑을 때).</summary>
     public const int MaxFiles = 2000;
 
@@ -53,7 +58,7 @@ public static partial class FileLockers
             }
 
             return [.. infos.Take((int)count)
-                .Select(i => new FileLocker(i.strAppName is { Length: > 0 } n ? n : $"프로그램 {i.Process.dwProcessId}", (int)i.Process.dwProcessId))
+                .Select(i => new FileLocker(i.strAppName is { Length: > 0 } n ? n : ProgramName(i.Process.dwProcessId), (int)i.Process.dwProcessId))
                 .DistinctBy(l => l.ProcessId)];
         }
         finally
@@ -63,9 +68,21 @@ public static partial class FileLockers
     }
 
     /// <summary>사람에게 보여 줄 한 줄 (없으면 null). 예: "Microsoft Excel이(가) 쓰고 있어요. 그 프로그램을 닫고 다시 해 주세요."</summary>
-    public static string? Describe(IReadOnlyList<FileLocker> lockers) =>
-        lockers.Count == 0 ? null
-            : $"{string.Join(", ", lockers.Take(3).Select(l => l.Name))}{(lockers.Count > 3 ? $" 외 {lockers.Count - 3}개" : "")}이(가) 쓰고 있어요. 그 프로그램을 닫고 다시 해 주세요.";
+    public static string? Describe(IReadOnlyList<FileLocker> lockers, Func<string, string>? sentence = null, Func<string, int, string>? more = null)
+    {
+        if (lockers.Count == 0)
+        {
+            return null;
+        }
+
+        var names = string.Join(", ", lockers.Take(3).Select(l => l.Name));
+        if (lockers.Count > 3)
+        {
+            names = more?.Invoke(names, lockers.Count - 3) ?? $"{names} 외 {lockers.Count - 3}개";
+        }
+
+        return sentence?.Invoke(names) ?? $"{names}이(가) 쓰고 있어요. 그 프로그램을 닫고 다시 해 주세요.";
+    }
 
     private static IEnumerable<string> Expand(IEnumerable<string> paths)
     {

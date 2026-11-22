@@ -55,7 +55,7 @@ public static class OrganizeScanner
         return false;
     }
 
-    public const string ProjectRootReason = "Git 저장소·개발·AI 프로젝트 폴더(.git, .sln, package.json, .claude, CLAUDE.md 등이 있음)는 정리하지 않습니다. 파일을 옮기면 빌드나 Git 기록이 깨질 수 있어요. 프로젝트 밖의 일반 폴더에서 정리해 주세요.";
+    public static string ProjectRootReason => Foldy.Core.Localization.Loc.T("os.project");
 
     /// <summary>정리하면 안 되는 폴더면 이유, 아니면 null. <paramref name="allowProject"/>면 프로젝트 폴더도 허용한다.</summary>
     public static string? CheckRoot(string root, bool allowProject = false)
@@ -63,12 +63,12 @@ public static class OrganizeScanner
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         if (!Directory.Exists(full))
         {
-            return "폴더가 없습니다.";
+            return Foldy.Core.Localization.Loc.T("os.noFolder");
         }
 
         if (FolderDescriptionService.IsSystemFolder(full))
         {
-            return "Windows·프로그램 설치 폴더는 정리하지 않습니다.";
+            return Foldy.Core.Localization.Loc.T("os.system");
         }
 
         if (!allowProject && IsProjectFolder(full))
@@ -79,7 +79,7 @@ public static class OrganizeScanner
         var attrs = File.GetAttributes(full);
         if ((attrs & FileAttributes.ReparsePoint) != 0)
         {
-            return "링크·정션 폴더는 따라가지 않습니다.";
+            return Foldy.Core.Localization.Loc.T("os.link");
         }
 
         return null;
@@ -102,7 +102,7 @@ public static class OrganizeScanner
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            scan.Skipped.Add(new(dir.FullName, "열 수 없음: " + ex.Message));
+            scan.Skipped.Add(new(dir.FullName, Foldy.Core.Localization.Loc.T("os.cantOpen") + ex.Message));
             return;
         }
 
@@ -112,19 +112,19 @@ public static class OrganizeScanner
             var a = info.Attributes;
             if ((a & FileAttributes.ReparsePoint) != 0)
             {
-                scan.Skipped.Add(new(info.FullName, "심볼릭 링크·정션은 따라가지 않음"));
+                scan.Skipped.Add(new(info.FullName, Foldy.Core.Localization.Loc.T("os.linkSkip")));
                 continue;
             }
 
             if ((a & FileAttributes.System) != 0)
             {
-                scan.Skipped.Add(new(info.FullName, "시스템 파일"));
+                scan.Skipped.Add(new(info.FullName, Foldy.Core.Localization.Loc.T("os.systemFile")));
                 continue;
             }
 
             if ((a & FileAttributes.Hidden) != 0 || NeverMove.Contains(info.Name))
             {
-                scan.Skipped.Add(new(info.FullName, "숨김 파일"));
+                scan.Skipped.Add(new(info.FullName, Foldy.Core.Localization.Loc.T("os.hiddenFile")));
                 continue;
             }
 

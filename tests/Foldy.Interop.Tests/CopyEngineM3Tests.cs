@@ -137,7 +137,16 @@ public sealed class CopyEngineM3Tests : IDisposable
         var p = WaitDone(job);
         if (p.State == NativeJobState.Canceled)
         {
-            File.Exists(Path.Combine(_dir, "out", "big.bin")).Should().BeFalse();
+            // 반쪽 파일이 남으면 안 된다. 빠른 디스크(CI)에서는 취소가 닿기 전에 복사가 끝나 온전한 파일이 남을 수 있다 (그건 괜찮다).
+            var dest = new FileInfo(Path.Combine(_dir, "out", "big.bin"));
+            if (dest.Exists)
+            {
+                dest.Length.Should().Be(1024L * 1024 * 1024, "취소 뒤에 남은 파일은 다 복사된 것이어야 한다");
+            }
+
+            var outDir = Path.Combine(_dir, "out");
+            (Directory.Exists(outDir) ? Directory.EnumerateFiles(outDir) : []).Where(f => !string.Equals(Path.GetFileName(f), "big.bin", StringComparison.OrdinalIgnoreCase))
+                .Should().BeEmpty("임시 반쪽 파일이 남으면 안 된다");
         }
     }
 
@@ -315,6 +324,51 @@ public sealed class CopyEngineM3Tests : IDisposable
         {
             r.Succeeded.Should().BeTrue("취소가 늦으면 끝까지 복사될 수 있다");
         }
+    }
+
+    [Fact]
+    public async Task Overwrite_that_never_happens_puts_the_original_back()
+    {
+        // 1.0 점검 B1: 덮어쓰기 전에 대상을 이전 버전으로 옮긴 뒤 그 파일 복사가 실패하면, 대상 자리가 비어 버렸다.
+        var src = Path.Combine(_dir, "원본");
+        var dest = Path.Combine(_dir, "대상");
+        Directory.CreateDirectory(src);
+        Directory.CreateDirectory(dest);
+        File.WriteAllText(Path.Combine(src, "계약서.txt"), "새 내용");
+        File.WriteAllText(Path.Combine(dest, "계약서.txt"), "원래 내용");
+        var aside = Path.Combine(_dir, "보관");
+        Directory.CreateDirectory(aside);
+        var prunedAfter = 0;
+        var svc = new NativeCopyFileOperationService(new FakeFileOps(), options: new NativeCopyFileOperationOptions
+        {
+            JournalDirectory = Path.Combine(_dir, "jobs"),
+            TuningPath = null,
+            PollInterval = TimeSpan.FromMilliseconds(10),
+            ResolveConflict = (_, _) => Task.FromResult(new ConflictDecision(ConflictAction.Overwrite, ApplyToAll: true)),
+            BeforeOverwrite = d =>
+            {
+                var saved = Path.Combine(aside, Path.GetFileName(d));
+                File.Move(d, saved); // 이전 버전 보관처럼 옮긴다
+                return () => File.Move(saved, d);
+            },
+            AfterOverwrites = () => prunedAfter++,
+        });
+
+        FileOpResult r;
+        using (new FileStream(Path.Combine(src, "계약서.txt"), FileMode.Open, FileAccess.Read, FileShare.None)) // 다른 프로그램이 원본을 잡고 있음
+        {
+            r = await svc.CopyAsync([Path.Combine(src, "계약서.txt")], dest, null, CancellationToken.None);
+        }
+
+        r.Succeeded.Should().BeFalse("원본을 읽을 수 없으니 실패");
+        File.ReadAllText(Path.Combine(dest, "계약서.txt")).Should().Be("원래 내용", "덮어쓰지 못한 파일은 제자리로 돌아와야 한다");
+        prunedAfter.Should().Be(1);
+
+        // 덮어쓰기가 된 파일은 그대로 (돌려놓지 않음)
+        r = await svc.CopyAsync([Path.Combine(src, "계약서.txt")], dest, null, CancellationToken.None);
+        r.Succeeded.Should().BeTrue(r.Error);
+        File.ReadAllText(Path.Combine(dest, "계약서.txt")).Should().Be("새 내용");
+        File.ReadAllText(Path.Combine(aside, "계약서.txt")).Should().Be("원래 내용");
     }
 
     [Fact]

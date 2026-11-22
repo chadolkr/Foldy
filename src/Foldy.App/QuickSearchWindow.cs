@@ -21,7 +21,7 @@ internal sealed class QuickSearchWindow : Window
     /// </summary>
     public sealed record Hit(string Group, string Glyph, string Title, string Detail, Action Run, Action? Reveal = null, int Score = 0, Func<FrameworkElement?>? Preview = null);
 
-    public const string TopGroup = "가장 알맞은 것";
+    public static string TopGroup => Foldy.Core.Localization.Loc.T("qs.top");
     public const int MaxPerGroup = 5;
     public const int MaxFiles = 30;
 
@@ -38,6 +38,10 @@ internal sealed class QuickSearchWindow : Window
     private readonly Border _preview;
     private readonly TextBlock _footer;
     private readonly List<(Border Row, Hit Hit)> _hits = [];
+
+    /// <summary>맨 위 결과 줄 (문서 캡처가 짧은 소개의 초점으로 쓴다).</summary>
+    internal FrameworkElement? TopResult => _hits.Count > 0 ? _hits[0].Row : null;
+
     private int _selected = -1;
     private CancellationTokenSource? _cts;
     private bool _closing;

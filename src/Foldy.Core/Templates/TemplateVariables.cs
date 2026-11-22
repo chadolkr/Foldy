@@ -128,7 +128,7 @@ public static partial class TemplateVariables
         var v = value.Trim();
         if (v is "." or "..")
         {
-            return "'.'이나 '..'은 쓸 수 없습니다.";
+            return Foldy.Core.Localization.Loc.T("tv.dots");
         }
 
         var bad = new StringBuilder();
@@ -140,6 +140,6 @@ public static partial class TemplateVariables
             }
         }
 
-        return bad.Length == 0 ? null : $"쓸 수 없는 문자: {bad}";
+        return bad.Length == 0 ? null : Foldy.Core.Localization.Loc.F("tvar.badChar", bad);
     }
 }

@@ -83,7 +83,7 @@ internal static class UpdateProgressWindow
             Directory.CreateDirectory(dir);
             var script = Path.Combine(dir, "update-progress.ps1");
             // Windows PowerShell 5.1은 BOM이 없으면 한글을 ANSI로 읽는다
-            File.WriteAllText(script, Script, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            File.WriteAllText(script, LocalizedScript(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
             var since = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - 5;
             var psi = new ProcessStartInfo("powershell.exe")
             {
@@ -112,33 +112,61 @@ internal static class UpdateProgressWindow
     /// <summary>업데이트 기록 한 줄을 화면 문구로 (테스트용으로 C#에도 같은 규칙을 둔다). null이면 바꾸지 않음.</summary>
     public static (string Text, bool Done, bool Failed)? Describe(string line)
     {
-        if (line.Contains("설치 실패", StringComparison.Ordinal) || line.Contains("검증 실패", StringComparison.Ordinal) || line.Contains("설치 후에도 버전이", StringComparison.Ordinal))
+        if (line.Contains("설치 실패", StringComparison.Ordinal) || line.Contains("검증 실패", StringComparison.Ordinal) || line.Contains("설치 후에도 버전이", StringComparison.Ordinal)) // i18n:skip (서비스 기록의 표시 말)
         {
-            return ("업데이트를 설치하지 못했어요. 지금 쓰던 버전은 그대로예요. Foldy를 다시 열고 [업데이트]를 한 번 더 눌러 주세요.", true, true);
+            return (Foldy.Core.Localization.Loc.T("up.failed"), true, true);
         }
 
-        if (line.Contains("끝나지 않아 설치를 미룸", StringComparison.Ordinal))
+        if (line.Contains("끝나지 않아 설치를 미룸", StringComparison.Ordinal)) // i18n:skip (서비스 기록의 표시 말)
         {
-            return ("열려 있는 다른 Foldy 창이 닫히기를 기다리고 있어요. 다른 Foldy 창을 모두 닫아 주세요.", false, false);
+            return (Foldy.Core.Localization.Loc.T("up.waitOther"), false, false);
         }
 
-        if (line.Contains("설치 시작", StringComparison.Ordinal))
+        if (line.Contains("설치 시작", StringComparison.Ordinal)) // i18n:skip (서비스 기록의 표시 말)
         {
-            return ("설치하고 있어요… 보통 1분 안에 끝나요.", false, false);
+            return (Foldy.Core.Localization.Loc.T("up.installing"), false, false);
         }
 
-        if (line.Contains("설치 완료", StringComparison.Ordinal))
+        if (line.Contains("설치 완료", StringComparison.Ordinal)) // i18n:skip (서비스 기록의 표시 말)
         {
-            return ("설치가 끝났어요. Foldy를 다시 여는 중이에요…", false, false);
+            return (Foldy.Core.Localization.Loc.T("up.installed"), false, false);
         }
 
-        if (line.Contains("다시 띄움", StringComparison.Ordinal) || line.Contains("정상 시작", StringComparison.Ordinal))
+        if (line.Contains("다시 띄움", StringComparison.Ordinal) || line.Contains("정상 시작", StringComparison.Ordinal)) // i18n:skip (서비스 기록의 표시 말)
         {
-            return ("다 됐어요!", true, false);
+            return (Foldy.Core.Localization.Loc.T("up.done"), true, false);
         }
 
         return null;
     }
+
+    /// <summary>
+    /// 진행 창 스크립트를 앱 언어로: 화면 문구만 바꾸고, 서비스 기록(updater.log)에서 찾는 한국어 표시 말은 그대로 둔다.
+    /// 바꾼 글은 PowerShell 작은따옴표 문자열로 넣는다 ($·`를 그대로 두기 위해, '는 ''로).
+    /// </summary>
+    internal static string LocalizedScript()
+    {
+        var s = Script;
+        foreach (var (ko, key) in ScriptTexts)
+        {
+            s = s.Replace("\"" + ko + "\"", "'" + Foldy.Core.Localization.Loc.T(key).Replace("'", "''", StringComparison.Ordinal) + "'", StringComparison.Ordinal);
+        }
+
+        return s.Replace("\"Foldy $Version(으)로 업데이트하고 있어요\"", "('" + Foldy.Core.Localization.Loc.T("up.heading").Replace("'", "''", StringComparison.Ordinal) + "' -f $Version)", StringComparison.Ordinal); // i18n:skip
+    }
+
+    private static readonly (string Ko, string Key)[] ScriptTexts =
+    [
+        ("Foldy 업데이트", "sw.upd.title"), // i18n:skip
+        ("Foldy가 닫히기를 기다리는 중이에요… 끝나면 Foldy가 저절로 다시 열려요.", "up.waitClose"), // i18n:skip
+        ("닫기", "cf.close"), // i18n:skip
+        ("업데이트를 설치하지 못했어요. 지금 쓰던 버전은 그대로예요. Foldy를 다시 열고 [업데이트]를 한 번 더 눌러 주세요.", "up.failed"), // i18n:skip
+        ("열려 있는 다른 Foldy 창이 닫히기를 기다리고 있어요. 다른 Foldy 창을 모두 닫아 주세요.", "up.waitOther"), // i18n:skip
+        ("설치하고 있어요… 보통 1분 안에 끝나요.", "up.installing"), // i18n:skip
+        ("설치가 끝났어요. Foldy를 다시 여는 중이에요…", "up.installed"), // i18n:skip
+        ("다 됐어요! 새 Foldy가 열려요.", "up.doneOpen"), // i18n:skip
+        ("생각보다 오래 걸리고 있어요. 다른 Foldy 창이 열려 있으면 닫아 주세요. 끝나면 Foldy를 열어 드릴게요.", "up.slow"), // i18n:skip
+    ];
 
     private const string Script = """
         param([string]$Version, [string]$Log, [long]$Since, [int]$OldPid, [string]$Exe = "", [string]$Anim = "",

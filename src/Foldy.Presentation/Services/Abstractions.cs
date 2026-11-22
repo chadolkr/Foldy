@@ -41,6 +41,11 @@ public sealed record FileOpResult(bool Succeeded, bool Aborted, string? Error, s
     public static FileOpResult Fail(string error) => new(false, false, error);
 
     public static readonly FileOpResult Canceled = new(false, true, null);
+
+    /// <summary>시작하기 전에 공간이 모자라 아무것도 하지 않음 (사용자 원칙 2026-11-22). 화면은 [공간 늘리기]·[다시 시도]를 보여 준다.</summary>
+    public Foldy.Core.Space.SpaceCheck? Space { get; init; }
+
+    public static FileOpResult NoSpace(Foldy.Core.Space.SpaceCheck check) => new(false, false, SpaceText.Explain(check)) { Space = check };
 }
 
 /// <summary>파일 열기: Markdown은 연결 앱이 없으면 내장 뷰어 (설계서 5.9).</summary>
@@ -77,12 +82,15 @@ public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null
     public bool HasSpace => TotalBytes is > 0 && FreeBytes is not null;
 
     /// <summary>"120 GB 남음 / 476 GB". 용량을 모르면 빈 문자열.</summary>
-    public string SpaceText => HasSpace ? $"{Files.FileItem.FormatBytes(FreeBytes!.Value)} 남음 / {Files.FileItem.FormatBytes(TotalBytes!.Value)}" : Offline ? "연결 안 됨" : "";
+    public string SpaceText => HasSpace ? Foldy.Core.Localization.Loc.F("drive.space", Files.FileItem.FormatBytes(FreeBytes!.Value), Files.FileItem.FormatBytes(TotalBytes!.Value)) : Offline ? Foldy.Core.Localization.Loc.T("drive.offline") : "";
 
     /// <summary>이 드라이브의 빠른 찾기(색인) 상태 한 줄 ("빠른 찾기 ✓", "빠른 찾기 준비 중 62%", "빠른 찾기 없음 · 폴더 안에서만"). 모르면 null.</summary>
     public string? IndexText { get; init; }
 
     public bool HasIndexText => !string.IsNullOrEmpty(IndexText);
+
+    /// <summary>화면 낭독기가 읽는 이름 (사이드바 드라이브 항목): 레코드 기본 ToString은 속성을 모두 읽어 버린다.</summary>
+    public override string ToString() => string.Join(" · ", new[] { Display, SpaceText, IndexText }.Where(s => !string.IsNullOrEmpty(s)));
 }
 
 /// <summary>터미널 열기 (설계서: 현재 패널 경로에서 시작, 관리자는 UAC 경유).</summary>

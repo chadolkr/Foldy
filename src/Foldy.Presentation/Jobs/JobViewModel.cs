@@ -22,13 +22,28 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
     private string _title;
 
     [ObservableProperty]
-    private string _detail = "준비 중…";
+    private string _detail = Foldy.Core.Localization.Loc.T("job.preparing");
 
     [ObservableProperty]
     private double _progress; // 0~1, 모르면 -1
 
     [ObservableProperty]
     private JobState _state = JobState.Queued;
+
+    /// <summary>시작하기 전에 공간이 모자라 멈췄으면 그 결과 (작업 창에 [공간 늘리기]·[다시 시도] 단추가 보인다).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanFreeUp))]
+    [NotifyPropertyChangedFor(nameof(CanRetry))]
+    private Foldy.Core.Space.SpaceCheck? _space;
+
+    /// <summary>[공간 늘리기]: 이 PC의 드라이브일 때만 (SFTP 서버는 폴더 분석을 열 수 없다).</summary>
+    public bool CanFreeUp => Space?.Root is not null;
+
+    /// <summary>[다시 시도]: 공간을 늘린 뒤 같은 작업을 다시 한다.</summary>
+    public bool CanRetry => Space is not null && Retry is not null;
+
+    /// <summary>같은 작업을 다시 하는 방법 (작업을 만든 쪽이 채운다).</summary>
+    public Func<Task>? Retry { get; set; }
 
     /// <summary>마스코트(연주·우진) 장면을 고르는 작업 종류.</summary>
     public Foldy.Presentation.Mascot.JobKind MascotKind { get; init; } = Foldy.Presentation.Mascot.JobKind.Copy;
@@ -89,27 +104,28 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
         {
             State = JobState.Done;
             Progress = 1;
-            Detail = $"완료 · {FormatElapsed(_sw.Elapsed)}" + (string.IsNullOrEmpty(r.Error) ? "" : $" · {r.Error}");
+            Detail = Foldy.Core.Localization.Loc.F("job.done", FormatElapsed(_sw.Elapsed)) + (string.IsNullOrEmpty(r.Error) ? "" : $" · {r.Error}");
         }
         else if (r.Aborted)
         {
             State = JobState.Canceled;
-            Detail = "취소됨";
+            Detail = Foldy.Core.Localization.Loc.T("ops.cancelled");
         }
         else
         {
             State = JobState.Failed;
-            Detail = r.Error ?? "실패";
+            Detail = r.Space is { } space ? SpaceText.Brief(space) : r.Error ?? Foldy.Core.Localization.Loc.T("job.failed");
+            Space = r.Space;
         }
 
         _cts.Dispose();
     }
 
-    private static string FormatElapsed(TimeSpan t) => t.TotalSeconds < 1 ? $"{t.TotalMilliseconds:0}ms" : $"{t.TotalSeconds:0.0}초";
+    private static string FormatElapsed(TimeSpan t) => t.TotalSeconds < 1 ? $"{t.TotalMilliseconds:0}ms" : Foldy.Core.Localization.Loc.F("job.seconds", t.TotalSeconds);
 
     public static string Describe(IReadOnlyList<string> paths) =>
-        paths.Count == 1 ? $"'{System.IO.Path.GetFileName(paths[0].TrimEnd('\\'))}'" : $"{paths.Count:N0}개 항목";
+        paths.Count == 1 ? $"'{System.IO.Path.GetFileName(paths[0].TrimEnd('\\'))}'" : Foldy.Core.Localization.Loc.F("pane.items", paths.Count);
 
     internal static string SizeOrCount(IReadOnlyList<FileItem> items) =>
-        items.Count == 1 ? items[0].Name : $"{items.Count:N0}개 항목";
+        items.Count == 1 ? items[0].Name : Foldy.Core.Localization.Loc.F("pane.items", items.Count);
 }

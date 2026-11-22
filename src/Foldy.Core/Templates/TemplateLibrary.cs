@@ -90,7 +90,7 @@ public sealed class TemplateLibrary
         var issues = TemplateValidator.Validate(t);
         if (issues.Count > 0)
         {
-            throw new InvalidDataException($"가져올 수 없는 템플릿입니다: {issues[0].Message} ({issues[0].Path})");
+            throw new InvalidDataException(Foldy.Core.Localization.Loc.F("tl.cantImport", issues[0].Message, issues[0].Path));
         }
 
         t.SourcePath = null;
@@ -128,7 +128,7 @@ public sealed class TemplateLibrary
         var list = new List<FolderTemplate>();
         foreach (var res in asm.GetManifestResourceNames().Where(n => n.StartsWith(ResourcePrefix, StringComparison.Ordinal) && n.EndsWith(TemplateJson.TemplateExtension, StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal))
         {
-            var json = ReadResource(asm, res)!;
+            var json = TemplateI18n.Localize(ReadResource(asm, res)!);
             var t = TemplateJson.Parse(json);
             var fileId = res[ResourcePrefix.Length..^TemplateJson.TemplateExtension.Length];
             if (string.IsNullOrWhiteSpace(t.Id))
@@ -137,7 +137,8 @@ public sealed class TemplateLibrary
             }
 
             t.IsBuiltIn = true;
-            t.Guide ??= ReadResource(asm, ResourcePrefix + fileId + ".guide.md");
+            // 사용법은 앱 언어판(<id>.guide.<언어>.md)이 있으면 그것, 없으면 한국어 원본
+            t.Guide ??= ReadResource(asm, ResourcePrefix + fileId + ".guide." + Foldy.Core.Localization.Loc.Current + ".md") ?? ReadResource(asm, ResourcePrefix + fileId + ".guide.md");
             list.Add(t);
         }
 
@@ -148,8 +149,8 @@ public sealed class TemplateLibrary
     public static WizardDefinition LoadWizard()
     {
         var json = ReadResource(typeof(TemplateLibrary).Assembly, ResourcePrefix + "wizard.json")
-            ?? throw new InvalidOperationException("wizard.json이 포함되지 않았습니다.");
-        return WizardDefinition.Parse(json);
+            ?? throw new InvalidOperationException(Foldy.Core.Localization.Loc.T("tl.noWizard"));
+        return WizardDefinition.Parse(TemplateI18n.Localize(json));
     }
 
     private static string? ReadResource(Assembly asm, string name)

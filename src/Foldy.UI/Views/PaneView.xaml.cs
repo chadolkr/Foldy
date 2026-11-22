@@ -964,7 +964,7 @@ public partial class PaneView : UserControl
         }
 
         var tags = Foldy.Core.Tags.FileTags.Get(f.FullPath);
-        return tags.Count == 0 ? [] : [.. tags.Select(t => (t, TagBrush(Foldy.Core.Tags.FileTags.Def(t).Color)))];
+        return tags.Count == 0 ? [] : [.. tags.Select(t => (Foldy.Core.Tags.FileTags.DisplayName(t), TagBrush(Foldy.Core.Tags.FileTags.Def(t).Color)))];
     }
 
     /// <summary>고른 파일들에 태그를 켜고 끈다 (Ctrl+D = 작업 완료).</summary>
@@ -977,7 +977,7 @@ public partial class PaneView : UserControl
         }
 
         Foldy.Core.Tags.FileTags.Toggle(files, tag);
-        _host?.Shell.Status = Foldy.Core.Tags.FileTags.Has(files[0], tag) ? Foldy.Core.Localization.Loc.F("pane.tagged", tag, files.Count) : Foldy.Core.Localization.Loc.F("pane.untagged", tag, files.Count);
+        _host?.Shell.Status = Foldy.Core.Tags.FileTags.Has(files[0], tag) ? Foldy.Core.Localization.Loc.F("pane.tagged", Foldy.Core.Tags.FileTags.DisplayName(tag), files.Count) : Foldy.Core.Localization.Loc.F("pane.untagged", Foldy.Core.Tags.FileTags.DisplayName(tag), files.Count);
     }
 
     /// <summary>이 폴더에 태그가 있으면 위쪽에 진행 상황을 한 줄로.</summary>
@@ -997,7 +997,7 @@ public partial class PaneView : UserControl
             return;
         }
 
-        TagBarText.Text = Foldy.Core.Localization.Loc.F("pane.ofFiles", files.Count) + string.Join(" · ", counts.Select(c => $"{c.Tag.Name} {c.Count:N0}"));
+        TagBarText.Text = Foldy.Core.Localization.Loc.F("pane.ofFiles", files.Count) + string.Join(" · ", counts.Select(c => $"{Foldy.Core.Tags.FileTags.DisplayName(c.Tag.Name)} {c.Count:N0}"));
         TagNextButton.IsEnabled = files.Any(p => !Foldy.Core.Tags.FileTags.Has(p, Foldy.Core.Tags.FileTags.Default));
         var inGit = Foldy.Core.Tags.FileTags.GitDir(_tab.Path) is not null;
         TagShareToggle.Visibility = inGit ? Visibility.Visible : Visibility.Collapsed;
@@ -1095,7 +1095,7 @@ public partial class PaneView : UserControl
                 count = 0;
             }
 
-            return (m.Root, m.Method.Name, count);
+            return (m.Root, m.Method.DisplayName, count);
         });
         if (version != _managedVersion)
         {

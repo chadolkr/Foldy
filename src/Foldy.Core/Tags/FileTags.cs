@@ -26,6 +26,19 @@ public static class FileTags
         new("제출 완료", "#8A5CD6"),
     ];
 
+    /// <summary>
+    /// 화면에 보일 태그 이름 (앱 언어). 저장 값은 한국어 이름 그대로 두어 예전 태그·다른 언어 PC와 섞이지 않는다.
+    /// 직접 만든 태그는 쓴 그대로 보인다.
+    /// </summary>
+    public static string DisplayName(string tag) => tag switch
+    {
+        "작업 완료" => Foldy.Core.Localization.Loc.T("tag.done"), // i18n:skip
+        "반영 완료" => Foldy.Core.Localization.Loc.T("tag.applied"), // i18n:skip
+        "검토 중" => Foldy.Core.Localization.Loc.T("tag.review"), // i18n:skip
+        "제출 완료" => Foldy.Core.Localization.Loc.T("tag.submitted"), // i18n:skip
+        _ => tag,
+    };
+
     /// <summary>Ctrl+D로 켜고 끄는 기본 태그.</summary>
     public static string Default => Builtin[0].Name;
 

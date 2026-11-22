@@ -8,22 +8,29 @@ namespace Foldy.Core.Managed;
 /// <summary>폴더 관리 방법 (폴더의 .foldy.md에 적는다).</summary>
 public sealed record FolderMethod(string Id, string Name, string Badge, string Explanation, string? TemplateId)
 {
-    public static readonly FolderMethod Para = new("para", "PARA", "PARA",
-        "끝나는 날이 있는 일은 1_Projects, 계속 관리하는 영역은 2_Areas, 참고 자료는 3_Resources, 끝난 것은 4_Archives에 둡니다. 오래 손대지 않은 프로젝트는 Archives로 옮기자고 알려 드려요.", "para");
+    public static readonly FolderMethod Para = new("para", "PARA", "PARA", // i18n:skip
+        "끝나는 날이 있는 일은 1_Projects, 계속 관리하는 영역은 2_Areas, 참고 자료는 3_Resources, 끝난 것은 4_Archives에 둡니다. 오래 손대지 않은 프로젝트는 Archives로 옮기자고 알려 드려요.", "para"); // i18n:skip
 
-    public static readonly FolderMethod JohnnyDecimal = new("johnny-decimal", "Johnny.Decimal", "JD",
-        "영역(10-19)과 카테고리(11) 번호로 자리를 정합니다. 번호 없는 폴더가 생기면 알려 드려요.", "johnny-decimal");
+    public static readonly FolderMethod JohnnyDecimal = new("johnny-decimal", "Johnny.Decimal", "JD", // i18n:skip
+        "영역(10-19)과 카테고리(11) 번호로 자리를 정합니다. 번호 없는 폴더가 생기면 알려 드려요.", "johnny-decimal"); // i18n:skip
 
-    public static readonly FolderMethod NumberPrefix = new("number-prefix", "번호·날짜 붙이기", "01_",
-        "00_받은 파일에 일단 모으고 01_진행중, 02_자료, 03_완료, 99_보관으로 나눕니다. 오래 손대지 않은 진행중 폴더는 완료로 옮기자고 알려 드려요.", "number-prefix");
+    public static readonly FolderMethod NumberPrefix = new("number-prefix", "번호·날짜 붙이기", "01_", // i18n:skip
+        "00_받은 파일에 일단 모으고 01_진행중, 02_자료, 03_완료, 99_보관으로 나눕니다. 오래 손대지 않은 진행중 폴더는 완료로 옮기자고 알려 드려요.", "number-prefix"); // i18n:skip
 
-    public static readonly FolderMethod ByDate = new("date", "날짜별", "날짜",
-        "파일을 연도\\연-월 폴더에 둡니다. 맨 위에 흩어진 파일은 바꾼 날짜에 맞는 폴더로 넣자고 알려 드려요.", null);
+    public static readonly FolderMethod ByDate = new("date", "날짜별", "날짜", // i18n:skip
+        "파일을 연도\\연-월 폴더에 둡니다. 맨 위에 흩어진 파일은 바꾼 날짜에 맞는 폴더로 넣자고 알려 드려요.", null); // i18n:skip
 
     public static readonly IReadOnlyList<FolderMethod> All = [Para, JohnnyDecimal, NumberPrefix, ByDate];
 
+    /// <summary>화면에 보일 이름 (앱 언어). <see cref="Name"/>은 .foldy.md에 적고 읽는 값이라 바꾸지 않는다.</summary>
+    public string DisplayName => Foldy.Core.Localization.Loc.T("fm." + Id);
+
+    /// <summary>화면에 보일 설명 (앱 언어).</summary>
+    public string ExplanationText => Foldy.Core.Localization.Loc.T("fm." + Id + ".x");
+
     public static FolderMethod? Find(string? idOrName) =>
-        All.FirstOrDefault(m => string.Equals(m.Id, idOrName?.Trim(), StringComparison.OrdinalIgnoreCase) || string.Equals(m.Name, idOrName?.Trim(), StringComparison.OrdinalIgnoreCase));
+        All.FirstOrDefault(m => string.Equals(m.Id, idOrName?.Trim(), StringComparison.OrdinalIgnoreCase) || string.Equals(m.Name, idOrName?.Trim(), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(m.DisplayName, idOrName?.Trim(), StringComparison.OrdinalIgnoreCase));
 }
 
 /// <summary>제안 하나: 설명 + 옮길 목록 (옮길 게 없으면 알림만).</summary>
@@ -40,9 +47,9 @@ public static class ManagedFolders
 {
     public const string FileName = ".foldy.md";
     public const int StaleDays = 90;
-    public const string Inbox = "00_받은 파일";
+    public const string Inbox = "00_받은 파일"; // i18n:skip
 
-    private static readonly Regex MethodLine = new(@"^\s*정리\s*방법\s*:\s*(.+?)\s*$", RegexOptions.Multiline);
+    private static readonly Regex MethodLine = new(@"^\s*정리\s*방법\s*:\s*(.+?)\s*$", RegexOptions.Multiline); // i18n:skip
 
     // 옮기면 다른 프로그램·바로 가기가 깨질 수 있는 파일은 제안하지 않는다
     private static readonly HashSet<string> NeverMove = new(StringComparer.OrdinalIgnoreCase)
@@ -123,7 +130,7 @@ public static class ManagedFolders
         {
             if (OrganizeScanner.IsProjectFolder(d.FullName))
             {
-                return "Git 저장소·개발 프로젝트 폴더는 구조를 바꾸지 않아요. 파일을 옮기면 빌드나 Git 기록이 깨질 수 있어서요. 저장소들을 담은 위 폴더는 관리할 수 있어요.";
+                return Foldy.Core.Localization.Loc.T("mf.projectFolder");
             }
         }
 
@@ -163,14 +170,14 @@ public static class ManagedFolders
         }
 
         var text = new StringBuilder()
-            .AppendLine("# Foldy 폴더 관리 방법")
+            .AppendLine(Foldy.Core.Localization.Loc.T("mf.memoTitle"))
             .AppendLine()
-            .Append("정리 방법: ").AppendLine(method.Name)
+            .Append("정리 방법: ").AppendLine(method.Name) // i18n:skip
             .AppendLine()
-            .AppendLine(method.Explanation)
+            .AppendLine(method.ExplanationText)
             .AppendLine()
-            .AppendLine("이 파일은 Foldy가 이 폴더를 어떤 방법으로 관리하는지 기억하는 메모예요. 지워도 괜찮아요 (관리가 꺼질 뿐 파일은 그대로예요).")
-            .AppendLine("Foldy는 저절로 옮기지 않고, 제안을 보여 드린 뒤 확인을 받고 옮겨요. 옮긴 것은 [되돌리기]로 돌릴 수 있어요.")
+            .AppendLine(Foldy.Core.Localization.Loc.T("mf.memoNote"))
+            .AppendLine(Foldy.Core.Localization.Loc.T("mf.memoNote2"))
             .ToString();
         text = Foldy.Core.Tags.FileTags.Render(text, keptTags); // 파일 상태 태그 칸은 그대로
         File.WriteAllText(path, text, new UTF8Encoding(true));
@@ -223,13 +230,13 @@ public static class ManagedFolders
             {
                 var moves = loose.Select(f => new ManagedMove(f.FullName,
                     Path.Combine(root, f.LastWriteTime.ToString("yyyy", System.Globalization.CultureInfo.InvariantCulture), f.LastWriteTime.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture), f.Name), false)).ToList();
-                list.Add(new ManagedSuggestion($"맨 위에 흩어진 파일이 {loose.Count:N0}개 있어요. 바꾼 날짜에 맞는 연도\\연-월 폴더로 넣을게요.", moves));
+                list.Add(new ManagedSuggestion(Foldy.Core.Localization.Loc.F("mf.looseByDate", loose.Count), moves));
             }
             else
             {
-                var inbox = method == FolderMethod.JohnnyDecimal ? Path.Combine(root, "00-09 시스템", "01 받은 파일") : Path.Combine(root, Inbox);
+                var inbox = method == FolderMethod.JohnnyDecimal ? Path.Combine(root, Local(root, "00-09 시스템"), Local(Path.Combine(root, Local(root, "00-09 시스템")), "01 받은 파일")) : Path.Combine(root, Local(root, Inbox)); // i18n:skip
                 var moves = loose.Select(f => new ManagedMove(f.FullName, Path.Combine(inbox, f.Name), false)).ToList();
-                list.Add(new ManagedSuggestion($"맨 위에 아직 나누지 않은 파일이 {loose.Count:N0}개 있어요. 일단 \"{Path.GetFileName(inbox)}\"에 모아 둘게요. 나중에 천천히 나누면 돼요.", moves));
+                list.Add(new ManagedSuggestion(Foldy.Core.Localization.Loc.F("mf.looseInbox", loose.Count, Path.GetFileName(inbox)), moves));
             }
         }
 
@@ -239,19 +246,23 @@ public static class ManagedFolders
         }
         else if (method == FolderMethod.NumberPrefix)
         {
-            list.AddRange(Stale(root, "01_진행중", "03_완료", nowUtc, "01_진행중", "03_완료"));
+            list.AddRange(Stale(root, Local(root, "01_진행중"), Local(root, "03_완료"), nowUtc, Local(root, "01_진행중"), Local(root, "03_완료"))); // i18n:skip
         }
         else if (method == FolderMethod.JohnnyDecimal)
         {
             var unnumbered = dir.EnumerateDirectories().Where(d => (d.Attributes & FileAttributes.Hidden) == 0 && !Regex.IsMatch(d.Name, @"^\d\d-\d\d\s")).Select(d => d.Name).ToList();
             if (unnumbered.Count > 0)
             {
-                list.Add(new ManagedSuggestion($"번호 없는 폴더가 {unnumbered.Count:N0}개 있어요 ({string.Join(", ", unnumbered.Take(3))}{(unnumbered.Count > 3 ? " …" : "")}). 이름 앞에 \"40-49 \"처럼 영역 번호를 붙여 주세요.", []));
+                list.Add(new ManagedSuggestion(Foldy.Core.Localization.Loc.F("mf.unnumbered", unnumbered.Count, string.Join(", ", unnumbered.Take(3)), (unnumbered.Count > 3 ? " …" : "")), []));
             }
         }
 
         return list;
     }
+
+    /// <summary>템플릿이 만든 폴더 이름: 앱 언어 이름, 예전 한국어 폴더가 있으면 그것 (템플릿과 같은 번역표).</summary>
+    private static string Local(string parent, string korean) =>
+        Foldy.Core.Localization.FolderNames.Pick(parent, korean, Foldy.Core.Templates.TemplateI18n.Text(korean));
 
     private static IEnumerable<ManagedSuggestion> Stale(string root, string from, string to, DateTime nowUtc, string fromLabel, string toLabel)
     {
@@ -267,8 +278,8 @@ public static class ManagedFolders
             var days = (int)(nowUtc - last).TotalDays;
             if (days >= StaleDays)
             {
-                var note = OrganizeScanner.IsProjectFolder(d.FullName) ? " (저장소라서 안은 건드리지 않고 폴더째 옮겨요)" : "";
-                yield return new ManagedSuggestion($"{fromLabel}의 \"{d.Name}\"을 {days:N0}일째 손대지 않았어요. {toLabel}로 옮길까요?{note}",
+                var note = OrganizeScanner.IsProjectFolder(d.FullName) ? Foldy.Core.Localization.Loc.T("mf.repoNote") : "";
+                yield return new ManagedSuggestion(Foldy.Core.Localization.Loc.F("mf.stale", fromLabel, d.Name, days, toLabel, note),
                     [new ManagedMove(d.FullName, Path.Combine(root, to, d.Name), true)]);
             }
         }
@@ -306,7 +317,7 @@ public static class ManagedFolders
             {
                 if (File.Exists(m.Dst) || Directory.Exists(m.Dst))
                 {
-                    skipped.Add((m.Src, "같은 이름이 이미 있어서 건너뛰었어요"));
+                    skipped.Add((m.Src, Foldy.Core.Localization.Loc.T("mf.skipExists")));
                     continue;
                 }
 
@@ -324,11 +335,11 @@ public static class ManagedFolders
             }
             catch (IOException)
             {
-                skipped.Add((m.Src, "열려 있어서 건너뛰었어요"));
+                skipped.Add((m.Src, Foldy.Core.Localization.Loc.T("mf.skipOpen")));
             }
             catch (UnauthorizedAccessException)
             {
-                skipped.Add((m.Src, "권한이 없어서 건너뛰었어요"));
+                skipped.Add((m.Src, Foldy.Core.Localization.Loc.T("mf.skipPermission")));
             }
         }
 

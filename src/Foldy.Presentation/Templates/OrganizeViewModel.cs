@@ -185,10 +185,10 @@ public sealed partial class OrganizeViewModel : ObservableObject
 
     public IReadOnlyList<OrganizeModeOption> Modes { get; } =
     [
-        new(OrganizeMode.ByType, "종류별", "문서, 이미지, 영상, 음악, 압축, 설치파일, 코드, 기타"),
-        new(OrganizeMode.ByDate, "날짜별", "수정 날짜 (사진·영상은 촬영 시각) → 2026\\2026-11"),
-        new(OrganizeMode.ByTemplate, "스타일대로", "폴더 템플릿의 분류 규칙 (파일명 키워드, 종류, 날짜)"),
-        new(OrganizeMode.Custom, "직접 규칙", "\"조건 → 폴더\" 목록"),
+        new(OrganizeMode.ByType, Foldy.Core.Localization.Loc.T("org.byType"), Foldy.Core.Localization.Loc.T("org.byTypeTip")),
+        new(OrganizeMode.ByDate, Foldy.Core.Localization.Loc.T("org.byDate"), Foldy.Core.Localization.Loc.T("org.byDateTip")),
+        new(OrganizeMode.ByTemplate, Foldy.Core.Localization.Loc.T("org.byStyle"), Foldy.Core.Localization.Loc.T("org.byStyleTip")),
+        new(OrganizeMode.Custom, Foldy.Core.Localization.Loc.T("org.custom"), Foldy.Core.Localization.Loc.T("org.customTip")),
     ];
 
     public ObservableCollection<FolderTemplate> Templates { get; } = [];
@@ -330,7 +330,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
         var allowProject = OrganizeProjectAnyway;
         var deep = IncludeSubfolders && !(allowProject && RootIsProject); // 프로젝트 폴더는 맨 위 파일만
         State = OrganizeState.Planning;
-        Status = "폴더를 살펴보는 중…";
+        Status = Foldy.Core.Localization.Loc.T("org.scanning");
         try
         {
             var plan = await Task.Run(
@@ -353,7 +353,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
             _ui.Post(() =>
             {
                 State = OrganizeState.Idle;
-                Status = "취소했습니다.";
+                Status = Foldy.Core.Localization.Loc.T("org.cancelled");
             });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
@@ -398,9 +398,9 @@ public sealed partial class OrganizeViewModel : ObservableObject
         State = OrganizeState.Ready;
         Status = plan.Moves.Count == 0
             ? (plan.Skipped.Count == 0 || plan.Skipped.All(x => Directory.Exists(x.FullPath))
-                ? "정리할 파일이 없습니다. 이 폴더에는 파일이 없고 폴더만 있어요 (하위 폴더 안까지 보려면 \"하위 폴더 안까지 정리\"를 켜세요)."
-                : $"옮길 파일이 없습니다. 아래 \"건너뛸 파일\"에서 {plan.Skipped.Count}개를 건너뛴 이유를 볼 수 있어요.")
-            : "계획을 확인하고 [정리하기]를 누르세요. 아무것도 삭제하지 않습니다.";
+                ? Foldy.Core.Localization.Loc.T("org.noFiles")
+                : Foldy.Core.Localization.Loc.F("org.noMoves", plan.Skipped.Count))
+            : Foldy.Core.Localization.Loc.T("org.checkPlan");
         SelectedListTab = plan.Moves.Count == 0 && plan.Skipped.Count > 0 ? 1 : 0;
         OnPlanEdited();
         if (plan.Moves.Count == 0 && plan.Skipped.Count > 0)
@@ -426,8 +426,8 @@ public sealed partial class OrganizeViewModel : ObservableObject
         BeforeTree = OrganizeTreeNode.Build(included.Select(m => Path.GetRelativePath(Plan.Root, m.Source)), folderSources);
         AfterTree = OrganizeTreeNode.Build(included.Select(m => Path.GetRelativePath(Plan.Root, m.Destination)), folderDests);
         var byFolder = Plan.CountsByFolder();
-        Summary = $"옮김 {included.Count}개 · 폴더 {byFolder.Count}곳 · 건너뜀 {Plan.Skipped.Count}개"
-            + (Plan.Moves.Count - included.Count > 0 ? $" · 제외 {Plan.Moves.Count - included.Count}개" : "");
+        Summary = Foldy.Core.Localization.Loc.F("org.summary", included.Count, byFolder.Count, Plan.Skipped.Count)
+            + (Plan.Moves.Count - included.Count > 0 ? Foldy.Core.Localization.Loc.F("org.excluded", Plan.Moves.Count - included.Count) : "");
         ExecuteCommand.NotifyCanExecuteChanged();
     }
 
@@ -449,7 +449,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
         var plan = Plan!;
         var journal = OrganizeExecutor.NewJournalPath(_journalFolder);
         State = OrganizeState.Executing;
-        Status = "정리하는 중…";
+        Status = Foldy.Core.Localization.Loc.T("org.running");
         var progress = new Progress<OrganizeProgress>(p => _ui.Post(() => Progress = p.Total == 0 ? 1 : (double)p.Done / p.Total));
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
@@ -462,10 +462,10 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 LastJournalPath = result.JournalPath;
                 State = OrganizeState.Done;
                 Progress = 1;
-                Status = $"{result.Moved}개를 옮겼습니다."
-                    + (result.Failed.Count > 0 ? $" 사용 중이거나 옮길 수 없는 {result.Failed.Count}개는 건너뛰었습니다." : "")
-                    + (result.Canceled ? " (중간에 취소됨)" : "")
-                    + " [되돌리기]로 한 번에 원래대로 돌릴 수 있습니다.";
+                Status = Foldy.Core.Localization.Loc.F("org.moved", result.Moved)
+                    + (result.Failed.Count > 0 ? Foldy.Core.Localization.Loc.F("org.failed", result.Failed.Count) : "")
+                    + (result.Canceled ? Foldy.Core.Localization.Loc.T("org.midCancel") : "")
+                    + Foldy.Core.Localization.Loc.T("org.undoHint");
             });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
@@ -485,7 +485,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
     {
         var journal = LastJournalPath!;
         State = OrganizeState.Undoing;
-        Status = "되돌리는 중…";
+        Status = Foldy.Core.Localization.Loc.T("org.undoing");
         try
         {
             var r = await Task.Run(() => OrganizeExecutor.Undo(journal, _ops));
@@ -494,10 +494,10 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 LastUndo = r;
                 State = OrganizeState.Undone;
                 Status = r.AlreadyUndone
-                    ? "이미 되돌린 정리입니다."
-                    : $"{r.Restored}개를 원래 자리로 돌려놓았습니다."
-                      + (r.LeftModified.Count > 0 ? $" 그사이 수정된 {r.LeftModified.Count}개는 현재 위치에 두었습니다." : "")
-                      + (r.Missing.Count > 0 ? $" 찾을 수 없는 {r.Missing.Count}개가 있습니다." : "");
+                    ? Foldy.Core.Localization.Loc.T("org.alreadyUndone")
+                    : Foldy.Core.Localization.Loc.F("org.restored", r.Restored)
+                      + (r.LeftModified.Count > 0 ? Foldy.Core.Localization.Loc.F("org.leftModified", r.LeftModified.Count) : "")
+                      + (r.Missing.Count > 0 ? Foldy.Core.Localization.Loc.F("org.missing", r.Missing.Count) : "");
             });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -536,7 +536,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
         if (State is OrganizeState.Ready)
         {
             State = OrganizeState.Idle;
-            Status = "설정이 바뀌었습니다. [계획 만들기]를 다시 누르세요.";
+            Status = Foldy.Core.Localization.Loc.T("org.changed");
         }
     }
 }

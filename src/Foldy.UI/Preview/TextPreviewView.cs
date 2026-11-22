@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -116,7 +115,7 @@ public sealed class TextPreviewView : Grid
     {
         var s = c.EncodingName;
         return c.Truncated
-            ? string.Create(CultureInfo.CurrentCulture, $"{s} · 앞부분만 표시 ({FileItem.FormatBytes(c.TotalBytes)} 중)")
+            ? $"{s} · {Foldy.Core.Localization.Loc.F("preview.headOnly", FileItem.FormatBytes(c.TotalBytes))}"
             : s;
     }
 

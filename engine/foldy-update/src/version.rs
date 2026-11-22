@@ -250,6 +250,9 @@ mod tests {
     #[test]
     fn numeric_compare_not_lexical() {
         assert!(v("1.10.0") > v("1.9.0"));
+        assert!(v("0.10.0") > v("0.9.44")); // 부(MINOR)가 두 자리가 되어도 숫자로 (docs/versioning.md)
+        assert!(v("0.10.0-beta.1") > v("0.9.44"));
+        assert!(v("0.10.0-beta.2") < v("0.10.0"));
         assert!(v("1.0.0-beta.10") > v("1.0.0-beta.9"));
     }
 }

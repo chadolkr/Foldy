@@ -44,11 +44,11 @@ public static partial class OrganizePlanner
             var rule = options.Mode == OrganizeMode.Custom ? options.Rules.FirstOrDefault(r => r.ApplyToFolders && Matches(r, e)) : null;
             if (rule is null)
             {
-                plan.Skipped.Add(new(e.FullPath, e.IsProjectFolder ? "프로젝트 폴더 — 통째로 그대로 둠" : "폴더는 규칙에 맞을 때만 옮김"));
+                plan.Skipped.Add(new(e.FullPath, e.IsProjectFolder ? Foldy.Core.Localization.Loc.T("op.projectFolder") : Foldy.Core.Localization.Loc.T("op.folderRuleOnly")));
                 continue;
             }
 
-            if (Add(plan, scan.Root, e, rule.Target, $"직접 규칙: {RuleLabel(rule)}", exists, claimed, options))
+            if (Add(plan, scan.Root, e, rule.Target, Foldy.Core.Localization.Loc.F("op.customRule", RuleLabel(rule)), exists, claimed, options))
             {
                 movingFolders.Add(e.FullPath + Path.DirectorySeparatorChar);
             }
@@ -61,13 +61,13 @@ public static partial class OrganizePlanner
         {
             if (duplicates.TryGetValue(e.FullPath, out var original))
             {
-                Add(plan, scan.Root, e, OrganizeOptions.DuplicatesFolder, $"중복 후보: {Path.GetFileName(original)}와 이름·크기·내용이 같음", exists, claimed, options);
+                Add(plan, scan.Root, e, Foldy.Core.Localization.FolderNames.Pick(scan.Root, OrganizeOptions.DuplicatesFolderKo, OrganizeOptions.DuplicatesFolder), Foldy.Core.Localization.Loc.F("op.duplicate", Path.GetFileName(original)), exists, claimed, options);
                 continue;
             }
 
-            var (target, reason) = Classify(e, options, media);
-            target ??= OrganizeOptions.UnclassifiedFolder;
-            reason ??= "맞는 규칙 없음";
+            var (target, reason) = Classify(e, options, media, scan.Root);
+            target ??= Foldy.Core.Localization.FolderNames.Pick(scan.Root, OrganizeOptions.UnclassifiedFolderKo, OrganizeOptions.UnclassifiedFolder);
+            reason ??= Foldy.Core.Localization.Loc.T("op.noRule");
             Add(plan, scan.Root, e, target, reason, exists, claimed, options);
         }
 
@@ -85,7 +85,7 @@ public static partial class OrganizePlanner
         var dir = rel.Length == 0 ? plan.Root : Path.Combine(plan.Root, rel);
         move.TargetFolder = rel;
         move.Destination = Unique(Path.Combine(dir, Path.GetFileName(move.Source)), exists, claimed, move.Source);
-        move.Reason = "직접 지정";
+        move.Reason = Foldy.Core.Localization.Loc.T("op.manual");
     }
 
     private static bool Add(OrganizePlan plan, string root, OrganizeEntry e, string targetRel, string reason,
@@ -100,7 +100,7 @@ public static partial class OrganizePlanner
 
         if (issues.Count > 0)
         {
-            plan.Skipped.Add(new(e.FullPath, $"대상 폴더 이름이 잘못됨: {issues[0].Message}"));
+            plan.Skipped.Add(new(e.FullPath, Foldy.Core.Localization.Loc.F("op.badTarget", issues[0].Message)));
             return false;
         }
 
@@ -121,7 +121,7 @@ public static partial class OrganizePlanner
         // 폴더를 자기 안으로 옮기는 경우 방지
         if (e.IsFolder && (dir + Path.DirectorySeparatorChar).StartsWith(e.FullPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
-            plan.Skipped.Add(new(e.FullPath, "폴더를 자기 안으로 옮길 수 없음"));
+            plan.Skipped.Add(new(e.FullPath, Foldy.Core.Localization.Loc.T("op.intoItself")));
             return false;
         }
 
@@ -164,15 +164,15 @@ public static partial class OrganizePlanner
         }
     }
 
-    private static (string? Target, string? Reason) Classify(OrganizeEntry e, OrganizeOptions o, IMediaDateProvider? media)
+    private static (string? Target, string? Reason) Classify(OrganizeEntry e, OrganizeOptions o, IMediaDateProvider? media, string root)
     {
         switch (o.Mode)
         {
             case OrganizeMode.ByType:
                 {
-                    var g = FileTypeGroups.GroupOf(e.Name);
+                    var g = FileTypeGroups.FolderName(FileTypeGroups.GroupOf(e.Name), root);
                     var ext = Path.GetExtension(e.Name);
-                    return (g, ext.Length > 0 ? $"종류: {g} ({ext})" : $"종류: {g}");
+                    return (g, ext.Length > 0 ? Foldy.Core.Localization.Loc.F("op.typeExt", g, ext) : Foldy.Core.Localization.Loc.F("op.type", g));
                 }
 
             case OrganizeMode.ByDate:
@@ -183,12 +183,12 @@ public static partial class OrganizePlanner
                     if (taken is { } t)
                     {
                         local = t;
-                        source = "촬영 시각";
+                        source = Foldy.Core.Localization.Loc.T("op.taken");
                     }
                     else
                     {
                         local = e.LastWriteUtc.ToLocalTime();
-                        source = "수정 날짜";
+                        source = Foldy.Core.Localization.Loc.T("op.modified");
                     }
 
                     var folder = local.ToString(o.DateFormat, CultureInfo.InvariantCulture).Replace('/', '\\');
@@ -206,7 +206,7 @@ public static partial class OrganizePlanner
                     {
                         if (Matches(r, e, o.NowUtc))
                         {
-                            return (r.Target, r.Reason ?? $"{o.Template.Name} 규칙: {r.Target}");
+                            return (r.Target, r.Reason ?? Foldy.Core.Localization.Loc.F("op.templateRule", o.Template.Name, r.Target));
                         }
                     }
 
@@ -216,7 +216,7 @@ public static partial class OrganizePlanner
             case OrganizeMode.Custom:
                 {
                     var r = o.Rules.FirstOrDefault(x => Matches(x, e));
-                    return r is null ? (null, null) : (r.Target, $"직접 규칙: {RuleLabel(r)}");
+                    return r is null ? (null, null) : (r.Target, Foldy.Core.Localization.Loc.F("op.customRule", RuleLabel(r)));
                 }
 
             default:
@@ -330,11 +330,12 @@ public static partial class OrganizePlanner
 
     private static HashSet<string> OutputFolders(OrganizeOptions o)
     {
-        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { OrganizeOptions.UnclassifiedFolder, OrganizeOptions.DuplicatesFolder };
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { OrganizeOptions.UnclassifiedFolder, OrganizeOptions.DuplicatesFolder, OrganizeOptions.UnclassifiedFolderKo, OrganizeOptions.DuplicatesFolderKo };
         switch (o.Mode)
         {
             case OrganizeMode.ByType:
                 set.UnionWith(FileTypeGroups.All);
+                set.UnionWith(FileTypeGroups.All.Select(g => FileTypeGroups.FolderName(g, null)));
                 break;
             case OrganizeMode.ByTemplate when o.Template is not null:
                 set.UnionWith(o.Template.Organize.Select(r => FirstSegment(r.Target)));

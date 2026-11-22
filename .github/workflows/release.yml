@@ -1,7 +1,7 @@
 name: Release
 
 # v1.2.3 형식 태그를 푸시하면 빌드 → 테스트 → 포터블 zip → update.json 서명 → GitHub Release (설계서 10.5).
-# 서명 비밀키는 저장소 시크릿 FOLDY_UPDATE_SIGNING_KEY에만 있다 (docs/release-signing.md).
+# 서명 비밀키 FOLDY_UPDATE_SIGNING_KEY는 Environment `release`(태그 v*.*.*만) 시크릿으로 둔다 (docs/release-signing.md, 보안 리뷰 V3).
 on:
   push:
     tags: ['v*.*.*']
@@ -24,6 +24,9 @@ concurrency:
 jobs:
   release:
     runs-on: windows-latest
+    # 서명 키를 Environment `release`의 시크릿으로 옮기면(보안 리뷰 V3) 이 작업만 읽는다.
+    # 아직 옮기기 전이면 저장소 시크릿을 그대로 읽으므로 지금도 안전하게 돈다.
+    environment: release
     timeout-minutes: 150   # 서명 승인 대기(최대 1시간 × 2) 포함
     permissions:
       contents: write      # GitHub Release 만들기
@@ -279,8 +282,16 @@ jobs:
           $notes.Add('- 자세히 / Details: https://github.com/chadolkr/Foldy/blob/main/SECURITY.md')
           $notes.Add('')
           # SignPath Foundation 요건: 릴리스 페이지에 Code signing policy 링크
+          # 릴리스 페이지도 검색에 잡히므로 맨 위에 무엇인지 한 줄씩 (영어·한국어), 그다음 진짜 확인 방법
+          $intro = @(
+            '**Foldy** is a free, open-source dual-pane file manager for Windows 10/11: instant Ctrl+Space search, disk space analyzer, step-by-step Desktop and Downloads cleanup. Works offline.',
+            '빠르고 똑똑한 Windows 파일 관리자, 오프라인에서도. 무료 오픈소스.',
+            '',
+            'Website: https://chadolkr.github.io/Foldy/ · Install: download `Foldy-*-x64.msi` below and double-click it. Not code-signed yet, so SmartScreen may ask you to click More info → Run anyway.',
+            ''
+          )
           $notes.Add('Code signing policy: https://github.com/chadolkr/Foldy#code-signing-policy')
-          $notes | Set-Content release-notes-header.md -Encoding utf8
+          @($intro) + @($notes) | Set-Content release-notes-header.md -Encoding utf8
           $flags = @('--generate-notes', '--notes-file', 'release-notes-header.md', '--title', "Foldy $tag", '--verify-tag')
           if ('${{ steps.ver.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
           gh release create $tag @files @flags

@@ -19,8 +19,12 @@
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
   <Resources>
+    <!-- 앱이 지원하는 5개 언어. Store 등록 정보(docs/store-listing/)도 이 언어들로 낸다. -->
     <Resource Language="ko-KR" />
     <Resource Language="en-US" />
+    <Resource Language="es-ES" />
+    <Resource Language="ja-JP" />
+    <Resource Language="zh-CN" />
   </Resources>
   <Applications>
     <Application Id="Foldy" Executable="Foldy.exe" EntryPoint="Windows.FullTrustApplication">

@@ -14,13 +14,13 @@ S = {
     "tagline.sub": {"ko": "AI와 연결하면 더 편하게", "en": "Even easier when connected to AI", "es": "Aún más fácil conectado a la IA", "ja": "AIとつなげばもっと便利に", "zh-Hans": "连接 AI 更方便"},
 
     # 사이드바: 대표 기능 넷
-    "side.find": {"ko": "무엇이든 찾기", "en": "Find anything", "es": "Buscar lo que sea", "ja": "なんでも検索", "zh-Hans": "查找任何东西"},
+    "side.find": {"ko": "무엇이든 찾기", "en": "Find anything", "es": "Buscar todo", "ja": "なんでも検索", "zh-Hans": "查找任何东西"},
     "side.find.tip": {"ko": "파일·앱·Windows 설정·Foldy 기능을 한 칸에서 (어디서든 Ctrl+Space)", "en": "Files, apps, Windows settings and Foldy features in one box (Ctrl+Space anywhere)", "es": "Archivos, apps, ajustes de Windows y funciones de Foldy en un solo cuadro (Ctrl+Espacio en cualquier lugar)", "ja": "ファイル・アプリ・Windows の設定・Foldy の機能をひとつの欄で (どこでも Ctrl+Space)", "zh-Hans": "在一个框里查找文件、应用、Windows 设置和 Foldy 功能（随处按 Ctrl+Space）"},
     "side.space": {"ko": "공간 늘리기", "en": "Free up space", "es": "Liberar espacio", "ja": "空き容量を増やす", "zh-Hans": "释放空间"},
     "side.space.tip": {"ko": "폴더 분석: 무엇이 공간을 차지하는지 보고 지워도 되는 것만 골라 비우기", "en": "Folder analysis: see what takes up space and remove only what is safe to delete", "es": "Análisis de carpetas: mira qué ocupa espacio y elimina solo lo que se puede borrar", "ja": "フォルダー分析: 何が容量を使っているかを見て、消しても大丈夫なものだけ片付けます", "zh-Hans": "文件夹分析：查看什么占用了空间，只清理可以安全删除的内容"},
-    "side.tidy": {"ko": "바탕화면, 다운로드, 폴더 정리", "en": "Tidy up folders", "es": "Ordenar carpetas", "ja": "デスクトップ・ダウンロード・フォルダーの整理", "zh-Hans": "整理桌面、下载和文件夹"},
+    "side.tidy": {"ko": "바탕화면, 다운로드, 폴더 정리", "en": "Tidy up folders", "es": "Ordenar carpetas", "ja": "フォルダーを整理", "zh-Hans": "整理文件夹"},
     "side.tidy.tip": {"ko": "정리 도우미: 어디를 · 어떻게 고르면 정리 후 모습을 먼저 보여 줘요 (지우지 않고, 되돌릴 수 있어요)", "en": "Tidy helper: choose where and how, and see the result before anything moves (nothing is deleted, and you can undo)", "es": "Asistente de orden: elige dónde y cómo, y mira el resultado antes de mover nada (no se borra nada y puedes deshacer)", "ja": "整理アシスタント: 場所と方法を選ぶと、動かす前に整理後の姿を見せます (削除なし、元に戻せます)", "zh-Hans": "整理助手：选好位置和方式，先看整理后的样子（不会删除，可以撤销）"},
-    "side.template": {"ko": "템플릿으로 폴더 만들기", "en": "Folders from a template", "es": "Carpetas desde una plantilla", "ja": "テンプレートからフォルダー作成", "zh-Hans": "用模板创建文件夹"},
+    "side.template": {"ko": "템플릿으로 폴더 만들기", "en": "Folders from a template", "es": "Carpetas con plantilla", "ja": "テンプレートで作成", "zh-Hans": "用模板创建文件夹"},
     "side.template.tip": {"ko": "PARA·업종별 프로젝트 단계 같은 폴더 틀을 미리 보고 한 번에 만들기 (Ctrl+Shift+N)", "en": "Preview and create a folder structure such as PARA or industry project phases in one go (Ctrl+Shift+N)", "es": "Previsualiza y crea de una vez una estructura como PARA o las fases de un proyecto por sector (Ctrl+Mayús+N)", "ja": "PARA や業種別のプロジェクト工程などのフォルダー構成を確認して一度に作成 (Ctrl+Shift+N)", "zh-Hans": "预览并一次创建 PARA 或各行业项目阶段等文件夹结构（Ctrl+Shift+N）"},
 
     # 사이드바: 제목과 묶음
@@ -75,7 +75,7 @@ S = {
     "tour.copy.s": {"ko": "두 창 사이로 끌거나 F5 · 이동은 F6", "en": "Drag between the two panes or press F5 · F6 to move", "es": "Arrastra entre los dos paneles o pulsa F5 · F6 para mover", "ja": "2 つの画面の間でドラッグか F5 · 移動は F6", "zh-Hans": "在两个窗格间拖动或按 F5 · 移动按 F6"},
     "tour.ai.t": {"ko": "AI에게 물어보면 Foldy가 찾아요", "en": "Ask your AI, Foldy finds it", "es": "Pregúntale a tu IA y Foldy lo encuentra", "ja": "AI に聞けば Foldy が探します", "zh-Hans": "问 AI，Foldy 帮你找"},
     "tour.ai.s": {"ko": "Claude·Codex 등에 [AI에 연결] 한 번 · \"작년 견적서 찾아 줘\" · 읽기만 해요", "en": "One click to connect Claude, Codex and more · \"find last year's quotes\" · read-only", "es": "Un clic para conectar Claude, Codex y más · \"busca los presupuestos del año pasado\" · solo lectura", "ja": "Claude・Codex などにワンクリックで接続 · 「去年の見積書を探して」· 読み取りのみ", "zh-Hans": "一键连接 Claude、Codex 等 · “找一下去年的报价单” · 只读"},
-    "tour.memo.t": {"ko": "비밀번호는 잠긴 메모에", "en": "Keep passwords in a locked note", "es": "Guarda las contraseñas en una nota bloqueada", "ja": "パスワードはロック付きメモに", "zh-Hans": "密码放进加锁笔记"},
+    "tour.memo.t": {"ko": "비밀번호는 잠긴 메모에", "en": "Keep passwords in a locked note", "es": "Guarda las contraseñas en una nota bloqueada", "ja": "パスワードはロック付きメモに", "zh-Hans": "密码放进加密笔记"},
     "tour.memo.s": {"ko": "5분 동안 안 쓰면 저절로 잠겨요", "en": "Locks itself after 5 minutes idle", "es": "Se bloquea sola tras 5 minutos sin uso", "ja": "5 分使わないと自動でロック", "zh-Hans": "5 分钟不用就自动锁定"},
     "tour.git.t": {"ko": "프로젝트 폴더면 Git이 저절로", "en": "Git shows up in project folders", "es": "Git aparece solo en carpetas de proyecto", "ja": "プロジェクトフォルダーなら Git が自動で", "zh-Hans": "项目文件夹里自动显示 Git"},
     "tour.git.s": {"ko": "받기·올리기·커밋을 버튼으로", "en": "Pull, push and commit with buttons", "es": "Pull, push y commit con botones", "ja": "取得・送信・コミットをボタンで", "zh-Hans": "用按钮拉取、推送和提交"},
@@ -86,7 +86,7 @@ S = {
     # 설정: 언어
     "settings.language": {"ko": "언어", "en": "Language", "es": "Idioma", "ja": "言語", "zh-Hans": "语言"},
     "settings.language.auto": {"ko": "시스템 설정 따르기", "en": "Use system setting", "es": "Usar la configuración del sistema", "ja": "システム設定に従う", "zh-Hans": "跟随系统设置"},
-    "settings.language.hint": {"ko": "바꾸면 Foldy를 다시 켤 때 적용돼요. 한국어 말고는 아직 번역 중이라 일부만 바뀌어요.", "en": "Takes effect the next time Foldy starts. Translation is in progress, so only part of Foldy is translated yet.", "es": "Se aplica la próxima vez que inicies Foldy. La traducción está en curso: por ahora solo una parte está traducida.", "ja": "次に Foldy を起動したときに反映されます。翻訳中のため、まだ一部だけです。", "zh-Hans": "下次启动 Foldy 时生效。翻译仍在进行中，目前只翻译了一部分。"},
+    "settings.language.hint": {"ko": "바꾸면 Foldy를 다시 켤 때 적용돼요.", "en": "Takes effect the next time Foldy starts.", "es": "Se aplica la próxima vez que inicies Foldy.", "ja": "次に Foldy を起動したときに反映されます。", "zh-Hans": "下次启动 Foldy 时生效。"},
 }
 
 

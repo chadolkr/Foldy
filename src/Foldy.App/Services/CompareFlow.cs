@@ -119,6 +119,17 @@ public static class CompareFlow
             return;
         }
 
+        // 맞추자고 묻기 전에 공간부터 본다 (사용자 원칙 2026-11-22)
+        if (!await SpaceFlows.EnsureAsync(w, shell, () => FolderCompare.CheckSpace(steps)))
+        {
+            if (!w.IsClosed)
+            {
+                w.Close();
+            }
+
+            return;
+        }
+
         w.ShowList(steps.Select(s => $"{(s.Dst.StartsWith(right, StringComparison.OrdinalIgnoreCase) ? Foldy.Core.Localization.Loc.T("cmp.toRight") : Foldy.Core.Localization.Loc.T("cmp.toLeft"))}  {s.RelPath}"));
         if (await w.AskAsync(Foldy.Core.Localization.Loc.F("cmp.planAsk", steps.Count), C("go", Foldy.Core.Localization.Loc.T("cmp.go")), C("later", Foldy.Core.Localization.Loc.T("sw.later"))) != "go")
         {

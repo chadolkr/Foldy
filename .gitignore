@@ -13,6 +13,8 @@ engine/target/
 # IDE
 .idea/
 *.swp
+# Cloudflare wrangler 로컬 캐시 (계정 정보가 들어 있음)
+.wrangler/
 # 로컬 벤치 데이터
 bench-data/
 # 업데이트 서명 비밀키 — 절대 커밋 금지 (docs/release-signing.md)
@@ -24,3 +26,7 @@ bench-data/
 # 배포용 설치 폴더
 dist/
 TestResults/
+
+# 파이썬 캐시 (build/i18n 스크립트 실행 때 생김)
+__pycache__/
+*.pyc

@@ -10,11 +10,13 @@
 
 [![CI](https://github.com/chadolkr/Foldy/actions/workflows/ci.yml/badge.svg)](https://github.com/chadolkr/Foldy/actions/workflows/ci.yml) [![CodeQL](https://github.com/chadolkr/Foldy/actions/workflows/codeql.yml/badge.svg)](https://github.com/chadolkr/Foldy/actions/workflows/codeql.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/chadolkr/Foldy/badge)](https://scorecard.dev/viewer/?uri=github.com/chadolkr/Foldy)
 
-Foldy is a free, open-source dual-pane file manager for Windows 10/11. Its features are rule-based and run on your own PC, with no account and no internet needed. Connecting an AI app is optional.
+Foldy is a free, open-source **dual-pane file manager for Windows 10/11** and a friendly **File Explorer alternative**. It brings instant file search (Ctrl+Space, like Spotlight for Windows), a **disk space analyzer** with a treemap, step-by-step **Desktop and Downloads cleanup**, folder templates, previews, Git and SFTP into one window that looks and feels like File Explorer. Its features are rule-based and run on your own PC, with no account, no ads and no internet needed. Connecting an AI app through MCP is optional.
+
+🌐 Website: [chadolkr.github.io/Foldy](https://chadolkr.github.io/Foldy/en/) · also in [Español](https://chadolkr.github.io/Foldy/es/), [日本語](https://chadolkr.github.io/Foldy/ja/), [简体中文](https://chadolkr.github.io/Foldy/zh-cn/)
 
 ![Foldy: folder analysis on the left, Git view on the right](docs/images/hero.png)
 
-*(All screenshots are real Foldy screens taken with fake sample folders. They contain no personal data. The app is being translated; screenshots are in Korean for now.)*
+*(All screenshots are real Foldy screens taken with fake sample folders. They contain no personal data. This picture shows the Korean screen; the [user guide](assets/help/index.en.md) and the website have screenshots in each language.)*
 
 **[⬇ Download the latest version (MSI)](https://github.com/chadolkr/Foldy/releases/latest)** · Windows 10/11 x64 · Free and open source (GPL-3.0)
 
@@ -41,7 +43,7 @@ They sit at the top of the sidebar, one click away.
 
 ## Languages
 
-Foldy is being translated into **English, Spanish, Japanese and Simplified Chinese**, alongside Korean. You can choose the language in Settings → Appearance. Until the translation is complete, Foldy starts in Korean unless you pick another language.
+Foldy speaks **Korean, English, Spanish, Japanese and Simplified Chinese**. It starts in your Windows display language (English if yours isn't one of these), and you can change it any time in Settings → Appearance → Language. The user guide (F1) comes in all five languages. Typing requests in plain language in quick search works in Korean only; in other languages, type the feature's name.
 
 ## Install
 
@@ -53,6 +55,8 @@ Download from [Releases](https://github.com/chadolkr/Foldy/releases).
 | --- | --- | --- |
 | **MSI (recommended)** | `Foldy-<version>-x64.msi` | Double-click to install. Uninstall from Settings → Apps → Installed apps → Foldy. |
 | Script | `Foldy-<version>-x64-setup.zip` | Unzip and run `Foldy 설치.cmd`. |
+
+Foldy is not code-signed yet, so Windows SmartScreen may say "Windows protected your PC". Click **More info**, then **Run anyway**. The source code and the build workflow are public in this repository.
 
 Installing also adds a background **index service** (FoldyIndexer, runs as SYSTEM) for instant name search; it is removed when you uninstall. It indexes the whole PC, but search results only show your own folders and shared folders.
 

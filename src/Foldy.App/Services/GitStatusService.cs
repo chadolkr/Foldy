@@ -23,7 +23,7 @@ public sealed class GitStatusService(GitService git) : IGitStatusProvider
         if (st.Value is not { } status)
         {
             return st.Result.Failure == GitFailure.DubiousOwnership
-                ? new GitFolderInfo(repo.Root, "Git: 신뢰하지 않는 저장소", _ => Core.FileSystem.GitFileStatus.None, 0)
+                ? new GitFolderInfo(repo.Root, Foldy.Core.Localization.Loc.T("git.untrusted"), _ => Core.FileSystem.GitFileStatus.None, 0)
                 : null;
         }
 

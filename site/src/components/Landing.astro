@@ -35,7 +35,7 @@ const proofLinks: Record<string, string> = {
   codeql: `${repoUrl}/actions/workflows/codeql.yml`,
   scorecard: 'https://scorecard.dev/viewer/?uri=github.com/chadolkr/Foldy',
   review: `${repoUrl}/blob/main/docs/reviews/2026-11-19-security-review.md`,
-  network: `${repoUrl}/blob/main/PRIVACY.md`,
+  network: `${localeHref(locale.path)}privacy/`,
 };
 // 공식 주소: 가짜 사이트와 구별하도록 글자 그대로 보여 준다 (SECURITY.md와 같게)
 const OFFICIAL = [
@@ -227,7 +227,7 @@ Object.keys(files).forEach(img);
           </li>
         ))}
       </ul>
-      <p class="center"><a class="link" href={`${repoUrl}/blob/main/PRIVACY.md`}>{t.safety.link} →</a></p>
+      <p class="center"><a class="link" href={`${localeHref(locale.path)}privacy/`}>{t.safety.link} →</a></p>
 
       <div id="proof" class="proof">
         <h3>{t.safety.proof.title}</h3>
@@ -359,7 +359,7 @@ Object.keys(files).forEach(img);
     </div>
     <nav aria-label="Foldy links">
       <a href={repoUrl}>{t.footer.source}</a>
-      <a href={`${repoUrl}/blob/main/PRIVACY.md`}>{t.footer.privacy}</a>
+      <a href={`${localeHref(locale.path)}privacy/`}>{t.footer.privacy}</a>
       <a href={`${repoUrl}/blob/main/SECURITY.md`}>{t.footer.security}</a>
       <a href={`${repoUrl}/issues`}>{t.footer.issues}</a>
       <a href={RELEASES_URL}>{t.nav.download}</a>

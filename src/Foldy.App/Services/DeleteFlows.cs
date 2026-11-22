@@ -27,7 +27,7 @@ internal static class DeleteFlows
         }
     }
 
-    public const string Title = "많은 파일 지우기";
+    public static string Title => Foldy.Core.Localization.Loc.T("del.title");
 
     /// <summary>대화 내용 (문서 캡처 장면도 같은 흐름을 쓴다).</summary>
     internal static async Task<BigDeleteChoice> RunAsync(GuideWindow w, BigDeleteQuestion q)

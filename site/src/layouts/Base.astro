@@ -2,16 +2,76 @@
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import '../styles/global.css';
 import { locales, defaultLocale, localeHref, type Locale } from '../i18n';
+import { getLatestRelease, REPO } from '../lib/release';
 
 interface Props {
   locale: Locale;
+  // 첫 화면이 아닌 페이지(예: 개인정보 처리방침): 제목·설명·하위 주소. 없으면 첫 화면.
+  page?: { title: string; description: string; sub: string };
 }
-const { locale } = Astro.props;
+const { locale, page } = Astro.props;
 const t = locale.dict;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const abs = (p: string) => new URL(p, Astro.site).href;
-const canonical = abs(localeHref(locale.path));
+const pageHref = (path: string) => localeHref(path) + (page ? `${page.sub}/` : '');
+const canonical = abs(pageHref(locale.path));
+const title = page?.title ?? t.meta.title;
+const description = page?.description ?? t.meta.description;
 const ogImage = abs(`${base}og/${locale.path}.png`);
+const release = await getLatestRelease();
+const repoUrl = `https://github.com/${REPO}`;
+// 검색 사이트 소유 확인(Google Search Console·Bing Webmaster). 저장소 변수로 넣으면 빌드 때 들어간다.
+const googleVerify = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION;
+const bingVerify = import.meta.env.PUBLIC_BING_SITE_VERIFICATION;
+// 구조화 데이터: 검색 결과에 앱 정보·자주 묻는 질문이 보이도록.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${abs(base)}#website`,
+      name: 'Foldy',
+      url: abs(base),
+      inLanguage: locales.map((l) => l.htmlLang),
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': `${abs(base)}#app`,
+      name: 'Foldy',
+      alternateName: 'Foldy File Manager',
+      description: t.meta.description,
+      keywords: t.meta.keywords,
+      operatingSystem: 'Windows 10, Windows 11',
+      applicationCategory: 'UtilitiesApplication',
+      applicationSubCategory: 'File manager',
+      ...(release.version ? { softwareVersion: release.version } : {}),
+      ...(release.date ? { dateModified: release.date } : {}),
+      downloadUrl: release.msiUrl,
+      installUrl: `${repoUrl}/releases/latest`,
+      releaseNotes: `${repoUrl}/releases`,
+      image: ogImage,
+      screenshot: ogImage,
+      featureList: t.features.items.map((f) => f.kicker),
+      isAccessibleForFree: true,
+      license: 'https://www.gnu.org/licenses/gpl-3.0.html',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      author: { '@type': 'Person', name: 'David CHA', url: 'https://github.com/chadolkr' },
+      sameAs: [repoUrl],
+      url: canonical,
+      inLanguage: locale.htmlLang,
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonical}#faq`,
+      inLanguage: locale.htmlLang,
+      mainEntity: t.faq.items.map((f) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+};
 ---
 
 <!doctype html>
@@ -19,11 +79,16 @@ const ogImage = abs(`${base}og/${locale.path}.png`);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{t.meta.title}</title>
-    <meta name="description" content={t.meta.description} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {!page && <meta name="keywords" content={t.meta.keywords} />}
+    <meta name="author" content="David CHA" />
+    <meta name="application-name" content="Foldy" />
+    {googleVerify && <meta name="google-site-verification" content={googleVerify} />}
+    {bingVerify && <meta name="msvalidate.01" content={bingVerify} />}
     <link rel="canonical" href={canonical} />
-    {locales.map((l) => <link rel="alternate" hreflang={l.htmlLang} href={abs(localeHref(l.path))} />)}
-    <link rel="alternate" hreflang="x-default" href={abs(localeHref(defaultLocale))} />
+    {locales.map((l) => <link rel="alternate" hreflang={l.htmlLang} href={abs(pageHref(l.path))} />)}
+    <link rel="alternate" hreflang="x-default" href={abs(pageHref(defaultLocale))} />
     <link rel="sitemap" href={`${base}sitemap-index.xml`} />
     <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
     <link rel="apple-touch-icon" href={`${base}foldy-256.png`} />
@@ -31,28 +96,20 @@ const ogImage = abs(`${base}og/${locale.path}.png`);
     <meta name="theme-color" content="#151413" media="(prefers-color-scheme: dark)" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Foldy" />
-    <meta property="og:title" content={t.meta.title} />
-    <meta property="og:description" content={t.meta.description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content={locale.ogLocale} />
     {locales.filter((l) => l.path !== locale.path).map((l) => <meta property="og:locale:alternate" content={l.ogLocale} />)}
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json" set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'Foldy',
-      description: t.meta.description,
-      operatingSystem: 'Windows 10, Windows 11',
-      applicationCategory: 'UtilitiesApplication',
-      license: 'https://www.gnu.org/licenses/gpl-3.0.html',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      author: { '@type': 'Person', name: 'David CHA' },
-      url: canonical,
-      inLanguage: locale.htmlLang,
-    })} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    {!page && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body>
     <slot />

@@ -8,7 +8,7 @@ Foldy will not transfer any information to other networked systems unless specif
 | 업데이트 확인 / Update check | GitHub (`api.github.com`, `github.com`) | 일반 HTTPS 요청(최신 릴리스 정보 조회, 설치 파일 다운로드). 사용자 정보는 보내지 않음 / Plain HTTPS requests for the latest release and its installer; no user data | 설정 → 업데이트 → 끄기 / Settings → Update → Off |
 | 오류 자동 보고 / Crash reports | Foldy crash relay (Cloudflare Worker) → GitHub 공개 이슈 / public GitHub issue | 앱·Windows 버전, 예외 종류, 스택 프레임. 보내기 전에 경로·사용자 이름·컴퓨터 이름·메일 주소를 지움 / App & Windows version, exception type, stack frames, with paths, user name, machine name and e-mail addresses removed | 기본 꺼짐. 보낼 때마다 묻고, 설정 → 오류 보고에서 끌 수 있음 / Off by default; asks before sending; Settings → Crash reports |
 | 버그 신고 버튼 / Report a bug | 브라우저로 GitHub 이슈 페이지 / GitHub issue page in your browser | 사용자가 확인하고 직접 제출 / You review and submit it yourself | 누르지 않으면 아무것도 보내지 않음 / Nothing is sent unless you click it |
-| 메모 속 인터넷 그림 / Remote images in a note | 그림이 있는 주소 / The image's own address | 그림 주소로 일반 HTTPS 요청 / A plain HTTPS request for the image | 기본은 불러오지 않음. [불러오기]를 누를 때만 / Never loaded unless you click to load them |
+| 메모(.md) 속 인터넷 그림 / Web images in notes (.md) | 그림이 있는 사이트 / The image's website | 그림 요청 / Image request | 기본 막힘. [그림 보기]를 누를 때만 받음 / Blocked by default; loaded only when you click to show images |
 | SFTP·SSH, Git 원격 / SFTP, SSH, Git remotes | 사용자가 지정한 서버 / Servers you specify | 사용자가 요청한 파일·명령 / Only the files and commands you request | 사용하지 않으면 연결하지 않음 / No connection unless you use it |
 
 - 색인 서비스(FoldyIndexer)가 만드는 파일 이름 색인은 이 컴퓨터에만 저장되며 밖으로 보내지 않습니다.
@@ -19,5 +19,9 @@ Foldy will not transfer any information to other networked systems unless specif
 - 제거하면 프로그램과 서비스가 함께 지워집니다 (README의 제거 방법 참고). / Uninstalling removes the program and the service.
 
 내려받은 파일이 진짜인지 확인하는 방법과 공개 보안 근거 / How to verify downloads and public security evidence: [SECURITY.md](SECURITY.md)
+
+Microsoft Store 판은 업데이트를 직접 확인하지 않고 Microsoft Store가 업데이트합니다. / The Microsoft Store edition does not check for updates itself; Microsoft Store updates it.
+
+5개 언어로 쉽게 쓴 같은 내용: <https://chadolkr.github.io/Foldy/privacy/> (Store 제출 주소) / The same policy in plain words, in five languages: <https://chadolkr.github.io/Foldy/en/privacy/>
 
 문의 / Contact: <https://github.com/chadolkr/Foldy/issues>

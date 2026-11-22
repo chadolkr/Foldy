@@ -6,9 +6,10 @@ const zhCN: Dictionary = {
   zoom: '点击放大',
   shotsNote: '截图为韩语界面。中文界面正在准备中。',
   meta: {
-    title: 'Foldy · 快速又聪明的文件管理器，离线也能用',
+    title: 'Foldy · 快速又聪明的 Windows 文件管理器，离线也能用',
     description:
-      '免费开源的 Windows 文件管理器。用 Ctrl+Space 找到任何东西，释放磁盘空间，像聊天一样一步步整理桌面和下载文件夹。所有功能无需联网。',
+      '免费开源的 Windows 10/11 双栏文件管理器。用 Ctrl+Space 找到任何东西，看清是什么占满了磁盘，像聊天一样一步步整理桌面和下载文件夹。所有功能无需联网。',
+    keywords: '文件管理器, Windows 文件管理器, 资源管理器替代, 双栏文件管理器, 文件搜索, 快速搜索, 磁盘空间分析, 清理磁盘, 桌面整理, 下载文件夹整理, 文件夹模板, PARA, 免费, 开源, Windows 11, Windows 10',
   },
   nav: {
     features: '功能',

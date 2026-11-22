@@ -18,14 +18,14 @@ internal sealed class SniffDog : Border
     public static class Text
     {
         public static string Found(long count, TimeSpan elapsed) =>
-            $"킁킁! {Seconds(elapsed)}초 만에 {count:N0}개 물어 왔어요";
+            Foldy.Core.Localization.Loc.F("dog.found", Seconds(elapsed), count);
 
         /// <summary>0.03초, 아주 빠르면 0.004초처럼 0이 아닌 숫자가 보이게.</summary>
         public static string Seconds(TimeSpan t) =>
             t.TotalSeconds >= 0.01 ? t.TotalSeconds.ToString("0.00", System.Globalization.CultureInfo.CurrentCulture)
             : Math.Max(t.TotalSeconds, 0.001).ToString("0.000", System.Globalization.CultureInfo.CurrentCulture);
 
-        public const string NotFound = "킁킁… 이 냄새는 못 찾았어요. 다른 낱말로 찾아볼까요?";
+        public static string NotFound => Foldy.Core.Localization.Loc.T("dog.notFound");
     }
 
     private readonly Canvas _stage = new() { Width = 170, Height = 50, ClipToBounds = false };
@@ -45,7 +45,7 @@ internal sealed class SniffDog : Border
     {
         Padding = new Thickness(14, 2, 14, 0);
         Visibility = Visibility.Collapsed;
-        System.Windows.Automation.AutomationProperties.SetName(this, "냄새 잘 맡는 개");
+        System.Windows.Automation.AutomationProperties.SetName(this, Foldy.Core.Localization.Loc.T("dog.name"));
         BuildDog();
         Canvas.SetLeft(_dog, DogStart);
         Canvas.SetTop(_dog, 4);

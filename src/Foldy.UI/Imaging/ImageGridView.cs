@@ -595,7 +595,7 @@ public sealed class ImageGridView : FrameworkElement, IScrollInfo
         var inner = Inflate(box, -box.Width * 0.12);
         dc.DrawRoundedRectangle(PlaceholderBrush, null, inner, 6, 6);
         var ext = info.Extension.TrimStart('.').ToUpperInvariant();
-        var text = failed && ImageFormats.NeedsCodec(info.Name) ? ext + "\n코덱 필요" : ext;
+        var text = failed && ImageFormats.NeedsCodec(info.Name) ? ext + "\n" + Foldy.Core.Localization.Loc.T("img.needsCodec") : ext;
         if (text.Length == 0)
         {
             return;

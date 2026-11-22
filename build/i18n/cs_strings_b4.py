@@ -39,7 +39,7 @@ B4 = [
     # PaneView
     ("pane.col.name", "이름", "Name", "Nombre", "名前", "名称"),
     ("pane.col.size", "크기", "Size", "Tamaño", "サイズ", "大小"),
-    ("pane.col.modified", "수정", "Modified", "Modificado", "更新日時", "修改时间"),
+    ("pane.col.modified", "수정", "Modified", "Modificado", "更新", "修改"),
     ("pane.col.location", "위치", "Location", "Ubicación", "場所", "位置"),
     ("pane.escCancel", " · Esc 취소", " · Esc to cancel", " · Esc para cancelar", " · Esc でキャンセル", " · Esc 取消"),
     ("pane.git.added", "추가", "Added", "Añadido", "追加", "已添加"),
@@ -134,4 +134,22 @@ B4 = [
     ("hk.inFoldyOk", "알겠어요. Foldy 창에서만 {0}로 열게요.", "OK. {0} will open it only inside Foldy.", "Vale. {0} lo abrirá solo dentro de Foldy.", "わかりました。Foldy の画面でだけ {0} で開きます。", "好的，只在 Foldy 窗口中用 {0} 打开。"),
     ("hk.set", "좋아요! 이제 어디서든 {0}를 누르면 빠른 검색이 열려요.", "Great! Now pressing {0} anywhere opens quick search.", "¡Bien! Ahora al pulsar {0} en cualquier sitio se abre la búsqueda rápida.", "いいですね! これでどこでも {0} を押すとクイック検索が開きます。", "好的！现在在任何地方按 {0} 都能打开快速搜索。"),
     ("hk.alsoTaken", "{0}도 {1}. 다른 키를 골라 볼까요?", "{0} also {1}. Try another key?", "{0} también: {1}. ¿Pruebas otra tecla?", "{0} も{1}。別のキーにしますか?", "{0} 也{1}。换个按键试试？"),
+]
+
+B4 += [
+    ("qs.top", "가장 알맞은 것", "Best match", "Mejor resultado", "最も合うもの", "最佳匹配"),
+    ("dog.found", "킁킁! {0}초 만에 {1:N0}개 물어 왔어요", "Sniff! Fetched {1:N0} in {0} s", "¡Snif! {1:N0} encontrados en {0} s", "くんくん! {0} 秒で {1:N0} 個くわえてきました", "嗅嗅！{0} 秒叼回 {1:N0} 个"),
+    ("dog.notFound", "킁킁… 이 냄새는 못 찾았어요. 다른 낱말로 찾아볼까요?", "Sniff… couldn't find that scent. Try other words?", "Snif… no encuentro ese rastro. ¿Probamos con otras palabras?", "くんくん… このにおいは見つかりませんでした。別のことばで探しますか?", "嗅嗅… 没找到这个气味。换个词试试？"),
+    ("mcpex.1.ask", "작년 견적서 찾아 줘", "Find last year's quotes", "Busca los presupuestos del año pasado", "去年の見積書を探して", "帮我找去年的报价单"),
+    ("mcpex.1.what", "이름으로 파일 찾기 (회사 드라이브·Google Drive 포함)", "Find files by name (including company drives and Google Drive)", "Buscar archivos por nombre (incluidas unidades de empresa y Google Drive)", "名前でファイルを探す (会社のドライブ・Google ドライブを含む)", "按名称查找文件（包括公司驱动器和 Google 云端硬盘）"),
+    ("mcpex.2.ask", "D 드라이브에서 공간을 많이 차지하는 폴더가 뭐야?", "Which folders take up the most space on drive D?", "¿Qué carpetas ocupan más espacio en la unidad D?", "D ドライブで容量をたくさん使っているフォルダーは?", "D 盘里哪些文件夹最占空间？"),
+    ("mcpex.2.what", "큰 폴더부터 짚어 보기", "The biggest folders first", "Las carpetas más grandes primero", "大きいフォルダーから見ていく", "从大文件夹开始看"),
+    ("mcpex.3.ask", "다운로드 폴더에 뭐가 있는지 정리해서 알려 줘", "Tell me what's in my Downloads folder", "Dime qué hay en mi carpeta Descargas", "ダウンロード フォルダーに何があるかまとめて教えて", "整理一下下载文件夹里有什么告诉我"),
+    ("mcpex.3.what", "폴더 안 보기", "Look inside a folder", "Mirar dentro de una carpeta", "フォルダーの中を見る", "查看文件夹内容"),
+    ("mcpex.4.ask", "이 프로젝트 폴더 설명 읽어 줘", "Read the description of this project folder", "Lee la descripción de esta carpeta de proyecto", "このプロジェクト フォルダーの説明を読んで", "读一下这个项目文件夹的说明"),
+    ("mcpex.4.what", "Foldy에 적어 둔 폴더 설명", "Folder descriptions kept in Foldy", "Descripciones de carpeta guardadas en Foldy", "Foldy に書いておいたフォルダーの説明", "在 Foldy 中写下的文件夹说明"),
+    ("mcpex.5.ask", "보고서 폴더에서 아직 검토 중인 파일 알려 줘", "Which files in the reports folder are still in review?", "¿Qué archivos de la carpeta de informes siguen en revisión?", "報告書フォルダーでまだレビュー中のファイルを教えて", "告诉我报告文件夹里还在审阅中的文件"),
+    ("mcpex.5.what", "파일 상태 태그", "File status tags", "Etiquetas de estado de archivo", "ファイルの状態タグ", "文件状态标签"),
+    ("mcpex.6.ask", "드라이브 남은 공간과 색인 상태 알려 줘", "Tell me the free space and index status of my drives", "Dime el espacio libre y el estado del índice de mis unidades", "ドライブの空き容量とインデックスの状態を教えて", "告诉我驱动器的剩余空间和索引状态"),
+    ("mcpex.6.what", "드라이브 상태", "Drive status", "Estado de las unidades", "ドライブの状態", "驱动器状态"),
 ]

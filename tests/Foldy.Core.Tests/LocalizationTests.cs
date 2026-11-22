@@ -100,6 +100,67 @@ public sealed partial class LocalizationTests
         used.Where(k => !k.EndsWith('.') && !ko.ContainsKey(k)).Should().BeEmpty("strings.py 표에 넣고 python build/i18n/strings.py로 언어 파일을 다시 만들어야 한다");
     }
 
+    /// <summary>언어별 설명서(assets/help/index.&lt;언어&gt;.md)의 그림이 다 있어야 하고, 한국어 말고는 본문에 한국어가 거의 없어야 한다.</summary>
+    [Fact]
+    public void Help_files_point_to_existing_images()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Foldy.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        var help = Path.Combine(dir!.FullName, "assets", "help");
+        var files = Directory.GetFiles(help, "index*.md");
+        files.Should().Contain(f => Path.GetFileName(f) == "index.md");
+        foreach (var f in files)
+        {
+            var text = File.ReadAllText(f);
+            foreach (Match m in ImageLink().Matches(text))
+            {
+                File.Exists(Path.Combine(help, m.Groups[1].Value.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue($"{Path.GetFileName(f)}: 그림 {m.Groups[1].Value}");
+            }
+
+            if (Path.GetFileName(f) != "index.md")
+            {
+                // 예전 한국어 폴더 이름 같은 몇 곳만 남는다
+                Hangul().Count(text).Should().BeLessThan(80, $"{Path.GetFileName(f)}에 한국어가 많이 남았다");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 짧은 소개(쇼츠) 장면 그림마다 다가갈 곳(&lt;그림&gt;.focus.json)이 있어야 한다 (사용자 2026-11-22: 기계적으로 가운데를 키우지 말 것).
+    /// 문서 캡처가 실제 화면 요소 위치로 적는다. 언어별 폴더에도 같이 있어야 그 언어 화면의 위치로 다가간다.
+    /// </summary>
+    [Fact]
+    public void Short_intro_images_have_a_focus_area()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Foldy.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        var images = Path.Combine(dir!.FullName, "assets", "help", "images");
+        string[] scenes = ["quicksearch", "quicksearch-settings", "quicksearch-calc", "quicksearch-talk", "analysis", "rebuildable", "guide", "para-organize", "para-template", "main", "mcp", "memo", "git-changes"];
+        foreach (var folder in new[] { images }.Concat(Directory.GetDirectories(images)))
+        {
+            foreach (var s in scenes.Where(s => File.Exists(Path.Combine(folder, s + ".png"))))
+            {
+                var focus = Path.Combine(folder, s + ".focus.json");
+                File.Exists(focus).Should().BeTrue($"{focus}가 있어야 한다 (build/doc-screenshots.ps1로 다시 찍기)");
+                var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(focus)).RootElement;
+                var (x, y, w, h) = (json.GetProperty("x").GetDouble(), json.GetProperty("y").GetDouble(), json.GetProperty("w").GetDouble(), json.GetProperty("h").GetDouble());
+                (w > 0.01 && h > 0.01 && x >= 0 && y >= 0 && x + w <= 1.001 && y + h <= 1.001).Should().BeTrue(focus);
+                (w * h).Should().BeLessThan(0.95, $"{focus}: 그림 전체를 가리키면 다가가는 의미가 없다");
+            }
+        }
+    }
+
+    [GeneratedRegex(@"!\[[^\]]*\]\((images/[^)]+)\)")]
+    private static partial Regex ImageLink();
+
     [GeneratedRegex(@"Loc\.[TF]\(""([^""]+)""")]
     private static partial Regex CodeKey();
 

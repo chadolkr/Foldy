@@ -58,6 +58,29 @@ public static class LogPlanner
             .OrderByDescending(g => g.Size)
             .ToList();
 
+    /// <summary>
+    /// 압축하기 전에 볼 공간 (사용자 원칙 2026-11-22). 원본은 휴지통으로 가서 바로 비워지지 않으므로 새 zip 크기를 다 더하고,
+    /// 이미 있는 월별 zip은 새 파일로 다시 쓰므로 그중 가장 큰 것만큼 잠깐 더 든다.
+    /// </summary>
+    public static long SpaceNeeded(IReadOnlyList<LogGroup> groups)
+    {
+        ArgumentNullException.ThrowIfNull(groups);
+        long zips = 0, rewrite = 0;
+        foreach (var g in groups)
+        {
+            zips += (long)(g.Size * (1 - SavingRatio));
+            try
+            {
+                rewrite = Math.Max(rewrite, File.Exists(g.ZipPath) ? new FileInfo(g.ZipPath).Length : 0);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
+        return zips + rewrite + Foldy.Core.Space.DiskSpace.Slack;
+    }
+
     public static bool IsSerious(long saving, long freeBytes) =>
         saving >= NoticeBytes || (freeBytes > 0 && saving >= freeBytes * NoticeFreeRatio && saving >= 100L << 20);
 }
@@ -117,12 +140,12 @@ public static class LogArchiver
                     }
                     catch (IOException)
                     {
-                        skipped.Add((f.Path, "다른 프로그램이 쓰는 중"));
+                        skipped.Add((f.Path, Foldy.Core.Localization.Loc.T("lc.inUse")));
                         continue;
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        skipped.Add((f.Path, "권한 없음"));
+                        skipped.Add((f.Path, Foldy.Core.Localization.Loc.T("lc.noPermission")));
                         continue;
                     }
 
@@ -156,7 +179,7 @@ public static class LogArchiver
             {
                 if (zip.Entries.Count != oldCount + added.Count)
                 {
-                    throw new InvalidDataException("새 zip의 항목 수가 맞지 않음");
+                    throw new InvalidDataException(Foldy.Core.Localization.Loc.T("lc.countMismatch"));
                 }
 
                 foreach (var (path, entryName, hash) in added)
@@ -169,7 +192,7 @@ public static class LogArchiver
                     }
                     else
                     {
-                        verifySkipped.Add((path, "압축 확인 실패 (원본은 그대로 둠)"));
+                        verifySkipped.Add((path, Foldy.Core.Localization.Loc.T("lc.verifyFailed")));
                     }
                 }
             }

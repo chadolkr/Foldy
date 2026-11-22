@@ -67,7 +67,7 @@ public sealed partial class GitTabViewModel
         set => SideBySide = !value;
     }
 
-    public string ChangeCountText => ChangeCount == 0 ? "변경 없음" : $"변경 {ChangeCount}개";
+    public string ChangeCountText => ChangeCount == 0 ? Foldy.Core.Localization.Loc.T("pane.git.clean") : Foldy.Core.Localization.Loc.F("pane.git.changes", ChangeCount);
 
     // ── 커밋 버튼: 눌러도 되는지와 이유 ──
 
@@ -76,21 +76,21 @@ public sealed partial class GitTabViewModel
     {
         get
         {
-            if (!IsIdle) return "다른 작업이 진행 중입니다. 끝난 뒤 다시 시도하세요.";
+            if (!IsIdle) return Foldy.Core.Localization.Loc.T("git.busy");
             if (Amend) return "";
-            if (Staged.Count == 0) return "커밋할 파일이 없습니다. 목록에서 커밋할 파일의 체크박스를 켜세요.";
-            if (string.IsNullOrWhiteSpace(CommitMessage)) return "커밋 메시지를 입력하세요. 무엇을 바꿨는지 짧게 적으면 됩니다.";
+            if (Staged.Count == 0) return Foldy.Core.Localization.Loc.T("git.noStaged");
+            if (string.IsNullOrWhiteSpace(CommitMessage)) return Foldy.Core.Localization.Loc.T("git.needMessage");
             return "";
         }
     }
 
     public string CommitTooltip => CommitDisabledReason is { Length: > 0 } r
         ? r
-        : Amend ? "직전 커밋을 고칩니다." : $"체크한 {Staged.Count}개 파일을 하나의 커밋으로 기록합니다.";
+        : Amend ? Foldy.Core.Localization.Loc.T("git.amendTip") : Foldy.Core.Localization.Loc.F("git.commitTip", Staged.Count);
 
     public string CommitAndPushTooltip => CommitDisabledReason is { Length: > 0 } r
         ? r
-        : "커밋한 뒤 바로 원격 저장소에 올립니다.";
+        : Foldy.Core.Localization.Loc.T("git.pushAfterTip");
 
     private void RaiseCommitState()
     {
@@ -129,9 +129,9 @@ public sealed partial class GitTabViewModel
             var staged = Staged.ToList();
             var changed = Unstaged.Where(i => i.Change != GitChange.Untracked).ToList();
             var fresh = Unstaged.Where(i => i.Change == GitChange.Untracked).ToList();
-            AddGroup("스테이지됨", staged);
-            AddGroup("변경됨", changed);
-            AddGroup("새 파일", fresh);
+            AddGroup(Foldy.Core.Localization.Loc.T("git.staged"), staged);
+            AddGroup(Foldy.Core.Localization.Loc.T("git.changed"), changed);
+            AddGroup(Foldy.Core.Localization.Loc.T("pane.git.untracked"), fresh);
             HasLoadedStatus = true;
         }
         finally
@@ -179,12 +179,12 @@ public sealed partial class GitTabViewModel
 
     /// <summary>[여기에 Git 저장소 만들기 (git init)].</summary>
     [RelayCommand]
-    public Task InitRepositoryAsync() => ExecAsync("저장소 만들기", async (_, ct) =>
+    public Task InitRepositoryAsync() => ExecAsync(Foldy.Core.Localization.Loc.T("git.createRepo"), async (_, ct) =>
     {
         var r = await _git.InitAsync(RepoRoot, ct);
         if (r.Success) NeedsInit = false;
         return r;
-    }, RefreshScope.All, "Git 저장소를 만들었습니다");
+    }, RefreshScope.All, Foldy.Core.Localization.Loc.T("git.repoCreated"));
 
     // ── 알림 ──
 
