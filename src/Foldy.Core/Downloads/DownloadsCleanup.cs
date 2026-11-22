@@ -28,7 +28,11 @@ public static class DownloadsPlanner
 {
     public const int OldDays = 90;
     public const long NoticeBytes = 1L << 30;
-    public const string ArchiveFolderName = "보관";
+    /// <summary>예전(한국어) 이름. 다운로드에 이미 있으면 그 폴더를 계속 쓴다.</summary>
+    public const string ArchiveFolderNameKo = "보관";
+
+    /// <summary>지금 앱 언어로 만드는 이름.</summary>
+    public static string ArchiveFolderName => Foldy.Core.Localization.Loc.T("folder.downloadsArchive");
 
     /// <param name="installedName">.exe의 제품 이름이 설치된 프로그램이면 그 프로그램 이름, 아니면 null.</param>
     /// <param name="findDuplicates">같은 크기 파일끼리 내용(SHA-256)을 비교한다. 백그라운드 확인에서는 끈다.</param>
@@ -90,7 +94,7 @@ public static class DownloadsPlanner
 
     /// <summary>보관 폴더: 다운로드\보관\연-월.</summary>
     public static string ArchiveFolder(string downloads, DateTime nowLocal) =>
-        System.IO.Path.Combine(downloads, ArchiveFolderName, nowLocal.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
+        System.IO.Path.Combine(downloads, Foldy.Core.Localization.FolderNames.Pick(downloads, ArchiveFolderNameKo, ArchiveFolderName), nowLocal.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
 
     /// <summary>보관 폴더로 옮긴다 (이름이 겹치면 " (2)"를 붙인다). 옮긴 개수를 돌려준다.</summary>
     public static int MoveToArchive(IEnumerable<string> paths, string archiveFolder)

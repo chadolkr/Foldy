@@ -14,13 +14,13 @@ S = {
     "tagline.sub": {"ko": "AI와 연결하면 더 편하게", "en": "Even easier when connected to AI", "es": "Aún más fácil conectado a la IA", "ja": "AIとつなげばもっと便利に", "zh-Hans": "连接 AI 更方便"},
 
     # 사이드바: 대표 기능 넷
-    "side.find": {"ko": "무엇이든 찾기", "en": "Find anything", "es": "Buscar lo que sea", "ja": "なんでも検索", "zh-Hans": "查找任何东西"},
+    "side.find": {"ko": "무엇이든 찾기", "en": "Find anything", "es": "Buscar todo", "ja": "なんでも検索", "zh-Hans": "查找任何东西"},
     "side.find.tip": {"ko": "파일·앱·Windows 설정·Foldy 기능을 한 칸에서 (어디서든 Ctrl+Space)", "en": "Files, apps, Windows settings and Foldy features in one box (Ctrl+Space anywhere)", "es": "Archivos, apps, ajustes de Windows y funciones de Foldy en un solo cuadro (Ctrl+Espacio en cualquier lugar)", "ja": "ファイル・アプリ・Windows の設定・Foldy の機能をひとつの欄で (どこでも Ctrl+Space)", "zh-Hans": "在一个框里查找文件、应用、Windows 设置和 Foldy 功能（随处按 Ctrl+Space）"},
     "side.space": {"ko": "공간 늘리기", "en": "Free up space", "es": "Liberar espacio", "ja": "空き容量を増やす", "zh-Hans": "释放空间"},
     "side.space.tip": {"ko": "폴더 분석: 무엇이 공간을 차지하는지 보고 지워도 되는 것만 골라 비우기", "en": "Folder analysis: see what takes up space and remove only what is safe to delete", "es": "Análisis de carpetas: mira qué ocupa espacio y elimina solo lo que se puede borrar", "ja": "フォルダー分析: 何が容量を使っているかを見て、消しても大丈夫なものだけ片付けます", "zh-Hans": "文件夹分析：查看什么占用了空间，只清理可以安全删除的内容"},
-    "side.tidy": {"ko": "바탕화면, 다운로드, 폴더 정리", "en": "Tidy up folders", "es": "Ordenar carpetas", "ja": "デスクトップ・ダウンロード・フォルダーの整理", "zh-Hans": "整理桌面、下载和文件夹"},
+    "side.tidy": {"ko": "바탕화면, 다운로드, 폴더 정리", "en": "Tidy up folders", "es": "Ordenar carpetas", "ja": "フォルダーを整理", "zh-Hans": "整理文件夹"},
     "side.tidy.tip": {"ko": "정리 도우미: 어디를 · 어떻게 고르면 정리 후 모습을 먼저 보여 줘요 (지우지 않고, 되돌릴 수 있어요)", "en": "Tidy helper: choose where and how, and see the result before anything moves (nothing is deleted, and you can undo)", "es": "Asistente de orden: elige dónde y cómo, y mira el resultado antes de mover nada (no se borra nada y puedes deshacer)", "ja": "整理アシスタント: 場所と方法を選ぶと、動かす前に整理後の姿を見せます (削除なし、元に戻せます)", "zh-Hans": "整理助手：选好位置和方式，先看整理后的样子（不会删除，可以撤销）"},
-    "side.template": {"ko": "템플릿으로 폴더 만들기", "en": "Folders from a template", "es": "Carpetas desde una plantilla", "ja": "テンプレートからフォルダー作成", "zh-Hans": "用模板创建文件夹"},
+    "side.template": {"ko": "템플릿으로 폴더 만들기", "en": "Folders from a template", "es": "Carpetas con plantilla", "ja": "テンプレートで作成", "zh-Hans": "用模板创建文件夹"},
     "side.template.tip": {"ko": "PARA·업종별 프로젝트 단계 같은 폴더 틀을 미리 보고 한 번에 만들기 (Ctrl+Shift+N)", "en": "Preview and create a folder structure such as PARA or industry project phases in one go (Ctrl+Shift+N)", "es": "Previsualiza y crea de una vez una estructura como PARA o las fases de un proyecto por sector (Ctrl+Mayús+N)", "ja": "PARA や業種別のプロジェクト工程などのフォルダー構成を確認して一度に作成 (Ctrl+Shift+N)", "zh-Hans": "预览并一次创建 PARA 或各行业项目阶段等文件夹结构（Ctrl+Shift+N）"},
 
     # 사이드바: 제목과 묶음

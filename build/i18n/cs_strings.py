@@ -107,3 +107,5 @@ from cs_strings_b3 import B3  # noqa: E402
 CS = CS + B3
 from cs_strings_b4 import B4  # noqa: E402
 CS = CS + B4
+from cs_strings_folders import FOLDERS  # noqa: E402
+CS = CS + FOLDERS

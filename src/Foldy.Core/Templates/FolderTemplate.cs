@@ -151,7 +151,10 @@ public static class TemplateCategories
     /// "프로젝트"는 업종별 국제 표준 단계(PMBOK, ISO/IEC/IEEE 12207, ISO 19650)로 나누는 문서 폴더.
     /// 사용자가 만든 템플릿의 다른 묶음(예: 개발)은 이 뒤에 이름순으로 그대로 보인다.
     /// </summary>
-    public static readonly IReadOnlyList<string> Order = ["개인·업무", "프로젝트", "기록·보관", "미디어·창작"];
+    public static IReadOnlyList<string> Order => [.. OrderKo.Select(c => TemplateI18n.Text(c))];
+
+    /// <summary>템플릿 JSON의 category 값(한국어). 화면에는 앱 언어로 (TemplateI18n).</summary>
+    private static readonly string[] OrderKo = ["개인·업무", "프로젝트", "기록·보관", "미디어·창작"];
 
     /// <summary>묶음 안에서 먼저 보여 줄 대중적인 템플릿 (PARA가 맨 앞이고 처음 고른 상태). 없는 것은 그 뒤, 원래 순서.</summary>
     public static readonly IReadOnlyList<string> Popular = ["para", "date-archive", "household-life", "document-workflow", "number-prefix", "johnny-decimal", "photo-archive", "pm-project", "it-project", "cde-project"];

@@ -22,7 +22,7 @@ public static class CleanupPaths
     public static string Desktop => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 
     /// <summary>바탕화면 안의 "바탕화면 보관" (눈에 보여야 안심이 된다).</summary>
-    public static string DesktopArchive => Path.Combine(Desktop, DesktopTidy.ArchiveFolderName);
+    public static string DesktopArchive => DesktopTidy.ArchiveFolderIn(Desktop);
 
     public static string DesktopJournal => Path.Combine(App.DataDir, "desktop-tidy-last.json");
 

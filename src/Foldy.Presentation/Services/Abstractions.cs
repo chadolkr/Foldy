@@ -77,12 +77,15 @@ public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null
     public bool HasSpace => TotalBytes is > 0 && FreeBytes is not null;
 
     /// <summary>"120 GB 남음 / 476 GB". 용량을 모르면 빈 문자열.</summary>
-    public string SpaceText => HasSpace ? $"{Files.FileItem.FormatBytes(FreeBytes!.Value)} 남음 / {Files.FileItem.FormatBytes(TotalBytes!.Value)}" : Offline ? "연결 안 됨" : "";
+    public string SpaceText => HasSpace ? Foldy.Core.Localization.Loc.F("drive.space", Files.FileItem.FormatBytes(FreeBytes!.Value), Files.FileItem.FormatBytes(TotalBytes!.Value)) : Offline ? Foldy.Core.Localization.Loc.T("drive.offline") : "";
 
     /// <summary>이 드라이브의 빠른 찾기(색인) 상태 한 줄 ("빠른 찾기 ✓", "빠른 찾기 준비 중 62%", "빠른 찾기 없음 · 폴더 안에서만"). 모르면 null.</summary>
     public string? IndexText { get; init; }
 
     public bool HasIndexText => !string.IsNullOrEmpty(IndexText);
+
+    /// <summary>화면 낭독기가 읽는 이름 (사이드바 드라이브 항목): 레코드 기본 ToString은 속성을 모두 읽어 버린다.</summary>
+    public override string ToString() => string.Join(" · ", new[] { Display, SpaceText, IndexText }.Where(s => !string.IsNullOrEmpty(s)));
 }
 
 /// <summary>터미널 열기 (설계서: 현재 패널 경로에서 시작, 관리자는 UAC 경유).</summary>
