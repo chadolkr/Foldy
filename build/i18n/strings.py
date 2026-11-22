@@ -96,7 +96,8 @@ from shell_strings import SHELL  # noqa: E402
 from xaml_strings import XAML  # noqa: E402
 from xaml_strings2 import XAML2  # noqa: E402
 from cs_strings import CS  # noqa: E402
-for _k, _ko, _en, _es, _ja, _zh in SHELL + XAML + XAML2 + CS:
+from mcp_strings import MCP  # noqa: E402
+for _k, _ko, _en, _es, _ja, _zh in SHELL + XAML + XAML2 + CS + MCP:
     S[_k] = {"ko": _ko, "en": _en, "es": _es, "ja": _ja, "zh-Hans": _zh}
 
 

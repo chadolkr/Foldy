@@ -2,6 +2,13 @@
 
 정한 것을 짧게 남긴다: 날짜, 무엇을, 왜, 다른 안. 최근 것이 위.
 
+## 2026-11-22 · AI 연결: Claude 설정 위치 고침, 연결 뒤 할 일 안내, Antigravity (1.0.0, 사용자 제보·요청)
+- **경위**: "foldy MCP 연결을 했다. C 드라이브 사용량을 보여줘" → "새대화 연결해도 연결이 안되었다는데". 노트북에서 보니 켜져 있던 Claude(Store판 `AnthropicPBC.Claude_…`)는 `%LOCALAPPDATA%\Claude-Data\<패키지>`의 설정을 읽는데, Foldy는 예전 Store판 폴더(`Packages\Claude_…\LocalCache\Roaming\Claude`, 데이터가 옮겨 가 아무도 읽지 않음)에 썼다. Foldy MCP 서버 자체는 정상(직접 initialize·tools/list 확인, Antigravity에서도 붙음). 사용자: "연결하는 이런 내용을 안내해줘야겠구나", "Antigravity는 연결되어 잘 된다".
+- **결정**: Claude Desktop 설정 폴더를 판마다 찾는다(Claude-Data 아래, %APPDATA%\Claude, 예전 Store판 패키지). `.user-data-left.…` 표시가 있는 폴더는 뺀다. 여러 판이면 모두에 넣고, 연결 여부는 가장 최근에 쓴 폴더로 본다.
+- **연결 뒤 할 일**: [AI에 연결]을 누르면 앱마다 다음 단계를 쉬운 말로 보여 준다(완전히 껐다 켜기, 새 대화, 도구 메뉴에서 foldy, 처음 쓸 때 허용, 해 볼 질문). Claude Desktop은 창의 X로 안 꺼지므로 **[Claude 다시 시작]** 단추: 한 번 더 묻고 Claude Desktop만 끝낸 뒤 다시 켠다(Claude Code 명령줄은 건드리지 않음). 5개 언어, 설명서에도.
+- **Antigravity 추가**: `~/.gemini/config/mcp_config.json`(예전 판 `~/.gemini/antigravity/mcp_config.json`), 형식은 `mcpServers`.
+- **SemVer**: 1.0.0에 같이 들어간다(호환되는 고침·기능, 설정 형식 변경 없음).
+
 ## 2026-11-22 · "해킹 코드가 없다"는 근거를 누구나 확인할 수 있게 (사용자 요청)
 - **경위**: "해킹코드가 없다라는 것을 증명해야 사람들이 안심하고 사용할 것 같아", "해커들이 가짜 사이트를 만들어서 배포하는 사례도 있던데 이점도 고려해서 방어해야".
 - **결정**: 완벽한 증명은 불가능하므로 **제3자가 만든, 누구나 확인할 수 있는 근거**를 쌓는다. ① 릴리스는 공개 GitHub Actions에서만 빌드 + GitHub artifact attestation(빌드 출처·SBOM 증명) ② SHA256SUMS.txt ③ VirusTotal 링크(키가 있을 때) ④ CodeQL·의존성 검사·Dependabot ⑤ OpenSSF Scorecard 배지 ⑥ 앱의 네트워크 통신 전부를 PRIVACY.md에 ⑦ SECURITY.md(공식 주소, 진짜 확인법 세 가지, 업데이트가 안전한 이유, 신고 방법). 사이트 "안심" 부분을 다섯 언어로 바꾸고 "가짜 Foldy 조심" 추가.

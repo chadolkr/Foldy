@@ -612,7 +612,20 @@ The buttons at the top right of a local folder tab open a terminal **in the curr
 
 ![AI connection window](images/en/mcp.png)
 
-You can let AI apps like Claude find files on your PC through Foldy (an MCP server). Open **More (⋯) → Connect AI (MCP)…** or "AI connection" in Ctrl+Space, and one **[Connect to AI]** is all it takes. Only the AI apps installed on this PC are shown (Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code); pressing it adds Foldy to that app's settings (the original settings are backed up). Restart the app and try "find proposals on drive D".
+You can let AI apps like Claude find files on your PC through Foldy (an MCP server). Open **More (⋯) → Connect AI (MCP)…** or "AI connection" in Ctrl+Space, and one **[Connect to AI]** is all it takes. Only the AI apps installed on this PC are shown (Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code, Antigravity); pressing it adds Foldy to that app's settings (the original settings are backed up). Restart the app and try "find proposals on drive D".
+
+**After connecting** (the window shows these steps for each app)
+
+![After connecting](images/en/mcp-next.png)
+
+AI apps read their settings only when they start, so Foldy won't show up until you restart the app.
+
+1. **Quit the AI app completely and open it again.** Closing Claude Desktop with X is not enough. Right-click the Claude icon in the notification area at the bottom right of the screen and quit, or press **[Restart Claude]** in the window (anything Claude is doing stops).
+2. **Start a new chat.** Chats that were already open may not see Foldy.
+3. Check that **foldy** is on in the [+] or tools menu of the message box. When it asks for permission the first time, choose **Allow**.
+4. Ask "How much space is used on drive C?"
+
+Each app is a little different. For Claude Code, Gemini CLI and the Codex command line, start them again and check with `/mcp` that foldy is there; for Cursor and VS Code, restart and use Agent mode. In Antigravity, just start a new conversation. If it still doesn't show up, press [Connect to AI] once more and quit and reopen the app.
 
 **Once connected, try asking** (click in the AI connection window to copy):
 

@@ -25,7 +25,14 @@ public enum McpConfigFormat
 /// <param name="ConfigPath">설정 파일 경로.</param>
 /// <param name="Format">설정 형식.</param>
 /// <param name="Installed">이 PC에 깔려 있는 것 같은가 (설정 폴더가 있다).</param>
-public sealed record McpClientApp(string Name, string ConfigPath, McpConfigFormat Format, bool Installed);
+public sealed record McpClientApp(string Name, string ConfigPath, McpConfigFormat Format, bool Installed)
+{
+    /// <summary>
+    /// 같은 앱의 다른 설치본이 읽는 설정 파일 (Claude Desktop: Store판이 둘 깔려 있거나 설치 프로그램판도 있을 때).
+    /// 연결·해제는 여기에도 해서, 어느 쪽 Claude를 켜도 Foldy가 보이게 한다. 연결됐는지는 <see cref="ConfigPath"/>(가장 최근에 쓴 설치본)로 본다.
+    /// </summary>
+    public IReadOnlyList<string> OtherConfigPaths { get; init; } = [];
+}
 
 /// <summary>
 /// AI 앱 설정에 Foldy를 넣고 빼기 (사용자 2026-11-21: "사용자가 MCP를 알고 접속 정보를 직접 넣어야 하나?" → 버튼 하나로).
@@ -42,22 +49,31 @@ public static class McpClientConfig
     /// <summary>알려진 AI 앱들. roaming = %APPDATA%, local = %LOCALAPPDATA%, home = 사용자 폴더.</summary>
     public static IReadOnlyList<McpClientApp> Known(string roaming, string local, string home)
     {
-        // Claude Desktop: 설치 프로그램판은 %APPDATA%\Claude, Microsoft Store판은 패키지 폴더 안
-        var desktopDir = Path.Combine(roaming, "Claude");
-        if (!Directory.Exists(desktopDir) && StoreDesktopDir(local) is { } store)
+        // Claude Desktop: 설정 폴더가 판마다 다르다 (ClaudeDesktopDirs). 가장 최근에 쓴 곳이 앞
+        const string DesktopFile = "claude_desktop_config.json";
+        var desktopDirs = ClaudeDesktopDirs(roaming, local);
+        var desktop = new McpClientApp("Claude Desktop", Path.Combine(desktopDirs.Count > 0 ? desktopDirs[0] : Path.Combine(roaming, "Claude"), DesktopFile), McpConfigFormat.McpServers, desktopDirs.Count > 0)
         {
-            desktopDir = store;
-        }
+            OtherConfigPaths = [.. desktopDirs.Skip(1).Select(d => Path.Combine(d, DesktopFile))],
+        };
 
         bool Dir(params string[] p) => Directory.Exists(Path.Combine(p));
+
+        // Antigravity (Google): ~/.gemini/config/mcp_config.json, 예전 판은 ~/.gemini/antigravity/mcp_config.json (사용자 2026-11-22: Antigravity에서는 된다)
+        var antigravity = Dir(home, ".gemini", "config") || !Dir(home, ".gemini", "antigravity")
+            ? Path.Combine(home, ".gemini", "config", "mcp_config.json")
+            : Path.Combine(home, ".gemini", "antigravity", "mcp_config.json");
+        var antigravityInstalled = Dir(home, ".gemini", "antigravity") || Dir(home, ".gemini", "config")
+            || (Directory.Exists(Path.Combine(local, "Programs")) && Directory.EnumerateDirectories(Path.Combine(local, "Programs"), "Antigravity*").Any());
         return
         [
-            new("Claude Desktop", Path.Combine(desktopDir, "claude_desktop_config.json"), McpConfigFormat.McpServers, Directory.Exists(desktopDir)),
+            desktop,
             new("Claude Code", Path.Combine(home, ".claude.json"), McpConfigFormat.McpServersStdio, File.Exists(Path.Combine(home, ".claude.json")) || Dir(home, ".claude")),
             new("Codex", Path.Combine(home, ".codex", "config.toml"), McpConfigFormat.CodexToml, Dir(home, ".codex")),
             new("Gemini CLI", Path.Combine(home, ".gemini", "settings.json"), McpConfigFormat.McpServers, Dir(home, ".gemini")),
             new("Cursor", Path.Combine(home, ".cursor", "mcp.json"), McpConfigFormat.McpServers, Dir(home, ".cursor")),
             new("VS Code", Path.Combine(roaming, "Code", "User", "mcp.json"), McpConfigFormat.VsCodeServers, Dir(roaming, "Code", "User")),
+            new("Antigravity", antigravity, McpConfigFormat.McpServers, antigravityInstalled),
         ];
     }
 
@@ -71,18 +87,74 @@ public static class McpClientConfig
         return installed.Count == 0 || installed.Any(connected) ? null : installed[0].Name;
     }
 
-    private static string? StoreDesktopDir(string local)
+    /// <summary>
+    /// Claude Desktop이 지금 읽는 설정 폴더들, 가장 최근에 쓴 곳부터 (사용자 2026-11-22: 연결했는데 Claude 새 대화에 Foldy가 없었다).
+    /// 판마다 위치가 다르다:
+    /// 새 판(Store판·설치 프로그램판)은 %LOCALAPPDATA%\Claude-Data\&lt;패키지 이름&gt;, 설치 프로그램판은 %APPDATA%\Claude,
+    /// 예전 Store판은 %LOCALAPPDATA%\Packages\…Claude_…\LocalCache\Roaming\Claude.
+    /// 데이터가 다른 곳으로 옮겨 간 폴더에는 ".user-data-left.…" 표시 파일이 남는데, 그 폴더의 설정은 아무도 읽지 않으므로 뺀다.
+    /// </summary>
+    public static IReadOnlyList<string> ClaudeDesktopDirs(string roaming, string local)
     {
+        var found = new List<string>();
+        void Add(string dir)
+        {
+            if (Directory.Exists(dir) && !Moved(dir) && !found.Contains(dir, StringComparer.OrdinalIgnoreCase))
+            {
+                found.Add(dir);
+            }
+        }
+
         try
         {
+            var data = Path.Combine(local, "Claude-Data");
+            if (Directory.Exists(data))
+            {
+                foreach (var d in Directory.EnumerateDirectories(data).Where(d => File.Exists(Path.Combine(d, "claude_desktop_config.json")) || File.Exists(Path.Combine(d, "config.json"))))
+                {
+                    Add(d);
+                }
+            }
+
+            Add(Path.Combine(roaming, "Claude"));
             var pk = Path.Combine(local, "Packages");
-            return Directory.Exists(pk)
-                ? Directory.EnumerateDirectories(pk, "Claude_*").Select(d => Path.Combine(d, "LocalCache", "Roaming", "Claude")).FirstOrDefault(Directory.Exists)
-                : null;
+            if (Directory.Exists(pk))
+            {
+                foreach (var d in Directory.EnumerateDirectories(pk, "*Claude_*"))
+                {
+                    Add(Path.Combine(d, "LocalCache", "Roaming", "Claude"));
+                }
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return null;
+        }
+
+        return [.. found.OrderByDescending(LastUsed)];
+    }
+
+    private static bool Moved(string dir)
+    {
+        try
+        {
+            return Directory.EnumerateFiles(dir, ".user-data-left.*").Any();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return true;
+        }
+    }
+
+    /// <summary>앱이 이 폴더에 마지막으로 쓴 때 (바로 아래 파일들 중 가장 늦은 것).</summary>
+    private static DateTime LastUsed(string dir)
+    {
+        try
+        {
+            return Directory.EnumerateFiles(dir).Select(File.GetLastWriteTimeUtc).DefaultIfEmpty(DateTime.MinValue).Max();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return DateTime.MinValue;
         }
     }
 
@@ -118,9 +190,43 @@ public static class McpClientConfig
     /// </summary>
     public static bool Connect(McpClientApp app, string exePath)
     {
-        if (app.Format == McpConfigFormat.CodexToml)
+        // 다른 설치본에도 넣는다 (어느 쪽 Claude를 켜도 보이게). 그쪽 실패는 결과에 넣지 않는다
+        foreach (var other in app.OtherConfigPaths)
         {
-            var lines = RemoveTomlBlock(ReadLines(app.ConfigPath));
+            try
+            {
+                ConnectFile(other, app.Format, exePath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
+        return ConnectFile(app.ConfigPath, app.Format, exePath);
+    }
+
+    /// <summary>설정에서 Foldy만 뺀다 (다른 설치본 설정에서도).</summary>
+    public static bool Disconnect(McpClientApp app)
+    {
+        foreach (var other in app.OtherConfigPaths)
+        {
+            try
+            {
+                DisconnectFile(other, app.Format);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
+        return DisconnectFile(app.ConfigPath, app.Format);
+    }
+
+    private static bool ConnectFile(string path, McpConfigFormat format, string exePath)
+    {
+        if (format == McpConfigFormat.CodexToml)
+        {
+            var lines = RemoveTomlBlock(ReadLines(path));
             while (lines.Count > 0 && lines[^1].Trim().Length == 0)
             {
                 lines.RemoveAt(lines.Count - 1);
@@ -134,24 +240,24 @@ public static class McpClientConfig
             lines.Add($"[mcp_servers.{ServerName}]");
             lines.Add($"command = {TomlString(exePath)}");
             lines.Add("args = [\"--mcp\"]");
-            Save(app.ConfigPath, string.Join('\n', lines) + "\n");
+            Save(path, string.Join('\n', lines) + "\n");
             return true;
         }
 
-        var root = Load(app.ConfigPath);
+        var root = Load(path);
         if (root is null)
         {
             return false;
         }
 
-        var key = Key(app.Format);
+        var key = Key(format);
         if (root[key] is not JsonObject servers)
         {
             root[key] = servers = [];
         }
 
         var entry = new JsonObject();
-        if (app.Format != McpConfigFormat.McpServers)
+        if (format != McpConfigFormat.McpServers)
         {
             entry["type"] = "stdio";
         }
@@ -159,39 +265,38 @@ public static class McpClientConfig
         entry["command"] = exePath;
         entry["args"] = new JsonArray("--mcp");
         servers[ServerName] = entry;
-        Save(app.ConfigPath, root.ToJsonString(Pretty) + "\n");
+        Save(path, root.ToJsonString(Pretty) + "\n");
         return true;
     }
 
-    /// <summary>설정에서 Foldy만 뺀다.</summary>
-    public static bool Disconnect(McpClientApp app)
+    private static bool DisconnectFile(string path, McpConfigFormat format)
     {
-        if (!File.Exists(app.ConfigPath))
+        if (!File.Exists(path))
         {
             return true;
         }
 
-        if (app.Format == McpConfigFormat.CodexToml)
+        if (format == McpConfigFormat.CodexToml)
         {
-            var before = ReadLines(app.ConfigPath);
+            var before = ReadLines(path);
             var after = RemoveTomlBlock(before);
             if (after.Count != before.Count)
             {
-                Save(app.ConfigPath, string.Join('\n', after).TrimEnd('\n') + "\n");
+                Save(path, string.Join('\n', after).TrimEnd('\n') + "\n");
             }
 
             return true;
         }
 
-        var root = Load(app.ConfigPath);
+        var root = Load(path);
         if (root is null)
         {
             return false;
         }
 
-        if (root[Key(app.Format)] is JsonObject servers && servers.Remove(ServerName))
+        if (root[Key(format)] is JsonObject servers && servers.Remove(ServerName))
         {
-            Save(app.ConfigPath, root.ToJsonString(Pretty) + "\n");
+            Save(path, root.ToJsonString(Pretty) + "\n");
         }
 
         return true;
