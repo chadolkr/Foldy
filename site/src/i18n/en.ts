@@ -179,6 +179,7 @@ const en: Dictionary = {
       { title: 'You can look inside', text: 'All of Foldy’s source code is public, so anyone can check what it does.' },
       { title: 'Change it and share it', text: 'You may change Foldy to suit you and give it to others.' },
       { title: 'Share it the same way', text: 'If you give a changed Foldy to others, it must stay under GPL-3.0 and come with its source code. That keeps Foldy open to everyone, whoever changes it.' },
+      { title: 'How it differs from MIT', text: 'Anyone is free to use it. But if you build a program from Foldy’s code and give it to others, that program must also be GPL-3.0 with its source code public. So Foldy’s code cannot go into closed-source commercial software. MIT is different: it only asks you to credit the source, and you may keep your code closed.' },
       { title: 'No warranty', text: 'Because it is shared for free, there is no guarantee if something goes wrong. That is true of most open source. Tell us about problems and we will fix them together.' },
     ],
     link: 'Read the full license',
