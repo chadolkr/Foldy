@@ -27,6 +27,9 @@ public enum PreviewStatus
     NetworkDrive,
     TooLarge,
     Failed,
+
+    /// <summary>DRM·암호로 보호된 파일 (<see cref="FileProtectionCheck"/>). 오류가 아니라 안내로 보여 준다.</summary>
+    Protected,
 }
 
 /// <summary>상태 줄에 쓰는 문구 (DESIGN.md 느린 드라이브 규칙).</summary>
@@ -38,6 +41,15 @@ public static class PreviewMessages
     public static string Loading => Foldy.Core.Localization.Loc.T("preview.loading");
     public static string Failed => Foldy.Core.Localization.Loc.T("preview.failed");
     public static string Folder => Foldy.Core.Localization.Loc.T("preview.folder");
+
+    /// <summary>보호된 파일 안내 (사용자 2026-11-22: DRM 파일을 오류로 보이지 말 것).</summary>
+    public static string For(FileProtection protection) => protection switch
+    {
+        FileProtection.Drm => Foldy.Core.Localization.Loc.T("preview.drm"),
+        FileProtection.Password => Foldy.Core.Localization.Loc.T("preview.password"),
+        FileProtection.Protected => Foldy.Core.Localization.Loc.T("preview.protected"),
+        _ => NotPreviewable,
+    };
 
     public static string TooLarge(long bytes, long limit) =>
         Foldy.Core.Localization.Loc.F("preview.tooBig", FileItem.FormatBytes(bytes), FileItem.FormatBytes(limit));
@@ -88,6 +100,9 @@ public sealed record TextPreviewContent(string Text, string EncodingName, bool T
 /// <param name="AllowContentRead">false면 내용을 읽지 않고 셸 캐시(썸네일)만 쓴다 (클라우드 전용 파일).</param>
 public sealed record FilePreviewContent(PreviewKind Kind, PreviewRequest Request, bool AllowContentRead)
     : PreviewContent(Kind);
+
+/// <summary>DRM·암호로 보호된 파일 (공급자를 부르지 않았다).</summary>
+public sealed record ProtectedContent(FileProtection Protection) : PreviewContent(PreviewKind.None);
 
 /// <summary>공급자가 이 파일은 미리 볼 수 없다고 판단 (바이너리, 처리기 없음 등).</summary>
 public sealed record UnavailableContent(string Reason) : PreviewContent(PreviewKind.None);

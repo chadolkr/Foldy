@@ -157,6 +157,7 @@ El panel se cierra solo al ir a otra carpeta, unidad o pestaña (vuelve a abrirl
 - Los archivos que solo están en la nube no se leen, así que no se descarga nada.
 - Las unidades de red y SFTP no se leen automáticamente (para no ralentizar); solo al pulsar **[Vista previa]**.
 - Lo mismo vale para la unidad de Google Drive para escritorio (normalmente G:). Aparece en la barra lateral con un icono de nube como "Google Drive", y las miniaturas, iconos y vistas previas nunca descargan por sí solos los archivos solo en línea. Un archivo se descarga solo cuando lo abres o lo copias.
+- **Los archivos protegidos con DRM o contraseña** muestran "Este archivo está protegido con DRM, así que no se puede previsualizar" (o "…tiene contraseña…") en lugar de un error. Ábrelo para verlo en la app que permita tu software de seguridad. Foldy los reconoce cuando el inicio del archivo no coincide con su formato (Office, Hangul, PDF, imágenes) y parece cifrado.
 
 ## Visor de Markdown
 

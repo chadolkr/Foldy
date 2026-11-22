@@ -36,6 +36,7 @@
 | M15 | 회사 드라이브 살살 모으기 (알고리즘은 자동: `SlowCrawlerTests`) | 회사 PC에서 Foldy를 켜 두고 K: 옆 "색인 중 · N개"가 늘어나는지, 다 모은 뒤 다른 사람이 만든 파일이 Ctrl+Space로 찾히는지(폴더 시각 갱신), 직접 만든 파일이 바로 찾히는지(변경 알림), 보안 프로그램 경고가 없는지, 복사 중엔 멈추는지 | 모두 그렇다. 안 되면 결정 기록에 적고 조정 |
 | M16 | AI 연결 (프로토콜·설정 파일·Claude 설정 위치·앱별 안내 키는 자동: `McpServerTests`, `McpClientConfigTests`(Claude-Data·옮겨 간 폴더·여러 판·Antigravity·Claude Code와 구별), `McpSuggestTests`) | 더 보기 → AI 연결 → Claude Desktop 체크 → [AI에 연결] → 아래 "Claude Desktop에서 Foldy 쓰기" 안내 확인 → [Claude 다시 시작] → [끄고 다시 켜기] → 새 대화에서 "C 드라이브 사용량을 보여 줘" / "AI 연결 켜기" 끄고 다시 묻기 / 체크 풀고 [AI에 연결] | 안내가 화면 언어로 보임, Claude가 꺼졌다 다시 켜지고 Claude Code 명령줄은 그대로 / Foldy 도구로 답함 / "꺼져 있어요" / 설정 파일에서 foldy만 빠짐, .foldy-backup 있음 |
 | M17 | 개발자 정리 (판별·명령은 자동: `RebuildableFoldersTests`, `DevCachesTests`, `FileLockersTests`) | 실제 프로젝트 폴더에서 정리하기 → 지워도 되는 폴더 찾기 / Excel로 연 파일을 Delete / 정리하기 → 개발 캐시 정리에서 npm만 정리 | node_modules·bin이 크기 순, .git은 체크 안 됨·빨간 글씨 / 작업 창에 "Microsoft Excel이(가) 쓰고 있어요" / npm 캐시가 줄고 다음 npm install이 정상 |
+| M18 | 미리보기: DRM·암호로 보호된 파일 (판정은 자동: `FileProtectionTests`, `PreviewProtectionTests`) | 회사 문서 보안(DRM)이 걸린 Office·한글·PDF 파일을 고르고 F3 / 암호 건 docx를 고르고 F3 / 보통 docx·pdf | "DRM으로 보호된 파일이라 미리 볼 수 없어요" / "암호가 걸린 파일이라…" / 평소처럼 미리보기 |
 | M12 | 빨리 지우기 (엔진은 자동: `FastDeleteTests`) | 파일 1만 개 시험 폴더 → Delete → [빨리 지우기] → 확인 / 중간에 [취소] | 기본 단추가 휴지통·그만두기, 빠르게 지워짐, 취소하면 멈추고 남은 것은 그대로 |
 
 ## 기록

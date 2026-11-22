@@ -52,6 +52,9 @@ public sealed partial class PreviewViewModel : ObservableObject
     /// <summary>[미리보기] 버튼 (네트워크 드라이브).</summary>
     public IRelayCommand ForceCommand { get; }
 
+    /// <summary>미리보기 전에 DRM·암호 보호를 살펴볼지 (기본 켬).</summary>
+    public bool CheckProtection { get; set; } = true;
+
     /// <summary>선택이 바뀐 뒤 이 시간 동안 더 바뀌지 않으면 읽기 시작.</summary>
     public TimeSpan Debounce { get; set; } = TimeSpan.FromMilliseconds(120);
 
@@ -96,13 +99,28 @@ public sealed partial class PreviewViewModel : ObservableObject
 
             var provider = decision.Provider!;
             // 공급자는 디스크를 읽으므로 UI 스레드를 비킨다.
-            var content = await Task.Run(() => provider.LoadAsync(request, ct), ct).ConfigureAwait(true);
+            // 그 전에 DRM·암호로 보호된 파일인지 본다: 처리기 오류 대신 "DRM으로 보호된 파일"이라고 알린다 (내용을 읽어도 되는 파일만)
+            var content = await Task.Run(
+                async () =>
+                {
+                    var protection = CheckProtection && !PreviewGuards.IsCloudOnly(request.Attributes)
+                        ? FileProtectionCheck.Detect(request.Path, request.Extension)
+                        : FileProtection.None;
+                    return protection != FileProtection.None
+                        ? new ProtectedContent(protection)
+                        : await provider.LoadAsync(request, ct).ConfigureAwait(false);
+                },
+                ct).ConfigureAwait(true);
             if (gen != Volatile.Read(ref _generation))
             {
                 return;
             }
 
-            if (content is UnavailableContent u)
+            if (content is ProtectedContent pc)
+            {
+                Apply(request, PreviewStatus.Protected, PreviewMessages.For(pc.Protection), false, null);
+            }
+            else if (content is UnavailableContent u)
             {
                 Apply(request, PreviewStatus.NotPreviewable, u.Reason, false, null);
             }
