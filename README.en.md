@@ -14,7 +14,7 @@ Foldy is a free, open-source **dual-pane file manager for Windows 10/11** and a 
 
 ![Foldy: folder analysis on the left, Git view on the right](docs/images/hero.png)
 
-*(All screenshots are real Foldy screens taken with fake sample folders. They contain no personal data. The app is being translated; screenshots are in Korean for now.)*
+*(All screenshots are real Foldy screens taken with fake sample folders. They contain no personal data. This picture shows the Korean screen; the [user guide](assets/help/index.en.md) and the website have screenshots in each language.)*
 
 **[⬇ Download the latest version (MSI)](https://github.com/chadolkr/Foldy/releases/latest)** · Windows 10/11 x64 · Free and open source (GPL-3.0)
 
@@ -41,7 +41,7 @@ They sit at the top of the sidebar, one click away.
 
 ## Languages
 
-Foldy is being translated into **English, Spanish, Japanese and Simplified Chinese**, alongside Korean. You can choose the language in Settings → Appearance. Until the translation is complete, Foldy starts in Korean unless you pick another language.
+Foldy speaks **Korean, English, Spanish, Japanese and Simplified Chinese**. It starts in your Windows display language (English if yours isn't one of these), and you can change it any time in Settings → Appearance → Language. The user guide (F1) comes in all five languages. Typing requests in plain language in quick search works in Korean only; in other languages, type the feature's name.
 
 ## Install
 
