@@ -39,14 +39,14 @@ const en: Dictionary = {
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
     badge: 'New in 1.3: find Control Panel too',
-    eyebrow: 'Foldy 1.3',
+    eyebrow: 'Foldy 1.3.1',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
       { icon: 'search', title: 'Control Panel, too', text: 'Type "Add or remove programs", "Device Manager" or "environment variables" in Ctrl+Space to open classic Control Panel and admin tools. Results are grouped into apps, settings, folders and files, like Windows Search.' },
       { icon: 'info', title: 'Easy from day one', text: 'Menu groups now show a › mark, and Foldy points out a feature once, right when it helps. The short intro remembers what you have seen and shows only new features.' },
       { icon: 'lock', title: 'Simpler vaults and locked notes', text: 'Each menu item says what it is for, and Foldy tells you where things were saved. You can now add more files to a vault you already made.' },
-      { icon: 'update', title: 'Updates that don’t get stuck', text: 'Updates no longer wait for a Foldy that an AI app started in the background. Files protected by company DRM now say so in the preview.' },
+      { icon: 'update', title: 'Updates that don’t get stuck', text: 'Updates no longer wait for a Foldy that an AI app started in the background. Files protected by company DRM now say so in the preview. Since 1.3.1, Foldy also installs on new PCs without the Visual C++ Redistributable.' },
     ],
     link: 'See everything that changed',
   },
