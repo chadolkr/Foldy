@@ -171,6 +171,18 @@ const es: Dictionary = {
     text: 'Por eso Foldy se publica bajo GPL-3.0. Si algo te molesta o tienes una idea, únete.',
     link: 'Participa en GitHub',
   },
+  gpl: {
+    title: '¿Qué es la licencia GPL-3.0?',
+    lead: 'Es el acuerdo sobre cómo se usa y se comparte Foldy. Dicho de forma sencilla:',
+    items: [
+      { title: 'Gratis para todos', text: 'En casa o en el trabajo, en tantos PC como quieras, sin pagar.' },
+      { title: 'Puedes ver por dentro', text: 'Todo el código fuente de Foldy es público, así que cualquiera puede comprobar qué hace.' },
+      { title: 'Cámbialo y compártelo', text: 'Puedes adaptar Foldy a tu gusto y dárselo a otras personas.' },
+      { title: 'Compártelo igual de abierto', text: 'Si das a otros un Foldy modificado, debe seguir bajo GPL-3.0 e ir acompañado de su código fuente. Así Foldy sigue abierto para todos, lo cambie quien lo cambie.' },
+      { title: 'Sin garantía', text: 'Como se comparte gratis, no hay garantía si algo falla. Pasa con casi todo el software libre. Cuéntanos los problemas y los arreglamos juntos.' },
+    ],
+    link: 'Leer la licencia completa (en inglés)',
+  },
   install: {
     eyebrow: 'Listo en un minuto',
     title: 'Cómo instalarlo',

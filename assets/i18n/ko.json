@@ -293,8 +293,10 @@
   "tour.qs3.t": "계산·단위 변환도 바로",
   "tour.qs4.s": "'다운로드 정리해줘' → Foldy 기능이 바로 시작",
   "tour.qs4.t": "말하듯 써도 알아들어요",
+  "tour.skip": "건너뛰기",
   "tour.space.s": "큰 상자가 큰 폴더 · 지워도 되는 것만 골라 줘요",
   "tour.space.t": "용량 범인을 한눈에",
+  "tour.start": "시작하기",
   "tour.tpl.s": "PARA 네 칸 · 업종별 프로젝트 단계(PMBOK·IT 개발·건설 설계) · 칸마다 무엇을 넣는지까지",
   "tour.tpl.t": "폴더 틀을 클릭 한 번에"
 }

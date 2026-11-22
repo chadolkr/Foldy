@@ -13,7 +13,7 @@ namespace Foldy.App;
 /// 처음 실행 때의 기능 소개를 쇼츠처럼 (사용자 요청 2026-11-21: "글을 읽기 싫어하니까 동영상 화면으로").
 /// 세로 화면에 한 장면씩 저절로 넘어가고, 실제 Foldy 화면이 천천히 다가가며(줌·이동) 누를 곳에서 동그라미가 톡톡 뛴다.
 /// 글은 큰 한 줄 + 작은 한 줄뿐. 위쪽 막대로 몇 번째인지 보이고, 오른쪽을 누르면 다음, 왼쪽은 이전, Space 멈춤, Esc 그만 보기.
-/// 문구는 <see cref="Scenes"/> 한 곳에 (나중에 언어별 리소스로). 그림은 도움말과 같은 화면 캡처(help\images)를 쓴다.
+/// 문구는 <see cref="Scenes"/> 한 곳에 (나중에 언어별 리소스로). 그림은 도움말과 같은 화면 캡처(help\images)를 쓰고, 화면 언어용 그림(help\images\&lt;언어&gt;)이 있으면 그것을 먼저 쓴다.
 /// </summary>
 internal sealed class ShortsWindow : Window
 {
@@ -63,8 +63,8 @@ internal sealed class ShortsWindow : Window
     private readonly TextBlock _title = new() { FontSize = 26, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
     private readonly TextBlock _sub = new() { FontSize = 16, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 8, 0, 0) };
     private readonly StackPanel _bars = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(16, 14, 16, 10) };
-    private readonly Button _skip = new() { Content = "건너뛰기", MinHeight = 34, MinWidth = 88, Padding = new Thickness(12, 2, 12, 2) };
-    private readonly Button _start = new() { Content = "시작하기", MinHeight = 44, MinWidth = 160, FontSize = 17, IsDefault = true, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 18, 0, 0) };
+    private readonly Button _skip = new() { Content = Foldy.Core.Localization.Loc.T("tour.skip"), MinHeight = 34, MinWidth = 88, Padding = new Thickness(12, 2, 12, 2) };
+    private readonly Button _start = new() { Content = Foldy.Core.Localization.Loc.T("tour.start"), MinHeight = 44, MinWidth = 160, FontSize = 17, IsDefault = true, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 18, 0, 0) };
     private readonly Canvas _canvas = new();
     private readonly string _imageDir;
     private int _index;
@@ -204,7 +204,13 @@ internal sealed class ShortsWindow : Window
     {
         try
         {
-            var path = System.IO.Path.Combine(_imageDir, name);
+            // 화면 언어의 그림(help\images\en\…)이 있으면 그것을, 없으면 한국어판 그림을 쓴다.
+            var path = System.IO.Path.Combine(_imageDir, Foldy.Core.Localization.Loc.Current, name);
+            if (!File.Exists(path))
+            {
+                path = System.IO.Path.Combine(_imageDir, name);
+            }
+
             if (!File.Exists(path))
             {
                 return null;

@@ -293,8 +293,10 @@
   "tour.qs3.t": "计算和单位换算也能直接做",
   "tour.qs4.s": "“整理我的下载” → Foldy 功能立即开始",
   "tour.qs4.t": "像说话一样输入也能听懂",
+  "tour.skip": "跳过",
   "tour.space.s": "大方块就是大文件夹 · 只挑出可以删除的",
   "tour.space.t": "一眼看出谁占了磁盘",
+  "tour.start": "开始使用",
   "tour.tpl.s": "PARA · 各行业项目阶段（PMBOK、IT 开发、建筑设计）· 还说明每个文件夹放什么",
   "tour.tpl.t": "一键创建文件夹结构"
 }

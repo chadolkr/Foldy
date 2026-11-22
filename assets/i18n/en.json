@@ -293,8 +293,10 @@
   "tour.qs3.t": "Math and unit conversion too",
   "tour.qs4.s": "'tidy my downloads' → the Foldy feature starts right away",
   "tour.qs4.t": "Type it the way you'd say it",
+  "tour.skip": "Skip",
   "tour.space.s": "Big boxes are big folders · it picks only what's safe to delete",
   "tour.space.t": "Spot what eats your disk at a glance",
+  "tour.start": "Get started",
   "tour.tpl.s": "PARA · industry project phases (PMBOK, IT, construction) · with what goes in each folder",
   "tour.tpl.t": "A folder structure in one click"
 }
