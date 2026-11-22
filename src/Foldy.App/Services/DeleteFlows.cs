@@ -33,19 +33,19 @@ internal static class DeleteFlows
     internal static async Task<BigDeleteChoice> RunAsync(GuideWindow w, BigDeleteQuestion q)
     {
         {
-            var n = q.Count.Capped ? $"{q.Count.Files:N0}개 넘게" : $"{q.Count.Files:N0}개";
-            var what = q.Paths.Count == 1 ? $"'{System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(q.Paths[0]))}'" : $"고른 {q.Paths.Count:N0}개 항목";
-            w.Say($"{what} 안에 파일이 {n} 있어요 ({FileItem.FormatBytes(q.Count.Bytes)}{(q.Count.Capped ? " 이상" : "")}).");
-            w.Say("휴지통으로 보내면 나중에 되살릴 수 있어요. 다만 이만큼 많으면 몇 분에서 몇십 분 걸릴 수 있어요.");
+            var n = q.Count.Capped ? Foldy.Core.Localization.Loc.F("del.moreThan", q.Count.Files) : Foldy.Core.Localization.Loc.F("del.nFiles", q.Count.Files);
+            var what = q.Paths.Count == 1 ? $"'{System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(q.Paths[0]))}'" : Foldy.Core.Localization.Loc.F("del.nItems", q.Paths.Count);
+            w.Say(Foldy.Core.Localization.Loc.F("del.summary", what, n, FileItem.FormatBytes(q.Count.Bytes), (q.Count.Capped ? Foldy.Core.Localization.Loc.T("del.orMore") : "")));
+            w.Say(Foldy.Core.Localization.Loc.T("del.bulkRecycle"));
             if (!q.CanFast)
             {
-                w.Say("이 위치는 Windows나 사용자 폴더처럼 중요한 곳이라 빨리 지우기는 쓸 수 없어요.");
-                var only = await w.AskAsync(null, ("recycle", "휴지통으로"), ("cancel", "그만두기"));
+                w.Say(Foldy.Core.Localization.Loc.T("del.protected"));
+                var only = await w.AskAsync(null, ("recycle", Foldy.Core.Localization.Loc.T("ops.toRecycle")), ("cancel", Foldy.Core.Localization.Loc.T("dlg.cancel")));
                 return only == "recycle" ? BigDeleteChoice.Recycle : BigDeleteChoice.Cancel;
             }
 
-            w.Say("빨리 지우기는 휴지통을 거치지 않고 한꺼번에 지워서 훨씬 빨라요. 대신 되살릴 수 없어요.");
-            var c = await w.AskAsync(null, ("recycle", "휴지통으로 (되살릴 수 있어요)"), ("fast", "빨리 지우기"), ("cancel", "그만두기"));
+            w.Say(Foldy.Core.Localization.Loc.T("del.fastWhy"));
+            var c = await w.AskAsync(null, ("recycle", Foldy.Core.Localization.Loc.T("del.recycleSafe")), ("fast", Foldy.Core.Localization.Loc.T("del.fast")), ("cancel", Foldy.Core.Localization.Loc.T("dlg.cancel")));
             if (c == "recycle")
             {
                 return BigDeleteChoice.Recycle;
@@ -56,9 +56,9 @@ internal static class DeleteFlows
                 return BigDeleteChoice.Cancel;
             }
 
-            w.Say("⚠ 한 번만 더 확인할게요. 빨리 지우기로 지운 파일은 휴지통에도 남지 않아서 되살릴 수 없어요. 중간에 멈춰도 이미 지운 것은 돌아오지 않아요.");
+            w.Say(Foldy.Core.Localization.Loc.T("del.fastConfirm"));
             w.ShowList(q.Paths, max: 5);
-            var sure = await w.AskAsync(null, ("cancel", "그만두기"), ("fast", "되살릴 수 없어도 지울게요"));
+            var sure = await w.AskAsync(null, ("cancel", Foldy.Core.Localization.Loc.T("dlg.cancel")), ("fast", Foldy.Core.Localization.Loc.T("del.fastYes")));
             return sure == "fast" ? BigDeleteChoice.Fast : BigDeleteChoice.Cancel;
         }
     }

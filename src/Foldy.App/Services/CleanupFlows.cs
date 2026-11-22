@@ -59,9 +59,9 @@ public static class CleanupFlows
 
     public static async Task LogsAsync(Window owner, string drive, ShellViewModel shell)
     {
-        var w = Open(owner, "로그 정리");
+        var w = Open(owner, Foldy.Core.Localization.Loc.T("sw.logs.title"));
         var d = drive.TrimEnd('\\');
-        w.Say($"안녕하세요! {d} 드라이브의 로그 파일을 찾아볼게요. 잠깐만요…");
+        w.Say(Foldy.Core.Localization.Loc.F("cf.log.hello", d));
         w.Busy();
         List<LogFile> files;
         try
@@ -69,7 +69,7 @@ public static class CleanupFlows
             files = await LogFinder.FromIndexAsync(drive, CancellationToken.None) ?? [];
             if (files.Count == 0 && !w.IsClosed)
             {
-                w.Say("색인 서비스가 없어서 드라이브를 직접 훑고 있어요. 조금 걸려요.");
+                w.Say(Foldy.Core.Localization.Loc.T("cf.log.crawl"));
                 files = await LogFinder.ScanAsync(drive, CancellationToken.None);
             }
         }
@@ -86,24 +86,24 @@ public static class CleanupFlows
         var groups = LogPlanner.Plan(files, DateTime.UtcNow);
         if (groups.Count == 0)
         {
-            await w.AskAsync("정리할 오래된 로그가 없어요. 깔끔하네요! 🙂", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.log.none"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
         var size = groups.Sum(g => g.Size);
         var saving = groups.Sum(g => g.EstimatedSaving);
-        w.Say($"7일 넘게 바뀌지 않은 로그가 {groups.Sum(g => g.Files.Count):N0}개, 모두 {FileItem.FormatBytes(size)} 있어요 (폴더 {groups.Select(g => g.Folder).Distinct(StringComparer.OrdinalIgnoreCase).Count():N0}곳).");
-        w.Say("로그는 프로그램이 남기는 기록이에요. 문제가 생겼을 때 말고는 다시 볼 일이 거의 없는데, 모르는 사이에 몇 GB씩 쌓이곤 해요.");
+        w.Say(Foldy.Core.Localization.Loc.F("cf.log.found", groups.Sum(g => g.Files.Count), FileItem.FormatBytes(size), groups.Select(g => g.Folder).Distinct(StringComparer.OrdinalIgnoreCase).Count()));
+        w.Say(Foldy.Core.Localization.Loc.T("cf.log.what"));
         var choice = await w.AskAsync(
-            $"로그가 있던 폴더에 달마다 zip 하나씩(logs-연-월.zip) 꼭꼭 눌러 담으면 약 {FileItem.FormatBytes(saving)} 줄어요. zip을 다시 열어 원본과 똑같은지 확인한 뒤에만 원본을 휴지통으로 보내니까 걱정 마세요. 지금 쓰고 있는 로그는 건드리지 않아요.",
-            C("all", "이대로 정리"), C("pick", "자세히 보고 고르기"), C("later", "나중에"));
+            Foldy.Core.Localization.Loc.F("cf.log.how", FileItem.FormatBytes(saving)),
+            C("all", Foldy.Core.Localization.Loc.T("cf.log.go")), C("pick", Foldy.Core.Localization.Loc.T("cf.log.pick")), C("later", Foldy.Core.Localization.Loc.T("sw.later")));
         var picked = groups;
         if (choice == "pick")
         {
-            var r = await w.PickAsync("정리할 묶음을 골라 주세요. (폴더 · 달 · 개수 · 크기)",
-                groups.Select(g => ((LogGroup)g, $"{g.Folder}  ·  {g.Month}  ·  {g.Files.Count:N0}개  ·  {FileItem.FormatBytes(g.Size)}", true)),
-                C("go", "고른 것 정리"), C("later", "나중에"));
+            var r = await w.PickAsync(Foldy.Core.Localization.Loc.T("cf.log.pickHint"),
+                groups.Select(g => ((LogGroup)g, Foldy.Core.Localization.Loc.F("cf.log.row", g.Folder, g.Month, g.Files.Count, FileItem.FormatBytes(g.Size)), true)),
+                C("go", Foldy.Core.Localization.Loc.T("cf.log.goPicked")), C("later", Foldy.Core.Localization.Loc.T("sw.later")));
             choice = r.Choice == "go" ? "all" : r.Choice;
             picked = [.. r.Picked];
         }
@@ -115,7 +115,7 @@ public static class CleanupFlows
         }
 
         w.Busy();
-        var status = w.Say("압축하고 있어요…");
+        var status = w.Say(Foldy.Core.Localization.Loc.T("cf.log.zipping"));
         long freed = 0;
         var skipped = 0;
         var done = 0;
@@ -126,7 +126,7 @@ public static class CleanupFlows
                 return;
             }
 
-            status.Text = $"압축하고 있어요… ({++done}/{picked.Count}) {g.Folder}";
+            status.Text = Foldy.Core.Localization.Loc.F("cf.log.zippingN", ++done, picked.Count, g.Folder);
             try
             {
                 var r = await Task.Run(() => LogArchiver.Archive(g, CancellationToken.None));
@@ -142,11 +142,11 @@ public static class CleanupFlows
             }
         }
 
-        status.Text = "다 했어요!";
+        status.Text = Foldy.Core.Localization.Loc.T("cf.done");
         await w.AskAsync(
-            $"약 {FileItem.FormatBytes(Math.Max(0, freed))}를 줄였어요. 로그는 각 폴더의 logs-연-월.zip 안에 있고, 원본은 휴지통에 있어요. 필요하면 휴지통에서 언제든 되살릴 수 있어요."
-            + (skipped > 0 ? $"\n프로그램이 쓰고 있던 로그 {skipped:N0}개는 그대로 뒀어요." : ""),
-            C("close", "닫기"));
+            Foldy.Core.Localization.Loc.F("cf.log.done", FileItem.FormatBytes(Math.Max(0, freed)))
+            + (skipped > 0 ? Foldy.Core.Localization.Loc.F("cf.log.inUse", skipped) : ""),
+            C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         w.Close();
     }
 
@@ -154,8 +154,8 @@ public static class CleanupFlows
 
     public static async Task DownloadsAsync(Window owner, string folder, ShellViewModel shell)
     {
-        var w = Open(owner, "다운로드 정리");
-        w.Say("다운로드 폴더를 살펴볼게요. 저절로 지우는 건 없으니 편하게 보세요.");
+        var w = Open(owner, Foldy.Core.Localization.Loc.T("sw.c.downloads"));
+        w.Say(Foldy.Core.Localization.Loc.T("cf.dl.hello"));
         w.Busy();
         IReadOnlyList<DownloadItem> items;
         try
@@ -168,19 +168,19 @@ public static class CleanupFlows
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            await w.AskAsync("다운로드 폴더를 읽지 못했어요: " + ex.Message, C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.dl.cantRead") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
         if (items.Count == 0)
         {
-            await w.AskAsync("다운로드 폴더가 깔끔해요. 정리할 게 없어요! 🙂", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.dl.clean"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
-        w.Say($"정리할 만한 파일을 {items.Count:N0}개({FileItem.FormatBytes(items.Sum(i => i.Size))}) 찾았어요. 종류별로 하나씩 여쭤볼게요.");
+        w.Say(Foldy.Core.Localization.Loc.F("cf.dl.found", items.Count, FileItem.FormatBytes(items.Sum(i => i.Size))));
         var archive = DownloadsPlanner.ArchiveFolder(folder, DateTime.Now);
         int recycled = 0, archived = 0;
         foreach (var kind in Enum.GetValues<DownloadKind>())
@@ -193,23 +193,23 @@ public static class CleanupFlows
 
             var (found, why) = kind switch
             {
-                DownloadKind.Installer => ($"이미 설치한 프로그램의 설치 파일이 {group.Count:N0}개({FileItem.FormatBytes(group.Sum(i => i.Size))}) 있어요.", "설치가 끝난 설치 파일은 보통 다시 쓸 일이 없어요. 필요하면 언제든 다시 받을 수 있어요."),
-                DownloadKind.Duplicate => ($"같은 파일을 여러 번 받은 게 {group.Count:N0}개 있어요 (예: \"{Path.GetFileName(group[0].Path)}\").", "내용까지 똑같은 파일이에요. 하나는 남겨 두고 나머지만 골랐어요."),
-                DownloadKind.Unpacked => ($"이미 푼 압축 파일이 {group.Count:N0}개 있어요.", "옆에 같은 이름의 폴더가 있어서 압축 파일은 없어도 돼요."),
-                _ => ($"{DownloadsPlanner.OldDays}일 넘게 열지 않은 파일이 {group.Count:N0}개({FileItem.FormatBytes(group.Sum(i => i.Size))}) 있어요.", "오래 안 쓴 파일이라도 중요한 게 섞여 있을 수 있어요. 버리기보다 보관을 추천해요."),
+                DownloadKind.Installer => (Foldy.Core.Localization.Loc.F("cf.dl.installers", group.Count, FileItem.FormatBytes(group.Sum(i => i.Size))), Foldy.Core.Localization.Loc.T("cf.dl.installersWhy")),
+                DownloadKind.Duplicate => (Foldy.Core.Localization.Loc.F("cf.dl.dups", group.Count, Path.GetFileName(group[0].Path)), Foldy.Core.Localization.Loc.T("cf.dl.dupWhy")),
+                DownloadKind.Unpacked => (Foldy.Core.Localization.Loc.F("cf.dl.zips", group.Count), Foldy.Core.Localization.Loc.T("cf.dl.zipWhy")),
+                _ => (Foldy.Core.Localization.Loc.F("cf.dl.old", DownloadsPlanner.OldDays, group.Count, FileItem.FormatBytes(group.Sum(i => i.Size))), Foldy.Core.Localization.Loc.T("cf.dl.oldWhy")),
             };
             w.Say(found + " " + why);
             var choice = await w.AskAsync(
-                "휴지통에 버리거나(휴지통에서 언제든 꺼낼 수 있어요) 보관하세요(다운로드\\보관\\" + Path.GetFileName(archive) + " 폴더로 옮겨요).",
+                Foldy.Core.Localization.Loc.F("cf.dl.oldHint", Path.GetFileName(archive)),
                 kind == DownloadKind.Old
-                    ? [C("archive", "보관하기"), C("pick", "자세히 보고 고르기"), C("skip", "그대로 두기")]
-                    : [C("recycle", "휴지통으로"), C("archive", "보관하기"), C("pick", "자세히 보고 고르기"), C("skip", "그대로 두기")]);
+                    ? [C("archive", Foldy.Core.Localization.Loc.T("cf.archive")), C("pick", Foldy.Core.Localization.Loc.T("cf.log.pick")), C("skip", Foldy.Core.Localization.Loc.T("cf.keep"))]
+                    : [C("recycle", Foldy.Core.Localization.Loc.T("ops.toRecycle")), C("archive", Foldy.Core.Localization.Loc.T("cf.archive")), C("pick", Foldy.Core.Localization.Loc.T("cf.log.pick")), C("skip", Foldy.Core.Localization.Loc.T("cf.keep"))]);
             var chosen = group;
             if (choice == "pick")
             {
-                var r = await w.PickAsync("어떤 걸 정리할지 골라 주세요.",
+                var r = await w.PickAsync(Foldy.Core.Localization.Loc.T("cf.dl.pickHint"),
                     group.Select(i => (i, $"{Path.GetFileName(i.Path)}  ·  {FileItem.FormatBytes(i.Size)}  ·  {i.Reason}", kind != DownloadKind.Old)),
-                    C("recycle", "휴지통으로"), C("archive", "보관하기"), C("skip", "그대로 두기"));
+                    C("recycle", Foldy.Core.Localization.Loc.T("ops.toRecycle")), C("archive", Foldy.Core.Localization.Loc.T("cf.archive")), C("skip", Foldy.Core.Localization.Loc.T("cf.keep")));
                 choice = r.Choice;
                 chosen = [.. r.Picked];
             }
@@ -221,7 +221,7 @@ public static class CleanupFlows
 
             if (chosen.Count == 0 || choice == "skip")
             {
-                w.Say("네, 그대로 둘게요.");
+                w.Say(Foldy.Core.Localization.Loc.T("cf.keepOk"));
                 continue;
             }
 
@@ -231,14 +231,14 @@ public static class CleanupFlows
                 {
                     var n = chosen.Count(i => !File.Exists(i.Path));
                     recycled += n;
-                    w.Say($"{n:N0}개를 휴지통으로 옮겼어요.");
+                    w.Say(Foldy.Core.Localization.Loc.F("cf.movedToBin", n));
                 }
             }
             else if (choice == "archive")
             {
                 var n = await Task.Run(() => DownloadsPlanner.MoveToArchive(chosen.Select(i => i.Path), archive));
                 archived += n;
-                w.Say($"{n:N0}개를 보관 폴더로 옮겼어요.");
+                w.Say(Foldy.Core.Localization.Loc.F("cf.movedToArchive", n));
             }
         }
 
@@ -249,24 +249,24 @@ public static class CleanupFlows
 
         if (recycled + archived == 0)
         {
-            await w.AskAsync("이번에는 아무것도 옮기지 않았어요. 생각나면 언제든 다시 불러 주세요!", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.nothingMoved"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
-        var summary = $"다 했어요! 휴지통으로 {recycled:N0}개, 보관 폴더로 {archived:N0}개를 옮겼어요."
-            + (archived > 0 ? $"\n보관한 파일은 {archive}에 있어요." : "")
-            + (recycled > 0 ? "\n휴지통으로 간 파일은 휴지통에서 되살릴 수 있어요." : "");
+        var summary = Foldy.Core.Localization.Loc.F("cf.dl.done", recycled, archived)
+            + (archived > 0 ? Foldy.Core.Localization.Loc.F("cf.dl.archiveAt", archive) : "")
+            + (recycled > 0 ? Foldy.Core.Localization.Loc.T("cf.recycleNote") : "");
         while (true)
         {
-            var end = await w.AskAsync(summary, archived > 0 ? [C("open", "보관 폴더 열기"), C("close", "닫기")] : [C("close", "닫기")]);
+            var end = await w.AskAsync(summary, archived > 0 ? [C("open", Foldy.Core.Localization.Loc.T("cf.openArchive")), C("close", Foldy.Core.Localization.Loc.T("cf.close"))] : [C("close", Foldy.Core.Localization.Loc.T("cf.close"))]);
             if (end != "open")
             {
                 break;
             }
 
             OpenFolder(archive);
-            summary = "보관 폴더를 열었어요.";
+            summary = Foldy.Core.Localization.Loc.T("cf.archiveOpened");
         }
 
         w.Close();
@@ -276,15 +276,15 @@ public static class CleanupFlows
 
     public static async Task DesktopAsync(Window owner)
     {
-        var w = Open(owner, "바탕화면 정리");
+        var w = Open(owner, Foldy.Core.Localization.Loc.T("sw.c.desktop"));
         if (DesktopTidy.LastMoves(CleanupPaths.DesktopJournal).Count is var last and > 0)
         {
-            var c = await w.AskAsync($"지난번에 바탕화면에서 {last:N0}개를 \"바탕화면 보관\" 폴더로 옮겼어요. 원래대로 돌려 드릴까요, 아니면 새로 정리할까요?",
-                C("new", "새로 정리"), C("undo", "원래대로 돌리기"), C("close", "닫기"));
+            var c = await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.dt.last", last),
+                C("new", Foldy.Core.Localization.Loc.T("cf.dt.again")), C("undo", Foldy.Core.Localization.Loc.T("cf.dt.restore")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             if (c == "undo")
             {
                 var n = await Task.Run(() => DesktopTidy.Undo(CleanupPaths.DesktopJournal));
-                await w.AskAsync($"{n:N0}개를 바탕화면 제자리로 돌려놨어요.", C("close", "닫기"));
+                await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.dt.restored", n), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
                 w.Close();
                 return;
             }
@@ -296,7 +296,7 @@ public static class CleanupFlows
             }
         }
 
-        w.Say("방 청소해 주듯 바탕화면을 정리해 드릴게요. 버리는 건 하나도 없어요.");
+        w.Say(Foldy.Core.Localization.Loc.T("cf.dt.hello"));
         IReadOnlyList<DesktopMove> plan;
         try
         {
@@ -304,27 +304,27 @@ public static class CleanupFlows
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            await w.AskAsync("바탕화면을 읽지 못했어요: " + ex.Message, C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.dt.cantRead") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
         if (plan.Count == 0)
         {
-            await w.AskAsync("바탕화면이 깔끔해요. 보관할 파일이 없어요! 🙂", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.dt.clean"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
-        var byType = string.Join(", ", plan.GroupBy(m => m.Group).OrderByDescending(g => g.Count()).Select(g => $"{g.Key} {g.Count():N0}개"));
-        w.Say($"한동안 쓰지 않은 파일이 {plan.Count:N0}개 있어요 ({byType}). 바로 가기와 최근 {DesktopTidy.RecentDays}일 안에 쓴 파일은 그대로 둘게요.");
+        var byType = string.Join(", ", plan.GroupBy(m => m.Group).OrderByDescending(g => g.Count()).Select(g => Foldy.Core.Localization.Loc.F("cf.dt.typeCount", g.Key, g.Count())));
+        w.Say(Foldy.Core.Localization.Loc.F("cf.dt.found", plan.Count, byType, DesktopTidy.RecentDays));
         var choice = await w.AskAsync(
-            "바탕화면에 \"바탕화면 보관\" 폴더를 만들고, 그 안에 달별·종류별(문서, 이미지, 압축 …)로 넣어 둘게요. 폴더가 바탕화면에 보이니까 찾기 쉬워요. 마음에 안 들면 [되돌리기] 한 번이면 원래대로예요.",
-            C("go", "이대로 정리"), C("detail", "자세히 보기"), C("later", "나중에"));
+            Foldy.Core.Localization.Loc.T("cf.dt.plan"),
+            C("go", Foldy.Core.Localization.Loc.T("cf.log.go")), C("detail", Foldy.Core.Localization.Loc.T("cf.details")), C("later", Foldy.Core.Localization.Loc.T("sw.later")));
         if (choice == "detail")
         {
             w.ShowList(plan.Select(m => $"{Path.GetFileName(m.Src)}  →  {Path.GetRelativePath(CleanupPaths.Desktop, Path.GetDirectoryName(m.Dst)!)}"));
-            choice = await w.AskAsync("이렇게 옮길게요. 괜찮을까요?", C("go", "이대로 정리"), C("later", "나중에"));
+            choice = await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.okToMove"), C("go", Foldy.Core.Localization.Loc.T("cf.log.go")), C("later", Foldy.Core.Localization.Loc.T("sw.later")));
         }
 
         if (choice != "go")
@@ -335,22 +335,22 @@ public static class CleanupFlows
 
         w.Busy();
         var done = await Task.Run(() => DesktopTidy.Execute(plan, CleanupPaths.DesktopJournal));
-        var msg = $"다 했어요! {done.Count:N0}개를 바탕화면의 \"바탕화면 보관\" 폴더에 넣어 뒀어요."
-            + (done.Count < plan.Count ? $"\n열려 있던 {plan.Count - done.Count:N0}개는 그대로 뒀어요." : "");
+        var msg = Foldy.Core.Localization.Loc.F("cf.dt.done", done.Count)
+            + (done.Count < plan.Count ? Foldy.Core.Localization.Loc.F("cf.dt.openSkipped", plan.Count - done.Count) : "");
         while (!w.IsClosed)
         {
-            var end = await w.AskAsync(msg, C("open", "보관 폴더 열기"), C("undo", "되돌리기"), C("close", "닫기"));
+            var end = await w.AskAsync(msg, C("open", Foldy.Core.Localization.Loc.T("cf.openArchive")), C("undo", Foldy.Core.Localization.Loc.T("cf.undo")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             if (end == "open")
             {
                 OpenFolder(CleanupPaths.DesktopArchive);
-                msg = "보관 폴더를 열었어요.";
+                msg = Foldy.Core.Localization.Loc.T("cf.archiveOpened");
                 continue;
             }
 
             if (end == "undo")
             {
                 var n = await Task.Run(() => DesktopTidy.Undo(CleanupPaths.DesktopJournal));
-                await w.AskAsync($"{n:N0}개를 원래 자리로 돌려놨어요.", C("close", "닫기"));
+                await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.undone", n), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             }
 
             break;
@@ -364,11 +364,11 @@ public static class CleanupFlows
     /// <summary>"이 폴더 관리 방식 정하기": 방법을 설명하고 고르게 한 뒤, 바로 정리 제안으로 이어 간다.</summary>
     public static async Task SetMethodAsync(Window owner, string folder)
     {
-        var w = Open(owner, "폴더 관리 방식");
+        var w = Open(owner, Foldy.Core.Localization.Loc.T("cf.m.title"));
         var name = Path.GetFileName(folder.TrimEnd('\\'));
         if (ManagedFolders.CannotManage(folder) is { } why)
         {
-            await w.AskAsync(why, C("close", "닫기"));
+            await w.AskAsync(why, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
@@ -376,8 +376,8 @@ public static class CleanupFlows
         var current = ManagedFolders.Resolve(folder);
         if (current is { } cur && string.Equals(cur.Root.TrimEnd('\\'), folder.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
         {
-            var c = await w.AskAsync($"\"{name}\" 폴더는 지금 {cur.Method.Name} 방법으로 관리하고 있어요. 어떻게 할까요?",
-                C("suggest", "지금 정리할 것 보기"), C("change", "방법 바꾸기"), C("off", "관리 끄기"), C("close", "닫기"));
+            var c = await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.current", name, cur.Method.Name),
+                C("suggest", Foldy.Core.Localization.Loc.T("cf.m.viewNow")), C("change", Foldy.Core.Localization.Loc.T("cf.m.change")), C("off", Foldy.Core.Localization.Loc.T("cf.m.off")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             if (c == "suggest")
             {
                 w.Close();
@@ -389,7 +389,7 @@ public static class CleanupFlows
             {
                 ManagedFolders.ClearMethod(folder);
                 ExplorerFolderMark.Clear(folder);
-                await w.AskAsync("관리를 껐어요. 폴더와 파일은 그대로예요.", C("close", "닫기"));
+                await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.m.offDone"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
                 w.Close();
                 return;
             }
@@ -401,13 +401,13 @@ public static class CleanupFlows
             }
         }
 
-        w.Say($"\"{name}\" 폴더를 어떤 방법으로 관리할지 정해 볼까요? 정해 두면 Foldy가 가끔 살펴보고, 정리할 게 생기면 어떻게 옮길지 먼저 보여 드려요. 확인을 누를 때만 옮겨요.");
+        w.Say(Foldy.Core.Localization.Loc.F("cf.m.ask", name));
         foreach (var m in FolderMethod.All)
         {
             w.Say($"• {m.Name}: {m.Explanation}");
         }
 
-        var pick = await w.AskAsync("어떤 방법이 좋을까요?", [.. FolderMethod.All.Select(m => C(m.Id, m.Name)), C("close", "나중에")]);
+        var pick = await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.m.which"), [.. FolderMethod.All.Select(m => C(m.Id, m.Name)), C("close", Foldy.Core.Localization.Loc.T("sw.later"))]);
         if (FolderMethod.Find(pick) is not { } method)
         {
             Later(w);
@@ -420,7 +420,7 @@ public static class CleanupFlows
         }
 
         var create = method.TemplateId is not null
-            ? await w.AskAsync($"{method.Name}에 필요한 폴더를 만들까요? 이미 있는 폴더는 그대로 두고, 없는 것만 만들어요.", C("yes", "만들어 줘"), C("no", "폴더는 내가 만들게"))
+            ? await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.makeAsk", method.Name), C("yes", Foldy.Core.Localization.Loc.T("cf.m.make")), C("no", Foldy.Core.Localization.Loc.T("cf.m.self")))
             : "no";
         try
         {
@@ -434,13 +434,13 @@ public static class CleanupFlows
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            await w.AskAsync("설정을 저장하지 못했어요: " + ex.Message, C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.m.saveFailed") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
-        var next = await w.AskAsync($"좋아요! 이제 \"{name}\"은 {method.Name} 방법으로 관리해요. 폴더 아이콘에 작은 표시가 붙고, 폴더에 들어가면 위쪽에 한 줄로 알려 드려요. 지금 정리할 게 있는지 볼까요?",
-            C("suggest", "지금 볼래요"), C("close", "나중에"));
+        var next = await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.set", name, method.Name),
+            C("suggest", Foldy.Core.Localization.Loc.T("cf.m.lookNow")), C("close", Foldy.Core.Localization.Loc.T("sw.later")));
         w.Close();
         if (next == "suggest")
         {
@@ -465,7 +465,7 @@ public static class CleanupFlows
     /// <summary>관리 방법에 따른 제안을 하나씩 설명하고, 확인을 받아 한 번에 옮긴다. 끝나면 [되돌리기].</summary>
     public static async Task SuggestAsync(Window owner, string root, FolderMethod method)
     {
-        var w = Open(owner, $"{method.Name}로 정리");
+        var w = Open(owner, Foldy.Core.Localization.Loc.F("cf.m.tidyWith", method.Name));
         var name = Path.GetFileName(root.TrimEnd('\\'));
         IReadOnlyList<ManagedSuggestion> list;
         try
@@ -474,19 +474,19 @@ public static class CleanupFlows
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            await w.AskAsync("폴더를 읽지 못했어요: " + ex.Message, C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.m.cantRead") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
         if (list.Count == 0)
         {
-            await w.AskAsync($"\"{name}\"은 {method.Name} 방법대로 잘 정리돼 있어요! 🙂", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.allGood", name, method.Name), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
-        w.Say($"\"{name}\"을 {method.Name} 방법대로 살펴봤어요. 정리할 게 {list.Count:N0}가지 있어요. 하나씩 보여 드릴게요.");
+        w.Say(Foldy.Core.Localization.Loc.F("cf.m.found", name, method.Name, list.Count));
         if (ExplorerFolderMark.SyncWarning(root) is { } sync)
         {
             w.Say("⚠ " + sync);
@@ -502,15 +502,15 @@ public static class CleanupFlows
 
             if (s.Moves.Count == 0)
             {
-                await w.AskAsync(s.Text, C("ok", "알겠어요"));
+                await w.AskAsync(s.Text, C("ok", Foldy.Core.Localization.Loc.T("cf.gotIt")));
                 continue;
             }
 
-            var c = await w.AskAsync(s.Text, C("yes", "이대로 정리"), C("detail", "자세히 보기"), C("skip", "나중에"));
+            var c = await w.AskAsync(s.Text, C("yes", Foldy.Core.Localization.Loc.T("cf.log.go")), C("detail", Foldy.Core.Localization.Loc.T("cf.details")), C("skip", Foldy.Core.Localization.Loc.T("sw.later")));
             if (c == "detail")
             {
                 w.ShowList(s.Moves.Select(m => $"{Path.GetRelativePath(root, m.Src)}  →  {Path.GetRelativePath(root, m.Dst)}"));
-                c = await w.AskAsync("이렇게 옮길게요. 괜찮을까요?", C("yes", "이대로 정리"), C("skip", "나중에"));
+                c = await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.okToMove"), C("yes", Foldy.Core.Localization.Loc.T("cf.log.go")), C("skip", Foldy.Core.Localization.Loc.T("sw.later")));
             }
 
             if (c == "yes")
@@ -531,10 +531,10 @@ public static class CleanupFlows
 
         w.Busy();
         var (done, skipped) = await Task.Run(() => ManagedFolders.Apply(accepted, CleanupPaths.ManagedJournal));
-        var msg = $"다 했어요! {done.Count:N0}개를 옮겼어요."
-            + (skipped.Count > 0 ? $"\n{skipped.Count:N0}개는 건너뛰었어요 ({string.Join(", ", skipped.Select(x => x.Reason).Distinct())})." : "")
-            + "\n마음에 안 들면 [되돌리기] 한 번이면 원래대로예요.";
-        var end = await w.AskAsync(msg, C("open", "폴더 열기"), C("undo", "되돌리기"), C("close", "닫기"));
+        var msg = Foldy.Core.Localization.Loc.F("cf.m.done", done.Count)
+            + (skipped.Count > 0 ? Foldy.Core.Localization.Loc.F("cf.m.skipped", skipped.Count, string.Join(", ", skipped.Select(x => x.Reason).Distinct())) : "")
+            + Foldy.Core.Localization.Loc.T("cf.undoNote");
+        var end = await w.AskAsync(msg, C("open", Foldy.Core.Localization.Loc.T("cf.openFolder")), C("undo", Foldy.Core.Localization.Loc.T("cf.undo")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         if (end == "open")
         {
             OpenFolder(root);
@@ -542,7 +542,7 @@ public static class CleanupFlows
         else if (end == "undo")
         {
             var n = await Task.Run(() => ManagedFolders.Undo(CleanupPaths.ManagedJournal));
-            await w.AskAsync($"{n:N0}개를 원래 자리로 돌려놨어요.", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.undone", n), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         }
 
         w.Close();
@@ -555,7 +555,7 @@ public static class CleanupFlows
             return;
         }
 
-        await w.AskAsync("알겠어요. 아무것도 바꾸지 않았어요. 생각나면 언제든 다시 불러 주세요!", C("close", "닫기"));
+        await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.nothingChanged"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         w.Close();
     }
 }
@@ -640,19 +640,19 @@ public static class FirstRunTour
     /// </summary>
     public static async Task FirstRunAsync(Window owner, Action<double> setScale, Action<string> setTheme, Func<GuideWindow, Task>? hotkeyStep = null)
     {
-        var w = new GuideWindow("Foldy 시작하기") { Owner = owner, Width = 720, Height = 640, FontSize = 18 }; // 처음 안내는 글씨를 크게
+        var w = new GuideWindow(Foldy.Core.Localization.Loc.T("cf.fr.title")) { Owner = owner, Width = 720, Height = 640, FontSize = 18 }; // 처음 안내는 글씨를 크게
         w.Show();
         w.EchoChoices = false;
-        w.Say("안녕하세요! Foldy예요 👋 먼저 보기 편하게 맞춰 볼게요. 누르면 바로 바뀌니까 보면서 고르세요. 나중에 언제든 바꿀 수 있어요.");
+        w.Say(Foldy.Core.Localization.Loc.T("cf.fr.hello"));
         // 글자 크기는 실제 파일 목록 모양으로 보여 주고 고르게 한다
-        foreach (var (label, scale) in new[] { ("보통", 1.0), ("크게", 1.15), ("아주 크게", 1.3), ("가장 크게", 1.5) })
+        foreach (var (label, scale) in new[] { (Foldy.Core.Localization.Loc.T("cf.fr.normal"), 1.0), (Foldy.Core.Localization.Loc.T("cf.fr.large"), 1.15), (Foldy.Core.Localization.Loc.T("cf.fr.larger"), 1.3), (Foldy.Core.Localization.Loc.T("cf.fr.largest"), 1.5) })
         {
             w.ShowContent(SampleList(label, scale));
         }
         while (true)
         {
-            var c = await w.AskAsync("글자 크기는 어떤가요?",
-                ("1.0", "보통"), ("1.15", "크게"), ("1.3", "아주 크게"), ("1.5", "가장 크게"), ("next", "이대로 좋아요"));
+            var c = await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.fr.size"),
+                ("1.0", Foldy.Core.Localization.Loc.T("cf.fr.normal")), ("1.15", Foldy.Core.Localization.Loc.T("cf.fr.large")), ("1.3", Foldy.Core.Localization.Loc.T("cf.fr.larger")), ("1.5", Foldy.Core.Localization.Loc.T("cf.fr.largest")), ("next", Foldy.Core.Localization.Loc.T("cf.fr.ok")));
             if (c == GuideWindow.ClosedChoice)
             {
                 return;
@@ -664,12 +664,12 @@ public static class FirstRunTour
             }
 
             setScale(double.Parse(c, System.Globalization.CultureInfo.InvariantCulture));
-            w.Say($"{(c switch { "1.0" => "보통", "1.15" => "크게", "1.3" => "아주 크게", _ => "가장 크게" })}로 바꿨어요. 마음에 들면 [이대로 좋아요]를 눌러 주세요.");
+            w.Say(Foldy.Core.Localization.Loc.F("cf.fr.changedSize", (c switch { "1.0" => Foldy.Core.Localization.Loc.T("cf.fr.normal"), "1.15" => Foldy.Core.Localization.Loc.T("cf.fr.large"), "1.3" => Foldy.Core.Localization.Loc.T("cf.fr.larger"), _ => Foldy.Core.Localization.Loc.T("cf.fr.largest") })));
         }
 
         while (true)
         {
-            var c = await w.AskAsync("화면 밝기는요?", ("light", "밝게"), ("dark", "어둡게"), ("system", "Windows 따라가기"), ("next", "이대로 좋아요"));
+            var c = await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.fr.theme"), ("light", Foldy.Core.Localization.Loc.T("cf.fr.light")), ("dark", Foldy.Core.Localization.Loc.T("cf.fr.dark")), ("system", Foldy.Core.Localization.Loc.T("cf.fr.system")), ("next", Foldy.Core.Localization.Loc.T("cf.fr.ok")));
             if (c == GuideWindow.ClosedChoice)
             {
                 return;
@@ -681,7 +681,7 @@ public static class FirstRunTour
             }
 
             setTheme(c);
-            w.Say("바꿨어요. 마음에 들면 [이대로 좋아요]를 눌러 주세요.");
+            w.Say(Foldy.Core.Localization.Loc.T("cf.fr.changedTheme"));
         }
 
         // 빠른 검색 단축키(Ctrl+Space)가 다른 프로그램과 겹치는지 여기서 확인하고, 겹치면 이 자리에서 고른다
@@ -703,7 +703,7 @@ public static class FirstRunTour
     {
         var panel = new System.Windows.Controls.StackPanel();
         panel.Children.Add(new System.Windows.Controls.TextBlock { Text = label, FontWeight = FontWeights.SemiBold, FontSize = 14, Margin = new Thickness(0, 0, 0, 4) });
-        foreach (var (glyph, name, size) in new[] { ("\uE8B7", "사진", ""), ("\uE8A5", "2026_사업계획서.pptx", "8.2 MB"), ("\uE8A5", "회의록_최종_v2.docx", "1.2 MB") })
+        foreach (var (glyph, name, size) in new[] { ("\uE8B7", Foldy.Core.Localization.Loc.T("cf.demo.photos"), ""), ("\uE8A5", Foldy.Core.Localization.Loc.T("cf.demo.plan"), "8.2 MB"), ("\uE8A5", Foldy.Core.Localization.Loc.T("cf.demo.minutes"), "1.2 MB") })
         {
             var row = new System.Windows.Controls.DockPanel { LastChildFill = true, Width = 300, Margin = new Thickness(0, 1, 0, 1) };
             var sz = new System.Windows.Controls.TextBlock { Text = size, FontSize = 12.5, Opacity = 0.7 };

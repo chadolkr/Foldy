@@ -45,14 +45,14 @@ public partial class MemoWindow : Window
         _password = password;
         _locked = password is not null;
         Title = _locked
-            ? Path.GetFileName(path).Replace(SecureZip.MemoSuffix, "", StringComparison.OrdinalIgnoreCase) + " - 잠긴 메모"
-            : Path.GetFileNameWithoutExtension(path) + " - 메모";
+            ? Path.GetFileName(path).Replace(SecureZip.MemoSuffix, "", StringComparison.OrdinalIgnoreCase) + Foldy.Core.Localization.Loc.T("memo.lockedSuffix")
+            : Path.GetFileNameWithoutExtension(path) + Foldy.Core.Localization.Loc.T("memo.suffix");
         LockIcon.Visibility = _locked ? Visibility.Visible : Visibility.Collapsed;
-        CloseButton.Content = _locked ? "잠그고 닫기" : "닫기";
-        CloseButton.ToolTip = _locked ? "저장하고 닫아요 (다시 열 때 암호가 필요해요)" : "저장하고 닫아요";
+        CloseButton.Content = _locked ? Foldy.Core.Localization.Loc.T("memo.lockClose") : Foldy.Core.Localization.Loc.T("cf.close");
+        CloseButton.ToolTip = _locked ? Foldy.Core.Localization.Loc.T("memo.lockCloseTip") : Foldy.Core.Localization.Loc.T("memo.closeTip");
         StatusText.Text = _locked
-            ? "잠긴 메모 · 그림은 Ctrl+V나 [화면 캡처]로 · 5분 동안 손대지 않으면 저장하고 잠가요"
-            : "메모 · 그림은 Ctrl+V나 [화면 캡처]로 넣어요 (그림이 들어가면 .textpack 한 파일로 저장돼요)";
+            ? Foldy.Core.Localization.Loc.T("memo.lockedHint")
+            : Foldy.Core.Localization.Loc.T("memo.hint");
         Editor.Text = note.Markdown;
         _dirty = false;
         Editor.TextChanged += (_, _) =>
@@ -147,20 +147,20 @@ public partial class MemoWindow : Window
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            StatusText.Text = "캡처 도구를 열지 못했어요. Win+Shift+S로 캡처한 뒤 Ctrl+V로 붙여 넣어 주세요.";
+            StatusText.Text = Foldy.Core.Localization.Loc.T("memo.captureFailed");
             return;
         }
 
         var seq = GetClipboardSequenceNumber();
         var until = DateTime.UtcNow.AddMinutes(1);
-        StatusText.Text = "캡처할 곳을 골라 주세요. 캡처하면 바로 메모에 들어가요.";
+        StatusText.Text = Foldy.Core.Localization.Loc.T("memo.capturePick");
         _capture?.Stop();
         _capture = new DispatcherTimer(TimeSpan.FromMilliseconds(400), DispatcherPriority.Background, (_, _) =>
         {
             if (DateTime.UtcNow > until)
             {
                 _capture?.Stop();
-                StatusText.Text = "캡처를 그만뒀어요.";
+                StatusText.Text = Foldy.Core.Localization.Loc.T("memo.captureCancelled");
                 return;
             }
 
@@ -169,7 +169,7 @@ public partial class MemoWindow : Window
                 _capture?.Stop();
                 if (PasteImage())
                 {
-                    StatusText.Text = "캡처한 그림을 넣었어요.";
+                    StatusText.Text = Foldy.Core.Localization.Loc.T("memo.captured");
                     Activate();
                 }
             }
@@ -195,7 +195,7 @@ public partial class MemoWindow : Window
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    StatusText.Text = "그림을 읽지 못했어요: " + ex.Message;
+                    StatusText.Text = Foldy.Core.Localization.Loc.T("memo.imgFailed") + ex.Message;
                 }
             }
         }
@@ -207,7 +207,7 @@ public partial class MemoWindow : Window
     {
         // 잠긴 메모는 암호화해서 안에, 보통 메모는 .textpack의 assets/ 안에
         var link = _note.AddImage(bytes, ext, _locked ? SecureZip.ImagesFolder : TextPack.Assets);
-        var text = $"\n![그림]({link})\n";
+        var text = Foldy.Core.Localization.Loc.F("memo.imgLink", link);
         var at = Editor.CaretIndex;
         Editor.Text = Editor.Text.Insert(at, text);
         Editor.CaretIndex = at + text.Length;
@@ -247,7 +247,7 @@ public partial class MemoWindow : Window
         }
 
         var view = ViewToggle.IsChecked == true;
-        ViewToggle.Content = view ? "쓰기로" : "보기로";
+        ViewToggle.Content = view ? Foldy.Core.Localization.Loc.T("memo.toEdit") : Foldy.Core.Localization.Loc.T("memo.toView");
         EditorColumn.Width = view ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         Editor.Visibility = view ? Visibility.Collapsed : Visibility.Visible;
         CaptureButton.IsEnabled = !view;
@@ -267,7 +267,7 @@ public partial class MemoWindow : Window
                 }
 
                 _note.Save(_path, _password);
-                StatusText.Text = $"암호를 걸어 저장했어요 ({DateTime.Now:HH:mm})";
+                StatusText.Text = Foldy.Core.Localization.Loc.F("memo.savedLocked", DateTime.Now);
             }
             else
             {
@@ -275,7 +275,7 @@ public partial class MemoWindow : Window
                 if (TextPack.Is(_path))
                 {
                     TextPack.Save(_path, _note);
-                    StatusText.Text = $"저장했어요 ({DateTime.Now:HH:mm})";
+                    StatusText.Text = Foldy.Core.Localization.Loc.F("memo.saved", DateTime.Now);
                 }
                 else if (usesImages)
                 {
@@ -284,13 +284,13 @@ public partial class MemoWindow : Window
                     TextPack.Save(pack, _note);
                     File.Delete(_path);
                     _path = pack;
-                    Title = Path.GetFileNameWithoutExtension(pack) + " - 메모";
-                    StatusText.Text = $"그림이 들어가서 \"{Path.GetFileName(pack)}\" 한 파일로 저장했어요 ({DateTime.Now:HH:mm})";
+                    Title = Path.GetFileNameWithoutExtension(pack) + Foldy.Core.Localization.Loc.T("memo.suffix");
+                    StatusText.Text = Foldy.Core.Localization.Loc.F("memo.savedPack", Path.GetFileName(pack), DateTime.Now);
                 }
                 else
                 {
                     File.WriteAllText(_path, Editor.Text);
-                    StatusText.Text = $"저장했어요 ({DateTime.Now:HH:mm})";
+                    StatusText.Text = Foldy.Core.Localization.Loc.F("memo.saved", DateTime.Now);
                 }
             }
 
@@ -299,7 +299,7 @@ public partial class MemoWindow : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            StatusText.Text = "저장하지 못했어요: " + ex.Message;
+            StatusText.Text = Foldy.Core.Localization.Loc.T("memo.saveFailed") + ex.Message;
             return false;
         }
     }
@@ -312,7 +312,7 @@ public partial class MemoWindow : Window
     {
         if (_dirty && !Save())
         {
-            if (!Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "메모", "저장하지 못했어요. 그래도 닫을까요? 고친 내용은 사라져요.", "닫기 (고친 내용 버리기)", "닫지 않기", danger: true))
+            if (!Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("sec.memo"), Foldy.Core.Localization.Loc.T("memo.closeUnsaved"), Foldy.Core.Localization.Loc.T("memo.discardClose"), Foldy.Core.Localization.Loc.T("memo.dontClose"), danger: true))
             {
                 e.Cancel = true;
                 return;

@@ -26,7 +26,7 @@ internal sealed class QuickSearchWindow : Window
     public const int MaxFiles = 30;
 
     /// <summary>묶음 순서 (Spotlight처럼 바로 답 → 앱 → 설정 → 폴더 → 기능 → 파일).</summary>
-    public static readonly string[] GroupOrder = ["계산", "단위 변환", "앱", "설정", "폴더", "기능", "파일"];
+    public static readonly string[] GroupOrder = [Foldy.Core.Localization.Loc.T("qs.calc"), Foldy.Core.Localization.Loc.T("qs.units"), Foldy.Core.Localization.Loc.T("sw.qs.app"), Foldy.Core.Localization.Loc.T("cmd.settings"), Foldy.Core.Localization.Loc.T("sw.qs.folder"), Foldy.Core.Localization.Loc.T("sw.qs.feature0"), Foldy.Core.Localization.Loc.T("sw.qs.file")];
 
     private readonly Func<string, IEnumerable<Hit>> _instant;
     private readonly Func<string, CancellationToken, IAsyncEnumerable<IReadOnlyList<FsEntry>>> _files;
@@ -56,7 +56,7 @@ internal sealed class QuickSearchWindow : Window
         _instant = instant;
         _files = files;
         _fileHit = fileHit;
-        Title = "Foldy 빠른 검색";
+        Title = Foldy.Core.Localization.Loc.T("qs.title");
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -73,8 +73,8 @@ internal sealed class QuickSearchWindow : Window
         _input = new TextBox { FontSize = 26, BorderThickness = new Thickness(0), Background = Brushes.Transparent, VerticalContentAlignment = VerticalAlignment.Center, Padding = new Thickness(4, 0, 4, 0) };
         _input.SetResourceReference(ForegroundProperty, "Brush.Text");
         _input.SetResourceReference(TextBox.CaretBrushProperty, "Brush.Text");
-        System.Windows.Automation.AutomationProperties.SetName(_input, "빠른 검색: 파일·앱·설정·기능·계산");
-        _placeholder = new TextBlock { Text = "파일, 앱, 설정, 기능, 계산(12*3)…", FontSize = 26, IsHitTestVisible = false, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        System.Windows.Automation.AutomationProperties.SetName(_input, Foldy.Core.Localization.Loc.T("qs.boxName"));
+        _placeholder = new TextBlock { Text = Foldy.Core.Localization.Loc.T("qs.placeholder"), FontSize = 26, IsHitTestVisible = false, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         _placeholder.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
         var icon = new TextBlock { Text = "", FontSize = 24, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 10, 0) };
         icon.SetResourceReference(FontFamilyProperty, "Font.Icon");
@@ -269,7 +269,7 @@ internal sealed class QuickSearchWindow : Window
                     {
                         if (shown == 0 || (shown == 1 && _rows.Children.Count == 2))
                         {
-                            AddHeader("파일");
+                            AddHeader(Foldy.Core.Localization.Loc.T("sw.qs.file"));
                         }
 
                         AddRow(_fileHit(f));
@@ -299,7 +299,7 @@ internal sealed class QuickSearchWindow : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            AddHeader("파일을 찾다가 문제가 생겼어요: " + ex.Message);
+            AddHeader(Foldy.Core.Localization.Loc.T("qs.fileError") + ex.Message);
         }
     }
 
@@ -399,7 +399,7 @@ internal sealed class QuickSearchWindow : Window
             panel.Children.Add(content);
         }
 
-        var hint = new TextBlock { Text = h.Reveal is not null ? "Enter: 열기 · Ctrl+Enter: 들어 있는 폴더" : h.Group is "계산" or "단위 변환" ? "Enter: 결과 복사" : "Enter: 실행", FontSize = 12, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 10, 0, 0) };
+        var hint = new TextBlock { Text = h.Reveal is not null ? Foldy.Core.Localization.Loc.T("qs.hintOpen") : h.Group == Foldy.Core.Localization.Loc.T("qs.calc") || h.Group == Foldy.Core.Localization.Loc.T("qs.units") ? Foldy.Core.Localization.Loc.T("qs.hintCopy") : Foldy.Core.Localization.Loc.T("qs.hintRun"), FontSize = 12, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 10, 0, 0) };
         hint.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
         panel.Children.Add(hint);
         _preview.Child = panel;
@@ -417,8 +417,8 @@ internal sealed class QuickSearchWindow : Window
         var info = new TextBlock { FontSize = 13, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 6, 0, 0) };
         info.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
         info.Text = f.Kind == FsKind.Folder
-            ? $"폴더 · 바뀐 날 {f.Modified.ToLocalTime():g}"
-            : $"{Foldy.Presentation.Files.FileItem.FormatBytes(f.Size)} · 바뀐 날 {f.Modified.ToLocalTime():g}";
+            ? Foldy.Core.Localization.Loc.F("qs.folderModified", f.Modified.ToLocalTime())
+            : Foldy.Core.Localization.Loc.F("qs.fileModified", Foldy.Presentation.Files.FileItem.FormatBytes(f.Size), f.Modified.ToLocalTime());
         var panel = new StackPanel();
         if (f.Kind == FsKind.File && ImageExt.Contains(ext) && f.Size < 50L * 1024 * 1024)
         {

@@ -101,3 +101,9 @@ CS = [
 
 from cs_strings_sw import SW  # noqa: E402
 CS = CS + SW
+from cs_strings_cf import CF  # noqa: E402
+CS = CS + CF
+from cs_strings_b3 import B3  # noqa: E402
+CS = CS + B3
+from cs_strings_b4 import B4  # noqa: E402
+CS = CS + B4

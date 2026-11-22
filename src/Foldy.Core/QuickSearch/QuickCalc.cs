@@ -57,7 +57,7 @@ public static partial class QuickCalc
         }
 
         var shown = Format(v, culture);
-        return new QuickAnswer($"{q.TrimEnd('=', ' ')} = {shown}", Format(v, CultureInfo.InvariantCulture, grouping: false), "계산");
+        return new QuickAnswer($"{q.TrimEnd('=', ' ')} = {shown}", Format(v, CultureInfo.InvariantCulture, grouping: false), Foldy.Core.Localization.Loc.T("qs.calc"));
     }
 
     private sealed class Parser(string s)
@@ -257,7 +257,7 @@ public static partial class QuickCalc
 
         var v = from.Dim == Dim.Temp ? Temp(n, from.Name, to.Name) : n * from.Factor / to.Factor;
         var shown = $"{Format(n, culture)} {from.Name} = {Format(Math.Abs(v) >= 1 ? Math.Round(v, 2) : v, culture)} {to.Name}"; // 보기는 소수 둘째 자리까지, 복사는 자세히
-        return new QuickAnswer(shown, Format(v, CultureInfo.InvariantCulture, grouping: false), "단위 변환");
+        return new QuickAnswer(shown, Format(v, CultureInfo.InvariantCulture, grouping: false), Foldy.Core.Localization.Loc.T("qs.units"));
     }
 
     /// <summary>"km는" → "km", "mi로" → "mi" (단위 뒤에 붙은 조사).</summary>

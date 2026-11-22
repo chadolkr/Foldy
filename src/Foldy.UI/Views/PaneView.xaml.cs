@@ -47,15 +47,15 @@ public partial class PaneView : UserControl
         SizeChanged += (_, _) => FitToolbar();
         _folderColumns.AddRange([
             // 좁은 패널: 유형은 이름 왼쪽 아이콘으로만 보이고, 남는 폭은 모두 이름에 준다.
-            new FastColumn("이름", 320, o => ((FileItem)o).Name),
-            new FastColumn("크기", 72, o => ((FileItem)o).SizeText, alignRight: true),
-            new FastColumn("수정", 68, o => ((FileItem)o).ShortModifiedText) { FontScale = 0.85 },
+            new FastColumn(Foldy.Core.Localization.Loc.T("pane.col.name"), 320, o => ((FileItem)o).Name),
+            new FastColumn(Foldy.Core.Localization.Loc.T("pane.col.size"), 72, o => ((FileItem)o).SizeText, alignRight: true),
+            new FastColumn(Foldy.Core.Localization.Loc.T("pane.col.modified"), 68, o => ((FileItem)o).ShortModifiedText) { FontScale = 0.85 },
         ]);
         _searchColumns.AddRange([
-            new FastColumn("이름", 240, o => ((FileItem)o).Name),
-            new FastColumn("위치", 220, o => Path.GetDirectoryName(((FileItem)o).FullPath) ?? ""),
-            new FastColumn("크기", 72, o => ((FileItem)o).SizeText, alignRight: true),
-            new FastColumn("수정", 68, o => ((FileItem)o).ShortModifiedText) { FontScale = 0.85 },
+            new FastColumn(Foldy.Core.Localization.Loc.T("pane.col.name"), 240, o => ((FileItem)o).Name),
+            new FastColumn(Foldy.Core.Localization.Loc.T("pane.col.location"), 220, o => Path.GetDirectoryName(((FileItem)o).FullPath) ?? ""),
+            new FastColumn(Foldy.Core.Localization.Loc.T("pane.col.size"), 72, o => ((FileItem)o).SizeText, alignRight: true),
+            new FastColumn(Foldy.Core.Localization.Loc.T("pane.col.modified"), 68, o => ((FileItem)o).ShortModifiedText) { FontScale = 0.85 },
         ]);
         UseColumns(_folderColumns);
         List.SortColumn = 0;
@@ -277,7 +277,7 @@ public partial class PaneView : UserControl
         }
 
         LoadingText.Visibility = Visibility.Visible;
-        LoadingText.Text = _search.Status + (_search.IsBusy ? " · Esc 취소" : "");
+        LoadingText.Text = _search.Status + (_search.IsBusy ? Foldy.Core.Localization.Loc.T("pane.escCancel") : "");
         EmptyPanel.Visibility = Visibility.Collapsed;
     }
 
@@ -402,10 +402,10 @@ public partial class PaneView : UserControl
         // M·A·?·! 같은 Git 약자 대신 처음 봐도 아는 말로, Git 화면과 같은 말 (배워야 쓰면 실패, DECISIONS 2026-11-20). 마우스를 올리면 설명
         var (text, key) = g.BadgeOf(f.FullPath) switch
         {
-            Foldy.Core.FileSystem.GitFileStatus.Modified => ("수정", "Brush.Progress"),
-            Foldy.Core.FileSystem.GitFileStatus.Added => ("추가", "Brush.Done"),
-            Foldy.Core.FileSystem.GitFileStatus.Untracked => ("새 파일", "Brush.TextSecondary"),
-            Foldy.Core.FileSystem.GitFileStatus.Conflicted => ("충돌", "Brush.Error"),
+            Foldy.Core.FileSystem.GitFileStatus.Modified => (Foldy.Core.Localization.Loc.T("pane.col.modified"), "Brush.Progress"),
+            Foldy.Core.FileSystem.GitFileStatus.Added => (Foldy.Core.Localization.Loc.T("pane.git.added"), "Brush.Done"),
+            Foldy.Core.FileSystem.GitFileStatus.Untracked => (Foldy.Core.Localization.Loc.T("pane.git.untracked"), "Brush.TextSecondary"),
+            Foldy.Core.FileSystem.GitFileStatus.Conflicted => (Foldy.Core.Localization.Loc.T("pane.git.conflict"), "Brush.Error"),
             _ => (null, null),
         };
         return text is not null && TryFindResource(key) is Brush b ? (text, b) : null;
@@ -414,11 +414,11 @@ public partial class PaneView : UserControl
     /// <summary>Git 상태 표시에 마우스를 올렸을 때의 설명 (Git을 몰라도 알 수 있게).</summary>
     public static string? GitExplain(Foldy.Core.FileSystem.GitFileStatus s) => s switch
     {
-        Foldy.Core.FileSystem.GitFileStatus.Modified => "수정: 마지막으로 저장한 기록(커밋) 뒤에 고친 파일이에요. 커밋하면 표시가 사라져요.",
-        Foldy.Core.FileSystem.GitFileStatus.Added => "추가: 다음 기록(커밋)에 새로 들어갈 파일이에요.",
-        Foldy.Core.FileSystem.GitFileStatus.Untracked => "새 파일: 아직 Git이 기록하지 않는 새 파일이에요. 기록하려면 Git 화면에서 추가해요.",
-        Foldy.Core.FileSystem.GitFileStatus.Conflicted => "충돌: 두 사람이 같은 곳을 고쳐서 Git이 합치지 못한 파일이에요. 열어서 어느 쪽으로 할지 정해 주세요.",
-        Foldy.Core.FileSystem.GitFileStatus.Ignored => "흐리게: Git이 기록하지 않기로 한 파일이에요(.gitignore).",
+        Foldy.Core.FileSystem.GitFileStatus.Modified => Foldy.Core.Localization.Loc.T("pane.git.tipModified"),
+        Foldy.Core.FileSystem.GitFileStatus.Added => Foldy.Core.Localization.Loc.T("pane.git.tipAdded"),
+        Foldy.Core.FileSystem.GitFileStatus.Untracked => Foldy.Core.Localization.Loc.T("pane.git.tipUntracked"),
+        Foldy.Core.FileSystem.GitFileStatus.Conflicted => Foldy.Core.Localization.Loc.T("pane.git.tipConflict"),
+        Foldy.Core.FileSystem.GitFileStatus.Ignored => Foldy.Core.Localization.Loc.T("pane.git.tipIgnored"),
         _ => null,
     };
 
@@ -443,7 +443,7 @@ public partial class PaneView : UserControl
     {
         var g = _tab?.Git;
         GitChip.Visibility = g is null ? Visibility.Collapsed : Visibility.Visible;
-        GitText.Text = g is null ? "" : g.Changes > 0 ? $"{g.BranchText} · 변경 {g.Changes}" : g.BranchText;
+        GitText.Text = g is null ? "" : g.Changes > 0 ? Foldy.Core.Localization.Loc.F("pane.git.branchChanges", g.BranchText, g.Changes) : g.BranchText;
         GitChip.ToolTip = g?.RepoRoot;
         UpdateGitBar();
         _ = UpdateManagedBarAsync();
@@ -469,7 +469,7 @@ public partial class PaneView : UserControl
         if (show)
         {
             GitBarBranch.Text = g!.BranchText;
-            GitBarChanges.Text = g.Changes > 0 ? $"변경 {g.Changes}개" : "변경 없음";
+            GitBarChanges.Text = g.Changes > 0 ? Foldy.Core.Localization.Loc.F("pane.git.changes", g.Changes) : Foldy.Core.Localization.Loc.T("pane.git.clean");
             GitBar.ToolTip = g.RepoRoot;
         }
 
@@ -565,8 +565,8 @@ public partial class PaneView : UserControl
         // 네트워크·리다이렉터 드라이브 루트가 비어 보이면 보안 프로그램(예: 회사 보안 드라이브 프로그램)이 탐색기에만 내용을 허용했을 수 있다.
         var restrictedRoot = EmptyPanel.Visibility == Visibility.Visible && IsRemoteDriveRoot(_tab.Path);
         EmptyText.Text = restrictedRoot
-            ? "이 드라이브의 내용이 Foldy에서 보이지 않습니다.\n보안 프로그램이 탐색기에서만 열 수 있게 막았을 수 있습니다."
-            : "빈 폴더입니다";
+            ? Foldy.Core.Localization.Loc.T("pane.blocked")
+            : Foldy.Core.Localization.Loc.T("pane.empty");
         EmptyExplorerButton.Visibility = restrictedRoot ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -622,7 +622,7 @@ public partial class PaneView : UserControl
         if (ms > 2000)
         {
             LoadingText.Visibility = Visibility.Visible;
-            LoadingText.Text = $"불러오는 중… {_tab.LoadedCount:N0}개 · {ms / 1000.0:0}초 · Esc 취소";
+            LoadingText.Text = Foldy.Core.Localization.Loc.F("pane.loading", _tab.LoadedCount, ms / 1000.0);
         }
     }
 
@@ -922,7 +922,7 @@ public partial class PaneView : UserControl
     {
         var narrow = ActualWidth < 760;
         SearchBorder.Width = narrow ? 120 : 200;
-        SearchHint.Text = narrow ? "검색 (Ctrl+F)" : "파일 이름 검색 (Ctrl+F)";
+        SearchHint.Text = narrow ? Foldy.Core.Localization.Loc.T("pane.searchTip") : Foldy.Core.Localization.Loc.T("pane.searchNameTip");
 
         // 아주 좁으면 파일 이름에 자리를 주려고 폴더 트리를 접는다 (Ctrl+B로 언제든 다시)
         if (!_treeManual && IsLoaded)
@@ -977,7 +977,7 @@ public partial class PaneView : UserControl
         }
 
         Foldy.Core.Tags.FileTags.Toggle(files, tag);
-        _host?.Shell.Status = Foldy.Core.Tags.FileTags.Has(files[0], tag) ? $"'{tag}' 표시했어요 ({files.Count:N0}개)" : $"'{tag}' 표시를 뺐어요 ({files.Count:N0}개)";
+        _host?.Shell.Status = Foldy.Core.Tags.FileTags.Has(files[0], tag) ? Foldy.Core.Localization.Loc.F("pane.tagged", tag, files.Count) : Foldy.Core.Localization.Loc.F("pane.untagged", tag, files.Count);
     }
 
     /// <summary>이 폴더에 태그가 있으면 위쪽에 진행 상황을 한 줄로.</summary>
@@ -997,7 +997,7 @@ public partial class PaneView : UserControl
             return;
         }
 
-        TagBarText.Text = $"파일 {files.Count:N0}개 중 " + string.Join(" · ", counts.Select(c => $"{c.Tag.Name} {c.Count:N0}"));
+        TagBarText.Text = Foldy.Core.Localization.Loc.F("pane.ofFiles", files.Count) + string.Join(" · ", counts.Select(c => $"{c.Tag.Name} {c.Count:N0}"));
         TagNextButton.IsEnabled = files.Any(p => !Foldy.Core.Tags.FileTags.Has(p, Foldy.Core.Tags.FileTags.Default));
         var inGit = Foldy.Core.Tags.FileTags.GitDir(_tab.Path) is not null;
         TagShareToggle.Visibility = inGit ? Visibility.Visible : Visibility.Collapsed;
@@ -1034,7 +1034,7 @@ public partial class PaneView : UserControl
         }
 
         var on = TagShareToggle.IsChecked == true;
-        if (on && !Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), "태그 공유", "태그(.foldy.md)를 저장소에 함께 올리면 같이 쓰는 사람에게 보이고, 공개 저장소면 누구나 볼 수 있어요. 켤까요?", "공유 켜기", "켜지 않기", danger: true))
+        if (on && !Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), Foldy.Core.Localization.Loc.T("pane.tagShare"), Foldy.Core.Localization.Loc.T("pane.tagShareAsk"), Foldy.Core.Localization.Loc.T("pane.tagShareOn"), Foldy.Core.Localization.Loc.T("pane.tagShareOff"), danger: true))
         {
             TagShareToggle.IsChecked = false;
             return;
@@ -1043,7 +1043,7 @@ public partial class PaneView : UserControl
         Foldy.Core.Tags.FileTags.SetSharedInGit(p, on);
         if (_host is not null)
         {
-            _host.Shell.Status = on ? "태그를 저장소에 함께 올려요 (.foldy.md가 git status에 보여요)" : "태그를 이 폴더에만 둬요 (저장소에는 올리지 않아요)";
+            _host.Shell.Status = on ? Foldy.Core.Localization.Loc.T("pane.tagSharedTip") : Foldy.Core.Localization.Loc.T("pane.tagLocalTip");
         }
     }
 
@@ -1052,7 +1052,7 @@ public partial class PaneView : UserControl
         if (_tab?.Path is { } p)
         {
             var n = Foldy.Core.Tags.FileTags.ClearFolder(p);
-            _host?.Shell.Status = $"태그 {n:N0}개를 지웠어요 (파일은 그대로예요)";
+            _host?.Shell.Status = Foldy.Core.Localization.Loc.F("pane.tagsCleared", n);
         }
     }
 
@@ -1111,9 +1111,9 @@ public partial class PaneView : UserControl
 
         _managedRoot = f.Root;
         var here = string.Equals(f.Root.TrimEnd('\\'), path.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
-        ManagedBarText.Text = (here ? $"{f.Name} 방법으로 관리 중" : $"{f.Name} 방법으로 관리 중 ({System.IO.Path.GetFileName(f.Root.TrimEnd('\\'))})")
-            + (f.Count > 0 ? $" · 정리할 것 {f.Count}가지" : " · 잘 정리돼 있어요");
-        ManagedBar.ToolTip = $"{f.Root}의 .foldy.md에 정한 방법을 따릅니다. Foldy는 저절로 옮기지 않고, 확인을 받은 뒤 옮겨요.";
+        ManagedBarText.Text = (here ? Foldy.Core.Localization.Loc.F("pane.managed", f.Name) : Foldy.Core.Localization.Loc.F("pane.managedIn", f.Name, System.IO.Path.GetFileName(f.Root.TrimEnd('\\'))))
+            + (f.Count > 0 ? Foldy.Core.Localization.Loc.F("pane.toTidy", f.Count) : Foldy.Core.Localization.Loc.T("pane.tidyOk"));
+        ManagedBar.ToolTip = Foldy.Core.Localization.Loc.F("pane.managedTip", f.Root);
         ManagedBarButton.Visibility = f.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         ManagedBar.Visibility = Visibility.Visible;
     }
@@ -1164,9 +1164,9 @@ public partial class PaneView : UserControl
             && !paths[0].EndsWith(".foldyvault", StringComparison.OrdinalIgnoreCase);
         var oneFolder = paths.Length == 1 && e.Index >= 0 && CurrentSelection[0].IsFolder;
         string[]? extra = !local ? null
-            : oneFile ? ["🔒 암호 걸기…", "이전 버전 보기…"]
-            : oneFolder ? ["이 폴더 관리 방식 정하기…", "🔒 금고에 넣기…"]
-            : target is not null ? ["이 폴더 관리 방식 정하기…"] : null;
+            : oneFile ? [Foldy.Core.Localization.Loc.T("pane.menu.encrypt"), Foldy.Core.Localization.Loc.T("pane.menu.versions")]
+            : oneFolder ? [Foldy.Core.Localization.Loc.T("sw.c.method"), Foldy.Core.Localization.Loc.T("pane.menu.vault")]
+            : target is not null ? [Foldy.Core.Localization.Loc.T("sw.c.method")] : null;
         var verb = _host.ShellMenu.Show(
             _host.OwnerHandle, paths, (int)e.ScreenPoint.X, (int)e.ScreenPoint.Y, extended,
             backgroundFolder: paths.Length == 0 ? _tab!.Path : null, extraItems: extra);
@@ -1223,11 +1223,11 @@ public partial class PaneView : UserControl
         try
         {
             Clipboard.SetDataObject(data, copy: true);
-            _host!.Shell.Status = move ? $"{selection.Count:N0}개 잘라 둠" : $"{selection.Count:N0}개 복사해 둠";
+            _host!.Shell.Status = move ? Foldy.Core.Localization.Loc.F("pane.cutN", selection.Count) : Foldy.Core.Localization.Loc.F("pane.copiedN", selection.Count);
         }
         catch (System.Runtime.InteropServices.ExternalException ex)
         {
-            _host!.Shell.Status = "클립보드를 쓸 수 없습니다: " + ex.Message;
+            _host!.Shell.Status = Foldy.Core.Localization.Loc.T("pane.clipWrite") + ex.Message;
         }
     }
 
@@ -1255,7 +1255,7 @@ public partial class PaneView : UserControl
         }
         catch (System.Runtime.InteropServices.ExternalException ex)
         {
-            _host.Shell.Status = "클립보드를 읽을 수 없습니다: " + ex.Message;
+            _host.Shell.Status = Foldy.Core.Localization.Loc.T("pane.clipRead") + ex.Message;
         }
     }
 
@@ -1490,7 +1490,7 @@ public partial class PaneView : UserControl
             TreeBtn.ClearValue(BackgroundProperty);
         }
 
-        TreeBtn.ToolTip = on ? "폴더 트리 숨기기 (Ctrl+B)" : "폴더 트리 보이기 (Ctrl+B)";
+        TreeBtn.ToolTip = on ? Foldy.Core.Localization.Loc.T("pane.treeHide") : Foldy.Core.Localization.Loc.T("pane.treeShow");
     }
 
     // 좁은 창에서 트리를 저절로 숨겼는지 (넓어지면 다시 보인다). 사용자가 직접 켜고 끄면 그 뒤로는 손대지 않는다.
@@ -1749,11 +1749,11 @@ public partial class PaneView : UserControl
         ImagesBar.Visibility = Visibility.Visible;
         var others = _tab.Items.Count - images.Count;
         ImagesBarText.Text = images.Count == 0
-            ? $"이미지만 보는 중인데 이 폴더에는 그림이 없어요 (다른 항목 {others:N0}개)"
-            : $"이미지만 보는 중이에요 · 그림 {images.Count:N0}개 (다른 항목 {others:N0}개는 숨김)";
+            ? Foldy.Core.Localization.Loc.F("pane.imgNone", others)
+            : Foldy.Core.Localization.Loc.F("pane.imgOnly", images.Count, others);
         EmptyPanel.Visibility = Visibility.Collapsed;
         LoadingText.Visibility = Visibility.Visible;
-        LoadingText.Text = $"이미지 {images.Count:N0}개 · 스페이스: 빠른 보기 · Ctrl+휠: 크기";
+        LoadingText.Text = Foldy.Core.Localization.Loc.F("pane.imgStatus", images.Count);
     }
 
     private ItemList? ImageItems => _grid?.ItemsSource as ItemList;
@@ -1816,11 +1816,11 @@ public partial class PaneView : UserControl
         var sel = _tab.Selection;
         if (sel.Count == 0)
         {
-            return $"{n:N0}개 항목";
+            return Foldy.Core.Localization.Loc.F("pane.items", n);
         }
 
         var bytes = sel.Where(i => !i.IsFolder).Sum(i => i.Entry.Size);
-        return $"{n:N0}개 항목 · {sel.Count:N0}개 선택 · {FileItem.FormatBytes(bytes)}";
+        return Foldy.Core.Localization.Loc.F("pane.itemsSel", n, sel.Count, FileItem.FormatBytes(bytes));
     }
 
 }

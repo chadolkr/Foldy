@@ -20,18 +20,18 @@ public static class CompareFlow
 
     public static async Task RunAsync(Window owner, string left, string right, ShellViewModel shell)
     {
-        var w = new GuideWindow("두 창 비교") { Owner = owner };
+        var w = new GuideWindow(Foldy.Core.Localization.Loc.T("cmp.title")) { Owner = owner };
         w.Show();
         var ln = Name(left);
         var rn = Name(right);
         if (string.Equals(left.TrimEnd('\\'), right.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
         {
-            await w.AskAsync("두 창이 같은 폴더를 보고 있어요. 한쪽 창에서 비교할 다른 폴더를 열어 주세요.", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cmp.same"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
-        w.Say($"왼쪽 \"{ln}\"과 오른쪽 \"{rn}\"을 비교할게요. 파일 크기와 고친 시각으로 봐요.");
+        w.Say(Foldy.Core.Localization.Loc.F("cmp.hello", ln, rn));
         w.Busy();
         var lastSync = LastSync(left, right);
         IReadOnlyList<DiffItem> diff;
@@ -41,7 +41,7 @@ public static class CompareFlow
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            await w.AskAsync("비교하지 못했어요: " + ex.Message, C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cmp.failed") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
@@ -53,7 +53,7 @@ public static class CompareFlow
 
         if (diff.Count == 0)
         {
-            await w.AskAsync("두 폴더가 똑같아요. 맞출 게 없어요! 🙂", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cmp.identical"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
@@ -63,24 +63,24 @@ public static class CompareFlow
         var rightNewer = Count(DiffKind.RightNewer);
         var conflicts = diff.Where(d => d.Kind == DiffKind.Conflict).ToList();
         var parts = new List<string>();
-        if (Count(DiffKind.LeftOnly) > 0) parts.Add($"왼쪽에만 {Count(DiffKind.LeftOnly):N0}개");
-        if (Count(DiffKind.RightOnly) > 0) parts.Add($"오른쪽에만 {Count(DiffKind.RightOnly):N0}개");
-        if (leftNewer > 0) parts.Add($"왼쪽이 더 최신 {leftNewer:N0}개");
-        if (rightNewer > 0) parts.Add($"오른쪽이 더 최신 {rightNewer:N0}개");
-        if (conflicts.Count > 0) parts.Add($"양쪽 다 고친 파일 {conflicts.Count:N0}개");
-        w.Say("다른 곳: " + string.Join(", ", parts) + ".");
-        var verdict = leftNewer > rightNewer ? $"왼쪽(\"{ln}\")이 더 최신이에요. {leftNewer:N0}개 파일이 왼쪽에서 고쳐졌어요."
-            : rightNewer > leftNewer ? $"오른쪽(\"{rn}\")이 더 최신이에요. {rightNewer:N0}개 파일이 오른쪽에서 고쳐졌어요."
-            : "어느 한쪽이 더 최신이라고 하기 어려워요.";
+        if (Count(DiffKind.LeftOnly) > 0) parts.Add(Foldy.Core.Localization.Loc.F("cmp.nLeftOnly", Count(DiffKind.LeftOnly)));
+        if (Count(DiffKind.RightOnly) > 0) parts.Add(Foldy.Core.Localization.Loc.F("cmp.nRightOnly", Count(DiffKind.RightOnly)));
+        if (leftNewer > 0) parts.Add(Foldy.Core.Localization.Loc.F("cmp.nLeftNewer", leftNewer));
+        if (rightNewer > 0) parts.Add(Foldy.Core.Localization.Loc.F("cmp.nRightNewer", rightNewer));
+        if (conflicts.Count > 0) parts.Add(Foldy.Core.Localization.Loc.F("cmp.nBoth", conflicts.Count));
+        w.Say(Foldy.Core.Localization.Loc.T("cmp.diffs") + string.Join(", ", parts) + ".");
+        var verdict = leftNewer > rightNewer ? Foldy.Core.Localization.Loc.F("cmp.leftIsNewer", ln, leftNewer)
+            : rightNewer > leftNewer ? Foldy.Core.Localization.Loc.F("cmp.rightIsNewer", rn, rightNewer)
+            : Foldy.Core.Localization.Loc.T("cmp.unclear");
         w.Say(verdict);
 
         var choice = await w.AskAsync(
-            "어느 쪽으로 맞출까요? 한쪽에만 있는 파일은 반대쪽에 복사만 하고 지우지 않아요. 덮어쓰는 파일은 이전 버전으로 남겨서 [되돌리기]로 돌릴 수 있어요.",
-            C("l2r", "왼쪽 → 오른쪽"), C("r2l", "오른쪽 → 왼쪽"), C("both", "양쪽 최신으로 맞추기"), C("detail", "자세히 보기"), C("later", "나중에"));
+            Foldy.Core.Localization.Loc.T("cmp.howAsk"),
+            C("l2r", Foldy.Core.Localization.Loc.T("cmp.l2r")), C("r2l", Foldy.Core.Localization.Loc.T("cmp.r2l")), C("both", Foldy.Core.Localization.Loc.T("cmp.newest")), C("detail", Foldy.Core.Localization.Loc.T("cf.details")), C("later", Foldy.Core.Localization.Loc.T("sw.later")));
         if (choice == "detail")
         {
             w.ShowList(diff.Select(d => $"{Label(d.Kind)}  ·  {d.RelPath}"));
-            choice = await w.AskAsync("어느 쪽으로 맞출까요?", C("l2r", "왼쪽 → 오른쪽"), C("r2l", "오른쪽 → 왼쪽"), C("both", "양쪽 최신으로 맞추기"), C("later", "나중에"));
+            choice = await w.AskAsync(Foldy.Core.Localization.Loc.T("cmp.which"), C("l2r", Foldy.Core.Localization.Loc.T("cmp.l2r")), C("r2l", Foldy.Core.Localization.Loc.T("cmp.r2l")), C("both", Foldy.Core.Localization.Loc.T("cmp.newest")), C("later", Foldy.Core.Localization.Loc.T("sw.later")));
         }
 
         var dir = choice switch { "l2r" => MergeDirection.LeftToRight, "r2l" => MergeDirection.RightToLeft, "both" => MergeDirection.Both, _ => (MergeDirection?)null };
@@ -88,7 +88,7 @@ public static class CompareFlow
         {
             if (!w.IsClosed)
             {
-                await w.AskAsync("알겠어요. 아무것도 바꾸지 않았어요.", C("close", "닫기"));
+                await w.AskAsync(Foldy.Core.Localization.Loc.T("cmp.nothingChanged"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
                 w.Close();
             }
 
@@ -99,8 +99,8 @@ public static class CompareFlow
         var keep = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         foreach (var c in conflicts.Take(10))
         {
-            var k = await w.AskAsync($"\"{c.RelPath}\"은 지난번 맞춘 뒤 양쪽 다 고쳐졌어요. (왼쪽 {c.LeftUtc.ToLocalTime():MM-dd HH:mm}, 오른쪽 {c.RightUtc.ToLocalTime():MM-dd HH:mm}) 어느 쪽을 남길까요?",
-                C("left", "왼쪽 것"), C("right", "오른쪽 것"), C("skip", "그대로 두기"));
+            var k = await w.AskAsync(Foldy.Core.Localization.Loc.F("cmp.conflict", c.RelPath, c.LeftUtc.ToLocalTime(), c.RightUtc.ToLocalTime()),
+                C("left", Foldy.Core.Localization.Loc.T("cmp.leftOne")), C("right", Foldy.Core.Localization.Loc.T("cmp.rightOne")), C("skip", Foldy.Core.Localization.Loc.T("cf.keep")));
             if (k == "left" || k == "right")
             {
                 keep[c.RelPath] = k == "left";
@@ -114,13 +114,13 @@ public static class CompareFlow
         var steps = FolderCompare.Plan(left, right, diff, dir.Value, keep);
         if (steps.Count == 0)
         {
-            await w.AskAsync("이 방향으로는 복사할 게 없어요. 더 최신 파일을 오래된 것으로 덮어쓰지 않거든요.", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.T("cmp.noCopy"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
-        w.ShowList(steps.Select(s => $"{(s.Dst.StartsWith(right, StringComparison.OrdinalIgnoreCase) ? "→ 오른쪽" : "← 왼쪽")}  {s.RelPath}"));
-        if (await w.AskAsync($"이렇게 {steps.Count:N0}개를 복사할게요. 괜찮을까요?", C("go", "이대로 맞추기"), C("later", "나중에")) != "go")
+        w.ShowList(steps.Select(s => $"{(s.Dst.StartsWith(right, StringComparison.OrdinalIgnoreCase) ? Foldy.Core.Localization.Loc.T("cmp.toRight") : Foldy.Core.Localization.Loc.T("cmp.toLeft"))}  {s.RelPath}"));
+        if (await w.AskAsync(Foldy.Core.Localization.Loc.F("cmp.planAsk", steps.Count), C("go", Foldy.Core.Localization.Loc.T("cmp.go")), C("later", Foldy.Core.Localization.Loc.T("sw.later"))) != "go")
         {
             if (!w.IsClosed)
             {
@@ -131,18 +131,18 @@ public static class CompareFlow
         }
 
         w.Busy();
-        var status = w.Say("맞추고 있어요…");
+        var status = w.Say(Foldy.Core.Localization.Loc.T("cmp.syncing"));
         var (done, skipped) = await Task.Run(() => FolderCompare.Apply(steps, Journal));
         SaveSync(left, right);
         await shell.RefreshFoldersAsync([left, right]);
-        status.Text = "다 했어요!";
-        var msg = $"{done.Count:N0}개를 맞췄어요." + (skipped.Count > 0 ? $" {skipped.Count:N0}개는 건너뛰었어요 ({string.Join(", ", skipped.Select(s => s.Reason).Distinct())})." : "")
-            + "\n마음에 안 들면 [되돌리기] 한 번이면 원래대로예요.";
-        if (await w.AskAsync(msg, C("undo", "되돌리기"), C("close", "닫기")) == "undo")
+        status.Text = Foldy.Core.Localization.Loc.T("cf.done");
+        var msg = Foldy.Core.Localization.Loc.F("cmp.synced", done.Count) + (skipped.Count > 0 ? Foldy.Core.Localization.Loc.F("cmp.skipped", skipped.Count, string.Join(", ", skipped.Select(s => s.Reason).Distinct())) : "")
+            + Foldy.Core.Localization.Loc.T("cf.undoNote");
+        if (await w.AskAsync(msg, C("undo", Foldy.Core.Localization.Loc.T("cf.undo")), C("close", Foldy.Core.Localization.Loc.T("cf.close"))) == "undo")
         {
             var n = await Task.Run(() => FolderCompare.Undo(Journal));
             await shell.RefreshFoldersAsync([left, right]);
-            await w.AskAsync($"{n:N0}개를 원래대로 돌려놨어요.", C("close", "닫기"));
+            await w.AskAsync(Foldy.Core.Localization.Loc.F("cmp.undone", n), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         }
 
         if (!w.IsClosed)
@@ -153,12 +153,12 @@ public static class CompareFlow
 
     private static string Label(DiffKind k) => k switch
     {
-        DiffKind.LeftOnly => "왼쪽에만",
-        DiffKind.RightOnly => "오른쪽에만",
-        DiffKind.LeftNewer => "왼쪽이 최신",
-        DiffKind.RightNewer => "오른쪽이 최신",
-        DiffKind.Conflict => "양쪽 다 고침",
-        _ => "같음",
+        DiffKind.LeftOnly => Foldy.Core.Localization.Loc.T("cmp.leftOnly"),
+        DiffKind.RightOnly => Foldy.Core.Localization.Loc.T("cmp.rightOnly"),
+        DiffKind.LeftNewer => Foldy.Core.Localization.Loc.T("cmp.leftNewer"),
+        DiffKind.RightNewer => Foldy.Core.Localization.Loc.T("cmp.rightNewer"),
+        DiffKind.Conflict => Foldy.Core.Localization.Loc.T("cmp.both"),
+        _ => Foldy.Core.Localization.Loc.T("cmp.equal"),
     };
 
     private static string Name(string p) => Path.GetFileName(p.TrimEnd('\\')) is { Length: > 0 } n ? n : p;

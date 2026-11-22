@@ -13,19 +13,19 @@ internal static class HotkeyFlows
 
     public static string Reason(string gesture) =>
         GlobalHotkey.ConflictsWithInputMethod(gesture)
-            ? "중국어·일본어 입력기가 입력 전환 키로 쓰고 있어요"
-            : "다른 프로그램이 이미 쓰고 있어요";
+            ? Foldy.Core.Localization.Loc.T("hk.ime")
+            : Foldy.Core.Localization.Loc.T("hk.taken");
 
     public static async Task<Choice> ChooseAsync(GuideWindow w, IntPtr hwnd, string current)
     {
-        w.Say($"빠른 검색은 어느 프로그램을 쓰다가도 {current}를 누르면 열려요. 그런데 이 키는 {Reason(current)}.");
-        w.Say("겹치면 둘 중 하나가 안 되니까, 다른 키를 골라 주세요. 나중에 설정 → 단축키에서 언제든 바꿀 수 있어요.");
+        w.Say(Foldy.Core.Localization.Loc.F("hk.conflict", current, Reason(current)));
+        w.Say(Foldy.Core.Localization.Loc.T("hk.pickOther"));
         while (true)
         {
             var free = GlobalHotkey.Candidates.Where(c => c != current && GlobalHotkey.IsFree(hwnd, c)).Take(3).ToList();
             var choices = free.Select(c => (c, c)).ToList();
-            choices.Add(("press", "직접 눌러서 정하기"));
-            choices.Add(("local", "Foldy 안에서만 쓰기"));
+            choices.Add(("press", Foldy.Core.Localization.Loc.T("hk.press")));
+            choices.Add(("local", Foldy.Core.Localization.Loc.T("hk.inFoldy")));
             var c = await w.AskAsync(null, [.. choices]);
             if (c == GuideWindow.ClosedChoice)
             {
@@ -34,13 +34,13 @@ internal static class HotkeyFlows
 
             if (c == "local")
             {
-                w.Say($"알겠어요. Foldy 창에서만 {current}로 열게요.");
+                w.Say(Foldy.Core.Localization.Loc.F("hk.inFoldyOk", current));
                 return new Choice(current, false);
             }
 
             if (c != "press")
             {
-                w.Say($"좋아요! 이제 어디서든 {c}를 누르면 빠른 검색이 열려요.");
+                w.Say(Foldy.Core.Localization.Loc.F("hk.set", c));
                 return new Choice(c, true);
             }
 
@@ -52,18 +52,18 @@ internal static class HotkeyFlows
 
             if (GlobalHotkey.IsFree(hwnd, pressed))
             {
-                w.Say($"좋아요! 이제 어디서든 {pressed}를 누르면 빠른 검색이 열려요.");
+                w.Say(Foldy.Core.Localization.Loc.F("hk.set", pressed));
                 return new Choice(pressed, true);
             }
 
-            w.Say($"{pressed}도 {Reason(pressed)}. 다른 키를 골라 볼까요?");
+            w.Say(Foldy.Core.Localization.Loc.F("hk.alsoTaken", pressed, Reason(pressed)));
         }
     }
 
     /// <summary>Ctrl·Alt·Shift·Win 중 하나 이상과 함께 누른 키를 받는다. 창을 닫으면 null.</summary>
     private static async Task<string?> CaptureAsync(GuideWindow w)
     {
-        var hint = w.Say("원하는 키를 함께 눌러 보세요 (예: Ctrl + Alt + K). Ctrl·Alt·Shift·Win 중 하나는 꼭 함께 눌러 주세요.");
+        var hint = w.Say(Foldy.Core.Localization.Loc.T("hk.pressHint"));
         var tcs = new TaskCompletionSource<string?>();
         void OnKey(object s, KeyEventArgs e)
         {
@@ -82,7 +82,7 @@ internal static class HotkeyFlows
             e.Handled = true;
             if (mods == ModifierKeys.None)
             {
-                hint.Text = "Ctrl·Alt·Shift·Win 중 하나와 함께 눌러 주세요. (키 하나만으로는 다른 프로그램에서 글을 쓸 때 방해돼요)";
+                hint.Text = Foldy.Core.Localization.Loc.T("hk.needModifier");
                 return;
             }
 
