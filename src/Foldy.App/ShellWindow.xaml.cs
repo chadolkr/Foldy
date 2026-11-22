@@ -116,7 +116,7 @@ public partial class ShellWindow : Window, IPaneHost
             new TerminalService(() => _settings, (p, sudo) => _sftp.OpenTerminal(p, sudo))))
         {
             Settings = _settings,
-            ConfirmAsync = msg => Task.FromResult(Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "확인", msg, "지울게요", danger: true)), // SFTP 삭제처럼 되살릴 수 없는 일
+            ConfirmAsync = msg => Task.FromResult(Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("dlg.ok"), msg, Foldy.Core.Localization.Loc.T("sw.deleteYes"), danger: true)), // SFTP 삭제처럼 되살릴 수 없는 일
             OpenSpecial = p => SecureFlows.TryOpen(this, p, Shell!),
             AskBigDeleteAsync = q => DeleteFlows.AskBigDeleteAsync(this, q),
         };
@@ -266,17 +266,17 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (_gitBarBusy)
         {
-            Shell.Status = "다른 Git 작업이 진행 중입니다";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.git.busy");
             return;
         }
 
         _gitBarBusy = true;
-        var label = pull ? "받기" : "올리기";
-        Shell.Status = label + " 중…";
+        var label = pull ? Foldy.Core.Localization.Loc.T("sw.git.pull") : Foldy.Core.Localization.Loc.T("sw.git.push");
+        Shell.Status = Foldy.Core.Localization.Loc.F("sw.git.running", label);
         try
         {
             Foldy.Git.GitResult r;
-            var done = label + " 완료";
+            var done = Foldy.Core.Localization.Loc.F("sw.git.done", label);
             if (pull)
             {
                 r = await _git.PullAsync(repoRoot, Foldy.Git.PullMode.Merge);
@@ -286,10 +286,10 @@ public partial class ShellWindow : Window, IPaneHost
                 var st = await _git.GetStatusAsync(repoRoot);
                 var ahead = st.Value?.Ahead ?? 0;
                 r = await _git.PushAsync(repoRoot, setUpstream: st.Value is { HasUpstream: false }, forceWithLease: false);
-                if (ahead > 0) done += $": {ahead}개 커밋";
+                if (ahead > 0) done += Foldy.Core.Localization.Loc.F("sw.git.commits", ahead);
             }
 
-            Shell.Status = r.Success ? done : label + " 실패: " + Foldy.Presentation.Git.GitErrorText.Describe(r).Split('\n')[0];
+            Shell.Status = r.Success ? done : Foldy.Core.Localization.Loc.F("sw.git.failed", label, Foldy.Presentation.Git.GitErrorText.Describe(r).Split('\n')[0]);
         }
         finally
         {
@@ -317,7 +317,7 @@ public partial class ShellWindow : Window, IPaneHost
         var pane = Shell.ActivePane;
         if (pane.ActiveFolder is not { Git: { } g } folder)
         {
-            Shell.Status = "Git 저장소 안의 폴더에서 파일을 고른 뒤 실행하세요";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.git.pickInRepo");
             return;
         }
 
@@ -325,14 +325,14 @@ public partial class ShellWindow : Window, IPaneHost
             ?? folder.Items.OfType<Foldy.Presentation.Files.FileItem>().FirstOrDefault(i => !i.IsFolder && i.Name == folder.FocusName);
         if (file is null)
         {
-            Shell.Status = "Blame 할 파일을 먼저 고르세요";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.git.pickBlame");
             return;
         }
 
         var root = g.RepoRoot.TrimEnd('\\', '/');
         if (!file.FullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
         {
-            Shell.Status = "이 파일은 저장소 밖에 있습니다";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.git.outside");
             return;
         }
 
@@ -491,7 +491,7 @@ public partial class ShellWindow : Window, IPaneHost
         _updater = legacy;
         _updater.Changed += OnUpdaterChanged;
         UpdateUpdateButton();
-        Shell.Status = $"Foldy {legacy.ReadyVersion} 업데이트가 준비됐습니다 (회사 프록시 경로, 설치할 때 관리자 확인이 한 번 필요합니다)";
+        Shell.Status = Foldy.Core.Localization.Loc.F("sw.upd.legacyReady", legacy.ReadyVersion);
         return true;
     }
 
@@ -582,8 +582,8 @@ public partial class ShellWindow : Window, IPaneHost
     private async Task ProbeEnginesAsync()
     {
         var (available, reason) = await Task.Run(() => (NativeCopyEngine.IsAvailable, NativeCopyEngine.UnavailableReason));
-        CopyEngineText.Text = available ? "복사 엔진: Rust" : "복사 엔진: 기본";
-        CopyEngineText.ToolTip = available ? "foldy_copy.dll 사용 가능 (M3에서 병렬 복사로 전환)" : reason;
+        CopyEngineText.Text = available ? Foldy.Core.Localization.Loc.T("sw.copyRust") : Foldy.Core.Localization.Loc.T("sw.copyBasic");
+        CopyEngineText.ToolTip = available ? Foldy.Core.Localization.Loc.T("sw.copyRustTip") : reason;
         await ConnectIndexerAsync();
     }
 
@@ -622,8 +622,8 @@ public partial class ShellWindow : Window, IPaneHost
                 }
             }, Dispatcher);
             _indexerRetry.Start();
-            IndexerText.Text = "검색: 폴더 훑기 (색인 서비스 없음)";
-            IndexerText.ToolTip = $"색인 서비스에 연결하지 못했습니다 ({svc}). 30초마다 다시 연결합니다. 서비스가 없으면 ⋯ → 색인 서비스 설치로 설치할 수 있습니다.";
+            IndexerText.Text = Foldy.Core.Localization.Loc.T("sw.idx.crawlOnly");
+            IndexerText.ToolTip = Foldy.Core.Localization.Loc.F("sw.idx.noServiceTip", svc);
             await _search.RefreshStateAsync();
             return;
         }
@@ -749,15 +749,15 @@ public partial class ShellWindow : Window, IPaneHost
 
         IndexerText.Text = st.State switch
         {
-            Foldy.Indexer.Client.IndexState.Ready => $"검색: 색인 완료 · {st.IndexedEntries:N0}개",
-            Foldy.Indexer.Client.IndexState.Indexing => $"검색: 색인 만드는 중 {st.ProgressPermille / 10}%",
-            _ => "검색: 색인 준비 중",
+            Foldy.Indexer.Client.IndexState.Ready => Foldy.Core.Localization.Loc.F("sw.idx.ready", st.IndexedEntries),
+            Foldy.Indexer.Client.IndexState.Indexing => Foldy.Core.Localization.Loc.F("sw.idx.building", st.ProgressPermille / 10),
+            _ => Foldy.Core.Localization.Loc.T("sw.idx.preparingAll"),
         };
         var lines = st.Volumes.Select(v => v.State switch
         {
-            Foldy.Indexer.Client.IndexState.Ready => $"{v.Volume} 완료 · {v.Entries:N0}개",
-            Foldy.Indexer.Client.IndexState.Indexing => $"{v.Volume} 만드는 중 {v.ProgressPermille / 10}%",
-            _ => $"{v.Volume} 준비 중",
+            Foldy.Indexer.Client.IndexState.Ready => Foldy.Core.Localization.Loc.F("sw.vol.ready", v.Volume, v.Entries),
+            Foldy.Indexer.Client.IndexState.Indexing => Foldy.Core.Localization.Loc.F("sw.vol.building", v.Volume, v.ProgressPermille / 10),
+            _ => Foldy.Core.Localization.Loc.F("sw.vol.preparing", v.Volume),
         }).ToList();
         var indexed = st.Volumes.Select(v => v.Volume.TrimEnd('\\').ToUpperInvariant()).ToHashSet();
         foreach (var d in System.IO.DriveInfo.GetDrives())
@@ -766,12 +766,12 @@ public partial class ShellWindow : Window, IPaneHost
             if (!indexed.Contains(name))
             {
                 lines.Add(_crawler?.StatusOf(d.Name) is { } cs
-                    ? $"{name} {(cs.Running ? "천천히 모으는 중" : cs.Complete ? "모으기 완료" : "쉬는 중")} · {Math.Max(0, cs.Found):N0}개 ({(d.DriveType == System.IO.DriveType.Network ? "네트워크 드라이브" : "NTFS가 아니거나 가상 드라이브")})"
-                    : $"{name} 색인 없음 ({(d.DriveType == System.IO.DriveType.Network ? "네트워크 드라이브" : "NTFS가 아니거나 가상 드라이브")}) · 그 폴더에 있을 때 직접 훑어요");
+                    ? Foldy.Core.Localization.Loc.F("sw.vol.crawl", name, (cs.Running ? Foldy.Core.Localization.Loc.T("sw.crawl.running") : cs.Complete ? Foldy.Core.Localization.Loc.T("sw.crawl.done") : Foldy.Core.Localization.Loc.T("sw.crawl.idle")), Math.Max(0, cs.Found), (d.DriveType == System.IO.DriveType.Network ? Foldy.Core.Localization.Loc.T("sw.drive.network") : Foldy.Core.Localization.Loc.T("sw.drive.notNtfs")))
+                    : Foldy.Core.Localization.Loc.F("sw.vol.none", name, (d.DriveType == System.IO.DriveType.Network ? Foldy.Core.Localization.Loc.T("sw.drive.network") : Foldy.Core.Localization.Loc.T("sw.drive.notNtfs"))));
             }
         }
 
-        IndexerText.ToolTip = "파일 이름 검색(Ctrl+F·Ctrl+Space)에 쓰는 색인\n" + string.Join("\n", lines);
+        IndexerText.ToolTip = Foldy.Core.Localization.Loc.T("sw.idx.tipHeader") + string.Join("\n", lines);
 
         // 사이드바 드라이브마다 한 줄로 (바뀐 것만 바꾼다)
         foreach (var pane in new[] { Shell.Left, Shell.Right })
@@ -795,26 +795,26 @@ public partial class ShellWindow : Window, IPaneHost
         {
             return v.State switch
             {
-                Foldy.Indexer.Client.IndexState.Ready => "색인 완료",
-                Foldy.Indexer.Client.IndexState.Indexing => $"색인 중 {v.ProgressPermille / 10}%",
-                _ => "색인 준비 중",
+                Foldy.Indexer.Client.IndexState.Ready => Foldy.Core.Localization.Loc.T("sw.drv.ready"),
+                Foldy.Indexer.Client.IndexState.Indexing => Foldy.Core.Localization.Loc.F("sw.drv.indexing", v.ProgressPermille / 10),
+                _ => Foldy.Core.Localization.Loc.T("sw.drv.preparing"),
             };
         }
 
         if (_crawler?.StatusOf(d.Root) is { } c)
         {
             return c.Running
-                ? $"색인 중 · {Math.Max(0, c.Found):N0}개 (천천히)"
-                : c.Complete ? $"색인 완료 · {Math.Max(0, c.Found):N0}개" : "색인 쉬는 중";
+                ? Foldy.Core.Localization.Loc.F("sw.drv.crawling", Math.Max(0, c.Found))
+                : c.Complete ? Foldy.Core.Localization.Loc.F("sw.drv.crawled", Math.Max(0, c.Found)) : Foldy.Core.Localization.Loc.T("sw.drv.idle");
         }
 
         if (_crawler is null || d.Kind == DriveKind.CdRom)
         {
-            return "색인 없음 · 폴더 안에서만";
+            return Foldy.Core.Localization.Loc.T("sw.drv.none");
         }
 
         // 한 번에 한 드라이브씩 모은다: 무엇을 기다리는지 말한다
-        return _crawler.Current() is { } now ? $"색인 차례 기다리는 중 · {now.Drive.TrimEnd('\\')} 다음" : "색인 곧 시작";
+        return _crawler.Current() is { } now ? Foldy.Core.Localization.Loc.F("sw.drv.waiting", now.Drive.TrimEnd('\\')) : Foldy.Core.Localization.Loc.T("sw.drv.soon");
     }
 
     /// <summary>진단용: Windows 서비스 FoldyIndexer의 상태 (없음/실행 중/중지됨 …).</summary>
@@ -1030,7 +1030,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void UpdateTaskbar()
     {
         var running = Shell.Jobs.Where(j => !j.IsFinished).ToList();
-        JobsHeader.Text = running.Count > 0 ? $"작업 {running.Count}개 진행 중" : "작업";
+        JobsHeader.Text = running.Count > 0 ? Foldy.Core.Localization.Loc.F("sw.jobs.running", running.Count) : Foldy.Core.Localization.Loc.T("sw.jobs");
         if (running.Count == 0)
         {
             Taskbar.ProgressState = Shell.Jobs.Any(j => j.State == JobState.Failed) && !IsActive ? TaskbarItemProgressState.Error : TaskbarItemProgressState.None;
@@ -1071,15 +1071,15 @@ public partial class ShellWindow : Window, IPaneHost
             _commands.Add(new PaletteCommand(id, title, gesture ?? Gesture(key, mods), run, key, mods, inText));
 
         var activeTab = () => Shell.ActivePane.ActiveFolder;
-        Add("file.copy", "반대 패널로 복사", () => _ = Shell.CopyToOtherAsync(), Key.F5);
-        Add("file.move", "반대 패널로 이동", () => _ = Shell.MoveToOtherAsync(), Key.F6);
-        Add("file.newFolder", "새 폴더", NewFolder, Key.F7);
-        Add("folder.fromTemplate", "템플릿으로 새 폴더…", NewFromTemplate, Key.N, ModifierKeys.Control | ModifierKeys.Shift);
-        Add("folder.wizard", "폴더 위저드…", OpenWizard);
-        Add("folder.organize", "이 폴더 정리하기…", () => OpenOrganize(Shell.ActivePane.ActiveFolder?.Path));
-        Add("folder.description", "폴더 설명 편집…", EditDescription);
-        Add("view.images", "이미지만 보기 켜기/끄기", () => ActiveView.ToggleImages(), Key.I, ModifierKeys.Control | ModifierKeys.Shift);
-        Add("git.open", "Git 뷰 열기", () =>
+        Add("file.copy", Foldy.Core.Localization.Loc.T("cmd.copyOther"), () => _ = Shell.CopyToOtherAsync(), Key.F5);
+        Add("file.move", Foldy.Core.Localization.Loc.T("cmd.moveOther"), () => _ = Shell.MoveToOtherAsync(), Key.F6);
+        Add("file.newFolder", Foldy.Core.Localization.Loc.T("cmd.newFolder"), NewFolder, Key.F7);
+        Add("folder.fromTemplate", Foldy.Core.Localization.Loc.T("sw.c.fromTemplate"), NewFromTemplate, Key.N, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("folder.wizard", Foldy.Core.Localization.Loc.T("sw.c.wizard"), OpenWizard);
+        Add("folder.organize", Foldy.Core.Localization.Loc.T("sw.c.organize"), () => OpenOrganize(Shell.ActivePane.ActiveFolder?.Path));
+        Add("folder.description", Foldy.Core.Localization.Loc.T("sw.c.editDescription"), EditDescription);
+        Add("view.images", Foldy.Core.Localization.Loc.T("cmd.images"), () => ActiveView.ToggleImages(), Key.I, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("git.open", Foldy.Core.Localization.Loc.T("cmd.git"), () =>
         {
             if (Shell.ActivePane.ActiveFolder?.Git is { } g)
             {
@@ -1092,33 +1092,33 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = "Git 저장소가 아닙니다";
+                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.notRepo");
             }
         });
-        Add("git.blame", "Git: 이 파일 Blame", GitBlameFocusedFile);
-        Add("file.rename", "이름 바꾸기", () => ActiveView.BeginRename(), gesture: "F2");
-        Add("file.delete", "휴지통으로 삭제", () => _ = Shell.DeleteSelectionAsync(false), gesture: "Del");
-        Add("file.deletePermanent", "영구 삭제", () => _ = Shell.DeleteSelectionAsync(true), gesture: "Shift+Del");
-        Add("sidebar.focus", "사이드바로 포커스 이동 (Tab으로 둘러보고 Esc로 목록 복귀)", FocusSidebar, Key.E, ModifierKeys.Control | ModifierKeys.Shift);
-        Add("pane.switch", "다른 패널로 이동", () => { Shell.SwitchPane(); ActiveView.FocusList(); }, Key.Tab);
-        Add("tab.new", "새 탭", () => ActiveView.NewTab(), Key.T, ModifierKeys.Control);
-        Add("tab.close", "탭 닫기", () => { if (Shell.ActivePane.ActiveTab is { } t) Shell.ActivePane.CloseTab(t); }, Key.W, ModifierKeys.Control);
-        Add("tab.next", "다음 탭", () => Shell.ActivePane.ActivateRelative(1), Key.Tab, ModifierKeys.Control);
-        Add("tab.prev", "이전 탭", () => Shell.ActivePane.ActivateRelative(-1), Key.Tab, ModifierKeys.Control | ModifierKeys.Shift);
-        Add("search.focus", "파일 이름 검색", () => ActiveView.FocusSearch(), Key.F, ModifierKeys.Control, inText: true);
-        Add("nav.path", "경로 입력", () => ActiveView.BeginPathEdit(), Key.L, ModifierKeys.Control, inText: true);
-        Add("nav.refresh", "새로 고침", () => _ = activeTab()?.RefreshAsync(), Key.R, ModifierKeys.Control);
-        Add("nav.back", "뒤로", () => _ = activeTab()?.GoBackAsync(), Key.Left, ModifierKeys.Alt);
-        Add("nav.forward", "앞으로", () => _ = activeTab()?.GoForwardAsync(), Key.Right, ModifierKeys.Alt);
-        Add("nav.up", "위로", () => _ = activeTab()?.GoUpAsync(), Key.Up, ModifierKeys.Alt);
-        Add("terminal.open", "터미널 열기 (기본 셸)", () => Shell.OpenTerminal(TerminalKind.Default, false), Key.Oem3, ModifierKeys.Control, "Ctrl+`");
-        Add("terminal.admin", "관리자 터미널 열기", () => Shell.OpenTerminal(TerminalKind.Default, true), Key.Oem3, ModifierKeys.Control | ModifierKeys.Shift, "Ctrl+Shift+`");
-        Add("terminal.cmd", "명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, false));
-        Add("terminal.cmdAdmin", "관리자 명령 프롬프트 열기", () => Shell.OpenTerminal(TerminalKind.Cmd, true));
-        Add("view.hidden", "숨김 파일 보기 켜기/끄기", ToggleHidden, Key.H, ModifierKeys.Control);
-        Add("analysis.open", "폴더 분석 (디스크·폴더 고르기)", () => _ = AskAnalysisTargetAsync());
-        Add("ai.connect", "AI 연결 (Claude 등에서 Foldy로 파일 찾기)", OpenMcp);
-        Add("compare.panes", "두 창 비교·맞추기", () =>
+        Add("git.blame", Foldy.Core.Localization.Loc.T("cmd.blame"), GitBlameFocusedFile);
+        Add("file.rename", Foldy.Core.Localization.Loc.T("cmd.rename"), () => ActiveView.BeginRename(), gesture: "F2");
+        Add("file.delete", Foldy.Core.Localization.Loc.T("cmd.recycle"), () => _ = Shell.DeleteSelectionAsync(false), gesture: "Del");
+        Add("file.deletePermanent", Foldy.Core.Localization.Loc.T("cmd.deletePermanent"), () => _ = Shell.DeleteSelectionAsync(true), gesture: "Shift+Del");
+        Add("sidebar.focus", Foldy.Core.Localization.Loc.T("sw.c.sidebarFocus"), FocusSidebar, Key.E, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("pane.switch", Foldy.Core.Localization.Loc.T("cmd.switchPane"), () => { Shell.SwitchPane(); ActiveView.FocusList(); }, Key.Tab);
+        Add("tab.new", Foldy.Core.Localization.Loc.T("cmd.newTab"), () => ActiveView.NewTab(), Key.T, ModifierKeys.Control);
+        Add("tab.close", Foldy.Core.Localization.Loc.T("cmd.closeTab"), () => { if (Shell.ActivePane.ActiveTab is { } t) Shell.ActivePane.CloseTab(t); }, Key.W, ModifierKeys.Control);
+        Add("tab.next", Foldy.Core.Localization.Loc.T("cmd.nextTab"), () => Shell.ActivePane.ActivateRelative(1), Key.Tab, ModifierKeys.Control);
+        Add("tab.prev", Foldy.Core.Localization.Loc.T("cmd.prevTab"), () => Shell.ActivePane.ActivateRelative(-1), Key.Tab, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("search.focus", Foldy.Core.Localization.Loc.T("cmd.search"), () => ActiveView.FocusSearch(), Key.F, ModifierKeys.Control, inText: true);
+        Add("nav.path", Foldy.Core.Localization.Loc.T("cmd.path"), () => ActiveView.BeginPathEdit(), Key.L, ModifierKeys.Control, inText: true);
+        Add("nav.refresh", Foldy.Core.Localization.Loc.T("cmd.refresh"), () => _ = activeTab()?.RefreshAsync(), Key.R, ModifierKeys.Control);
+        Add("nav.back", Foldy.Core.Localization.Loc.T("cmd.back"), () => _ = activeTab()?.GoBackAsync(), Key.Left, ModifierKeys.Alt);
+        Add("nav.forward", Foldy.Core.Localization.Loc.T("cmd.forward"), () => _ = activeTab()?.GoForwardAsync(), Key.Right, ModifierKeys.Alt);
+        Add("nav.up", Foldy.Core.Localization.Loc.T("cmd.up"), () => _ = activeTab()?.GoUpAsync(), Key.Up, ModifierKeys.Alt);
+        Add("terminal.open", Foldy.Core.Localization.Loc.T("cmd.terminal"), () => Shell.OpenTerminal(TerminalKind.Default, false), Key.Oem3, ModifierKeys.Control, "Ctrl+`");
+        Add("terminal.admin", Foldy.Core.Localization.Loc.T("cmd.terminalAdmin"), () => Shell.OpenTerminal(TerminalKind.Default, true), Key.Oem3, ModifierKeys.Control | ModifierKeys.Shift, "Ctrl+Shift+`");
+        Add("terminal.cmd", Foldy.Core.Localization.Loc.T("cmd.cmd"), () => Shell.OpenTerminal(TerminalKind.Cmd, false));
+        Add("terminal.cmdAdmin", Foldy.Core.Localization.Loc.T("cmd.cmdAdmin"), () => Shell.OpenTerminal(TerminalKind.Cmd, true));
+        Add("view.hidden", Foldy.Core.Localization.Loc.T("cmd.hidden"), ToggleHidden, Key.H, ModifierKeys.Control);
+        Add("analysis.open", Foldy.Core.Localization.Loc.T("sw.c.analysis"), () => _ = AskAnalysisTargetAsync());
+        Add("ai.connect", Foldy.Core.Localization.Loc.T("sw.c.ai"), OpenMcp);
+        Add("compare.panes", Foldy.Core.Localization.Loc.T("sw.c.compare"), () =>
         {
             if (Shell.Left.ActiveFolder?.Path is { Length: > 2 } l && Shell.Right.ActiveFolder?.Path is { Length: > 2 } r && !Foldy.Presentation.Navigation.PathUtil.IsSftp(l) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(r))
             {
@@ -1126,33 +1126,33 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = "양쪽 창에 비교할 폴더를 열어 주세요 (내 PC·네트워크 폴더)";
+                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.compareNeed");
             }
         });
-        Add("cleanup.logs", "로그 정리 (현재 드라이브)", () => OpenLogCleanup(null));
-        Add("cleanup.downloads", "다운로드 정리", () => OpenDownloadsCleanup(null));
-        Add("cleanup.desktop", "바탕화면 정리", OpenDesktopTidy);
-        Add("cleanup.wizard", "바탕화면, 다운로드, 폴더 정리 (정리 도우미)", () => _ = OpenTidyWizardAsync());
-        Add("cleanup.rebuildable", "지워도 되는 폴더 찾기 (node_modules·bin/obj·__history·.git 등)", () => OpenRebuildable(Shell.ActivePane.ActiveFolder?.Path));
-        Add("cleanup.devcache", "개발 캐시 정리 (npm·NuGet·pip·Docker)", () => _ = DevCleanupFlows.DevCachesAsync(this));
-        Add("memo.new", "새 메모 (.md, 지금 폴더에)", () =>
+        Add("cleanup.logs", Foldy.Core.Localization.Loc.T("sw.c.logCleanup"), () => OpenLogCleanup(null));
+        Add("cleanup.downloads", Foldy.Core.Localization.Loc.T("sw.c.downloads"), () => OpenDownloadsCleanup(null));
+        Add("cleanup.desktop", Foldy.Core.Localization.Loc.T("sw.c.desktop"), OpenDesktopTidy);
+        Add("cleanup.wizard", Foldy.Core.Localization.Loc.T("sw.c.tidyWizard"), () => _ = OpenTidyWizardAsync());
+        Add("cleanup.rebuildable", Foldy.Core.Localization.Loc.T("sw.c.rebuildable"), () => OpenRebuildable(Shell.ActivePane.ActiveFolder?.Path));
+        Add("cleanup.devcache", Foldy.Core.Localization.Loc.T("sw.c.devcache"), () => _ = DevCleanupFlows.DevCachesAsync(this));
+        Add("memo.new", Foldy.Core.Localization.Loc.T("sw.c.newMemo"), () =>
         {
             if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
             {
-                var path = Foldy.Core.Vault.SecureZip.Unique(Path.Combine(p, "새 메모.md"));
-                File.WriteAllText(path, "# 새 메모\n\n");
+                var path = Foldy.Core.Vault.SecureZip.Unique(Path.Combine(p, Foldy.Core.Localization.Loc.T("sw.memo.file")));
+                File.WriteAllText(path, Foldy.Core.Localization.Loc.T("sw.memo.body"));
                 MemoWindow.OpenMarkdown(path).Show();
                 _ = Shell.RefreshFoldersAsync([p]);
             }
         });
-        Add("secure.newMemo", "새 잠긴 메모 (지금 폴더에)", () =>
+        Add("secure.newMemo", Foldy.Core.Localization.Loc.T("sw.c.newLockedMemo"), () =>
         {
             if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
             {
                 _ = SecureFlows.NewMemoAsync(this, p);
             }
         });
-        Add("secure.lock", "암호 걸기 (고른 파일)", () =>
+        Add("secure.lock", Foldy.Core.Localization.Loc.T("sw.c.encrypt"), () =>
         {
             var sel = ShellViewModel.SelectedPaths(Shell.ActivePane);
             if (sel.Count == 1 && File.Exists(sel[0]) && !SecureFlows.IsLocked(sel[0]))
@@ -1161,10 +1161,10 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = "암호를 걸 파일 하나를 골라 주세요";
+                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.encryptNeed");
             }
         });
-        Add("secure.vault", "금고에 넣기 (고른 폴더)", () =>
+        Add("secure.vault", Foldy.Core.Localization.Loc.T("sw.c.vault"), () =>
         {
             var sel = ShellViewModel.SelectedPaths(Shell.ActivePane);
             if (sel.Count == 1 && Directory.Exists(sel[0]))
@@ -1173,16 +1173,16 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = "금고에 넣을 폴더 하나를 골라 주세요";
+                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.vaultNeed");
             }
         });
-        Add("tag.done", "작업 완료 표시 켜기/끄기 (고른 파일)", () => ActiveView.ToggleTag(Foldy.Core.Tags.FileTags.Default), gesture: "Ctrl+D");
+        Add("tag.done", Foldy.Core.Localization.Loc.T("sw.c.done"), () => ActiveView.ToggleTag(Foldy.Core.Tags.FileTags.Default), gesture: "Ctrl+D");
         foreach (var t in Foldy.Core.Tags.FileTags.Builtin.Skip(1))
         {
-            Add("tag." + t.Name, $"'{t.Name}' 표시 켜기/끄기 (고른 파일)", () => ActiveView.ToggleTag(t.Name));
+            Add("tag." + t.Name, Foldy.Core.Localization.Loc.F("sw.tag.toggle", t.Name), () => ActiveView.ToggleTag(t.Name));
         }
 
-        Add("folder.manage", "이 폴더 관리 방식 정하기…", () =>
+        Add("folder.manage", Foldy.Core.Localization.Loc.T("sw.c.method"), () =>
         {
             if (Shell.ActivePane.ActiveFolder?.Path is { Length: > 2 } p && p[1] == ':')
             {
@@ -1190,34 +1190,34 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = "관리 방식은 내 PC의 폴더에서 정할 수 있어요";
+                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.methodNeed");
             }
         });
-        Add("view.preview", "미리보기 창 보이기/숨기기", () => ActiveView.TogglePreview(), Key.F3);
-        Add("view.zoomIn", "화면 크게 (글씨·버튼)", () => StepUiScale(1), Key.OemPlus, ModifierKeys.Control, "Ctrl+=");
-        Add("view.zoomOut", "화면 작게", () => StepUiScale(-1), Key.OemMinus, ModifierKeys.Control, "Ctrl+-");
-        Add("view.zoomReset", "화면 크기: Windows 설정 따르기", () => SetUiScale(0), Key.D0, ModifierKeys.Control, "Ctrl+0");
-        Add("view.tree", "폴더 트리 보이기/숨기기", () => ActiveView.ToggleTree(), Key.B, ModifierKeys.Control);
-        Add("view.sidebar", "사이드바 접기/펼치기", () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
-        Add("sidebar.pin", "지금 폴더를 자주 쓰는 폴더에 고정/해제", TogglePinCurrent);
-        Add("view.themeSystem", "테마: 시스템 설정 따르기", () => SetTheme(FoldyTheme.System));
-        Add("view.themeLight", "테마: 라이트", () => SetTheme(FoldyTheme.Light));
-        Add("view.themeDark", "테마: 다크", () => SetTheme(FoldyTheme.Dark));
-        Add("view.themeRetro", "테마: 레트로", () => SetTheme(FoldyTheme.Retro));
-        Add("sftp.connect", "SFTP 서버에 연결…", ConnectSftp, Key.O, ModifierKeys.Control | ModifierKeys.Shift);
-        Add("indexer.install", "색인 서비스 설치 (관리자, 전체 드라이브 즉시 검색)", () => RunIndexerSetup(install: true));
-        Add("indexer.uninstall", "색인 서비스 제거 (관리자)", () => RunIndexerSetup(install: false));
-        Add("app.palette", "모든 명령 보기", ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
-        Add("app.quickSearch", "빠른 검색 (기능·파일)", ShowQuickSearch, Key.Space, ModifierKeys.Control, inText: true);
-        Add("app.help", "도움말 (사용 설명서)", ShowHelp, Key.F1, inText: true);
-        Add("app.tour", "둘러보기 (처음 안내 다시 보기)", () => _ = FirstRunTour.RunAsync(this));
-        Add("app.settings", "설정…", ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
-        Add("app.reportBug", "버그 신고…", App.OpenBugReport);
-        Add("app.emptyRecycleBin", "휴지통 비우기…", () => OnEmptyRecycleBin(this, new RoutedEventArgs()));
-        Add("app.diagnostic", "버그 진단 모드 켜기/끄기", ToggleDiagnostic);
-        Add("app.logs", "로그 폴더 열기", OpenLogFolder);
-        Add("app.about", "Foldy 정보", ShowAbout);
-        Add("app.checkUpdate", "업데이트 확인", CheckUpdateNow);
+        Add("view.preview", Foldy.Core.Localization.Loc.T("cmd.preview"), () => ActiveView.TogglePreview(), Key.F3);
+        Add("view.zoomIn", Foldy.Core.Localization.Loc.T("sw.c.zoomIn"), () => StepUiScale(1), Key.OemPlus, ModifierKeys.Control, "Ctrl+=");
+        Add("view.zoomOut", Foldy.Core.Localization.Loc.T("sw.c.zoomOut"), () => StepUiScale(-1), Key.OemMinus, ModifierKeys.Control, "Ctrl+-");
+        Add("view.zoomReset", Foldy.Core.Localization.Loc.T("sw.c.zoomAuto"), () => SetUiScale(0), Key.D0, ModifierKeys.Control, "Ctrl+0");
+        Add("view.tree", Foldy.Core.Localization.Loc.T("cmd.tree"), () => ActiveView.ToggleTree(), Key.B, ModifierKeys.Control);
+        Add("view.sidebar", Foldy.Core.Localization.Loc.T("cmd.sidebar"), () => SidebarExpanded = !SidebarExpanded, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("sidebar.pin", Foldy.Core.Localization.Loc.T("cmd.pin"), TogglePinCurrent);
+        Add("view.themeSystem", Foldy.Core.Localization.Loc.T("sw.c.themeSystem"), () => SetTheme(FoldyTheme.System));
+        Add("view.themeLight", Foldy.Core.Localization.Loc.T("sw.c.themeLight"), () => SetTheme(FoldyTheme.Light));
+        Add("view.themeDark", Foldy.Core.Localization.Loc.T("sw.c.themeDark"), () => SetTheme(FoldyTheme.Dark));
+        Add("view.themeRetro", Foldy.Core.Localization.Loc.T("sw.c.themeRetro"), () => SetTheme(FoldyTheme.Retro));
+        Add("sftp.connect", Foldy.Core.Localization.Loc.T("sw.c.sftp"), ConnectSftp, Key.O, ModifierKeys.Control | ModifierKeys.Shift);
+        Add("indexer.install", Foldy.Core.Localization.Loc.T("sw.c.idxInstall"), () => RunIndexerSetup(install: true));
+        Add("indexer.uninstall", Foldy.Core.Localization.Loc.T("sw.c.idxRemove"), () => RunIndexerSetup(install: false));
+        Add("app.palette", Foldy.Core.Localization.Loc.T("cmd.palette"), ShowPalette, Key.P, ModifierKeys.Control | ModifierKeys.Shift, inText: true);
+        Add("app.quickSearch", Foldy.Core.Localization.Loc.T("sw.c.quickSearch"), ShowQuickSearch, Key.Space, ModifierKeys.Control, inText: true);
+        Add("app.help", Foldy.Core.Localization.Loc.T("sw.c.help"), ShowHelp, Key.F1, inText: true);
+        Add("app.tour", Foldy.Core.Localization.Loc.T("sw.c.tour"), () => _ = FirstRunTour.RunAsync(this));
+        Add("app.settings", Foldy.Core.Localization.Loc.T("sw.c.settings"), ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
+        Add("app.reportBug", Foldy.Core.Localization.Loc.T("sw.c.bug"), App.OpenBugReport);
+        Add("app.emptyRecycleBin", Foldy.Core.Localization.Loc.T("sw.c.emptyBin"), () => OnEmptyRecycleBin(this, new RoutedEventArgs()));
+        Add("app.diagnostic", Foldy.Core.Localization.Loc.T("sw.c.diag"), ToggleDiagnostic);
+        Add("app.logs", Foldy.Core.Localization.Loc.T("sw.c.logs"), OpenLogFolder);
+        Add("app.about", Foldy.Core.Localization.Loc.T("sw.c.about"), ShowAbout);
+        Add("app.checkUpdate", Foldy.Core.Localization.Loc.T("cmd.update"), CheckUpdateNow);
         ApplyKeyMap();
     }
 
@@ -1420,19 +1420,19 @@ public partial class ShellWindow : Window, IPaneHost
     /// </summary>
     private async Task OpenTidyWizardAsync()
     {
-        var w = new GuideWindow("정리 도우미") { Owner = this };
+        var w = new GuideWindow(Foldy.Core.Localization.Loc.T("sw.tidy.title")) { Owner = this };
         w.Show();
         var here = Shell.ActivePane.ActiveFolder?.Path;
         var canHere = !string.IsNullOrEmpty(here) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(here) && Directory.Exists(here);
-        w.Say("어디를 정리할까요? 지우는 건 없고, 정리 후 모습을 먼저 보여 드려요. 마음에 안 들면 되돌리기 한 번이면 원래대로예요.");
-        var choices = new List<(string, string)> { ("desktop", "바탕화면"), ("downloads", "다운로드 폴더") };
+        w.Say(Foldy.Core.Localization.Loc.T("sw.tidy.where"));
+        var choices = new List<(string, string)> { ("desktop", Foldy.Core.Localization.Loc.T("sw.tidy.desktop")), ("downloads", Foldy.Core.Localization.Loc.T("sw.tidy.downloads")) };
         if (canHere)
         {
             var name = Path.GetFileName(here!.TrimEnd('\\'));
-            choices.Add(("here", $"지금 보는 폴더 ({(name.Length > 0 ? name : here)})"));
+            choices.Add(("here", Foldy.Core.Localization.Loc.F("sw.tidy.here", (name.Length > 0 ? name : here))));
         }
 
-        choices.Add(("pick", "다른 폴더 고르기…"));
+        choices.Add(("pick", Foldy.Core.Localization.Loc.T("sw.tidy.other")));
         var where = await w.AskAsync(null, [.. choices]);
         string? folder = null;
         switch (where)
@@ -1449,7 +1449,7 @@ public partial class ShellWindow : Window, IPaneHost
                 folder = here;
                 break;
             case "pick":
-                var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "정리할 폴더를 고르세요", InitialDirectory = canHere ? here! : "" };
+                var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Foldy.Core.Localization.Loc.T("sw.tidy.pick"), InitialDirectory = canHere ? here! : "" };
                 folder = dlg.ShowDialog(w) == true ? dlg.FolderName : null;
                 break;
             default:
@@ -1462,14 +1462,14 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        var how = await w.AskAsync($"{folder}을(를) 어떻게 나눌까요?",
-            ("type", "종류별 (문서·사진·영상·압축…)"), ("date", "날짜별 (2026\\2026-11)"), ("para", "PARA 네 칸 (프로젝트·영역·자료·보관)"));
+        var how = await w.AskAsync(Foldy.Core.Localization.Loc.F("sw.tidy.how", folder),
+            ("type", Foldy.Core.Localization.Loc.T("sw.tidy.byType")), ("date", Foldy.Core.Localization.Loc.T("sw.tidy.byDate")), ("para", Foldy.Core.Localization.Loc.T("sw.tidy.para")));
         if (how == GuideWindow.ClosedChoice)
         {
             return;
         }
 
-        w.Say("정리 후 모습을 만들어서 보여 드릴게요. 확인하고 [정리하기]를 누르면 옮겨요.");
+        w.Say(Foldy.Core.Localization.Loc.T("sw.tidy.preview"));
         await Task.Delay(400);
         w.Close();
         var org = new Foldy.Presentation.Templates.OrganizeViewModel(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates);
@@ -1524,7 +1524,7 @@ public partial class ShellWindow : Window, IPaneHost
         if (Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
         {
             // Store 판: Store의 다운로드 및 업데이트 화면을 연다
-            Shell.Status = "Microsoft Store에서 Foldy 업데이트를 확인해요";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.store.check");
             try
             {
                 Process.Start(new ProcessStartInfo("ms-windows-store://downloadsandupdates") { UseShellExecute = true });
@@ -1541,7 +1541,7 @@ public partial class ShellWindow : Window, IPaneHost
         // (2026-11-21 사용자: "업데이트 정보를 받은 상태에서는 새 버전이 있어도 새 버전으로 업데이트하지 않는다")
         if (_updater.ReadyVersion is null || _updater is ServiceUpdater)
         {
-            Shell.Status = "업데이트 확인 중…";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.upd.checking");
             bool found;
             try
             {
@@ -1549,7 +1549,7 @@ public partial class ShellWindow : Window, IPaneHost
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
-                Log.Warning(ex, "업데이트 확인 실패");
+                Log.Warning(ex, Foldy.Core.Localization.Loc.T("sw.upd.checkFailedShort"));
                 found = false;
             }
 
@@ -1572,14 +1572,14 @@ public partial class ShellWindow : Window, IPaneHost
                 }
                 else if (err is not null && _userProxyError is { } ue)
                 {
-                    err = $"{err}\n사용자 프록시 경로: {ue}";
+                    err = Foldy.Core.Localization.Loc.F("sw.upd.userProxy", err, ue);
                 }
-                Shell.Status = err is null ? $"최신 버전이에요 ({AppVersion}). 새 버전이 나오면 알려 드릴게요" : $"업데이트를 확인하지 못했습니다: {err}";
+                Shell.Status = err is null ? Foldy.Core.Localization.Loc.F("sw.upd.latest", AppVersion) : Foldy.Core.Localization.Loc.F("sw.upd.checkFailed", err);
                 if (interactive && err is not null) // 최신이면 상태 줄로만 (누를 단추를 늘리지 않는다, 원칙 1.4)
                 {
-                    Foldy.UI.Dialogs.FoldyDialog.Info(this, "Foldy 업데이트",
-                        err.Contains(AppUpdater.MissingVerifier, StringComparison.Ordinal) ? $"업데이트를 확인하지 못했어요.\n\n{err}"
-                            : $"업데이트를 확인하지 못했어요.\n\n{err}\n\n인터넷·프록시 연결을 확인한 뒤 다시 해 주세요.",
+                    Foldy.UI.Dialogs.FoldyDialog.Info(this, Foldy.Core.Localization.Loc.T("sw.upd.title"),
+                        err.Contains(AppUpdater.MissingVerifier, StringComparison.Ordinal) ? Foldy.Core.Localization.Loc.F("sw.upd.checkFailedDlg", err)
+                            : Foldy.Core.Localization.Loc.F("sw.upd.checkFailedNet", err),
                         Foldy.UI.Dialogs.DialogKind.Warning);
                 }
 
@@ -1589,8 +1589,8 @@ public partial class ShellWindow : Window, IPaneHost
 
         UpdateUpdateButton();
         var v = _updater.ReadyVersion;
-        Shell.Status = $"Foldy {v} 업데이트가 준비됐습니다";
-        if (interactive && Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "Foldy 업데이트", $"Foldy {v}이(가) 준비됐어요 (지금 {AppVersion}).\n지금 Foldy를 닫고 설치할까요? 1분쯤 뒤에 다시 열려요.", "지금 설치", "나중에"))
+        Shell.Status = Foldy.Core.Localization.Loc.F("sw.upd.ready", v);
+        if (interactive && Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("sw.upd.title"), Foldy.Core.Localization.Loc.F("sw.upd.readyAsk", v, AppVersion), Foldy.Core.Localization.Loc.T("sw.upd.installNow"), Foldy.Core.Localization.Loc.T("sw.later")))
         {
             OnInstallUpdate(this, new RoutedEventArgs());
         }
@@ -1603,8 +1603,8 @@ public partial class ShellWindow : Window, IPaneHost
         if (_updater.ReadyVersion is { } v)
         {
             UpdateButton.Content = _updateAfterJobs is null
-                ? $"Foldy {v} · 재시작하고 업데이트"
-                : $"작업이 끝나면 {v}(으)로 업데이트 · 취소";
+                ? Foldy.Core.Localization.Loc.F("sw.upd.restart", v)
+                : Foldy.Core.Localization.Loc.F("sw.upd.afterJobs", v);
             UpdateButton.Visibility = Visibility.Visible;
         }
     }
@@ -1619,7 +1619,7 @@ public partial class ShellWindow : Window, IPaneHost
         {
             _updateAfterJobs.Stop();
             _updateAfterJobs = null;
-            Shell.Status = "업데이트 예약을 취소했습니다";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.upd.unscheduled");
             UpdateUpdateButton();
             return;
         }
@@ -1636,7 +1636,7 @@ public partial class ShellWindow : Window, IPaneHost
                 }
             }, Dispatcher);
             _updateAfterJobs.Start();
-            Shell.Status = "진행 중인 작업이 끝나면 업데이트합니다";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.upd.afterJobsSet");
             UpdateUpdateButton();
             return;
         }
@@ -1660,11 +1660,11 @@ public partial class ShellWindow : Window, IPaneHost
         else
         {
             var why = _updater is ServiceUpdater
-                ? $"업데이트 설치를 시작하지 못했습니다: {_updater.LastError}"
-                : "업데이트 설치가 취소됐습니다. 관리자 권한 창에서 [예]를 눌러야 설치됩니다.";
+                ? Foldy.Core.Localization.Loc.F("sw.upd.installFailed", _updater.LastError)
+                : Foldy.Core.Localization.Loc.T("sw.upd.uacCancelled");
             Shell.Status = why;
             UpdateUpdateButton();
-            Foldy.UI.Dialogs.FoldyDialog.Info(this, "Foldy 업데이트", why, Foldy.UI.Dialogs.DialogKind.Warning);
+            Foldy.UI.Dialogs.FoldyDialog.Info(this, Foldy.Core.Localization.Loc.T("sw.upd.title"), why, Foldy.UI.Dialogs.DialogKind.Warning);
         }
     }
 
@@ -1673,21 +1673,21 @@ public partial class ShellWindow : Window, IPaneHost
         if (install && Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
         {
             // Store 판에는 SYSTEM 서비스를 넣지 않는다 (docs/store.md)
-            Shell.Status = "Store 판은 색인 서비스 없이 폴더를 직접 훑어 검색해요. 드라이브 전체 즉시 검색은 GitHub의 설치본(MSI)에서 쓸 수 있어요.";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idx.storeOnly");
             return;
         }
 
         var exe = Path.Combine(AppContext.BaseDirectory, "foldy-index.exe");
         if (install && !File.Exists(exe))
         {
-            Shell.Status = "foldy-index.exe가 없습니다 (설치본에서 실행하세요)";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idx.noExe");
             return;
         }
 
         if (install && !Foldy.Platform.SystemInfo.IndexerService.IsProtectedLocation(exe))
         {
             // SYSTEM 서비스 exe가 사용자 폴더에 있으면 바꿔치기로 권한을 빼앗길 수 있다
-            Shell.Status = "색인 서비스는 설치본(Program Files)에서만 설치할 수 있어요. 압축본에서는 색인 없이 검색해요.";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idx.needInstall");
             return;
         }
 
@@ -1699,7 +1699,7 @@ public partial class ShellWindow : Window, IPaneHost
                 await p.WaitForExitAsync();
             }
 
-            Shell.Status = install ? "색인 서비스를 설치했습니다. 첫 색인에 수십 초 걸릴 수 있습니다." : "색인 서비스를 제거했습니다.";
+            Shell.Status = install ? Foldy.Core.Localization.Loc.T("sw.idx.installed") : Foldy.Core.Localization.Loc.T("sw.idx.removed");
             await Task.Delay(install ? 3000 : 500);
             if (_indexer is not null)
             {
@@ -1711,7 +1711,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
         catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
         {
-            Shell.Status = "관리자 권한 요청이 취소됐습니다";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.uacCancelled");
         }
     }
 
@@ -1745,7 +1745,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         _settings = _settings with { ShowHidden = !_settings.ShowHidden };
         SaveSettings();
-        Shell.Status = _settings.ShowHidden ? "숨김 파일 보이기" : "숨김 파일 숨기기";
+        Shell.Status = _settings.ShowHidden ? Foldy.Core.Localization.Loc.T("sw.hidden.show") : Foldy.Core.Localization.Loc.T("sw.hidden.hide");
         _ = Shell.Left.ActiveFolder?.RefreshAsync();
         _ = Shell.Right.ActiveFolder?.RefreshAsync();
     }
@@ -1784,7 +1784,7 @@ public partial class ShellWindow : Window, IPaneHost
         _settings = _settings with { UiScale = scale };
         SaveSettings();
         ApplyUiScale();
-        Shell.Status = scale <= 0 ? $"화면 크기: Windows 설정 따르기 ({EffectiveUiScale * 100:0}%)" : $"화면 크기 {scale * 100:0}%";
+        Shell.Status = scale <= 0 ? Foldy.Core.Localization.Loc.F("sw.scale.auto", EffectiveUiScale * 100) : Foldy.Core.Localization.Loc.F("sw.scale.n", scale * 100);
     }
 
     private void StepUiScale(int dir)
@@ -1844,12 +1844,12 @@ public partial class ShellWindow : Window, IPaneHost
         var indexing = _search.LastStatus is { State: Foldy.Indexer.Client.IndexState.Indexing } ix ? ix.ProgressPermille / 10 : -1;
         var footer = (_search.IsIndexed
                 ? (scope is not null && !_search.IsIndexedPath(scope) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(scope)
-                    ? $"파일은 색인된 드라이브 전체와, 색인이 없는 지금 폴더({Path.GetFileName(scope.TrimEnd('\\'))}) 안에서 찾아요."
-                    : "파일은 색인된 드라이브 전체에서 찾아요.")
+                    ? Foldy.Core.Localization.Loc.F("sw.qs.footerHere", Path.GetFileName(scope.TrimEnd('\\')))
+                    : Foldy.Core.Localization.Loc.T("sw.qs.footerAll"))
                 : indexing >= 0
-                    ? $"색인을 만드는 중({indexing}%)이라 지금은 이 폴더 안에서만 찾아요. 끝나면 모든 드라이브에서 찾아요."
-                : $"⚠ 색인 서비스에 연결되지 않아 파일은 지금 폴더({Path.GetFileName(scope?.TrimEnd('\\') ?? "")}) 안에서만 찾아요. 아래 상태 줄의 \"검색\"을 확인해 주세요.")
-            + " Enter 열기 · Ctrl+Enter 들어 있는 폴더 · Esc 닫기";
+                    ? Foldy.Core.Localization.Loc.F("sw.qs.footerIndexing", indexing)
+                : Foldy.Core.Localization.Loc.F("sw.qs.footerNoService", Path.GetFileName(scope?.TrimEnd('\\') ?? "")))
+            + Foldy.Core.Localization.Loc.T("sw.qs.keys");
         _quickSearch = BuildQuickSearch(scope, footer);
         _quickSearch.Closed += (_, _) => _quickSearch = null;
         _quickSearch.Show();
@@ -1859,7 +1859,7 @@ public partial class ShellWindow : Window, IPaneHost
         QuickSearchInstant,
         (q, ct) => _search.SearchAsync(Foldy.Core.QuickSearch.QuickIntent.Normalize(q), scope, ct),
         f => new QuickSearchWindow.Hit(
-            "파일",
+            Foldy.Core.Localization.Loc.T("sw.qs.file"),
             f.Kind == Foldy.Core.FileSystem.FsKind.Folder ? "\uE8B7" : "\uE8A5",
             f.Name,
             Path.GetDirectoryName(f.Path.Value) ?? "",
@@ -1875,12 +1875,12 @@ public partial class ShellWindow : Window, IPaneHost
         var m = new QuickMatcher(Foldy.Core.QuickSearch.QuickIntent.Normalize(q));
         if (Foldy.Core.QuickSearch.QuickCalc.Answer(q) is { } ans)
         {
-            yield return new QuickSearchWindow.Hit(ans.Kind, "\uE8EF", ans.Display, "Enter로 결과 복사", () =>
+            yield return new QuickSearchWindow.Hit(ans.Kind, "\uE8EF", ans.Display, Foldy.Core.Localization.Loc.T("sw.qs.copyResult"), () =>
             {
                 try
                 {
                     Clipboard.SetText(ans.Copy);
-                    ShowStatus($"{ans.Copy} 복사했어요");
+                    ShowStatus(Foldy.Core.Localization.Loc.F("sw.qs.copied", ans.Copy));
                 }
                 catch (System.Runtime.InteropServices.ExternalException)
                 {
@@ -1895,7 +1895,7 @@ public partial class ShellWindow : Window, IPaneHost
             if (s > 0)
             {
                 var path = f.Path;
-                yield return new QuickSearchWindow.Hit("폴더", "\uE8B7", f.Name, path,
+                yield return new QuickSearchWindow.Hit(Foldy.Core.Localization.Loc.T("sw.qs.folder"), "\uE8B7", f.Name, path,
                     () => { BringToFront(); OpenInPane(Shell.ActivePane, path, newTab: false); }, () => RevealInFoldy(path), q.Length == 0 ? 0 : s + 5);
             }
         }
@@ -1915,7 +1915,7 @@ public partial class ShellWindow : Window, IPaneHost
             if (m.Score(a.Name) is > 0 and var s)
             {
                 var lnk = a.ShortcutPath;
-                yield return new QuickSearchWindow.Hit("앱", "\uE7AC", a.Name, "앱 실행", () => StartShell(lnk), Score: s + 10);
+                yield return new QuickSearchWindow.Hit(Foldy.Core.Localization.Loc.T("sw.qs.app"), "\uE7AC", a.Name, Foldy.Core.Localization.Loc.T("sw.qs.runApp"), () => StartShell(lnk), Score: s + 10);
             }
         }
 
@@ -1925,7 +1925,7 @@ public partial class ShellWindow : Window, IPaneHost
             if (s > 0)
             {
                 var uri = p.Uri;
-                yield return new QuickSearchWindow.Hit("설정", "\uE713", p.Title, "Windows 설정", () => StartShell(uri), Score: s);
+                yield return new QuickSearchWindow.Hit(Foldy.Core.Localization.Loc.T("cmd.settings"), "\uE713", p.Title, Foldy.Core.Localization.Loc.T("sw.qs.winSettings"), () => StartShell(uri), Score: s);
             }
         }
 
@@ -1934,7 +1934,7 @@ public partial class ShellWindow : Window, IPaneHost
         {
             var hit = CommandHit(c, Foldy.Core.QuickSearch.QuickIntent.Score(c.Id, c.Title, q) + 2);
             // 말하듯 물으면 대답하듯: "이걸 할까요?" (Enter면 그 기능의 대화 창이 이어서 한 단계씩 물어본다)
-            yield return sentence ? hit with { Detail = "이걸 할까요? Enter를 누르면 시작해요" } : hit;
+            yield return sentence ? hit with { Detail = Foldy.Core.Localization.Loc.T("sw.qs.intent") } : hit;
         }
     }
 
@@ -1944,7 +1944,7 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private QuickSearchWindow.Hit CommandHit(PaletteCommand c, int score) =>
-        new("기능", "\uE945", c.Title, c.Gesture.Length > 0 ? $"Foldy 기능 · {c.Gesture}" : "Foldy 기능", () => { BringToFront(); c.Run(); }, Score: score);
+        new(Foldy.Core.Localization.Loc.T("sw.qs.feature0"), "\uE945", c.Title, c.Gesture.Length > 0 ? Foldy.Core.Localization.Loc.F("sw.qs.feature", c.Gesture) : Foldy.Core.Localization.Loc.T("sw.qs.featureFoldy"), () => { BringToFront(); c.Run(); }, Score: score);
 
     /// <summary>빠른 검색의 기능 찾기: 이름에 들어 있거나, 띄어 쓴 낱말이 모두 들어 있거나, 초성(ㅅㅈ → 설정)이 맞는 명령.</summary>
     private IEnumerable<PaletteCommand> QuickSearchCommands(string q)
@@ -1968,7 +1968,7 @@ public partial class ShellWindow : Window, IPaneHost
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
         {
             BringToFront();
-            ShowStatus($"열 수 없어요: {ex.Message}");
+            ShowStatus(Foldy.Core.Localization.Loc.F("sw.cantOpen", ex.Message));
         }
     }
 
@@ -2017,13 +2017,13 @@ public partial class ShellWindow : Window, IPaneHost
 
         if (!GlobalHotkey.ConflictsWithInputMethod(g) && GlobalHotkey.Register(hwnd, GlobalHotkey.QuickSearchId, g))
         {
-            w?.Say($"하나 더! 어느 프로그램을 쓰다가도 {g}를 누르면 빠른 검색이 열려요. 파일·앱·설정·Foldy 기능을 한 번에 찾아요.");
+            w?.Say(Foldy.Core.Localization.Loc.F("sw.qs.tip", g));
             return;
         }
 
         _hotkeyAsking = true;
         var own = w is null;
-        w ??= new GuideWindow("빠른 검색 단축키") { Owner = this };
+        w ??= new GuideWindow(Foldy.Core.Localization.Loc.T("sw.qs.hotkeyTitle")) { Owner = this };
         try
         {
             if (own)
@@ -2034,7 +2034,7 @@ public partial class ShellWindow : Window, IPaneHost
             var ch = await HotkeyFlows.ChooseAsync(w, hwnd, g);
             if (ch.Gesture is null)
             {
-                ShowStatus($"빠른 검색 단축키({g})가 다른 프로그램과 겹쳐서 Foldy 창 안에서만 써요. 설정 → 단축키에서 바꿀 수 있어요.");
+                ShowStatus(Foldy.Core.Localization.Loc.F("sw.qs.hotkeyTaken", g));
                 return;
             }
 
@@ -2064,7 +2064,7 @@ public partial class ShellWindow : Window, IPaneHost
             GlobalHotkey.Register(hwnd, GlobalHotkey.QuickSearchId, ch.Gesture);
             if (own && !w.IsClosed)
             {
-                await w.AskAsync(null, ("ok", "좋아요"));
+                await w.AskAsync(null, ("ok", Foldy.Core.Localization.Loc.T("sw.okGood")));
             }
         }
         finally
@@ -2202,11 +2202,11 @@ public partial class ShellWindow : Window, IPaneHost
     /// </summary>
     private async Task AskAnalysisTargetAsync()
     {
-        var w = new GuideWindow("폴더 분석") { Owner = this };
+        var w = new GuideWindow(Foldy.Core.Localization.Loc.T("cmd.analysis")) { Owner = this };
         w.Show();
         try
         {
-            w.Say("어디를 분석할까요? 무엇이 공간을 차지하는지 큰 상자 그림으로 보여 드려요.");
+            w.Say(Foldy.Core.Localization.Loc.T("sw.analysis.where"));
             var choices = new List<(string Id, string Label)>();
             foreach (var d in DriveInfo.GetDrives())
             {
@@ -2216,7 +2216,7 @@ public partial class ShellWindow : Window, IPaneHost
                     {
                         var name = d.Name.TrimEnd('\\');
                         var label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? name : $"{name} {d.VolumeLabel}";
-                        choices.Add((d.RootDirectory.FullName, $"{label} ({Foldy.Presentation.Files.FileItem.FormatBytes(d.AvailableFreeSpace)} 남음)"));
+                        choices.Add((d.RootDirectory.FullName, Foldy.Core.Localization.Loc.F("sw.analysis.drive", label, Foldy.Presentation.Files.FileItem.FormatBytes(d.AvailableFreeSpace))));
                     }
                 }
                 catch (IOException)
@@ -2227,16 +2227,16 @@ public partial class ShellWindow : Window, IPaneHost
             var here = Shell.ActivePane.ActiveFolder?.Path;
             if (!string.IsNullOrEmpty(here) && here.Length > 3 && here[1] == ':')
             {
-                choices.Add((here, $"지금 폴더 ({Path.GetFileName(here.TrimEnd('\\'))})"));
+                choices.Add((here, Foldy.Core.Localization.Loc.F("sw.analysis.here", Path.GetFileName(here.TrimEnd('\\')))));
             }
 
-            choices.Add(("pick", "다른 폴더 고르기…"));
-            choices.Add(("cancel", "그만두기"));
+            choices.Add(("pick", Foldy.Core.Localization.Loc.T("sw.tidy.other")));
+            choices.Add(("cancel", Foldy.Core.Localization.Loc.T("dlg.cancel")));
             var c = await w.AskAsync(null, [.. choices]);
             string? target = c;
             if (c == "pick")
             {
-                var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "분석할 폴더를 고르세요", InitialDirectory = here ?? "" };
+                var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Foldy.Core.Localization.Loc.T("sw.analysis.pick"), InitialDirectory = here ?? "" };
                 target = dlg.ShowDialog(w) == true ? dlg.FolderName : null;
             }
 
@@ -2263,7 +2263,7 @@ public partial class ShellWindow : Window, IPaneHost
         var path = target ?? pane.ActiveFolder?.Path;
         if (string.IsNullOrEmpty(path) || path.Length < 2 || path[1] != ':')
         {
-            Shell.Status = "폴더 분석은 로컬 드라이브에서만 할 수 있습니다";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.analysis.localOnly");
             return;
         }
 
@@ -2275,7 +2275,7 @@ public partial class ShellWindow : Window, IPaneHost
             var ok = await Shell.RecycleAsync(e.Paths);
             if (ok)
             {
-                Shell.Status = $"{e.Paths.Count:N0}개 ({Foldy.Presentation.Files.FileItem.FormatBytes(e.TotalBytes)})를 휴지통으로 옮겼어요. 휴지통에서 되살릴 수 있어요";
+                Shell.Status = Foldy.Core.Localization.Loc.F("sw.recycled", e.Paths.Count, Foldy.Presentation.Files.FileItem.FormatBytes(e.TotalBytes));
             }
             foreach (var item in e.Items)
             {
@@ -2369,7 +2369,7 @@ public partial class ShellWindow : Window, IPaneHost
                 if (mi.Tag is "view.images")
                 {
                     mi.IsChecked = ActiveView.ImagesOn;
-                    mi.Header = ActiveView.ImagesOn ? "이미지만 보기 끄기" : "이미지만 보기";
+                    mi.Header = ActiveView.ImagesOn ? Foldy.Core.Localization.Loc.T("sw.img.off") : Foldy.Core.Localization.Loc.T("sw.img.on");
                 }
             }
 
@@ -2399,7 +2399,7 @@ public partial class ShellWindow : Window, IPaneHost
         folder ??= CleanupPaths.Downloads();
         if (folder is null)
         {
-            Shell.Status = "다운로드 폴더를 찾지 못했습니다";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.noDownloads");
             return;
         }
 
@@ -2413,7 +2413,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (string.IsNullOrEmpty(folder) || Foldy.Presentation.Navigation.PathUtil.IsSftp(folder) || !Directory.Exists(folder))
         {
-            Shell.Status = "찾을 폴더(내 PC·네트워크 폴더)를 먼저 열어 주세요";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.openFolderFirst");
             return;
         }
 
@@ -2515,13 +2515,13 @@ public partial class ShellWindow : Window, IPaneHost
         {
             _settings = _settings with { AiSuggest = false };
             SaveSettings();
-            Shell.Status = "AI 연결 제안을 다시 띄우지 않아요. 설정 → 일반 → AI 연결에서 되돌릴 수 있어요";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.ai.never");
         }
         else if (_cleanupFinding?.Tool is "desktop-start" or "downloads-start")
         {
             _settings = _settings with { DesktopSuggest = false };
             SaveSettings();
-            Shell.Status = "바탕화면·다운로드 정리 제안을 다시 띄우지 않아요. 설정 → 일반 → 정리 알림에서 되돌릴 수 있어요";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.tidy.never");
         }
     }
 
@@ -2621,7 +2621,7 @@ public partial class ShellWindow : Window, IPaneHost
         _hintKey = null;
         _cleanupFinding = f;
         CleanupNoticeText.Text = f.Text;
-        CleanupNoticeButton.Content = f.Tool switch { "logs" => "로그 정리", "downloads" => "다운로드 정리", "managed" => "정리할 것 보기", _ => "바탕화면 정리" };
+        CleanupNoticeButton.Content = f.Tool switch { "logs" => Foldy.Core.Localization.Loc.T("sw.logs.title"), "downloads" => Foldy.Core.Localization.Loc.T("sw.c.downloads"), "managed" => Foldy.Core.Localization.Loc.T("sw.logs.view"), _ => Foldy.Core.Localization.Loc.T("sw.c.desktop") };
         CleanupNotice.Visibility = Visibility.Visible;
         CleanupNotifier.MarkShown();
     }
@@ -2759,7 +2759,7 @@ public partial class ShellWindow : Window, IPaneHost
             SaveSettings();
             Diagnostics.DiagnosticMode.Apply(_settings.DiagnosticUntil);
             UpdateDiagnosticIndicator();
-            Shell.Status = "버그 진단 모드를 켰습니다. 문제를 다시 재현한 뒤 버그 진단 모드를 끄면 기록을 보낼 수 있습니다 (24시간 뒤 자동으로 꺼짐)";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.diag.on");
             return;
         }
 
@@ -2768,9 +2768,9 @@ public partial class ShellWindow : Window, IPaneHost
         Log.Information("진단 모드 꺼짐");
         Diagnostics.DiagnosticMode.Apply(null);
         UpdateDiagnosticIndicator();
-        if (Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "버그 진단 모드", "진단 기록을 개발자에게 오류 보고서로 보낼까요?\n\n최근 기록과 앱·Windows 버전이 들어가며, 파일 경로와 사용자 이름은 지웁니다. GitHub 공개 이슈로 올라갑니다.", "보내기", "보내지 않기"))
+        if (Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("sw.diag.title"), Foldy.Core.Localization.Loc.T("sw.diag.ask"), Foldy.Core.Localization.Loc.T("sw.diag.send"), Foldy.Core.Localization.Loc.T("sw.diag.dontSend")))
         {
-            Foldy.Reporting.CrashReporting.Record(new DiagnosticReport("사용자 진단 기록 (버그 진단 모드)"), fatal: false);
+            Foldy.Reporting.CrashReporting.Record(new DiagnosticReport(Foldy.Core.Localization.Loc.T("sw.diag.issueTitle")), fatal: false);
             _ = SendReportsAsync();
         }
     }
@@ -2779,7 +2779,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         var results = await Task.Run(() => Foldy.Reporting.CrashReporting.SendPendingAsync());
         var sent = results.FirstOrDefault(r => r.Outcome == Foldy.Reporting.SendOutcome.Sent);
-        Shell.Status = sent?.Response?.Url is { } url ? $"진단 기록을 보냈습니다: {url}" : results.Count == 0 ? "보낼 기록이 없습니다" : $"보내지 못했습니다: {results[^1].Error}";
+        Shell.Status = sent?.Response?.Url is { } url ? Foldy.Core.Localization.Loc.F("sw.diag.sent", url) : results.Count == 0 ? Foldy.Core.Localization.Loc.T("sw.diag.nothing") : Foldy.Core.Localization.Loc.F("sw.diag.failed", results[^1].Error);
     }
 
     private void UpdateDiagnosticIndicator()
@@ -2808,7 +2808,7 @@ public partial class ShellWindow : Window, IPaneHost
         var index = Path.Combine(src, "index.md");
         if (!File.Exists(index))
         {
-            Foldy.UI.Dialogs.FoldyDialog.Info(this, "도움말", "설명서 파일을 찾을 수 없어요.\n" + index, Foldy.UI.Dialogs.DialogKind.Warning);
+            Foldy.UI.Dialogs.FoldyDialog.Info(this, Foldy.Core.Localization.Loc.T("cmd.help"), Foldy.Core.Localization.Loc.T("sw.help.missing") + index, Foldy.UI.Dialogs.DialogKind.Warning);
             return;
         }
 
@@ -2869,7 +2869,7 @@ public partial class ShellWindow : Window, IPaneHost
                 File.WriteAllText(stamp, AppVersion);
                 if (_hadSettings && before is not null)
                 {
-                    Shell.Status = $"Foldy {AppVersion}로 업데이트했어요. 설정은 그대로예요. 바뀐 점은 도움말(F1)에 있어요.";
+                    Shell.Status = Foldy.Core.Localization.Loc.F("sw.upd.done", AppVersion);
                 }
             }
         }
@@ -2891,7 +2891,7 @@ public partial class ShellWindow : Window, IPaneHost
             SidebarToggleMark.ClearValue(Border.BackgroundProperty);
         }
 
-        SidebarToggle.ToolTip = (SidebarExpanded ? "사이드바 접기" : "사이드바 펼치기") + " (Ctrl+Shift+B) · 오른쪽 가장자리를 끌어도 돼요";
+        SidebarToggle.ToolTip = (SidebarExpanded ? Foldy.Core.Localization.Loc.T("sw.sidebar.collapse") : Foldy.Core.Localization.Loc.T("sw.sidebar.expand")) + Foldy.Core.Localization.Loc.T("sw.sidebar.tipTail");
         UpdatePinnedEmpty();
     }
 
@@ -2942,7 +2942,7 @@ public partial class ShellWindow : Window, IPaneHost
         var path = Shell.ActivePane.ActiveFolder?.Path;
         if (string.IsNullOrEmpty(path))
         {
-            Shell.Status = "고정할 폴더가 없습니다. 폴더 탭에서 눌러 주세요.";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.pin.none");
             return;
         }
 
@@ -2950,15 +2950,15 @@ public partial class ShellWindow : Window, IPaneHost
         if (_quick.IsPinned(path))
         {
             _quick.Unpin(path);
-            Shell.Status = $"자주 쓰는 폴더에서 뺐습니다: {name}";
+            Shell.Status = Foldy.Core.Localization.Loc.F("sw.pin.removed", name);
         }
         else if (_quick.Pin(path))
         {
-            Shell.Status = $"자주 쓰는 폴더에 고정했습니다: {name}";
+            Shell.Status = Foldy.Core.Localization.Loc.F("sw.pin.added", name);
         }
         else
         {
-            Shell.Status = $"더 고정할 수 없습니다 (최대 {QuickAccess.MaxPinned}개)";
+            Shell.Status = Foldy.Core.Localization.Loc.F("sw.pin.max", QuickAccess.MaxPinned);
         }
     }
 
@@ -3009,7 +3009,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (TagOf<QuickFolder>(sender) is { } f && _quick.Pin(f.Path))
         {
-            Shell.Status = $"자주 쓰는 폴더에 고정했습니다: {f.Name}";
+            Shell.Status = Foldy.Core.Localization.Loc.F("sw.pin.added", f.Name);
         }
     }
 
@@ -3017,7 +3017,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (TagOf<QuickFolder>(sender) is { } f && _quick.Unpin(f.Path))
         {
-            Shell.Status = $"자주 쓰는 폴더에서 뺐습니다: {f.Name}";
+            Shell.Status = Foldy.Core.Localization.Loc.F("sw.pin.removed", f.Name);
         }
     }
 
@@ -3071,13 +3071,13 @@ public partial class ShellWindow : Window, IPaneHost
         var info = await Task.Run(Foldy.Platform.Shell.RecycleBin.Query);
         if (info is { } i && i.Items > 0)
         {
-            RecycleBinText.Text = $"휴지통 · {Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)}";
+            RecycleBinText.Text = Foldy.Core.Localization.Loc.F("sw.bin.size", Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes));
             EmptyRecycleBinButton.Visibility = Visibility.Visible;
-            EmptyRecycleBinButton.ToolTip = $"휴지통 비우기: {i.Items:N0}개, {Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)} (영구 삭제, 되살릴 수 없음)";
+            EmptyRecycleBinButton.ToolTip = Foldy.Core.Localization.Loc.F("sw.bin.emptyTip", i.Items, Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes));
         }
         else
         {
-            RecycleBinText.Text = "휴지통";
+            RecycleBinText.Text = Foldy.Core.Localization.Loc.T("sw.bin");
             EmptyRecycleBinButton.Visibility = Visibility.Collapsed;
         }
     }
@@ -3091,15 +3091,15 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        if (!Foldy.UI.Dialogs.FoldyDialog.Confirm(this, "휴지통 비우기", $"휴지통의 {i.Items:N0}개 항목({Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)})을 영구 삭제할까요?\n\n비우면 되살릴 수 없어요.", "비우기", danger: true))
+        if (!Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("sw.bin.empty"), Foldy.Core.Localization.Loc.F("sw.bin.emptyAsk", i.Items, Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)), Foldy.Core.Localization.Loc.T("sw.bin.emptyYes"), danger: true))
         {
             return;
         }
 
         var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-        Shell.Status = "휴지통 비우는 중…";
+        Shell.Status = Foldy.Core.Localization.Loc.T("sw.bin.emptying");
         var ok = await Task.Run(() => Foldy.Platform.Shell.RecycleBin.Empty(hwnd));
-        Shell.Status = ok ? $"휴지통을 비웠습니다 ({Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)} 확보)" : "휴지통을 비우지 못했습니다";
+        Shell.Status = ok ? Foldy.Core.Localization.Loc.F("sw.bin.emptied", Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)) : Foldy.Core.Localization.Loc.T("sw.bin.emptyFailed");
         UpdateRecycleBinInfo();
     }
 
@@ -3112,7 +3112,7 @@ public partial class ShellWindow : Window, IPaneHost
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
             Log.Warning(ex, "휴지통 열기 실패");
-            Shell.Status = "휴지통을 열지 못했습니다";
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.bin.openFailed");
         }
     }
 

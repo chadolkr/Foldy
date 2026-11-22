@@ -80,6 +80,8 @@ S = {
     "tour.git.t": {"ko": "프로젝트 폴더면 Git이 저절로", "en": "Git shows up in project folders", "es": "Git aparece solo en carpetas de proyecto", "ja": "プロジェクトフォルダーなら Git が自動で", "zh-Hans": "项目文件夹里自动显示 Git"},
     "tour.git.s": {"ko": "받기·올리기·커밋을 버튼으로", "en": "Pull, push and commit with buttons", "es": "Pull, push y commit con botones", "ja": "取得・送信・コミットをボタンで", "zh-Hans": "用按钮拉取、推送和提交"},
     "tour.end.s": {"ko": "모르는 게 있으면 F1 · 이 소개는 ? → 짧은 소개 보기에서 다시 볼 수 있어요", "en": "Press F1 for help · replay this from ? → Short intro", "es": "Pulsa F1 para ayuda · vuelve a verlo desde ? → Introducción breve", "ja": "わからないときは F1 · この紹介は ? → 短い紹介 からもう一度見られます", "zh-Hans": "有问题按 F1 · 可在 ? → 简短介绍 中重看"},
+    "tour.skip": {"ko": "건너뛰기", "en": "Skip", "es": "Omitir", "ja": "スキップ", "zh-Hans": "跳过"},
+    "tour.start": {"ko": "시작하기", "en": "Get started", "es": "Empezar", "ja": "はじめる", "zh-Hans": "开始使用"},
 
     # 설정: 언어
     "settings.language": {"ko": "언어", "en": "Language", "es": "Idioma", "ja": "言語", "zh-Hans": "语言"},

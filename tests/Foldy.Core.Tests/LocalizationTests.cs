@@ -59,6 +59,53 @@ public sealed partial class LocalizationTests
         }
     }
 
+    /// <summary>
+    /// 코드와 XAML이 쓰는 키(Loc.T("…"), Loc.F("…"), {loc:T …})가 모두 언어 파일에 있어야 한다.
+    /// 언어 파일은 build/i18n/strings.py로 다시 만들어지므로, JSON만 고친 키는 다음에 사라진다 (0.9.36에서 [건너뛰기]가 사라졌던 일).
+    /// </summary>
+    [Fact]
+    public void Every_key_used_in_code_is_in_the_language_files()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Foldy.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        dir.Should().NotBeNull("저장소 루트(Foldy.slnx)를 찾아야 한다");
+        var src = Path.Combine(dir!.FullName, "src");
+        var used = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var f in Directory.EnumerateFiles(src, "*.*", SearchOption.AllDirectories))
+        {
+            if (f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                || f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var regex = f.EndsWith(".cs", StringComparison.Ordinal) ? CodeKey() : f.EndsWith(".xaml", StringComparison.Ordinal) ? XamlKey() : null;
+            if (regex is null)
+            {
+                continue;
+            }
+
+            foreach (Match m in regex.Matches(File.ReadAllText(f)))
+            {
+                used.Add(m.Groups[1].Value);
+            }
+        }
+
+        used.Should().NotBeEmpty();
+        var ko = Loc.Table("ko");
+        used.Where(k => !k.EndsWith('.') && !ko.ContainsKey(k)).Should().BeEmpty("strings.py 표에 넣고 python build/i18n/strings.py로 언어 파일을 다시 만들어야 한다");
+    }
+
+    [GeneratedRegex(@"Loc\.[TF]\(""([^""]+)""")]
+    private static partial Regex CodeKey();
+
+    [GeneratedRegex(@"\{loc:T ([^}\s]+)")]
+    private static partial Regex XamlKey();
+
     private static IEnumerable<string> Holes(string s) => HoleRegex().Matches(s).Select(m => m.Value).Distinct();
 
     [GeneratedRegex(@"\{\d+(:[^}]*)?\}")]

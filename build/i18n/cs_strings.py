@@ -97,3 +97,7 @@ CS = [
     ("ops.cantRename", "이름을 바꿀 수 없습니다: {0}", "Can't rename: {0}", "No se puede cambiar el nombre: {0}", "名前を変更できません: {0}", "无法重命名：{0}"),
     ("ops.cantCreateFolder", "폴더를 만들 수 없습니다: {0}", "Can't create the folder: {0}", "No se puede crear la carpeta: {0}", "フォルダーを作成できません: {0}", "无法创建文件夹：{0}"),
 ]
+
+
+from cs_strings_sw import SW  # noqa: E402
+CS = CS + SW
