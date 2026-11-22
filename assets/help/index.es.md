@@ -520,6 +520,7 @@ Guarda una carpeta importante entera en una caja fuerte. Botón derecho en la ca
 
 - **No hay límite de tamaño.** Los archivos de más de 4 GB entran y salen sin problema. Eso sí, Foldy conserva los originales hasta terminar, así que necesita ese espacio libre extra, y una memoria USB antigua en FAT32 no puede guardar una caja fuerte de más de 4 GB. Foldy lo comprueba **antes** de pedir la contraseña, te avisa enseguida si falta espacio y te ofrece [Liberar espacio] para hacer sitio.
 - Doble clic para escribir la contraseña y ver la lista de archivos de dentro. Elige archivos para **previsualizar** (solo en memoria), **extraer** o **extraer todo**. Los archivos que saques van sin contraseña a una carpeta con el mismo nombre junto a la caja fuerte, y también se quedan dentro.
+- **Añadir más archivos**: en la caja fuerte abierta, pulsa **[Añadir más archivos]** y elige archivos (puedes elegir varios). Si ya hay uno con el mismo nombre, Foldy pregunta si conservar ambos o sustituir el de la caja fuerte. La caja fuerte se reescribe y se comprueba cada archivo antes de sustituir la anterior, así que si algo falla la original se queda como estaba. Al final, Foldy pregunta qué hacer con los archivos originales que añadiste.
 
 ### Sobre los archivos bloqueados
 

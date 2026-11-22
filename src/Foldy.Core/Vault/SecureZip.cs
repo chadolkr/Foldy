@@ -218,6 +218,90 @@ public static class SecureZip
         return (done, failed);
     }
 
+    /// <summary>
+    /// 이미 있는 금고에 파일을 더 넣는다 (사용자 결정 2026-11-22). 새 금고를 옆(<c>이름.foldyvault.adding</c>)에 다 쓰고
+    /// 모든 항목을 풀어 확인한 뒤에만 바꿔 끼운다. 확인이 안 되면 새로 쓴 것을 지우고 null (원래 금고는 그대로).
+    /// 넣는 파일은 금고 맨 위에 그 이름으로 들어간다. 같은 이름이 이미 있으면 <paramref name="replace"/>일 때 그것을 바꾸고,
+    /// 아니면 " (2)"를 붙여 둘 다 둔다.
+    /// </summary>
+    public static VaultAddResult? AddFiles(string vault, string password, IReadOnlyList<string> files, bool replace, CancellationToken ct = default)
+    {
+        var adding = vault + ".adding";
+        if (File.Exists(adding))
+        {
+            File.Delete(adding); // 지난번에 쓰다 멈춘 것
+        }
+
+        try
+        {
+            int expected;
+            int added;
+            var replaced = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using (var a = Archive.Open(vault, password))
+            {
+                var old = new HashSet<string>(a.Items.Select(i => i.Name), StringComparer.OrdinalIgnoreCase);
+                var taken = new HashSet<string>(old, StringComparer.OrdinalIgnoreCase);
+                var put = new List<(string Name, string File)>();
+                foreach (var f in files)
+                {
+                    var n = ZipEntry.CleanName(Path.GetFileName(f));
+                    if (taken.Contains(n))
+                    {
+                        if (replace && old.Contains(n) && replaced.Add(n))
+                        {
+                            put.Add((n, f));
+                            continue;
+                        }
+
+                        n = UniqueName(n, taken);
+                    }
+
+                    taken.Add(n);
+                    put.Add((n, f));
+                }
+
+                var keep = a.Items.Where(i => !replaced.Contains(i.Name)).ToList();
+                expected = keep.Count + put.Count;
+                added = put.Count - replaced.Count;
+                var entries = keep.Select(i => (i.Name, (Func<Stream>)(() => a.OpenStream(i.Name))))
+                    .Concat(put.Select(x => (x.Name, (Func<Stream>)(() => File.OpenRead(x.File)))));
+                Write(adding, entries, password, ct);
+            }
+
+            if (!Verify(adding, password, ct) || List(adding, password).Count != expected)
+            {
+                File.Delete(adding);
+                return null;
+            }
+
+            File.Move(adding, vault, overwrite: true);
+            return new VaultAddResult(added, replaced.Count);
+        }
+        catch
+        {
+            File.Delete(adding);
+            throw;
+        }
+    }
+
+    /// <summary>"이름 (2).확장자"처럼 아직 없는 항목 이름 (폴더 경로가 붙은 이름도).</summary>
+    private static string UniqueName(string name, HashSet<string> taken)
+    {
+        var slash = name.LastIndexOf('/');
+        var dir = slash >= 0 ? name[..(slash + 1)] : "";
+        var file = name[(slash + 1)..];
+        var stem = Path.GetFileNameWithoutExtension(file);
+        var ext = Path.GetExtension(file);
+        for (var i = 2; ; i++)
+        {
+            var n = $"{dir}{stem} ({i}){ext}";
+            if (!taken.Contains(n))
+            {
+                return n;
+            }
+        }
+    }
+
     /// <summary>모든 항목을 메모리로 푼다 (잠긴 메모처럼 작은 것만).</summary>
     public static Dictionary<string, byte[]> ReadAll(string path, string password)
     {
@@ -774,6 +858,9 @@ public sealed record VaultResult(string VaultPath, int Files, long Bytes, IReadO
     /// <summary>원본 폴더의 모든 파일이 금고에 들어갔는지 (원본을 휴지통으로 보내도 되는지).</summary>
     public bool Complete => Skipped.Count == 0;
 }
+
+/// <summary>금고에 더 넣은 결과: 새로 넣은 개수, 같은 이름을 바꾼 개수.</summary>
+public sealed record VaultAddResult(int Added, int Replaced);
 
 /// <summary>금고: 폴더를 통째로 .foldyvault 하나에 넣는다.</summary>
 public static class VaultMaker

@@ -520,6 +520,7 @@ Put an important folder into a vault, whole. Right-click the folder → **🔒 P
 
 - **There's no size limit.** Files over 4 GB go in and come out fine. Foldy keeps the originals until it's done, though, so it needs that much extra free space, and an older USB stick formatted as FAT32 can't hold a vault over 4 GB. Foldy checks **before** asking for a password, tells you right away if space is short, and offers [Free up space] to help you clear some.
 - Double-click to enter the password and see the list of files inside. Pick files to **preview** (in memory only), **extract**, or **extract all**. Files you take out go, without a password, into a folder with the same name next to the vault; they also stay in the vault.
+- **Adding more files**: in the opened vault, press **[Add more files]** and choose files (several at once is fine). If a name already exists, Foldy asks whether to keep both or replace the one in the vault. The vault is rewritten and every file is checked before it replaces the old one, so if anything fails the original vault stays as it was. At the end Foldy asks what to do with the original files you added.
 
 ### About locked files
 

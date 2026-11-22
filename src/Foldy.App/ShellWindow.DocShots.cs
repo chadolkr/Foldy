@@ -721,7 +721,7 @@ public partial class ShellWindow
             g.Say(Foldy.Core.Localization.Loc.F("sec.vaultList", 4, Foldy.Core.Localization.Loc.T("demo.lockedName")));
             var files = new[] { (Foldy.Core.Localization.Loc.T("demo.messy5"), 312_400L, true), (Foldy.Core.Localization.Loc.T("demo.messy4"), 1_204_000L, false), (Foldy.Core.Localization.Loc.T("demo.quote"), 48_200L, false), (Foldy.Core.Localization.Loc.T("demo.p1jpg"), 2_480_000L, false) };
             _ = g.PickAsync(Foldy.Core.Localization.Loc.T("sec.fileList"), files.Select(f => (f.Item1, $"{f.Item1}  ·  {Foldy.Presentation.Files.FileItem.FormatBytes(f.Item2)}", f.Item3)),
-                ("preview", Foldy.Core.Localization.Loc.T("sec.previewPicked")), ("extract", Foldy.Core.Localization.Loc.T("sec.extractPicked")), ("all", Foldy.Core.Localization.Loc.T("sec.extractAll")), ("close", Foldy.Core.Localization.Loc.T("cf.close")));
+                ("preview", Foldy.Core.Localization.Loc.T("sec.previewPicked")), ("extract", Foldy.Core.Localization.Loc.T("sec.extractPicked")), ("all", Foldy.Core.Localization.Loc.T("sec.extractAll")), ("add", Foldy.Core.Localization.Loc.T("sec.addFiles")), ("close", Foldy.Core.Localization.Loc.T("cf.close")));
             await DocShotDialogAsync("secure-vault-open", g, 600);
             g.Close();
         });
