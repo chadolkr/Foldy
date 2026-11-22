@@ -36,7 +36,7 @@ CORE = [
     ("ws.fonts", "글꼴", "Fonts", "Fuentes", "フォント", "字体"),
     ("ws.fonts.k", "폰트 글꼴 fonts", "fonts typeface", "fuentes tipografía fonts", "フォント 書体 fonts", "字体 fonts"),
     ("ws.apps", "설치된 앱", "Installed apps", "Aplicaciones instaladas", "インストールされているアプリ", "已安装的应用"),
-    ("ws.apps.k", "프로그램 제거 삭제 앱 apps uninstall", "programs remove apps uninstall", "programas quitar desinstalar apps uninstall", "プログラム アンインストール 削除 アプリ apps uninstall", "程序 卸载 删除 应用 apps uninstall"),
+    ("ws.apps.k", "프로그램 추가 제거 삭제 지우기 앱 apps uninstall", "programs remove apps uninstall", "programas quitar desinstalar apps uninstall", "プログラム アンインストール 削除 アプリ apps uninstall", "程序 卸载 删除 应用 apps uninstall"),
     ("ws.defaultApps", "기본 앱", "Default apps", "Aplicaciones predeterminadas", "既定のアプリ", "默认应用"),
     ("ws.defaultApps.k", "연결 프로그램 기본 default apps", "open with default apps", "abrir con predeterminadas default apps", "関連付け 既定 default apps", "打开方式 默认 default apps"),
     ("ws.startup", "시작 프로그램", "Startup apps", "Aplicaciones de inicio", "スタートアップ アプリ", "启动应用"),

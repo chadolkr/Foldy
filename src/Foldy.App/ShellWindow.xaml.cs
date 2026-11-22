@@ -1881,7 +1881,7 @@ public partial class ShellWindow : Window, IPaneHost
                 : indexing >= 0
                     ? Foldy.Core.Localization.Loc.F("sw.qs.footerIndexing", indexing)
                 : Foldy.Core.Localization.Loc.F("sw.qs.footerNoService", Path.GetFileName(scope?.TrimEnd('\\') ?? "")))
-            + Foldy.Core.Localization.Loc.T("sw.qs.keys");
+            + Foldy.Core.Localization.Loc.T("sw.qs.keys") + Foldy.Core.Localization.Loc.T("qs.filterKeys");
         _quickSearch = BuildQuickSearch(scope, footer);
         _quickSearch.Closed += (_, _) => _quickSearch = null;
         _quickSearch.Show();
@@ -1951,13 +1951,21 @@ public partial class ShellWindow : Window, IPaneHost
             }
         }
 
+        // Windows 설정·제어판·관리 도구: 이름, 또는 쉬운 말에 친 낱말이 모두 있으면 ("프로그램 추가/삭제", "제어판", "드라이버")
+        var nq = Foldy.Core.QuickSearch.QuickIntent.Normalize(q);
         foreach (var p in Foldy.Core.QuickSearch.SystemCatalog.SettingsPages)
         {
-            var s = Math.Max(m.Score(p.Title), m.Score(p.Keywords) / 2);
+            var s = Math.Max(m.Score(p.Title), Math.Max(m.Score(p.Keywords) / 2, Foldy.Core.QuickSearch.QuickSearchMatch.ScoreWords(p.Title + " " + p.Keywords, nq)));
             if (s > 0)
             {
-                var uri = p.Uri;
-                yield return new QuickSearchWindow.Hit(Foldy.Core.Localization.Loc.T("cmd.settings"), "\uE713", p.Title, Foldy.Core.Localization.Loc.T("sw.qs.winSettings"), () => StartShell(uri), Score: s);
+                var item = p;
+                var detail = p.Kind switch
+                {
+                    Foldy.Core.QuickSearch.SystemItemKind.ControlPanel => Foldy.Core.Localization.Loc.T("qs.ctrlPanel"),
+                    Foldy.Core.QuickSearch.SystemItemKind.Tool => Foldy.Core.Localization.Loc.T("qs.winTool"),
+                    _ => Foldy.Core.Localization.Loc.T("sw.qs.winSettings"),
+                };
+                yield return new QuickSearchWindow.Hit(Foldy.Core.Localization.Loc.T("qs.grp.settings"), "\uE713", p.Title, detail, () => StartSystemItem(item), Score: s);
             }
         }
 
@@ -1976,7 +1984,7 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private QuickSearchWindow.Hit CommandHit(PaletteCommand c, int score) =>
-        new(Foldy.Core.Localization.Loc.T("sw.qs.feature0"), "\uE945", c.Title, c.Gesture.Length > 0 ? Foldy.Core.Localization.Loc.F("sw.qs.feature", c.Gesture) : Foldy.Core.Localization.Loc.T("sw.qs.featureFoldy"), () => { BringToFront(); c.Run(); }, Score: score);
+        new(Foldy.Core.Localization.Loc.T("qs.grp.feature"), "\uE945", c.Title, c.Gesture.Length > 0 ? Foldy.Core.Localization.Loc.F("sw.qs.feature", c.Gesture) : Foldy.Core.Localization.Loc.T("sw.qs.featureFoldy"), () => { BringToFront(); c.Run(); }, Score: score);
 
     /// <summary>빠른 검색의 기능 찾기: 이름에 들어 있거나, 띄어 쓴 낱말이 모두 들어 있거나, 초성(ㅅㅈ → 설정)이 맞는 명령.</summary>
     private IEnumerable<PaletteCommand> QuickSearchCommands(string q)
@@ -1996,6 +2004,21 @@ public partial class ShellWindow : Window, IPaneHost
         try
         {
             Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
+        {
+            BringToFront();
+            ShowStatus(Foldy.Core.Localization.Loc.F("sw.cantOpen", ex.Message));
+        }
+    }
+
+    /// <summary>Windows 설정 화면·제어판·관리 도구를 연다 (제어판·도구는 System32의 파일만).</summary>
+    private void StartSystemItem(Foldy.Core.QuickSearch.SettingsPage p)
+    {
+        var (file, args) = p.LaunchTarget();
+        try
+        {
+            Process.Start(new ProcessStartInfo(file, args) { UseShellExecute = true });
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
         {

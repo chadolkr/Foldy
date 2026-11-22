@@ -81,11 +81,64 @@ public sealed class QuickSearchTests
     }
 
     [Fact]
-    public void Settings_catalog_uses_ms_settings_only()
+    public void Settings_catalog_opens_only_settings_pages_or_system32_files()
     {
         Assert.NotEmpty(SystemCatalog.SettingsPages);
-        Assert.All(SystemCatalog.SettingsPages, p => Assert.StartsWith("ms-settings:", p.Uri, StringComparison.Ordinal));
-        Assert.Equal(SystemCatalog.SettingsPages.Count, SystemCatalog.SettingsPages.Select(p => p.Uri).Distinct().Count());
+        string[] allowed = [".cpl", ".msc", ".exe"];
+        foreach (var p in SystemCatalog.SettingsPages)
+        {
+            if (p.Kind == SystemItemKind.Settings)
+            {
+                Assert.StartsWith("ms-settings:", p.Uri, StringComparison.Ordinal);
+                Assert.Equal((p.Uri, ""), p.LaunchTarget(@"C:\Windows\System32"));
+            }
+            else
+            {
+                // 제어판·도구는 경로 없는 파일 이름만: 늘 System32에서 실행한다
+                Assert.Equal(p.Uri, Path.GetFileName(p.Uri));
+                Assert.Contains(Path.GetExtension(p.Uri).ToLowerInvariant(), allowed);
+                Assert.Equal(Path.Combine(@"C:\Windows\System32", p.Uri), p.LaunchTarget(@"C:\Windows\System32").File);
+            }
+
+            // 번역이 빠지면 Loc.T가 키를 그대로 돌려준다
+            Assert.False(p.Title.StartsWith("ws.", StringComparison.Ordinal) || p.Title.StartsWith("cp.", StringComparison.Ordinal), p.Title);
+            Assert.False(p.Keywords.StartsWith("ws.", StringComparison.Ordinal) || p.Keywords.StartsWith("cp.", StringComparison.Ordinal), p.Keywords);
+        }
+
+        Assert.Equal(SystemCatalog.SettingsPages.Count, SystemCatalog.SettingsPages.Select(p => p.Uri + " " + p.Arguments).Distinct().Count());
+        Assert.Contains(SystemCatalog.SettingsPages, p => p.Uri == "appwiz.cpl");
+    }
+
+    /// <summary>2026-11-22 사용자: "제어판 프로그램 추가/삭제 등 검색이 안 보인다". 언어마다 사람들이 치는 말로 찾혀야 한다.</summary>
+    [Theory]
+    [InlineData("ko", "cp.programs", "프로그램 추가/삭제")]
+    [InlineData("ko", "cp.programs", "프로그램 삭제")]
+    [InlineData("ko", "cp.programs", "프로그램 지우기")]
+    [InlineData("ko", "cp.control", "제어판")]
+    [InlineData("ko", "cp.devices", "드라이버")]
+    [InlineData("ko", "cp.taskmgr", "응답 없음")]
+    [InlineData("ko", "cp.envvars", "환경 변수")]
+    [InlineData("ko", "ws.camera", "카메라")]
+    [InlineData("en", "cp.programs", "uninstall program")]
+    [InlineData("en", "cp.control", "control panel")]
+    [InlineData("es", "cp.programs", "desinstalar programa")]
+    [InlineData("ja", "cp.programs", "プログラム 削除")]
+    [InlineData("zh-Hans", "cp.programs", "卸载 程序")]
+    public void Finds_windows_settings_and_control_panel_by_everyday_words(string lang, string key, string q)
+    {
+        var t = Foldy.Core.Localization.Loc.Table(lang);
+        var words = t[key] + " " + t[key + ".k"];
+        Assert.True(Math.Max(QuickSearchMatch.Score(t[key], q), QuickSearchMatch.ScoreWords(words, q)) >= 35, $"{lang}: {q}");
+    }
+
+    [Fact]
+    public void Score_words_needs_every_word()
+    {
+        Assert.Equal(45, QuickSearchMatch.ScoreWords("프로그램 추가 제거 삭제", "프로그램 추가/삭제"));
+        Assert.Equal(35, QuickSearchMatch.ScoreWords("프로그램 추가 제거 삭제", "삭제"));
+        Assert.Equal(0, QuickSearchMatch.ScoreWords("프로그램 추가 제거 삭제", "프로그램 사진"));
+        Assert.Equal(0, QuickSearchMatch.ScoreWords("", "삭제"));
+        Assert.Equal(0, QuickSearchMatch.ScoreWords("삭제", " / "));
     }
 
     [Fact]

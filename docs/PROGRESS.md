@@ -2,6 +2,8 @@
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
+- 2026-11-22 (1.3.0 준비): 무엇이든 찾기에 제어판·관리 도구 25개와 Windows 설정 11개 더, 쉬운 말 낱말 나눠 맞추기, 보기 단추(모두·앱·설정·폴더·파일·Foldy 기능)·Tab·더 보기·[열기] 단추. DECISIONS.md 같은 날짜 항목.
+
 ## 세션 정리 (2026-11-21 09:30 KST, 노트북 끄기 전)
 
 **지금 상태**

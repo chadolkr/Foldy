@@ -206,13 +206,13 @@ Uses el programa que uses, pulsa **Ctrl+Space** y aparece un gran cuadro de bús
 
 - **Archivos y carpetas**: busca en todas las unidades si está instalado el servicio de índice; si no, dentro de la carpeta actual. A la derecha aparece una vista previa (imagen, inicio del texto, tamaño, fecha).
 - **Apps**: encuentra programas del menú Inicio por su nombre y los abre.
-- **Ajustes de Windows**: escribe algo como "pantalla", "wifi", "tamaño del texto" o "impresora" para abrir esa página de ajustes.
+- **Ajustes de Windows y Panel de control**: escribe algo como "pantalla", "wifi", "tamaño del texto" o "impresora" para abrir esa página de ajustes. También encuentra los nombres clásicos del Panel de control y de las herramientas, como "panel de control", "agregar o quitar programas", "administrador de dispositivos", "administrador de tareas" o "variables de entorno", y palabras cotidianas como "controlador" o "no responde".
 - **Carpetas fijadas y recientes** aparecen arriba.
 - **Funciones de Foldy**: ejecuta una función por su nombre, como "configuración" o "análisis de carpetas".
 - **Lenguaje natural (en coreano)**: Foldy entiende peticiones en coreano como "다운로드 정리해줘" (ordena mis descargas). En otros idiomas, escribe el nombre de la función.
 - **Cálculos y conversión de unidades**: escribe `12*3+4`, `200*15%`, `5 km to mi`, `100F` o `2 GB MB` para obtener la respuesta al instante; Enter copia el resultado.
 
-La **mejor coincidencia** aparece en grande arriba y el resto, agrupado por tipo debajo. **Enter** abre o ejecuta, **Ctrl+Enter** muestra la carpeta contenedora en Foldy, y **Esc** o un clic fuera lo cierra. Nunca busca en internet (no se envía nada fuera).
+La **mejor coincidencia** aparece en grande arriba y el resto, agrupado por tipo debajo (apps, configuración, carpetas, funciones de Foldy, archivos), como en la búsqueda de Windows. Pulsa **Todo, App, Configuración, Carpeta, Archivos o Funciones de Foldy** bajo el cuadro de búsqueda, o la tecla **Tab**, para ver un solo grupo con más resultados. **Ver más ›** junto al nombre de un grupo hace lo mismo. También puedes abrir lo elegido con el botón grande **[Abrir]** de la derecha. **Enter** abre o ejecuta, **Ctrl+Enter** muestra la carpeta contenedora en Foldy, y **Esc** o un clic fuera lo cierra. Nunca busca en internet (no se envía nada fuera).
 
 Cuando encuentra archivos, un **sabueso de buen olfato** olfatea el suelo, corre con las orejas al viento y te los trae: "¡Snif! 1.284 encontrados en 0,03 s". Si no encuentra nada, ladea la cabeza. Desactiva "Usar animaciones" en la configuración para ver solo texto.
 
