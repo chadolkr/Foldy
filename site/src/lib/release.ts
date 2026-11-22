@@ -6,6 +6,8 @@ export const RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
 export interface LatestRelease {
   version: string | null;
   msiUrl: string;
+  /** 이 릴리스의 GitHub 페이지 (바뀐 점) */
+  pageUrl: string;
   date: string | null;
 }
 
@@ -17,7 +19,7 @@ export function getLatestRelease(): Promise<LatestRelease> {
 }
 
 async function load(): Promise<LatestRelease> {
-  const fallback: LatestRelease = { version: null, msiUrl: RELEASES_URL, date: null };
+  const fallback: LatestRelease = { version: null, msiUrl: RELEASES_URL, pageUrl: RELEASES_URL, date: null };
   try {
     const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
     if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
@@ -28,6 +30,7 @@ async function load(): Promise<LatestRelease> {
     if (!res.ok) return fallback;
     const data = (await res.json()) as {
       tag_name?: string;
+      html_url?: string;
       published_at?: string;
       assets?: { name: string; browser_download_url: string }[];
     };
@@ -35,6 +38,7 @@ async function load(): Promise<LatestRelease> {
     return {
       version: data.tag_name?.replace(/^v/, '') ?? null,
       msiUrl: msi?.browser_download_url ?? RELEASES_URL,
+      pageUrl: data.html_url ?? RELEASES_URL,
       date: data.published_at?.slice(0, 10) ?? null,
     };
   } catch {

@@ -36,6 +36,20 @@ const zhCN: Dictionary = {
     { value: '0 元', label: '无广告、免费，源代码公开', note: 'GPL-3.0' },
     { value: '离线', label: '所有功能都无需联网', note: '只在你的电脑里' },
   ],
+  // 1.0 정식 버전 안내 (맨 위 배지 + 바뀐 점)
+  news: {
+    badge: 'Foldy 1.0 正式版来了',
+    eyebrow: 'Foldy 1.0',
+    title: '1.0 有哪些变化',
+    lead: '从 0.9 开始，我们在家里和公司的电脑上天天使用、不断打磨。如果你已经在用 Foldy，它会自动更新到 1.0。',
+    items: [
+      { icon: 'globe', title: '五种语言', text: 'Foldy 跟随 Windows 语言，以 한국어、English、Español、日本語 或 简体中文 启动。说明书（F1）、简短介绍和模板创建的文件夹名称也都随之改变。' },
+      { icon: 'panes', title: '从想做的事开始', text: '最常用的四项功能就在左上角。整理时一次只问一个问题，移动前先给你看结果，随时都能撤销。' },
+      { icon: 'check', title: '13 种文件夹模板', text: '从 PARA 这样简单的方法，到项目管理（PMBOK）、IT 开发文档（ISO/IEC/IEEE 12207）和建筑信息管理（ISO 19650），每个文件夹都说明该放什么。' },
+      { icon: 'shield', title: '更安全', text: '开始前先检查可用空间；覆盖失败时，原文件仍留在原处。发布 1.0 之前，我们还从头重新检查了代码和安全。' },
+    ],
+    link: '查看全部变化',
+  },
   features: {
     eyebrow: '最常用的四件事',
     title: '想做什么，马上开始',
@@ -137,8 +151,8 @@ const zhCN: Dictionary = {
   ai: {
     eyebrow: '还有一点',
     title: '连接 AI，更加方便',
-    lead: '在 Claude 等 AI 应用上点一次［连接 AI］，问 AI 时 Foldy 就会在你的电脑里帮你找。无需了解配置文件。',
-    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code',
+    lead: '在 Claude 等 AI 应用上点一次［连接 AI］，问 AI 时 Foldy 就会在你的电脑里帮你找。无需了解配置文件。 连接后，还会告诉你在每个应用里下一步该做什么，比如重启或打开新对话。',
+    apps: 'Claude Desktop · Claude Code · Codex · Gemini CLI · Cursor · VS Code · Antigravity',
     examplesTitle: '试着这样问',
     examples: [
       '"帮我找去年的报价单"',
@@ -237,6 +251,7 @@ const zhCN: Dictionary = {
     items: [
       { q: "里面有病毒或黑客代码吗？", a: "没有。而且不只是嘴上说说：全部代码公开，安装包只在公开服务器上生成，并附有来源证明和杀毒检查结果。可以在上面的“怎么相信里面没有恶意代码？”中自己核对。但这只适用于从两个官方地址下载的文件。" },
       { q: '真的免费吗？', a: '是的。没有广告，也没有付费功能。它是 GPL-3.0 开源软件，任何人都能查看源代码。' },
+      { q: '可以用其他语言吗？', a: '可以。如果 Windows 语言是韩语、英语、西班牙语、日语或简体中文，Foldy 就用该语言启动，否则用英语。随时可以在 设置 → 语言 中更改。' },
       { q: '要用它代替资源管理器吗？', a: '可以一起用。右键菜单、拖放和快捷键都与资源管理器相同，几乎不用重新学。' },
       { q: '需要联网吗？', a: '不需要。所有功能都能离线运行。只有检查更新，以及你自己发起的 SFTP、Git 连接才会用到网络。' },
       { q: '公司电脑上也能用吗？', a: '慢速的安全磁盘和网络磁盘也不会卡住。在公司代理后面也能自动更新。' },
