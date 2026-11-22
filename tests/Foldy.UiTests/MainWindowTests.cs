@@ -199,4 +199,88 @@ public sealed class MainWindowTests
         Retry.WhileTrue(() => app.App.GetAllTopLevelWindows(app.Automation).Any(w => w.Title == "Foldy 짧은 소개"), TimeSpan.FromSeconds(5), ignoreException: true);
         app.App.GetAllTopLevelWindows(app.Automation).Any(w => w.Title == "Foldy 짧은 소개").Should().BeFalse("건너뛰기로 닫혀야 한다");
     }
+
+    // ───────────── 기능 찾기 (2026-11-22, 사용자 "좋은 기능이 있어도 처음 사용하는 사람은 기능이 어디 있는지 모른다") ─────────────
+
+    private static MenuItem? OpenGroupItem(FoldyApp app, string group, string item)
+    {
+        app.Find(group).AsButton().Invoke();
+        var found = Retry.WhileNull(
+            () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName(item).And(app.By.ByControlType(ControlType.MenuItem))),
+            TimeSpan.FromSeconds(10), ignoreException: true).Result;
+        return found?.AsMenuItem();
+    }
+
+    /// <summary>더 보기 안에만 있던 AI 연결은 연결하기 묶음에서, 오른쪽 클릭에만 있던 이전 버전은 지키기 묶음에서도 찾힌다.</summary>
+    [Fact]
+    public void Hidden_features_are_in_the_group_where_people_look()
+    {
+        using var app = FoldyApp.Start();
+        OpenGroupItem(app, "연결하기", "AI에 연결 (Claude 등)…").Should().NotBeNull("연결하기 메뉴 맨 위에 AI 연결이 있어야 한다");
+        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.ESCAPE);
+        Thread.Sleep(300);
+        OpenGroupItem(app, "지키기", "덮어쓴 파일 되살리기 (이전 버전, 고른 파일)").Should().NotBeNull("지키기 메뉴에 이전 버전이 있어야 한다");
+        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.ESCAPE);
+    }
+
+    /// <summary>빈 폴더는 할 수 있는 일을 알려 주기 좋은 순간: 끌어 놓기·F7 안내와 [템플릿으로 폴더 만들기].</summary>
+    [Fact]
+    public void Empty_folder_says_what_you_can_do_and_offers_templates()
+    {
+        var empty = Path.Combine(Path.GetTempPath(), "foldy-empty-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(empty);
+        try
+        {
+            using var app = FoldyApp.Start(openPath: empty);
+            var button = Retry.WhileNull(() => app.Main.FindFirstDescendant(app.By.ByAutomationId("EmptyTemplateButton")), TimeSpan.FromSeconds(15), ignoreException: true).Result;
+            button.Should().NotBeNull("빈 폴더에 [템플릿으로 폴더 만들기]가 보여야 한다");
+            button!.IsOffscreen.Should().BeFalse();
+            app.Main.FindFirstDescendant(app.By.ByAutomationId("EmptyTip")).Should().NotBeNull("끌어 놓기·F7 안내 한 줄");
+            button.AsButton().Invoke();
+            app.FindWindow("템플릿으로 만들기", 15).Should().NotBeNull("누르면 템플릿 고르기 창이 열린다");
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(empty, true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    /// <summary>사진이 대부분인 폴더를 열면 "이미지만 보기"를 한 줄로 알려 주고, 누르면 바로 켜진다.</summary>
+    [Fact]
+    public void Photo_folder_offers_images_only_once_in_one_line()
+    {
+        var photos = Path.Combine(Path.GetTempPath(), "foldy-photos-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(photos);
+        for (var i = 0; i < 35; i++)
+        {
+            File.WriteAllBytes(Path.Combine(photos, $"IMG_{i:000}.jpg"), [0xFF, 0xD8, 0xFF]);
+        }
+
+        try
+        {
+            using var app = FoldyApp.Start(openPath: photos);
+            var button = Retry.WhileNull(
+                () => app.Main.FindFirstDescendant(app.By.ByName("이미지만 보기").And(app.By.ByControlType(ControlType.Button))),
+                TimeSpan.FromSeconds(20), ignoreException: true).Result;
+            button.Should().NotBeNull("사진 폴더에서는 이미지만 보기 제안이 한 줄로 떠야 한다");
+            button!.AsButton().Invoke();
+            app.Find("모든 파일 보기").IsOffscreen.Should().BeFalse("누르면 이미지만 보기가 켜지고 끄는 단추가 같은 자리에 보인다");
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(photos, true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
 }

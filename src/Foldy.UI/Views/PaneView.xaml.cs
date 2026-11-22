@@ -568,6 +568,15 @@ public partial class PaneView : UserControl
             ? Foldy.Core.Localization.Loc.T("pane.blocked")
             : Foldy.Core.Localization.Loc.T("pane.empty");
         EmptyExplorerButton.Visibility = restrictedRoot ? Visibility.Visible : Visibility.Collapsed;
+        var emptyLocal = EmptyPanel.Visibility == Visibility.Visible && !restrictedRoot && _tab.Path is { Length: >= 3 } ep && ep[1] == ':';
+        EmptyTip.Visibility = emptyLocal ? Visibility.Visible : Visibility.Collapsed;
+        EmptyTemplateButton.Visibility = emptyLocal ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnEmptyTemplate(object sender, RoutedEventArgs e)
+    {
+        Activate(); // 이 창의 폴더 안에 만든다
+        _host?.RunCommand("folder.fromTemplate");
     }
 
     /// <summary>터미널 버튼을 Windows 원래 아이콘으로 (cmd·PowerShell 실행 파일 아이콘, 관리자는 UAC 방패를 겹침). 못 얻으면 글꼴 아이콘 유지.</summary>

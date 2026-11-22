@@ -865,6 +865,51 @@ public partial class ShellWindow
             await DocShotDialogAsync("about", win, 500);
             win.Close();
         });
+
+        // 기능 찾기 (2026-11-22): 한 줄 제안·빈 폴더 안내·묶음 표시(›), 그리고 기능을 옮겨 넣은 묶음 메뉴. 다른 장면의 상태를 바꾸므로 맨 끝에
+        await DocSceneAsync("discover", async () =>
+        {
+            var empty = Path.Combine(DocShotsSandbox.Documents(r), Foldy.Core.Localization.Loc.T("cmd.newFolder"));
+            Directory.CreateDirectory(empty);
+            DocWide(leftOnly: false);
+            await DocGoAsync(left, DocShotsSandbox.Trip(r));
+            await DocGoAsync(right, empty);
+            DocActivate(left);
+            _hintKey = null;
+            _cleanupFinding = new CleanupFinding(Foldy.Core.Localization.Loc.F("hint.images", 36), "cmd:view.images", "");
+            CleanupNoticeText.Text = _cleanupFinding.Text;
+            CleanupNoticeButton.Content = Foldy.Core.Localization.Loc.T("hint.images.btn");
+            CleanupNoticeClose.Content = Foldy.Core.Localization.Loc.T("common.close");
+            CleanupNoticeNever.Visibility = Visibility.Collapsed;
+            CleanupNotice.Visibility = Visibility.Visible;
+            await DocShotWindowAsync("discover", 1200);
+            CleanupNotice.Visibility = Visibility.Collapsed;
+        });
+
+        await DocSceneAsync("discover-menus", async () =>
+        {
+            foreach (var (key, shot) in new[] { ("side.group.connect", "discover-menu-connect"), ("side.group.protect", "discover-menu-protect") })
+            {
+                var name = Foldy.Core.Localization.Loc.T(key);
+                var b = DocFind<Button>(Sidebar).FirstOrDefault(x => x.ContextMenu is not null && System.Windows.Automation.AutomationProperties.GetName(x) == name)
+                        ?? throw new InvalidOperationException(name + " 묶음 단추를 찾지 못함");
+                OnSideGroup(b, new RoutedEventArgs());
+                await DocSettleAsync(700);
+                var menu = b.ContextMenu!;
+                menu.UpdateLayout();
+                if (menu.ActualWidth < 1 || menu.ActualHeight < 1)
+                {
+                    Log.Warning("Doc scene {Shot}: menu not rendered yet, skipped", shot); // 팝업은 시험 PC에서 늦게 뜰 수 있다. 장면 실패로 치지 않는다
+                }
+                else
+                {
+                    DocSave(shot, DocRender(menu, menu.Background, 2), 2);
+                }
+
+                menu.IsOpen = false;
+                await DocSettleAsync(300);
+            }
+        });
     }
 
     /// <summary>요소를 품은 단추.</summary>
