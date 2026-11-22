@@ -36,6 +36,46 @@ public sealed class MainWindowTests
         FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.ESCAPE);
     }
 
+    /// <summary>
+    /// 사용자 2026-11-22 "메모 잠금, 금고 기능이 직관적이지 않아": [지키기] 메뉴는 무엇을 하는지 쉬운 말로 보이고,
+    /// 고른 폴더가 없을 때 [폴더를 금고에 넣기]를 누르면 상태 줄에 작게 쓰는 대신 폴더 고르기 창이 바로 뜬다.
+    /// </summary>
+    [Fact]
+    public void Protect_menu_explains_each_item_and_asks_for_a_folder_when_none_is_selected()
+    {
+        using var app = FoldyApp.Start();
+        app.Find("지키기").AsButton().Invoke();
+        AutomationElement? Item(string name) => Retry.WhileNull(
+            () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName(name).And(app.By.ByControlType(ControlType.MenuItem))),
+            TimeSpan.FromSeconds(10), ignoreException: true).Result;
+        Item("🔒 잠긴 메모 쓰기 · 비밀번호 같은 글 적어 두기").Should().NotBeNull("잠긴 메모가 무엇에 쓰는 것인지 메뉴에서 보여야 한다");
+        Item("🔒 파일 잠그기 · 암호를 넣어야 열려요").Should().NotBeNull();
+        var vault = Item("🔒 폴더를 금고에 넣기 · 폴더째 잠가요");
+        vault.Should().NotBeNull();
+        vault!.AsMenuItem().Invoke();
+
+        var pick = app.FindWindow("금고에 넣을 폴더를 골라 주세요", 15);
+        pick.Should().NotBeNull("고른 폴더가 없으면 폴더 고르기 창이 떠야 한다");
+        pick.Close();
+    }
+
+    /// <summary>새 잠긴 메모: 암호를 정하는 칸에 길이 제한(8글자 이상)을 미리 보여 준다 (제한은 미리 알리기).</summary>
+    [Fact]
+    public void New_locked_note_shows_the_password_rule_before_typing()
+    {
+        using var app = FoldyApp.Start();
+        app.Find("지키기").AsButton().Invoke();
+        var item = Retry.WhileNull(
+            () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName("🔒 잠긴 메모 쓰기 · 비밀번호 같은 글 적어 두기").And(app.By.ByControlType(ControlType.MenuItem))),
+            TimeSpan.FromSeconds(10), ignoreException: true).Result;
+        item!.AsMenuItem().Invoke();
+
+        var guide = app.FindWindow("새 잠긴 메모", 15);
+        app.Find("암호 (8글자 이상)", guide).Should().NotBeNull();
+        app.Find("같은 암호를 한 번 더", guide).Should().NotBeNull();
+        app.Find("그만두기", guide).AsButton().Invoke();
+    }
+
     [Fact]
     public void Small_laptop_screen_keeps_every_sidebar_tool_visible()
     {

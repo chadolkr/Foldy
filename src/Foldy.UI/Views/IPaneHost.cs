@@ -35,7 +35,7 @@ public interface IPaneHost
     /// <summary>폴더 탭이 Git 저장소 안으로 들어왔다 (설정의 "Git 화면 자동 열기"가 켜져 있으면 호스트가 탭을 연다).</summary>
     void GitDetected(PaneViewModel pane, string repoRoot);
 
-    /// <summary>파일에 암호 걸기 (대화 창).</summary>
+    /// <summary>파일 잠그기 (암호, 대화 창).</summary>
     void LockFile(string file);
 
     /// <summary>이전 버전 보기 (덮어쓰기 복구).</summary>
