@@ -62,7 +62,7 @@ public static class TemplateValidator
         var issues = new List<TemplateIssue>();
         if (template.SchemaVersion is < 1 or > FolderTemplate.CurrentSchemaVersion)
         {
-            issues.Add(new(TemplateIssueKind.SchemaVersion, "", $"지원하지 않는 schemaVersion: {template.SchemaVersion}"));
+            issues.Add(new(TemplateIssueKind.SchemaVersion, "", Foldy.Core.Localization.Loc.F("tv.schema", template.SchemaVersion)));
         }
 
         var count = 0;
@@ -78,7 +78,7 @@ public static class TemplateValidator
             count++;
             if (count == MaxNodes + 1)
             {
-                issues.Add(new(TemplateIssueKind.TooManyNodes, parent, $"항목이 {MaxNodes}개를 넘습니다."));
+                issues.Add(new(TemplateIssueKind.TooManyNodes, parent, Foldy.Core.Localization.Loc.F("tv.tooMany", MaxNodes)));
             }
 
             var path = parent.Length == 0 ? n.Name : parent + "/" + n.Name;
@@ -86,13 +86,13 @@ public static class TemplateValidator
             // 조건(when)이 다른 같은 이름은 함께 만들어지지 않으므로 허용 (언어별 .gitignore 등)
             if (!seen.Add(n.Name + "\0" + n.When))
             {
-                issues.Add(new(TemplateIssueKind.DuplicateName, path, $"같은 이름이 두 번 있습니다: {n.Name}"));
+                issues.Add(new(TemplateIssueKind.DuplicateName, path, Foldy.Core.Localization.Loc.F("tv.duplicate", n.Name)));
             }
 
             var d = depth + Math.Max(segments, 1);
             if (d > MaxDepth)
             {
-                issues.Add(new(TemplateIssueKind.TooDeep, path, $"폴더가 {MaxDepth}단계보다 깊습니다."));
+                issues.Add(new(TemplateIssueKind.TooDeep, path, Foldy.Core.Localization.Loc.F("tv.tooDeep", MaxDepth)));
                 continue;
             }
 
@@ -101,7 +101,7 @@ public static class TemplateValidator
                 ValidateFile(n, path, issues);
                 if (n.Children.Count > 0)
                 {
-                    issues.Add(new(TemplateIssueKind.InvalidChar, path, "파일 항목에는 하위 항목을 둘 수 없습니다."));
+                    issues.Add(new(TemplateIssueKind.InvalidChar, path, Foldy.Core.Localization.Loc.T("tv.fileChildren")));
                 }
             }
             else
@@ -117,17 +117,17 @@ public static class TemplateValidator
         var ext = Path.GetExtension(StripPlaceholders(name));
         if (ext.Length > 0 && ForbiddenExtensions.Contains(ext))
         {
-            issues.Add(new(TemplateIssueKind.ForbiddenFileType, path, $"실행 파일·바로가기는 만들 수 없습니다: {ext}"));
+            issues.Add(new(TemplateIssueKind.ForbiddenFileType, path, Foldy.Core.Localization.Loc.F("tv.executable", ext)));
         }
 
         if (Encoding.UTF8.GetByteCount(n.File!) > MaxFileBytes)
         {
-            issues.Add(new(TemplateIssueKind.FileTooLarge, path, "파일 내용은 64KB 이하만 넣을 수 있습니다."));
+            issues.Add(new(TemplateIssueKind.FileTooLarge, path, Foldy.Core.Localization.Loc.T("tv.fileTooBig")));
         }
 
         if (!IsText(n.File!))
         {
-            issues.Add(new(TemplateIssueKind.BinaryContent, path, "파일 내용은 텍스트만 넣을 수 있습니다."));
+            issues.Add(new(TemplateIssueKind.BinaryContent, path, Foldy.Core.Localization.Loc.T("tv.textOnly")));
         }
     }
 
@@ -160,20 +160,20 @@ public static class TemplateValidator
         ArgumentNullException.ThrowIfNull(issues);
         if (string.IsNullOrWhiteSpace(name))
         {
-            issues.Add(new(TemplateIssueKind.EmptyName, reportPath, "이름이 비어 있습니다."));
+            issues.Add(new(TemplateIssueKind.EmptyName, reportPath, Foldy.Core.Localization.Loc.T("tv.emptyName")));
             return 0;
         }
 
         var text = raw ? StripPlaceholders(name, "x") : name; // 변수 자리는 평범한 글자로 보고 시작 부분 검사
         if (text.StartsWith('/') || text.StartsWith('\\') || name.StartsWith("//", StringComparison.Ordinal))
         {
-            issues.Add(new(TemplateIssueKind.AbsolutePath, reportPath, "절대 경로는 쓸 수 없습니다."));
+            issues.Add(new(TemplateIssueKind.AbsolutePath, reportPath, Foldy.Core.Localization.Loc.T("tv.absolute")));
             return 0;
         }
 
         if (text.Length >= 2 && char.IsAsciiLetter(text[0]) && text[1] == ':')
         {
-            issues.Add(new(TemplateIssueKind.DriveLetter, reportPath, "드라이브 문자는 쓸 수 없습니다."));
+            issues.Add(new(TemplateIssueKind.DriveLetter, reportPath, Foldy.Core.Localization.Loc.T("tv.driveLetter")));
             return 0;
         }
 
@@ -186,7 +186,7 @@ public static class TemplateValidator
             {
                 if (!hadPlaceholder)
                 {
-                    issues.Add(new(TemplateIssueKind.EmptyName, reportPath, "빈 단계가 있습니다 (// 또는 끝의 /)."));
+                    issues.Add(new(TemplateIssueKind.EmptyName, reportPath, Foldy.Core.Localization.Loc.T("tv.emptySegment")));
                 }
 
                 continue;
@@ -205,13 +205,13 @@ public static class TemplateValidator
         ArgumentNullException.ThrowIfNull(issues);
         if (!partial && seg is "." or "..")
         {
-            issues.Add(new(TemplateIssueKind.ParentSegment, reportPath, "'.'이나 '..'은 쓸 수 없습니다."));
+            issues.Add(new(TemplateIssueKind.ParentSegment, reportPath, Foldy.Core.Localization.Loc.T("tv.dots")));
             return;
         }
 
         if (seg.Contains("..", StringComparison.Ordinal) && seg.Trim('.').Length == 0)
         {
-            issues.Add(new(TemplateIssueKind.ParentSegment, reportPath, "'..'은 쓸 수 없습니다."));
+            issues.Add(new(TemplateIssueKind.ParentSegment, reportPath, Foldy.Core.Localization.Loc.T("tv.dotdot")));
             return;
         }
 
@@ -219,7 +219,7 @@ public static class TemplateValidator
         {
             if (IsInvalidNameChar(c))
             {
-                issues.Add(new(c == ':' ? TemplateIssueKind.DriveLetter : TemplateIssueKind.InvalidChar, reportPath, $"쓸 수 없는 문자: '{(c < 32 ? "\\x" + ((int)c).ToString("X2", System.Globalization.CultureInfo.InvariantCulture) : c.ToString())}'"));
+                issues.Add(new(c == ':' ? TemplateIssueKind.DriveLetter : TemplateIssueKind.InvalidChar, reportPath, Foldy.Core.Localization.Loc.F("tv.badChar", (c < 32 ? "\\x" + ((int)c).ToString("X2", System.Globalization.CultureInfo.InvariantCulture) : c.ToString()))));
                 return;
             }
         }
@@ -228,12 +228,12 @@ public static class TemplateValidator
         {
             if (seg.EndsWith('.') || seg.EndsWith(' ') || seg.StartsWith(' '))
             {
-                issues.Add(new(TemplateIssueKind.TrailingDotOrSpace, reportPath, "이름 앞뒤에 공백이나 끝에 점을 둘 수 없습니다."));
+                issues.Add(new(TemplateIssueKind.TrailingDotOrSpace, reportPath, Foldy.Core.Localization.Loc.T("tv.spaces")));
             }
 
             if (IsReservedName(seg))
             {
-                issues.Add(new(TemplateIssueKind.ReservedName, reportPath, $"Windows 예약 이름입니다: {seg}"));
+                issues.Add(new(TemplateIssueKind.ReservedName, reportPath, Foldy.Core.Localization.Loc.F("tv.reserved", seg)));
             }
         }
     }
@@ -254,7 +254,7 @@ public static class TemplateValidator
         var list = new List<TemplateIssue>();
         if (string.IsNullOrWhiteSpace(segment))
         {
-            list.Add(new(TemplateIssueKind.EmptyName, reportPath, "이름이 비어 있습니다."));
+            list.Add(new(TemplateIssueKind.EmptyName, reportPath, Foldy.Core.Localization.Loc.T("tv.emptyName")));
         }
         else
         {

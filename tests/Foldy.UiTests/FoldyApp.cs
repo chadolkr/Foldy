@@ -32,7 +32,7 @@ public sealed class FoldyApp : IDisposable
         psi.ArgumentList.Add(openPath ?? Sample);
         App = Application.Launch(psi);
         Automation = new UIA3Automation();
-        Main = Retry.WhileNull(() => App.GetMainWindow(Automation, TimeSpan.FromSeconds(2)), TimeSpan.FromSeconds(30)).Result
+        Main = Retry.WhileNull(() => App.GetMainWindow(Automation, TimeSpan.FromSeconds(2)), TimeSpan.FromSeconds(30), ignoreException: true).Result
                ?? throw new InvalidOperationException("Foldy 창이 뜨지 않음");
     }
 
@@ -57,7 +57,7 @@ public sealed class FoldyApp : IDisposable
 
     /// <summary>이름(화면 낭독기 이름)으로 요소를 찾는다. 창 전체에서, 기다리며.</summary>
     public AutomationElement Find(string name, AutomationElement? root = null, double seconds = 10) =>
-        Retry.WhileNull(() => (root ?? Main).FindFirstDescendant(By.ByName(name)), TimeSpan.FromSeconds(seconds)).Result
+        Retry.WhileNull(() => (root ?? Main).FindFirstDescendant(By.ByName(name)), TimeSpan.FromSeconds(seconds), ignoreException: true).Result
         ?? throw new InvalidOperationException($"'{name}'을(를) 찾지 못함");
 
     /// <summary>제목으로 Foldy가 띄운 다른 창(대화 창 등)을 찾는다.</summary>
@@ -65,7 +65,7 @@ public sealed class FoldyApp : IDisposable
         Retry.WhileNull(
             () => App.GetAllTopLevelWindows(Automation).FirstOrDefault(w => w.Title == title)
                   ?? Main.FindFirstDescendant(By.ByName(title).And(By.ByControlType(FlaUI.Core.Definitions.ControlType.Window)))?.AsWindow(), // 주 창이 주인인 창은 그 아래에 보인다
-            TimeSpan.FromSeconds(seconds)).Result
+            TimeSpan.FromSeconds(seconds), ignoreException: true).Result
         ?? throw new InvalidOperationException($"'{title}' 창이 뜨지 않음");
 
     public void Dispose()

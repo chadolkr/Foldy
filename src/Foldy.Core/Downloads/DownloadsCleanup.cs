@@ -50,7 +50,7 @@ public static class DownloadsPlanner
             ct.ThrowIfCancellationRequested();
             if (ProductName(f.FullName) is { } product && installedName(product) is { } app)
             {
-                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Installer, $"이미 설치된 프로그램 ({app})의 설치 파일");
+                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Installer, Foldy.Core.Localization.Loc.F("dlc.installer", app));
             }
         }
 
@@ -64,7 +64,7 @@ public static class DownloadsPlanner
                     var keep = byHash.OrderBy(f => f.Name.Length).ThenBy(f => f.CreationTimeUtc).First();
                     foreach (var f in byHash.Where(f => f != keep && !items.ContainsKey(f.FullName)))
                     {
-                        items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Duplicate, $"\"{keep.Name}\"와 내용이 같음");
+                        items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Duplicate, Foldy.Core.Localization.Loc.F("dlc.duplicate", keep.Name));
                     }
                 }
             }
@@ -75,7 +75,7 @@ public static class DownloadsPlanner
             var stem = System.IO.Path.GetFileNameWithoutExtension(f.Name);
             if (dirs.Contains(stem))
             {
-                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Unpacked, $"이미 푼 압축 파일 (옆에 \"{stem}\" 폴더가 있음)");
+                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Unpacked, Foldy.Core.Localization.Loc.F("dlc.unpacked", stem));
             }
         }
 
@@ -85,7 +85,7 @@ public static class DownloadsPlanner
             var days = (int)(nowUtc - last).TotalDays;
             if (days >= OldDays)
             {
-                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Old, $"{days:N0}일 동안 열지 않음");
+                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Old, Foldy.Core.Localization.Loc.F("dlc.old", days));
             }
         }
 

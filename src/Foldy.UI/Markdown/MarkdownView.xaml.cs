@@ -205,7 +205,7 @@ public partial class MarkdownView : UserControl
             StartWatching(path);
         }
 
-        StatusText.Text = "불러오는 중…";
+        StatusText.Text = Foldy.Core.Localization.Loc.T("md.loading");
         string text;
         Markdig.Syntax.MarkdownDocument ast;
         IReadOnlyList<MarkdownHeading> headings;
@@ -274,7 +274,7 @@ public partial class MarkdownView : UserControl
                     shown = true;
                     if (!keepScroll && fragment is null)
                     {
-                        StatusText.Text = "나머지 불러오는 중…";
+                        StatusText.Text = Foldy.Core.Localization.Loc.T("md.loadingRest");
                     }
                 }
 
@@ -323,12 +323,12 @@ public partial class MarkdownView : UserControl
         Headings = [];
         OutlineList.ItemsSource = null;
         var doc = MarkdownFlowRenderer.CreateDocument(ThemeManager.IsDark);
-        var p = new Paragraph(new Run($"파일을 열 수 없습니다: {path}\n{message}"));
+        var p = new Paragraph(new Run(Foldy.Core.Localization.Loc.F("md.cantOpenFile", path, message)));
         p.SetResourceReference(TextElement.ForegroundProperty, "Brush.Error");
         doc.Blocks.Add(p);
         Viewer.Document = doc;
         ImageBanner.Visibility = Visibility.Collapsed;
-        StatusText.Text = "열기 실패";
+        StatusText.Text = Foldy.Core.Localization.Loc.T("md.openFailed");
     }
 
     private void ApplyShowSource()
@@ -453,7 +453,7 @@ public partial class MarkdownView : UserControl
             }
             catch (Win32Exception ex)
             {
-                StatusText.Text = "편집기를 열지 못했습니다: " + ex.Message;
+                StatusText.Text = Foldy.Core.Localization.Loc.T("md.editorFailed") + ex.Message;
             }
         }
     }
@@ -549,7 +549,7 @@ public partial class MarkdownView : UserControl
                 }
                 else
                 {
-                    StatusText.Text = "파일이 없습니다: " + target.Path;
+                    StatusText.Text = Foldy.Core.Localization.Loc.T("md.noFile") + target.Path;
                 }
 
                 break;
@@ -559,7 +559,7 @@ public partial class MarkdownView : UserControl
             case MarkdownLinkKind.File:
                 if (!File.Exists(target.Path))
                 {
-                    StatusText.Text = "파일이 없습니다: " + target.Path;
+                    StatusText.Text = Foldy.Core.Localization.Loc.T("md.noFile") + target.Path;
                 }
                 else if (!MarkdownLinks.NeedsConfirmation(target.Path) || ConfirmExecutable(target.Path))
                 {
@@ -571,7 +571,7 @@ public partial class MarkdownView : UserControl
                 ShellOpen(target.Path);
                 break;
             default:
-                StatusText.Text = "열 수 없는 링크: " + url;
+                StatusText.Text = Foldy.Core.Localization.Loc.T("md.badLink") + url;
                 break;
         }
     }
@@ -588,16 +588,16 @@ public partial class MarkdownView : UserControl
 
     private bool ConfirmExecutable(string path) =>
         Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this),
-            "링크 열기",
+            Foldy.Core.Localization.Loc.T("md.openLink"),
             MarkdownLinks.IsExecutable(path)
-                ? $"문서의 링크가 실행 파일을 가리켜요.\n\n{path}\n\n믿을 수 있는 문서일 때만 실행해 주세요. 실행할까요?"
-                : $"문서의 링크가 이 파일을 열어요.\n\n{path}\n\n믿을 수 있는 문서일 때만 열어 주세요. 열까요?",
-            MarkdownLinks.IsExecutable(path) ? "실행" : "열기", danger: true);
+                ? Foldy.Core.Localization.Loc.F("md.linkExe", path)
+                : Foldy.Core.Localization.Loc.F("md.linkFile", path),
+            MarkdownLinks.IsExecutable(path) ? Foldy.Core.Localization.Loc.T("md.run") : Foldy.Core.Localization.Loc.T("sec.open"), danger: true);
 
     private bool ConfirmNetwork(string path) =>
-        Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), "링크 열기",
-            $"문서의 링크가 다른 컴퓨터(네트워크 위치)를 가리켜요.\n\n{path}\n\n열면 Windows가 그 컴퓨터에 내 로그인 정보를 보내요. 믿을 수 있는 곳일 때만 열어 주세요. 열까요?",
-            "열기", danger: true);
+        Foldy.UI.Dialogs.FoldyDialog.Confirm(Window.GetWindow(this), Foldy.Core.Localization.Loc.T("md.openLink"),
+            Foldy.Core.Localization.Loc.F("md.linkNetwork", path),
+            Foldy.Core.Localization.Loc.T("sec.open"), danger: true);
 
     private void ShellOpen(string target)
     {
@@ -607,7 +607,7 @@ public partial class MarkdownView : UserControl
         }
         catch (Win32Exception e)
         {
-            StatusText.Text = "열지 못했습니다: " + e.Message;
+            StatusText.Text = Foldy.Core.Localization.Loc.T("md.couldNotOpen") + e.Message;
         }
     }
 
@@ -792,7 +792,7 @@ public partial class MarkdownView : UserControl
             _matches.Add(i);
         }
 
-        FindCount.Text = _matches.Count == 0 ? "결과 없음" : $"0/{_matches.Count}";
+        FindCount.Text = _matches.Count == 0 ? Foldy.Core.Localization.Loc.T("md.noResults") : $"0/{_matches.Count}";
     }
 
     private void FindStep(int direction, bool fromStart = false)

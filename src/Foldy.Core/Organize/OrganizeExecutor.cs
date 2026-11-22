@@ -134,12 +134,12 @@ public static class OrganizeExecutor
             {
                 if (m.IsFolder ? !ops.DirectoryExists(m.Source) : !ops.FileExists(m.Source))
                 {
-                    throw new FileNotFoundException("원본이 없습니다.", m.Source);
+                    throw new FileNotFoundException(Foldy.Core.Localization.Loc.T("oe.noSource"), m.Source);
                 }
 
                 if (m.IsFolder && !ops.IsSameVolume(m.Source, m.Destination))
                 {
-                    throw new IOException("다른 드라이브로는 폴더를 옮기지 않습니다 (복사 엔진 사용).");
+                    throw new IOException(Foldy.Core.Localization.Loc.T("oe.crossDrive"));
                 }
 
                 EnsureDirectory(Path.GetDirectoryName(m.Destination)!, plan.Root, ops, journal);

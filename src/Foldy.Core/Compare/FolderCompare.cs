@@ -135,11 +135,11 @@ public static class FolderCompare
             }
             catch (IOException)
             {
-                skipped.Add((s.RelPath, "열려 있어서 건너뛰었어요"));
+                skipped.Add((s.RelPath, Foldy.Core.Localization.Loc.T("mf.skipOpen")));
             }
             catch (UnauthorizedAccessException)
             {
-                skipped.Add((s.RelPath, "권한이 없어서 건너뛰었어요"));
+                skipped.Add((s.RelPath, Foldy.Core.Localization.Loc.T("mf.skipPermission")));
             }
         }
 

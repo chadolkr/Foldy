@@ -304,8 +304,8 @@ public sealed partial class AnalysisTabViewModel : TabBase
                 LoadTopFolders(db),
                 [.. db.TopFiles(TopN).Select(f => new FileListItem(f))],
                 [.. db.MostFilesFolders(TopN).Select(f => new FolderListItem(f, f.TotalFiles))],
-                ToExtItems(db.ExtensionStats().Take(TopN).Select(e => (e.Ext.Length == 0 ? Foldy.Core.Localization.Loc.T("an.noExt") : "." + e.Ext, e.Files, e.Alloc, ExtensionGroups.GroupOf(e.Ext))), scan.TotalAlloc),
-                ToExtItems(db.GroupStats().Select(g => (g.Group, g.Files, g.Alloc, string.Join(", ", g.Extensions.Select(x => x.Length == 0 ? "-" : "." + x)))), scan.TotalAlloc),
+                ToExtItems(db.ExtensionStats().Take(TopN).Select(e => (e.Ext.Length == 0 ? Foldy.Core.Localization.Loc.T("an.noExt") : "." + e.Ext, e.Files, e.Alloc, GroupName(ExtensionGroups.GroupOf(e.Ext)))), scan.TotalAlloc),
+                ToExtItems(db.GroupStats().Select(g => (GroupName(g.Group), g.Files, g.Alloc, string.Join(", ", g.Extensions.Select(x => x.Length == 0 ? "-" : "." + x)))), scan.TotalAlloc),
                 LoadOldFiles(db),
                 db.Candidates());
             return r;
@@ -564,4 +564,22 @@ public sealed partial class AnalysisTabViewModel : TabBase
             OpenRequested?.Invoke(this, new OpenPathEventArgs(path, folder));
         }
     }
+
+    /// <summary>분석 엔진(Foldy.Analysis)이 주는 종류 이름(한국어)을 앱 언어로.</summary>
+    private static string GroupName(string group) => group switch
+    {
+        "확장자 없음" => Foldy.Core.Localization.Loc.T("at.noExt"), // i18n:skip
+        "기타" => Foldy.Core.Localization.Loc.T("at.other"), // i18n:skip
+        "동영상" => Foldy.Core.Localization.Loc.T("at.video"), // i18n:skip
+        "이미지" => Foldy.Core.Localization.Loc.T("at.image"), // i18n:skip
+        "음악" => Foldy.Core.Localization.Loc.T("at.music"), // i18n:skip
+        "압축" => Foldy.Core.Localization.Loc.T("at.archive"), // i18n:skip
+        "설치 파일" => Foldy.Core.Localization.Loc.T("at.installer"), // i18n:skip
+        "문서" => Foldy.Core.Localization.Loc.T("at.document"), // i18n:skip
+        "코드" => Foldy.Core.Localization.Loc.T("at.code"), // i18n:skip
+        "프로그램 파일" => Foldy.Core.Localization.Loc.T("at.program"), // i18n:skip
+        "디스크 이미지" => Foldy.Core.Localization.Loc.T("at.diskImage"), // i18n:skip
+        "로그·덤프" => Foldy.Core.Localization.Loc.T("at.logs"), // i18n:skip
+        _ => group,
+    };
 }

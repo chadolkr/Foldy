@@ -207,10 +207,10 @@ public static class VersionHistory
 
             var dir = Path.GetDirectoryName(v.Original)!;
             var when = v.SavedUtc.ToLocalTime().ToString("yyyy-MM-dd HHmm", System.Globalization.CultureInfo.InvariantCulture);
-            var dst = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(v.Original)} (이전 버전 {when}){Path.GetExtension(v.Original)}");
+            var dst = Path.Combine(dir, Foldy.Core.Localization.Loc.F("vh.name", Path.GetFileNameWithoutExtension(v.Original), when, Path.GetExtension(v.Original)));
             for (var i = 2; File.Exists(dst); i++)
             {
-                dst = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(v.Original)} (이전 버전 {when} {i}){Path.GetExtension(v.Original)}");
+                dst = Path.Combine(dir, Foldy.Core.Localization.Loc.F("vh.nameN", Path.GetFileNameWithoutExtension(v.Original), when, i, Path.GetExtension(v.Original)));
             }
 
             File.Copy(v.Saved, dst);

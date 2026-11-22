@@ -71,9 +71,9 @@ public partial class SftpConnectWindow : Window
     {
         var dlg = new OpenFileDialog
         {
-            Title = "SSH 개인 키 파일",
+            Title = Foldy.Core.Localization.Loc.T("sftp.keyFile"),
             InitialDirectory = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ssh"),
-            Filter = "모든 파일|*.*",
+            Filter = Foldy.Core.Localization.Loc.T("sftp.allFiles"),
         };
         if (dlg.ShowDialog(this) == true)
         {
@@ -87,7 +87,7 @@ public partial class SftpConnectWindow : Window
         if (!int.TryParse(PortBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port) || port is < 1 or > 65535 ||
             string.IsNullOrWhiteSpace(HostBox.Text) || string.IsNullOrWhiteSpace(UserBox.Text))
         {
-            ShowError("서버 주소, 포트, 사용자 이름을 확인하세요.");
+            ShowError(Foldy.Core.Localization.Loc.T("sftp.checkFields"));
             return;
         }
 
@@ -106,13 +106,13 @@ public partial class SftpConnectWindow : Window
             }
             catch (System.Security.Cryptography.CryptographicException)
             {
-                ShowError("저장된 비밀번호를 읽을 수 없습니다. 다시 입력하세요.");
+                ShowError(Foldy.Core.Localization.Loc.T("sftp.savedPwUnreadable"));
                 return;
             }
         }
 
         ConnectButton.IsEnabled = false;
-        ConnectButton.Content = "서버에 연결하는 중…";
+        ConnectButton.Content = Foldy.Core.Localization.Loc.T("sftp.connecting");
         try
         {
             _sessions.Remember(loc, auth);
@@ -138,12 +138,12 @@ public partial class SftpConnectWindow : Window
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            ShowError("연결하지 못했습니다: " + ex.Message);
+            ShowError(Foldy.Core.Localization.Loc.T("sftp.connectFailed") + ex.Message);
         }
         finally
         {
             ConnectButton.IsEnabled = true;
-            ConnectButton.Content = "연결";
+            ConnectButton.Content = Foldy.Core.Localization.Loc.T("sftp.connect");
         }
     }
 

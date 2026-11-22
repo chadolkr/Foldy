@@ -93,7 +93,7 @@ public partial class GuideWindow : Window
         var rows = items.Select(i => (i.Item, Box: new CheckBox { Content = Content(i.Item, i.Label), IsChecked = i.Selected, Margin = new Thickness(0, 2, 0, 2) })).ToList();
         var panel = new StackPanel();
         var toggle = new TextBlock { Margin = new Thickness(0, 0, 0, 4) };
-        var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("모두 고르기 / 모두 풀기"));
+        var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(Foldy.Core.Localization.Loc.T("guide.toggleAll")));
         link.Click += (_, _) =>
         {
             var all = rows.All(r => r.Box.IsChecked == true);
@@ -128,18 +128,19 @@ public partial class GuideWindow : Window
     /// <summary>새로 정하는 암호의 최소 길이. 금고 키는 PBKDF2 60만 회라도 짧은 암호는 결국 맞혀진다.</summary>
     public const int MinNewPasswordLength = 8;
 
-    public async Task<string?> AskPasswordAsync(string text, bool confirm, string okLabel = "확인")
+    public async Task<string?> AskPasswordAsync(string text, bool confirm, string? okLabel = null)
     {
+        okLabel ??= Foldy.Core.Localization.Loc.T("dlg.ok");
         Say(text);
         var p1 = new PasswordBox { MinWidth = 260, Margin = new Thickness(0, 2, 0, 2) };
         var p2 = new PasswordBox { MinWidth = 260, Margin = new Thickness(0, 2, 0, 2) };
         var err = new TextBlock { Foreground = (Brush)FindResource("Brush.Error"), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
         var panel = new StackPanel();
-        panel.Children.Add(new TextBlock { Text = "암호" });
+        panel.Children.Add(new TextBlock { Text = Foldy.Core.Localization.Loc.T("guide.password") });
         panel.Children.Add(p1);
         if (confirm)
         {
-            panel.Children.Add(new TextBlock { Text = "한 번 더", Margin = new Thickness(0, 4, 0, 0) });
+            panel.Children.Add(new TextBlock { Text = Foldy.Core.Localization.Loc.T("guide.again"), Margin = new Thickness(0, 4, 0, 0) });
             panel.Children.Add(p2);
         }
 
@@ -148,7 +149,7 @@ public partial class GuideWindow : Window
         p1.Focus();
         while (true)
         {
-            var c = await ChooseAsync([("ok", okLabel), ("cancel", "그만두기")]);
+            var c = await ChooseAsync([("ok", okLabel), ("cancel", Foldy.Core.Localization.Loc.T("dlg.cancel"))]);
             if (c != "ok")
             {
                 p1.Clear();
@@ -161,11 +162,11 @@ public partial class GuideWindow : Window
             if (a.Length == 0 || (confirm && a.Length < MinNewPasswordLength))
             {
                 // 새 암호만 길이를 본다 (예전에 짧게 만든 금고도 열 수 있어야 한다)
-                err.Text = a.Length == 0 ? "암호를 입력해 주세요." : $"암호는 {MinNewPasswordLength}글자 이상으로 정해 주세요. 단어 몇 개를 띄어 쓴 문장이 기억하기 쉽고 안전해요.";
+                err.Text = a.Length == 0 ? Foldy.Core.Localization.Loc.T("guide.enterPw") : Foldy.Core.Localization.Loc.F("guide.pwMin", MinNewPasswordLength);
             }
             else if (confirm && a != p2.Password)
             {
-                err.Text = "두 암호가 달라요. 다시 입력해 주세요.";
+                err.Text = Foldy.Core.Localization.Loc.T("guide.mismatch");
                 p2.Clear();
             }
             else
@@ -189,7 +190,7 @@ public partial class GuideWindow : Window
     {
         var all = lines.ToList();
         var tb = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("Brush.TextSecondary") };
-        tb.Text = string.Join("\n", all.Take(max)) + (all.Count > max ? $"\n… 외 {all.Count - max:N0}개" : "");
+        tb.Text = string.Join("\n", all.Take(max)) + (all.Count > max ? Foldy.Core.Localization.Loc.F("guide.andMore", all.Count - max) : "");
         Add(new ScrollViewer { Content = tb, MaxHeight = 260, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, mine: false);
     }
 

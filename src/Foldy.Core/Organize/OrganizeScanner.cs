@@ -63,12 +63,12 @@ public static class OrganizeScanner
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         if (!Directory.Exists(full))
         {
-            return "폴더가 없습니다.";
+            return Foldy.Core.Localization.Loc.T("os.noFolder");
         }
 
         if (FolderDescriptionService.IsSystemFolder(full))
         {
-            return "Windows·프로그램 설치 폴더는 정리하지 않습니다.";
+            return Foldy.Core.Localization.Loc.T("os.system");
         }
 
         if (!allowProject && IsProjectFolder(full))
@@ -79,7 +79,7 @@ public static class OrganizeScanner
         var attrs = File.GetAttributes(full);
         if ((attrs & FileAttributes.ReparsePoint) != 0)
         {
-            return "링크·정션 폴더는 따라가지 않습니다.";
+            return Foldy.Core.Localization.Loc.T("os.link");
         }
 
         return null;
@@ -102,7 +102,7 @@ public static class OrganizeScanner
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            scan.Skipped.Add(new(dir.FullName, "열 수 없음: " + ex.Message));
+            scan.Skipped.Add(new(dir.FullName, Foldy.Core.Localization.Loc.T("os.cantOpen") + ex.Message));
             return;
         }
 
@@ -112,19 +112,19 @@ public static class OrganizeScanner
             var a = info.Attributes;
             if ((a & FileAttributes.ReparsePoint) != 0)
             {
-                scan.Skipped.Add(new(info.FullName, "심볼릭 링크·정션은 따라가지 않음"));
+                scan.Skipped.Add(new(info.FullName, Foldy.Core.Localization.Loc.T("os.linkSkip")));
                 continue;
             }
 
             if ((a & FileAttributes.System) != 0)
             {
-                scan.Skipped.Add(new(info.FullName, "시스템 파일"));
+                scan.Skipped.Add(new(info.FullName, Foldy.Core.Localization.Loc.T("os.systemFile")));
                 continue;
             }
 
             if ((a & FileAttributes.Hidden) != 0 || NeverMove.Contains(info.Name))
             {
-                scan.Skipped.Add(new(info.FullName, "숨김 파일"));
+                scan.Skipped.Add(new(info.FullName, Foldy.Core.Localization.Loc.T("os.hiddenFile")));
                 continue;
             }
 

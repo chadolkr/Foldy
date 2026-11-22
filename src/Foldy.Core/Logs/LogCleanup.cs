@@ -117,12 +117,12 @@ public static class LogArchiver
                     }
                     catch (IOException)
                     {
-                        skipped.Add((f.Path, "다른 프로그램이 쓰는 중"));
+                        skipped.Add((f.Path, Foldy.Core.Localization.Loc.T("lc.inUse")));
                         continue;
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        skipped.Add((f.Path, "권한 없음"));
+                        skipped.Add((f.Path, Foldy.Core.Localization.Loc.T("lc.noPermission")));
                         continue;
                     }
 
@@ -156,7 +156,7 @@ public static class LogArchiver
             {
                 if (zip.Entries.Count != oldCount + added.Count)
                 {
-                    throw new InvalidDataException("새 zip의 항목 수가 맞지 않음");
+                    throw new InvalidDataException(Foldy.Core.Localization.Loc.T("lc.countMismatch"));
                 }
 
                 foreach (var (path, entryName, hash) in added)
@@ -169,7 +169,7 @@ public static class LogArchiver
                     }
                     else
                     {
-                        verifySkipped.Add((path, "압축 확인 실패 (원본은 그대로 둠)"));
+                        verifySkipped.Add((path, Foldy.Core.Localization.Loc.T("lc.verifyFailed")));
                     }
                 }
             }

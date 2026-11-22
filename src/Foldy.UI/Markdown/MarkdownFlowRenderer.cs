@@ -289,8 +289,8 @@ public sealed class MarkdownFlowRenderer
         var header = new DockPanel { LastChildFill = true, Margin = new Thickness(8, 4, 4, 0) };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
         DockPanel.SetDock(buttons, Dock.Right);
-        var copy = SmallButton("복사");
-        copy.ToolTip = "코드를 클립보드로 복사";
+        var copy = SmallButton(Foldy.Core.Localization.Loc.T("ops.copy"));
+        copy.ToolTip = Foldy.Core.Localization.Loc.T("md.copyCode");
         copy.Click += (_, _) => CopyToClipboard(copy, code);
         buttons.Children.Add(copy);
         header.Children.Add(buttons);
@@ -317,7 +317,7 @@ public sealed class MarkdownFlowRenderer
 
         if (isMermaid && _options.Mermaid is { } mermaid)
         {
-            var toggle = SmallButton("다이어그램 보기");
+            var toggle = SmallButton(Foldy.Core.Localization.Loc.T("md.viewDiagram"));
             buttons.Children.Insert(0, toggle);
             var mb = new MermaidBlock(code, section, p, toggle);
             toggle.Click += async (_, _) => await mb.ToggleAsync(mermaid, _options.Dark);
@@ -614,7 +614,7 @@ public sealed class MarkdownFlowRenderer
             if (!_options.AllowRemoteImages)
             {
                 HasBlockedImages = true;
-                return Placeholder("🖼 " + (alt.Length > 0 ? alt : "원격 이미지") + " (차단됨)", url);
+                return Placeholder("🖼 " + (alt.Length > 0 ? alt : Foldy.Core.Localization.Loc.T("md.remoteImage")) + Foldy.Core.Localization.Loc.T("md.blocked"), url);
             }
 
             return ImageHost(url, alt, ct => DownloadAsync(url, ct));
@@ -629,7 +629,7 @@ public sealed class MarkdownFlowRenderer
                 return ImageHost(url, alt, _ => Task.FromResult(Convert.FromBase64String(data)));
             }
 
-            return Placeholder("🖼 " + alt, "지원하지 않는 이미지 형식");
+            return Placeholder("🖼 " + alt, Foldy.Core.Localization.Loc.T("md.unsupportedImage"));
         }
 
         if (_options.InMemoryImage?.Invoke(url) is { } mem)
@@ -647,7 +647,7 @@ public sealed class MarkdownFlowRenderer
         if (MarkdownLinks.IsNetworkPath(path))
         {
             // 문서를 열기만 해도 그림을 받으러 다른 컴퓨터에 접속하면 로그인 정보(NTLM)가 그쪽으로 간다
-            return Placeholder("🖼 " + (alt.Length > 0 ? alt : "네트워크 그림"), "네트워크 위치의 그림은 불러오지 않아요: " + path);
+            return Placeholder("🖼 " + (alt.Length > 0 ? alt : Foldy.Core.Localization.Loc.T("md.networkImage")), Foldy.Core.Localization.Loc.T("md.networkImageBlocked") + path);
         }
 
         if (string.Equals(Path.GetExtension(path), ".svg", StringComparison.OrdinalIgnoreCase))
@@ -657,7 +657,7 @@ public sealed class MarkdownFlowRenderer
 
         if (!File.Exists(path))
         {
-            return Placeholder("🖼 " + (alt.Length > 0 ? alt : Path.GetFileName(path)) + " (파일 없음)", path);
+            return Placeholder("🖼 " + (alt.Length > 0 ? alt : Path.GetFileName(path)) + Foldy.Core.Localization.Loc.T("md.missingFile"), path);
         }
 
         return ImageHost(path, alt, ct => File.ReadAllBytesAsync(path, ct));
@@ -689,7 +689,7 @@ public sealed class MarkdownFlowRenderer
             }
             catch (Exception e) when (IsImageError(e))
             {
-                image.ToolTip = "이미지를 읽지 못했습니다: " + source;
+                image.ToolTip = Foldy.Core.Localization.Loc.T("md.imageFailed") + source;
             }
 
             return host;
@@ -706,7 +706,7 @@ public sealed class MarkdownFlowRenderer
             }
             catch (Exception e) when (IsImageError(e))
             {
-                await dispatcher.InvokeAsync(() => image.ToolTip = "이미지를 읽지 못했습니다: " + source);
+                await dispatcher.InvokeAsync(() => image.ToolTip = Foldy.Core.Localization.Loc.T("md.imageFailed") + source);
             }
         });
         return host;
@@ -743,7 +743,7 @@ public sealed class MarkdownFlowRenderer
         resp.EnsureSuccessStatusCode();
         if (resp.Content.Headers.ContentLength > MaxImageBytes)
         {
-            throw new NotSupportedException("이미지가 너무 큽니다");
+            throw new NotSupportedException(Foldy.Core.Localization.Loc.T("md.imageTooBig"));
         }
 
         return await resp.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
@@ -773,12 +773,12 @@ public sealed class MarkdownFlowRenderer
         try
         {
             Clipboard.SetText(text);
-            button.Content = "복사됨";
+            button.Content = Foldy.Core.Localization.Loc.T("md.copied");
         }
         catch (System.Runtime.InteropServices.COMException)
         {
             // 다른 프로그램이 클립보드를 잡고 있음
-            button.Content = "복사 실패";
+            button.Content = Foldy.Core.Localization.Loc.T("md.copyFailed");
         }
     }
 

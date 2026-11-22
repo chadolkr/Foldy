@@ -25,19 +25,19 @@ public static class DevCaches
 {
     public static readonly IReadOnlyList<DevCacheKind> Kinds =
     [
-        new("npm", "npm 캐시", ["npm.cmd", "npm.exe"], ["cache", "clean", "--force"], [@"%LOCALAPPDATA%\npm-cache", @"%APPDATA%\npm-cache"],
-            "npm install 할 때 다시 받아요. npm 공식 문서도 공간을 늘릴 때 말고는 지울 필요가 없다고 해요."),
-        new("nuget", "NuGet 패키지 캐시", ["dotnet.exe"], ["nuget", "locals", "all", "--clear"],
+        new("npm", Foldy.Core.Localization.Loc.T("dc.npm"), ["npm.cmd", "npm.exe"], ["cache", "clean", "--force"], [@"%LOCALAPPDATA%\npm-cache", @"%APPDATA%\npm-cache"],
+            Foldy.Core.Localization.Loc.T("dc.npm.x")),
+        new("nuget", Foldy.Core.Localization.Loc.T("dc.nuget"), ["dotnet.exe"], ["nuget", "locals", "all", "--clear"],
             [@"%USERPROFILE%\.nuget\packages", @"%LOCALAPPDATA%\NuGet\v3-cache", @"%LOCALAPPDATA%\NuGet\plugins-cache", @"%LOCALAPPDATA%\Temp\NuGet"],
-            "다음 빌드(restore) 때 다시 받아요.", "Visual Studio를 닫고 하세요. 다음 빌드는 처음 한 번 오래 걸려요."),
-        new("pip", "pip 캐시", ["py.exe", "python.exe"], ["-m", "pip", "cache", "purge"], [@"%LOCALAPPDATA%\pip\cache"],
-            "pip install 할 때 다시 받아요."),
-        new("yarn", "Yarn 캐시", ["yarn.cmd", "yarn.exe"], ["cache", "clean"], [@"%LOCALAPPDATA%\Yarn\Cache"],
-            "yarn install 할 때 다시 받아요."),
-        new("pnpm", "pnpm 저장소 (안 쓰는 것만)", ["pnpm.cmd", "pnpm.exe"], ["store", "prune"], [@"%LOCALAPPDATA%\pnpm\store"],
-            "어느 프로젝트도 쓰지 않는 패키지만 지워요."),
-        new("docker", "Docker 빌드 캐시", ["docker.exe"], ["builder", "prune", "--force"], [],
-            "다음 docker build 때 다시 만들어요. 이미지·컨테이너·볼륨은 건드리지 않아요.", "Docker Desktop이 켜져 있어야 해요."),
+            Foldy.Core.Localization.Loc.T("dc.nuget.x"), Foldy.Core.Localization.Loc.T("dc.nuget.w")),
+        new("pip", Foldy.Core.Localization.Loc.T("dc.pip"), ["py.exe", "python.exe"], ["-m", "pip", "cache", "purge"], [@"%LOCALAPPDATA%\pip\cache"],
+            Foldy.Core.Localization.Loc.T("dc.pip.x")),
+        new("yarn", Foldy.Core.Localization.Loc.T("dc.yarn"), ["yarn.cmd", "yarn.exe"], ["cache", "clean"], [@"%LOCALAPPDATA%\Yarn\Cache"],
+            Foldy.Core.Localization.Loc.T("dc.yarn.x")),
+        new("pnpm", Foldy.Core.Localization.Loc.T("dc.pnpm"), ["pnpm.cmd", "pnpm.exe"], ["store", "prune"], [@"%LOCALAPPDATA%\pnpm\store"],
+            Foldy.Core.Localization.Loc.T("dc.pnpm.x")),
+        new("docker", Foldy.Core.Localization.Loc.T("dc.docker"), ["docker.exe"], ["builder", "prune", "--force"], [],
+            Foldy.Core.Localization.Loc.T("dc.docker.x"), Foldy.Core.Localization.Loc.T("dc.docker.w")),
     ];
 
     /// <summary>PATH에서 실행 파일을 찾는다 (없으면 null).</summary>

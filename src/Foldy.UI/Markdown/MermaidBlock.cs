@@ -102,7 +102,7 @@ public sealed class MermaidBlock
         }
         catch (OperationCanceledException)
         {
-            ShowError("시간 초과(2초)");
+            ShowError(Foldy.Core.Localization.Loc.T("mm.timeout"));
         }
 #pragma warning disable CA1031 // 렌더러(외부 스크립트)의 어떤 실패든 코드 블록으로 되돌아간다
         catch (Exception e)
@@ -130,7 +130,7 @@ public sealed class MermaidBlock
         });
         _section.Blocks.InsertBefore(_code, _diagram);
         _section.Blocks.Remove(_code);
-        _toggle.Content = "코드 보기";
+        _toggle.Content = Foldy.Core.Localization.Loc.T("mm.viewCode");
     }
 
     private void ShowCode()
@@ -141,13 +141,13 @@ public sealed class MermaidBlock
             _section.Blocks.Remove(_diagram);
         }
 
-        _toggle.Content = "다이어그램 보기";
+        _toggle.Content = Foldy.Core.Localization.Loc.T("md.viewDiagram");
     }
 
     private void ShowError(string message)
     {
         RemoveError();
-        _error = new Paragraph(new Run("다이어그램을 그리지 못했습니다: " + message)) { Margin = new Thickness(8, 0, 8, 6) };
+        _error = new Paragraph(new Run(Foldy.Core.Localization.Loc.T("mm.failed") + message)) { Margin = new Thickness(8, 0, 8, 6) };
         _error.SetResourceReference(TextElement.ForegroundProperty, "Brush.Error");
         _section.Blocks.Add(_error);
     }

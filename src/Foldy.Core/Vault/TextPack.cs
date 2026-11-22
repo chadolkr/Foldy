@@ -26,7 +26,7 @@ public static class TextPack
         using var zip = ZipFile.OpenRead(path);
         if (zip.Entries.Count > MaxEntries)
         {
-            throw new InvalidDataException("항목이 너무 많은 파일이에요.");
+            throw new InvalidDataException(Foldy.Core.Localization.Loc.T("pack.tooMany"));
         }
 
         var note = new LockedNote();
@@ -46,7 +46,7 @@ public static class TextPack
 
             if (e.Length > MaxEntryBytes || (total += e.Length) > MaxTotalBytes)
             {
-                throw new InvalidDataException("너무 큰 파일이에요.");
+                throw new InvalidDataException(Foldy.Core.Localization.Loc.T("pack.tooBig"));
             }
 
             if (name.Equals(TextEntry, StringComparison.OrdinalIgnoreCase))
@@ -102,7 +102,7 @@ public static class TextPack
         {
             if (ms.Length + n > MaxEntryBytes)
             {
-                throw new InvalidDataException("너무 큰 파일이에요.");
+                throw new InvalidDataException(Foldy.Core.Localization.Loc.T("pack.tooBig"));
             }
 
             ms.Write(buf, 0, n);

@@ -180,7 +180,7 @@ internal sealed class ImagePresenter(ZoomImageView view, Action<string> setInfo)
         {
             if (view.Source is null)
             {
-                setInfo(ImageFormats.NeedsCodec(item.Name) ? "코덱 필요: Microsoft Store에서 확장을 설치하세요" : "미리 볼 수 없습니다");
+                setInfo(ImageFormats.NeedsCodec(item.Name) ? Foldy.Core.Localization.Loc.T("img.codec") : Foldy.Core.Localization.Loc.T("img.cantPreview"));
             }
 
             _loadedEdge = 0;

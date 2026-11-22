@@ -137,7 +137,16 @@ public sealed class CopyEngineM3Tests : IDisposable
         var p = WaitDone(job);
         if (p.State == NativeJobState.Canceled)
         {
-            File.Exists(Path.Combine(_dir, "out", "big.bin")).Should().BeFalse();
+            // 반쪽 파일이 남으면 안 된다. 빠른 디스크(CI)에서는 취소가 닿기 전에 복사가 끝나 온전한 파일이 남을 수 있다 (그건 괜찮다).
+            var dest = new FileInfo(Path.Combine(_dir, "out", "big.bin"));
+            if (dest.Exists)
+            {
+                dest.Length.Should().Be(1024L * 1024 * 1024, "취소 뒤에 남은 파일은 다 복사된 것이어야 한다");
+            }
+
+            var outDir = Path.Combine(_dir, "out");
+            (Directory.Exists(outDir) ? Directory.EnumerateFiles(outDir) : []).Where(f => !string.Equals(Path.GetFileName(f), "big.bin", StringComparison.OrdinalIgnoreCase))
+                .Should().BeEmpty("임시 반쪽 파일이 남으면 안 된다");
         }
     }
 
