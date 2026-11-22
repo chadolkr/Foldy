@@ -185,6 +185,7 @@ public partial class App : Application
             Diagnostics.IconRefresh.OnceForVersion(DataDir, typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0");
         }
         Foldy.UI.Theming.ThemeManager.SetAccent(settings.Accent);
+        Services.OwnerFocus.Register(); // 대화 창·메모를 닫으면 Foldy 창이 뒤로 숨지 않게 (사용자 제보 2026-11-22)
 
         base.OnStartup(e);
         if (!Options.BenchShell && (Options.IsBench || Options.Synthetic || Options.ListWpf))

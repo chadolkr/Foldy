@@ -9,7 +9,7 @@ namespace Foldy.UiTests;
 public sealed class UiCollection;
 
 [Collection("ui")]
-public sealed class MainWindowTests
+public sealed partial class MainWindowTests
 {
     [Fact]
     public void Sidebar_shows_the_four_groups_and_three_bottom_icons()
@@ -74,6 +74,41 @@ public sealed class MainWindowTests
         app.Find("암호 (8글자 이상)", guide).Should().NotBeNull();
         app.Find("같은 암호를 한 번 더", guide).Should().NotBeNull();
         app.Find("그만두기", guide).AsButton().Invoke();
+    }
+
+    [System.Runtime.InteropServices.LibraryImport("user32.dll")]
+    private static partial IntPtr GetForegroundWindow();
+
+    /// <summary>사용자 제보(2026-11-22): 잠긴 메모를 저장하고 닫으면 Foldy 창이 다른 창 뒤로 내려가 안 보였다. 닫은 뒤 Foldy 창이 맨 앞이어야 한다.</summary>
+    [Fact]
+    public void Closing_a_locked_note_brings_the_Foldy_window_back_to_front()
+    {
+        using var app = FoldyApp.Start();
+        app.Find("지키기").AsButton().Invoke();
+        var item = Retry.WhileNull(
+            () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName("🔒 잠긴 메모 쓰기 · 비밀번호 같은 글 적어 두기").And(app.By.ByControlType(ControlType.MenuItem))),
+            TimeSpan.FromSeconds(10), ignoreException: true).Result;
+        item!.AsMenuItem().Invoke();
+
+        var guide = app.FindWindow("새 잠긴 메모", 15);
+        var boxes = Retry.WhileEmpty(() => guide.FindAllDescendants(app.By.ByControlType(ControlType.Edit)), TimeSpan.FromSeconds(10), ignoreException: true).Result;
+        boxes.Should().HaveCountGreaterThanOrEqualTo(2);
+        foreach (var b in boxes.Take(2))
+        {
+            b.Focus();
+            FlaUI.Core.Input.Keyboard.Type("ui-test-pass-1234");
+        }
+
+        app.Find("메모 만들기", guide).AsButton().Invoke();
+        var memo = Retry.WhileNull(
+            () => app.App.GetAllTopLevelWindows(app.Automation).FirstOrDefault(w => w.Title.EndsWith(" - 잠긴 메모", StringComparison.Ordinal))
+                  ?? app.Main.FindFirstDescendant(app.By.ByControlType(ControlType.Window).And(app.By.ByName("새 메모 - 잠긴 메모")))?.AsWindow(),
+            TimeSpan.FromSeconds(15), ignoreException: true).Result;
+        memo.Should().NotBeNull("암호를 정하면 메모 창이 열린다");
+        app.Find("잠그고 닫기", memo).AsButton().Invoke();
+
+        var front = Retry.WhileFalse(() => GetForegroundWindow() == app.Main.Properties.NativeWindowHandle.Value, TimeSpan.FromSeconds(5), ignoreException: true).Result;
+        front.Should().BeTrue("메모를 닫으면 Foldy 창이 맨 앞에 보여야 한다");
     }
 
     [Fact]
