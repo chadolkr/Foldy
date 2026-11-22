@@ -13,7 +13,14 @@ public static class DesktopTidy
 {
     public const int RecentDays = 7;
     public const int NoticeCount = 50;
-    public const string ArchiveFolderName = "바탕화면 보관";
+    /// <summary>예전(한국어) 이름. 바탕화면에 이미 있으면 그 폴더를 계속 쓴다.</summary>
+    public const string ArchiveFolderNameKo = "바탕화면 보관";
+
+    /// <summary>지금 앱 언어로 만드는 이름.</summary>
+    public static string ArchiveFolderName => Foldy.Core.Localization.Loc.T("folder.desktopArchive");
+
+    /// <summary>바탕화면 보관 폴더 경로 (예전 한국어 폴더가 있으면 그것).</summary>
+    public static string ArchiveFolderIn(string desktop) => Path.Combine(desktop, Foldy.Core.Localization.FolderNames.Pick(desktop, ArchiveFolderNameKo, ArchiveFolderName));
 
     private static readonly string[] KeepExtensions = [".lnk", ".url", ".appref-ms"];
 
@@ -58,7 +65,7 @@ public static class DesktopTidy
             }
 
             var group = FileTypeGroups.GroupOf(f.Name);
-            var dir = Path.Combine(archiveRoot, month, group);
+            var dir = Path.Combine(archiveRoot, month, FileTypeGroups.FolderName(group, Path.Combine(archiveRoot, month)));
             var dst = Unique(dir, f.Name, planned);
             planned.Add(dst);
             moves.Add(new DesktopMove(f.FullName, dst, group, f.Length));

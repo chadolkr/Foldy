@@ -75,8 +75,13 @@ public sealed class CustomRule
 
 public sealed class OrganizeOptions
 {
-    public const string UnclassifiedFolder = "_분류 필요";
-    public const string DuplicatesFolder = "_중복 후보";
+    /// <summary>예전(한국어) 이름. 정리할 폴더에 이미 있으면 그 폴더를 계속 쓴다 (FolderNames.Pick).</summary>
+    public const string UnclassifiedFolderKo = "_분류 필요";
+    public const string DuplicatesFolderKo = "_중복 후보";
+
+    /// <summary>지금 앱 언어로 만드는 이름.</summary>
+    public static string UnclassifiedFolder => Foldy.Core.Localization.Loc.T("folder.unclassified");
+    public static string DuplicatesFolder => Foldy.Core.Localization.Loc.T("folder.duplicates");
 
     public OrganizeMode Mode { get; init; } = OrganizeMode.ByType;
 

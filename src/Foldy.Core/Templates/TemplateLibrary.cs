@@ -128,7 +128,7 @@ public sealed class TemplateLibrary
         var list = new List<FolderTemplate>();
         foreach (var res in asm.GetManifestResourceNames().Where(n => n.StartsWith(ResourcePrefix, StringComparison.Ordinal) && n.EndsWith(TemplateJson.TemplateExtension, StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal))
         {
-            var json = ReadResource(asm, res)!;
+            var json = TemplateI18n.Localize(ReadResource(asm, res)!);
             var t = TemplateJson.Parse(json);
             var fileId = res[ResourcePrefix.Length..^TemplateJson.TemplateExtension.Length];
             if (string.IsNullOrWhiteSpace(t.Id))
@@ -149,7 +149,7 @@ public sealed class TemplateLibrary
     {
         var json = ReadResource(typeof(TemplateLibrary).Assembly, ResourcePrefix + "wizard.json")
             ?? throw new InvalidOperationException("wizard.json이 포함되지 않았습니다.");
-        return WizardDefinition.Parse(json);
+        return WizardDefinition.Parse(TemplateI18n.Localize(json));
     }
 
     private static string? ReadResource(Assembly asm, string name)

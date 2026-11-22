@@ -15,7 +15,7 @@ public sealed class FoldyApp : IDisposable
 {
     private readonly string _data = Path.Combine(Path.GetTempPath(), "foldy-ui-" + Guid.NewGuid().ToString("N"));
 
-    private FoldyApp(bool skipTour, string? openPath)
+    private FoldyApp(bool skipTour, string? openPath, string language)
     {
         Directory.CreateDirectory(_data);
         Sample = Path.Combine(_data, "sample");
@@ -28,7 +28,7 @@ public sealed class FoldyApp : IDisposable
 
         var psi = new ProcessStartInfo(Exe!) { UseShellExecute = false };
         psi.Environment["FOLDY_DATA_DIR"] = _data;
-        psi.Environment["FOLDY_LANGUAGE"] = "ko"; // 시험은 한국어 화면 기준 (CI는 영어 Windows)
+        psi.Environment["FOLDY_LANGUAGE"] = language; // 시험은 한국어 화면 기준 (CI는 영어 Windows). 언어별 시험만 다른 언어
         psi.ArgumentList.Add(openPath ?? Sample);
         App = Application.Launch(psi);
         Automation = new UIA3Automation();
@@ -49,10 +49,10 @@ public sealed class FoldyApp : IDisposable
     /// <summary>빌드된 Foldy.exe (솔루션 빌드 출력). 없으면 null → 테스트를 건너뛴다.</summary>
     public static string? Exe { get; } = FindExe();
 
-    public static FoldyApp Start(bool skipTour = true, string? openPath = null)
+    public static FoldyApp Start(bool skipTour = true, string? openPath = null, string language = "ko")
     {
         Assert.SkipWhen(Exe is null, "Foldy.exe가 없습니다 (dotnet build Foldy.slnx -c Release 먼저)");
-        return new FoldyApp(skipTour, openPath);
+        return new FoldyApp(skipTour, openPath, language);
     }
 
     /// <summary>이름(화면 낭독기 이름)으로 요소를 찾는다. 창 전체에서, 기다리며.</summary>

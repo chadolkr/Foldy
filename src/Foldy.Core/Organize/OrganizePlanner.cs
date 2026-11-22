@@ -61,12 +61,12 @@ public static partial class OrganizePlanner
         {
             if (duplicates.TryGetValue(e.FullPath, out var original))
             {
-                Add(plan, scan.Root, e, OrganizeOptions.DuplicatesFolder, $"중복 후보: {Path.GetFileName(original)}와 이름·크기·내용이 같음", exists, claimed, options);
+                Add(plan, scan.Root, e, Foldy.Core.Localization.FolderNames.Pick(scan.Root, OrganizeOptions.DuplicatesFolderKo, OrganizeOptions.DuplicatesFolder), $"중복 후보: {Path.GetFileName(original)}와 이름·크기·내용이 같음", exists, claimed, options);
                 continue;
             }
 
-            var (target, reason) = Classify(e, options, media);
-            target ??= OrganizeOptions.UnclassifiedFolder;
+            var (target, reason) = Classify(e, options, media, scan.Root);
+            target ??= Foldy.Core.Localization.FolderNames.Pick(scan.Root, OrganizeOptions.UnclassifiedFolderKo, OrganizeOptions.UnclassifiedFolder);
             reason ??= "맞는 규칙 없음";
             Add(plan, scan.Root, e, target, reason, exists, claimed, options);
         }
@@ -164,13 +164,13 @@ public static partial class OrganizePlanner
         }
     }
 
-    private static (string? Target, string? Reason) Classify(OrganizeEntry e, OrganizeOptions o, IMediaDateProvider? media)
+    private static (string? Target, string? Reason) Classify(OrganizeEntry e, OrganizeOptions o, IMediaDateProvider? media, string root)
     {
         switch (o.Mode)
         {
             case OrganizeMode.ByType:
                 {
-                    var g = FileTypeGroups.GroupOf(e.Name);
+                    var g = FileTypeGroups.FolderName(FileTypeGroups.GroupOf(e.Name), root);
                     var ext = Path.GetExtension(e.Name);
                     return (g, ext.Length > 0 ? $"종류: {g} ({ext})" : $"종류: {g}");
                 }
@@ -330,11 +330,12 @@ public static partial class OrganizePlanner
 
     private static HashSet<string> OutputFolders(OrganizeOptions o)
     {
-        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { OrganizeOptions.UnclassifiedFolder, OrganizeOptions.DuplicatesFolder };
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { OrganizeOptions.UnclassifiedFolder, OrganizeOptions.DuplicatesFolder, OrganizeOptions.UnclassifiedFolderKo, OrganizeOptions.DuplicatesFolderKo };
         switch (o.Mode)
         {
             case OrganizeMode.ByType:
                 set.UnionWith(FileTypeGroups.All);
+                set.UnionWith(FileTypeGroups.All.Select(g => FileTypeGroups.FolderName(g, null)));
                 break;
             case OrganizeMode.ByTemplate when o.Template is not null:
                 set.UnionWith(o.Template.Organize.Select(r => FirstSegment(r.Target)));
