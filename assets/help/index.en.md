@@ -157,6 +157,7 @@ The preview pane closes by itself when you go to another folder, drive or tab (t
 - Cloud-only files aren't read, so nothing gets downloaded.
 - Network drives and SFTP aren't read automatically (to stay fast); they're read only when you press **[Preview]**.
 - The same goes for the Google Drive for desktop drive (usually G:). It shows in the sidebar with a cloud icon as "Google Drive", and thumbnails, icons and previews never download online-only files by themselves. A file is downloaded only when you open or copy it.
+- **Files protected by DRM or a password** show "This file is protected by DRM, so it can't be previewed" (or "…password-protected…") instead of an error. Open the file to view it in the app your security software allows. Foldy recognizes them when the start of the file doesn't match its format (Office, Hangul, PDF, images) and looks encrypted.
 
 ## Markdown viewer
 
