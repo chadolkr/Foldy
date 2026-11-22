@@ -21,7 +21,7 @@
 ## 한 번 해 둘 설정 (저장소 주인)
 
 1. **비공개 보안 신고 켜기**: Settings → Code security → Private vulnerability reporting → Enable. (SECURITY.md의 신고 링크가 이걸 쓴다)
-2. **Dependabot 알림·보안 업데이트 켜기**: 같은 화면의 Dependabot alerts, Dependabot security updates.
+2. **Dependency graph·Dependabot 켜기**: 같은 화면의 Dependency graph, Dependabot alerts, Dependabot security updates. Dependency graph가 꺼져 있으면 dependency-review.yml은 경고만 남기고 건너뛴다.
 3. **CodeQL 기본 설정이 켜져 있으면 끄기**: Code scanning이 "Default setup"이면 `codeql.yml`(고급 설정)과 부딪친다. Settings → Code security → CodeQL analysis → Switch to advanced 또는 Disable.
 4. **VirusTotal 키(선택)**: virustotal.com 무료 가입 → 프로필 → API key 복사 → 저장소 Settings → Secrets and variables → Actions → New repository secret `VIRUSTOTAL_API_KEY`. 무료 키는 분당 4번, 하루 500번이라 릴리스 한 번(파일 2개)에 충분하다.
 5. (권장) main 브랜치 보호: PR 필수, CI 통과 필수. Scorecard "Branch-Protection"·"Code-Review" 점수가 오른다.

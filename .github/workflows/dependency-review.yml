@@ -15,6 +15,23 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+      # 저장소 설정의 Dependency graph가 꺼져 있으면 GitHub API가 403을 준다. 그때는 경고만 남기고 건너뛴다
+      # (Settings → Code security → Dependency graph 켜기, docs/security-evidence.md).
+      - name: Check dependency graph
+        id: graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/compare/${BASE}...${HEAD}" --silent 2>/dev/null; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Dependency graph is off for this repository, so dependency review was skipped. Enable it in Settings → Code security."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.graph.outputs.enabled == 'true'
+        uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
         with:
           fail-on-severity: moderate
