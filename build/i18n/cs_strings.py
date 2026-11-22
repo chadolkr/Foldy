@@ -125,3 +125,5 @@ from cs_strings_demo import DEMO  # noqa: E402
 CS = CS + DEMO
 from cs_strings_demo2 import DEMO2  # noqa: E402
 CS = CS + DEMO2
+from cs_strings_rc1 import RC1  # noqa: E402
+CS = CS + RC1

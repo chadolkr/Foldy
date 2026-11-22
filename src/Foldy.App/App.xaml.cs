@@ -166,7 +166,11 @@ public partial class App : Application
 
         // 클라우드 드라이브(G: Google Drive for desktop)는 미리보기를 누를 때만 읽는다 (온라인 전용 파일 자동 다운로드 방지).
         Foldy.Presentation.Preview.PreviewGuards.IsCloudVolumePath = Foldy.Platform.SystemInfo.CloudVolumes.IsCloudPath;
-        Foldy.Presentation.Shell.ShellViewModel.FindLockers = paths => Foldy.Platform.SystemInfo.FileLockers.Describe(Foldy.Platform.SystemInfo.FileLockers.WhoUses(paths));
+        Foldy.Presentation.Shell.ShellViewModel.FindLockers = paths => Foldy.Platform.SystemInfo.FileLockers.Describe(
+            Foldy.Platform.SystemInfo.FileLockers.WhoUses(paths),
+            names => Foldy.Core.Localization.Loc.F("lock.inUse", names),
+            (names, n) => Foldy.Core.Localization.Loc.F("lock.more", names, n));
+        Foldy.Platform.SystemInfo.FileLockers.ProgramLabel = pid => Foldy.Core.Localization.Loc.F("lock.program", pid);
         Foldy.Platform.Imaging.CloudFileGuard.IsSlowDrivePath = Foldy.Presentation.Services.DriveSpeedTracker.Shared.IsSlow;
         Foldy.Presentation.Services.DriveSpeedTracker.Shared.Eligible = root =>
             root.StartsWith(@"\\", StringComparison.Ordinal)
