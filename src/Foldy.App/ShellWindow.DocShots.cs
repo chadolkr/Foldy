@@ -120,8 +120,8 @@ public partial class ShellWindow
     /// <summary>문서 그림은 색인 서비스와 Rust 복사 엔진이 갖춰진 보통 설치 상태로 보인다 (검색 자체는 폴더 훑기로 한다).</summary>
     private void DocFixStatus()
     {
-        IndexerText.Text = "검색: 색인 사용";
-        CopyEngineText.Text = "복사 엔진: Rust";
+        IndexerText.Text = Foldy.Core.Localization.Loc.F("sw.idx.ready", 1_284_513);
+        CopyEngineText.Text = Foldy.Core.Localization.Loc.T("sw.copyRust");
     }
 
     private static RenderTargetBitmap DocRender(FrameworkElement root, Brush? background, int scale)
