@@ -19,7 +19,7 @@ path = "src/bin/foldy-update.rs"
 serde.workspace = true
 serde_json.workspace = true
 # 서명: BSD-3-Clause, 해시: MIT/Apache-2.0, 난수: MIT/Apache-2.0 → 모두 GPL-3.0 호환
-ed25519-dalek = "2"
+ed25519-dalek = "3"
 sha2 = "0.10"
 getrandom = "0.2"
 
