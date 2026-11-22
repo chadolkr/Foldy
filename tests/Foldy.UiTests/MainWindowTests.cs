@@ -95,16 +95,39 @@ public sealed partial class MainWindowTests
         boxes.Should().HaveCountGreaterThanOrEqualTo(2);
         foreach (var b in boxes.Take(2))
         {
-            b.Focus();
-            FlaUI.Core.Input.Keyboard.Type("ui-test-pass-1234");
+            // 암호 칸: 값 넣기(ValuePattern)가 되면 그것으로, 안 되면 눌러서 입력
+            var set = false;
+            try
+            {
+                if (b.Patterns.Value.TryGetPattern(out var v))
+                {
+                    v.SetValue("ui-test-pass-1234");
+                    set = true;
+                }
+            }
+            catch (Exception)
+            {
+                // 암호 칸은 값 넣기를 막을 수 있다 → 아래에서 직접 입력
+            }
+
+            if (!set)
+            {
+                b.Click();
+                FlaUI.Core.Input.Keyboard.Type("ui-test-pass-1234");
+                FlaUI.Core.Input.Wait.UntilInputIsProcessed();
+            }
         }
 
         app.Find("메모 만들기", guide).AsButton().Invoke();
+        const string memoTitle = "새 메모 - 잠긴 메모";
         var memo = Retry.WhileNull(
-            () => app.App.GetAllTopLevelWindows(app.Automation).FirstOrDefault(w => w.Title.EndsWith(" - 잠긴 메모", StringComparison.Ordinal))
-                  ?? app.Main.FindFirstDescendant(app.By.ByControlType(ControlType.Window).And(app.By.ByName("새 메모 - 잠긴 메모")))?.AsWindow(),
+            () => app.App.GetAllTopLevelWindows(app.Automation).FirstOrDefault(w => w.Title == memoTitle)
+                  ?? app.Automation.GetDesktop().FindFirstDescendant(app.By.ByControlType(ControlType.Window).And(app.By.ByName(memoTitle)))?.AsWindow(),
             TimeSpan.FromSeconds(15), ignoreException: true).Result;
-        memo.Should().NotBeNull("암호를 정하면 메모 창이 열린다");
+        var said = memo is null && !guide.IsOffscreen
+            ? string.Join(" / ", guide.FindAllDescendants(app.By.ByControlType(ControlType.Text)).Select(t => t.Name))
+            : "";
+        memo.Should().NotBeNull("암호를 정하면 메모 창이 열린다. 안내 창: " + said);
         app.Find("잠그고 닫기", memo).AsButton().Invoke();
 
         var front = Retry.WhileFalse(() => GetForegroundWindow() == app.Main.Properties.NativeWindowHandle.Value, TimeSpan.FromSeconds(5), ignoreException: true).Result;
