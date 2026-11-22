@@ -73,7 +73,7 @@ public sealed class MainWindowTests
         var guide = app.FindWindow("새 잠긴 메모", 15);
         app.Find("암호 (8글자 이상)", guide).Should().NotBeNull();
         app.Find("같은 암호를 한 번 더", guide).Should().NotBeNull();
-        app.Find("취소", guide).AsButton().Invoke();
+        app.Find("그만두기", guide).AsButton().Invoke();
     }
 
     [Fact]
