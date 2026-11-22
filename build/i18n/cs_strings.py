@@ -113,3 +113,5 @@ from cs_strings_pres import PRES  # noqa: E402
 CS = CS + PRES
 from cs_strings_core import CORE  # noqa: E402
 CS = CS + CORE
+from cs_strings_managed import MANAGED  # noqa: E402
+CS = CS + MANAGED

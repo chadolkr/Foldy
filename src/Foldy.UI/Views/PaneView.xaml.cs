@@ -1095,7 +1095,7 @@ public partial class PaneView : UserControl
                 count = 0;
             }
 
-            return (m.Root, m.Method.Name, count);
+            return (m.Root, m.Method.DisplayName, count);
         });
         if (version != _managedVersion)
         {
