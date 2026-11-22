@@ -58,8 +58,10 @@
   "tour.qs3.t": "También cálculos y conversión de unidades",
   "tour.qs4.s": "'ordena mis descargas' → la función de Foldy empieza al instante",
   "tour.qs4.t": "Escríbelo como lo dirías",
+  "tour.skip": "Omitir",
   "tour.space.s": "Los cuadros grandes son carpetas grandes · solo elige lo que se puede borrar",
   "tour.space.t": "Descubre de un vistazo qué ocupa tu disco",
+  "tour.start": "Empezar",
   "tour.tpl.s": "PARA · fases de proyecto por sector (PMBOK, TI, construcción) · con qué va en cada carpeta",
   "tour.tpl.t": "Una estructura de carpetas en un clic"
 }
