@@ -1,4 +1,4 @@
-# Foldy 진행 현황 (2026-11-22 기준, 0.9.42)
+# Foldy 진행 현황 (2026-11-22 기준, 0.9.43)
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
@@ -37,6 +37,7 @@
 - 0.9.7: 탭 줄 SFTP 단추, 서버 트리 한 단계 펼치기.
 - 0.9.8: 수다쟁이 Foldy(원칙 1.4), 업데이트 진행 창, 트리 "불러오는 중".
 - 0.9.9: 이미지만 보기 안내 줄과 [모든 파일 보기].
+- 0.9.43: App.TranslationComplete = true (auto = Windows 언어). 문서 캡처 예시 폴더·대화·예시 Markdown을 언어별로(cs_strings_demo*.py), 언어별 그림 다시 찍음. 일부러 옮기지 않은 것: QuickIntent·QuickCalc 한국어 낱말, 로그, McpRunner(AI에게 주는 답), FileTags 태그 이름(폴더에 저장되는 값), 진단 기록.
 - 0.9.42: 템플릿 사용법 <id>.guide.<언어>.md 52개 (원본 build/i18n/guides_<언어>.py → python build/i18n/guides.py). EmbeddedResource에 WithCulture=false (이름의 .en 때문에 위성 어셈블리로 빠지던 것).
 - 0.9.41: 사용 설명서 assets/help/index.<언어>.md (en·es·ja·zh-Hans), 그림 help/images/<언어>/ (doc-screenshots -Lang으로 찍음, 업데이트 진행 창 그림만 한국어판 공용). 남은 것: 템플릿 사용법(.guide.md) 번역, 문서 캡처 예시 파일 이름의 언어별화, 검수, App.TranslationComplete=true.
 - 0.9.40: 번역 7단계(업데이트 진행 창은 스크립트 화면 문구만 바꿔 넣고 서비스 기록의 표시 말은 그대로), 불안정 시험 2개 안정화.

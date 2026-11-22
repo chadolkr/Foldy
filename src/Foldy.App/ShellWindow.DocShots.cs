@@ -118,6 +118,9 @@ public partial class ShellWindow
     }
 
     /// <summary>문서 그림은 색인 서비스와 Rust 복사 엔진이 갖춰진 보통 설치 상태로 보인다 (검색 자체는 폴더 훑기로 한다).</summary>
+    /// <summary>문서 그림의 예시 프로젝트 경로 (앱 언어로).</summary>
+    private static string DemoProj => @"D:\" + Foldy.Core.Localization.Loc.T("demo.projectsDir");
+
     private void DocFixStatus()
     {
         IndexerText.Text = Foldy.Core.Localization.Loc.F("sw.idx.ready", 1_284_513);
@@ -201,7 +204,7 @@ public partial class ShellWindow
         await DocSceneAsync("main", async () =>
         {
             await DocGoAsync(left, DocShotsSandbox.Repo(r), "README.md");
-            await DocGoAsync(right, DocShotsSandbox.Downloads(r), "회의록_최종_v2.docx");
+            await DocGoAsync(right, DocShotsSandbox.Downloads(r), Foldy.Core.Localization.Loc.T("cf.demo.minutes"));
             DocActivate(left);
             await DocShotWindowAsync("main", 1500);
         });
@@ -237,7 +240,7 @@ public partial class ShellWindow
         await DocSceneAsync("preview-image", async () =>
         {
             DocFolderTab(left);
-            await DocGoAsync(right, DocShotsSandbox.Trip(r), "성산일출봉.jpg", tabIndex: 1);
+            await DocGoAsync(right, DocShotsSandbox.Trip(r), Foldy.Core.Localization.Loc.T("demo.p1jpg"), tabIndex: 1);
             DocActivate(right);
             RightPane.TogglePreview();
             await DocShotWindowAsync("preview-image", 1800);
@@ -246,7 +249,7 @@ public partial class ShellWindow
 
         await DocSceneAsync("preview-markdown", async () =>
         {
-            await DocGoAsync(left, DocShotsSandbox.Documents(r), "프로젝트_안내.md", tabIndex: 1);
+            await DocGoAsync(left, DocShotsSandbox.Documents(r), Foldy.Core.Localization.Loc.T("demo.guideMd"), tabIndex: 1);
             DocActivate(left);
             LeftPane.TogglePreview();
             await DocShotWindowAsync("preview-markdown", 1800);
@@ -255,7 +258,7 @@ public partial class ShellWindow
 
         await DocSceneAsync("images-grid", async () =>
         {
-            await DocGoAsync(right, DocShotsSandbox.Trip(r), "한라산.jpg", tabIndex: 1);
+            await DocGoAsync(right, DocShotsSandbox.Trip(r), Foldy.Core.Localization.Loc.T("demo.p2jpg"), tabIndex: 1);
             DocWide(leftOnly: false, rightOnly: true);
             DocActivate(right);
             RightPane.ToggleImages();
@@ -268,7 +271,7 @@ public partial class ShellWindow
         {
             DocWide(leftOnly: true);
             DocActivate(left);
-            var tab = Foldy.Presentation.Shell.ShellViewModel.OpenMarkdown(left, Path.Combine(DocShotsSandbox.Documents(r), "프로젝트_안내.md"));
+            var tab = Foldy.Presentation.Shell.ShellViewModel.OpenMarkdown(left, Path.Combine(DocShotsSandbox.Documents(r), Foldy.Core.Localization.Loc.T("demo.guideMd")));
             await DocShotWindowAsync("markdown", 2000);
             left.CloseTab(tab);
             DocWide(leftOnly: false);
@@ -294,7 +297,7 @@ public partial class ShellWindow
 
             git.ShowHistoryTab();
             await DocSettleAsync(600);
-            var commit = git.Commits.FirstOrDefault(c => c.Node.Subject.Contains("완료 표시", StringComparison.Ordinal)) ?? git.Commits.ElementAtOrDefault(2);
+            var commit = git.Commits.FirstOrDefault(c => c.Node.Subject.Contains(Foldy.Core.Localization.Loc.T("demo.c10find"), StringComparison.Ordinal)) ?? git.Commits.ElementAtOrDefault(2);
             git.SelectedCommit = commit;
             await git.CommitFilesLoading;
             git.SelectedCommitFile = git.CommitFiles.FirstOrDefault();
@@ -309,7 +312,7 @@ public partial class ShellWindow
             await DocGoAsync(right, r, null, tabIndex: 0);
             DocWide(leftOnly: false, rightOnly: true);
             DocActivate(right);
-            var tab = Shell.StartSearch(right, "보고서");
+            var tab = Shell.StartSearch(right, Foldy.Core.Localization.Loc.T("demo.q.report"));
             for (var i = 0; i < 40 && (tab is null || tab.IsBusy || tab.Items.Count == 0); i++)
             {
                 await Task.Delay(250);
@@ -390,9 +393,9 @@ public partial class ShellWindow
             var vm = new Foldy.Presentation.Templates.TemplateDialogViewModel(_docLibrary!, Path.Combine(r, "Projects"));
             var item = vm.Templates.First(t => t.Template.Id == "document-workflow"); // 일반 문서 관리 (사용자 2026-11-21: 개발용 말고)
             vm.SelectedTemplate = item;
-            if (vm.Customizer.Variables.FirstOrDefault(v => v.Key == "프로젝트") is { } nameInput)
+            if (vm.Customizer.Variables.FirstOrDefault(v => v.Key == "프로젝트") is { } nameInput) // i18n:skip (템플릿 변수 키)
             {
-                nameInput.Value = "2026 사업계획";
+                nameInput.Value = Foldy.Core.Localization.Loc.T("demo.plan");
             }
 
             vm.SelectedTab = Foldy.Presentation.Templates.TemplateDialogTab.Preview;
@@ -431,18 +434,18 @@ public partial class ShellWindow
             win.Close();
 
             // 뒤죽박죽 문서함 (가짜 파일): 진행 중인 일·계속 관리하는 일·참고 자료·오래된 것이 섞여 있다
-            var messy = Path.Combine(r, "문서함");
+            var messy = Path.Combine(r, Foldy.Core.Localization.Loc.T("demo.inbox"));
             Directory.CreateDirectory(messy);
             foreach (var (name, daysAgo) in new[]
             {
-                ("신제품_기획서.pptx", 3), ("2026_이사_견적비교.xlsx", 5), ("팀회의록_11월.docx", 1),
-                ("건강검진_결과.pdf", 40), ("자동차보험_증권.pdf", 90), ("11월_가계부.xlsx", 2),
-                ("엑셀_함수_참고자료.pdf", 60), ("가족사진_추석.jpg", 50),
-                ("2023_홈페이지개편_완료보고.docx", 700), ("2022_동호회_회비정리.xlsx", 900),
+                (Foldy.Core.Localization.Loc.T("demo.messy1"), 3), (Foldy.Core.Localization.Loc.T("demo.messy2"), 5), (Foldy.Core.Localization.Loc.T("demo.messy3"), 1),
+                (Foldy.Core.Localization.Loc.T("demo.messy4"), 40), (Foldy.Core.Localization.Loc.T("demo.messy5"), 90), (Foldy.Core.Localization.Loc.T("demo.messy6"), 2),
+                (Foldy.Core.Localization.Loc.T("demo.messy7"), 60), (Foldy.Core.Localization.Loc.T("demo.messy8"), 50),
+                (Foldy.Core.Localization.Loc.T("demo.messy9"), 700), (Foldy.Core.Localization.Loc.T("demo.messy10"), 900),
             })
             {
                 var f = Path.Combine(messy, name);
-                File.WriteAllText(f, "Foldy 문서용 예시");
+                File.WriteAllText(f, Foldy.Core.Localization.Loc.T("demo.fake"));
                 var t = DateTime.Now.AddDays(-daysAgo);
                 File.SetLastWriteTime(f, t);
                 File.SetLastAccessTime(f, t);
@@ -502,10 +505,10 @@ public partial class ShellWindow
         {
             DocFolderTab(left);
             DocActivate(left);
-            var job = new JobViewModel("'제주여행' 복사", new WpfDispatcher(Dispatcher)) { MascotKind = Foldy.Presentation.Mascot.JobKind.Copy };
-            job.Detail = "성산일출봉.jpg 외 11개";
+            var job = new JobViewModel(Foldy.Core.Localization.Loc.T("demo.copyJob"), new WpfDispatcher(Dispatcher)) { MascotKind = Foldy.Presentation.Mascot.JobKind.Copy };
+            job.Detail = Foldy.Core.Localization.Loc.T("demo.copyDetail");
             Shell.Jobs.Insert(0, job);
-            job.Report(new FileOpProgress(450, 1000, "성산일출봉.jpg"));
+            job.Report(new FileOpProgress(450, 1000, Foldy.Core.Localization.Loc.T("demo.p1jpg")));
             await DocSettleAsync(300);
             foreach (var m in DocFind<Foldy.UI.Mascot.MascotView>(JobsList))
             {
@@ -541,7 +544,7 @@ public partial class ShellWindow
         {
             DocActivate(left);
             ShowPalette();
-            PaletteInput.Text = "폴더";
+            PaletteInput.Text = Foldy.Core.Localization.Loc.T("sw.qs.folder");
             Palette.StaysOpen = true;
             await DocSettleAsync(800);
             var main = DocRender((FrameworkElement)Content, Background, 2);
@@ -585,19 +588,19 @@ public partial class ShellWindow
 
         await DocSceneAsync("guide", async () =>
         {
-            var g = (GuideWindow)DocOpen(new GuideWindow("바탕화면 정리") { Height = 520 });
-            g.Say("방 청소해 주듯 바탕화면을 정리해 드릴게요. 버리는 건 하나도 없어요.");
-            g.Say("한동안 쓰지 않은 파일이 128개 있어요 (문서 52개, 이미지 41개, 압축 20개, 기타 15개). 바로 가기와 최근 7일 안에 쓴 파일은 그대로 둘게요.");
-            _ = g.AskAsync("바탕화면에 \"바탕화면 보관\" 폴더를 만들고, 그 안에 달별·종류별로 넣어 둘게요. 마음에 안 들면 [되돌리기] 한 번이면 원래대로예요.",
-                ("go", "이대로 정리"), ("detail", "자세히 보기"), ("later", "나중에"));
+            var g = (GuideWindow)DocOpen(new GuideWindow(Foldy.Core.Localization.Loc.T("sw.c.desktop")) { Height = 520 });
+            g.Say(Foldy.Core.Localization.Loc.T("cf.dt.hello"));
+            g.Say(Foldy.Core.Localization.Loc.T("demo.dtFound"));
+            _ = g.AskAsync(Foldy.Core.Localization.Loc.T("demo.dtPlan"),
+                ("go", Foldy.Core.Localization.Loc.T("cf.log.go")), ("detail", Foldy.Core.Localization.Loc.T("cf.details")), ("later", Foldy.Core.Localization.Loc.T("sw.later")));
             await DocShotDialogAsync("guide", g, 500);
             g.Close();
         });
 
         await DocSceneAsync("memo", async () =>
         {
-            var note = new Foldy.Core.Vault.LockedNote { Markdown = "# 집 와이파이\n\n- 이름: home-5G\n- 암호: 예시-암호-1234\n\n# 현관\n\n비밀번호는 가족 생일 순서대로 (힌트만 적어 두기)\n" };
-            var path = Path.Combine(r, "비밀번호" + Foldy.Core.Vault.SecureZip.MemoSuffix);
+            var note = new Foldy.Core.Vault.LockedNote { Markdown = Foldy.Core.Localization.Loc.T("demo.lockedNote") };
+            var path = Path.Combine(r, Foldy.Core.Localization.Loc.T("demo.lockedName") + Foldy.Core.Vault.SecureZip.MemoSuffix);
             var m = (MemoWindow)DocOpen(new MemoWindow(path, note, "doc-shot"));
             await DocShotDialogAsync("memo", m, 900);
             m.Close();
@@ -605,14 +608,14 @@ public partial class ShellWindow
 
         await DocSceneAsync("setup", async () =>
         {
-            var g = (GuideWindow)DocOpen(new GuideWindow("Foldy 시작하기") { Width = 720, Height = 640, FontSize = 18, EchoChoices = false });
-            g.Say("안녕하세요! Foldy예요 👋 먼저 보기 편하게 맞춰 볼게요. 누르면 바로 바뀌니까 보면서 고르세요.");
-            foreach (var (label, scale) in new[] { ("보통", 1.0), ("크게", 1.15), ("아주 크게", 1.3), ("가장 크게", 1.5) })
+            var g = (GuideWindow)DocOpen(new GuideWindow(Foldy.Core.Localization.Loc.T("cf.fr.title")) { Width = 720, Height = 640, FontSize = 18, EchoChoices = false });
+            g.Say(Foldy.Core.Localization.Loc.T("demo.hello"));
+            foreach (var (label, scale) in new[] { (Foldy.Core.Localization.Loc.T("cf.fr.normal"), 1.0), (Foldy.Core.Localization.Loc.T("cf.fr.large"), 1.15), (Foldy.Core.Localization.Loc.T("cf.fr.larger"), 1.3), (Foldy.Core.Localization.Loc.T("cf.fr.largest"), 1.5) })
             {
                 g.ShowContent(FirstRunTour.SampleList(label, scale));
             }
 
-            _ = g.AskAsync("글자 크기는 어떤가요?", ("1.0", "보통"), ("1.15", "크게"), ("1.3", "아주 크게"), ("1.5", "가장 크게"), ("next", "이대로 좋아요"));
+            _ = g.AskAsync(Foldy.Core.Localization.Loc.T("cf.fr.size"), ("1.0", Foldy.Core.Localization.Loc.T("cf.fr.normal")), ("1.15", Foldy.Core.Localization.Loc.T("cf.fr.large")), ("1.3", Foldy.Core.Localization.Loc.T("cf.fr.larger")), ("1.5", Foldy.Core.Localization.Loc.T("cf.fr.largest")), ("next", Foldy.Core.Localization.Loc.T("cf.fr.ok")));
             await DocShotDialogAsync("setup", g, 600);
             g.Close();
         });
@@ -638,8 +641,8 @@ public partial class ShellWindow
         // Foldy 확인 창 (Windows 기본 메시지 상자 대신, 테마를 따른다)
         await DocSceneAsync("dialog", async () =>
         {
-            var d = DocOpen(Foldy.UI.Dialogs.FoldyDialog.Preview("휴지통 비우기", "휴지통의 1,284개 항목(3.2 GB)을 영구 삭제할까요?\n\n비우면 되살릴 수 없어요.",
-                Foldy.UI.Dialogs.DialogKind.Danger, ["비우기", "그만두기"], 1));
+            var d = DocOpen(Foldy.UI.Dialogs.FoldyDialog.Preview(Foldy.Core.Localization.Loc.T("sw.bin.empty"), Foldy.Core.Localization.Loc.T("demo.binAsk"),
+                Foldy.UI.Dialogs.DialogKind.Danger, [Foldy.Core.Localization.Loc.T("sw.bin.emptyYes"), Foldy.Core.Localization.Loc.T("dlg.cancel")], 1));
             await DocShotDialogAsync("dialog", d, 500);
             d.Close();
         });
@@ -647,7 +650,7 @@ public partial class ShellWindow
         // AI 연결 (MCP): 문서용이라 가짜 경로·가짜 앱 상태 (사용자 PC의 경로가 나오지 않게, 설정 파일도 건드리지 않는다)
         await DocSceneAsync("mcp", async () =>
         {
-            Foldy.Core.Mcp.McpClientApp Fake(string name, Foldy.Core.Mcp.McpConfigFormat f, bool installed) => new(name, $@"C:\Users\나\{name}.json", f, installed);
+            Foldy.Core.Mcp.McpClientApp Fake(string name, Foldy.Core.Mcp.McpConfigFormat f, bool installed) => new(name, $@"C:\Users\me\{name}.json", f, installed);
             var apps = new[]
             {
                 Fake("Claude Desktop", Foldy.Core.Mcp.McpConfigFormat.McpServers, true),
@@ -673,7 +676,7 @@ public partial class ShellWindow
         {
             var g = (GuideWindow)DocOpen(new GuideWindow(Services.DeleteFlows.Title));
             _ = Services.DeleteFlows.RunAsync(g, new Foldy.Presentation.Services.BigDeleteQuestion(
-                [@"D:\프로젝트\node_modules"], new Foldy.Core.FileSystem.DeleteCount(182_406, 1_240_000_000, false), true));
+                [DemoProj + @"\node_modules"], new Foldy.Core.FileSystem.DeleteCount(182_406, 1_240_000_000, false), true));
             await DocShotDialogAsync("bigdelete", g, 500);
             g.Close();
         });
@@ -681,32 +684,32 @@ public partial class ShellWindow
         // 지워도 되는 폴더 찾기 (가짜 경로·크기: 문서용)
         await DocSceneAsync("rebuildable", async () =>
         {
-            var g = (GuideWindow)DocOpen(new GuideWindow("지워도 되는 폴더 찾기") { Width = 760, Height = 620 });
+            var g = (GuideWindow)DocOpen(new GuideWindow(Foldy.Core.Localization.Loc.T("dev.rb.title")) { Width = 760, Height = 620 });
             Foldy.Core.Cleanup.RebuildableKind K(string n) => Foldy.Core.Cleanup.RebuildableFolders.Defaults.First(k => k.Name == n);
             var now = DateTime.UtcNow;
             var items = new[]
             {
-                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\쇼핑몰\node_modules", K("node_modules"), 1_840_000_000, now.AddDays(-120), true, null),
-                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\사내도구\bin", K("bin"), 620_000_000, now.AddDays(-200), true, null),
-                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\백업_2024\.git", K(".git"), 410_000_000, now.AddDays(-400), false, "지우면 Git 기록(커밋·브랜치)이 없어져요. 다른 곳에 원본이 있을 때만 지우세요"),
-                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\백업_2024\__history", K("__history"), 96_000_000, now.AddDays(-400), true, null),
-                new Foldy.Core.Cleanup.RebuildableFolder(@"D:\프로젝트\쇼핑몰\.git", K(".git"), 52_000_000, now.AddDays(-1), false, "1일 전에도 쓴 Git 기록이에요. 지금 쓰는 프로젝트라면 지우지 마세요"),
+                new Foldy.Core.Cleanup.RebuildableFolder(DemoProj + @"\" + Foldy.Core.Localization.Loc.T("demo.shop") + @"\node_modules", K("node_modules"), 1_840_000_000, now.AddDays(-120), true, null),
+                new Foldy.Core.Cleanup.RebuildableFolder(DemoProj + @"\" + Foldy.Core.Localization.Loc.T("demo.tools") + @"\bin", K("bin"), 620_000_000, now.AddDays(-200), true, null),
+                new Foldy.Core.Cleanup.RebuildableFolder(DemoProj + @"\" + Foldy.Core.Localization.Loc.T("demo.backup2024") + @"\.git", K(".git"), 410_000_000, now.AddDays(-400), false, Foldy.Core.Localization.Loc.T("rb.gitWarn")),
+                new Foldy.Core.Cleanup.RebuildableFolder(DemoProj + @"\" + Foldy.Core.Localization.Loc.T("demo.backup2024") + @"\__history", K("__history"), 96_000_000, now.AddDays(-400), true, null),
+                new Foldy.Core.Cleanup.RebuildableFolder(DemoProj + @"\" + Foldy.Core.Localization.Loc.T("demo.shop") + @"\.git", K(".git"), 52_000_000, now.AddDays(-1), false, Foldy.Core.Localization.Loc.T("demo.gitRecent1")),
             };
-            g.Say(@"D:\프로젝트 안에서 다시 만들 수 있는 폴더를 찾았어요: 5개(2.8 GB). 큰 것부터 보여 드릴게요. 최근 30일 안에 쓴 것과 .git은 골라 두지 않았어요.");
-            _ = g.PickAsync("휴지통으로 보낼 폴더를 골라 주세요 (휴지통에서 되살릴 수 있어요).",
-                items.Select(f => (f, $"{Foldy.Presentation.Files.FileItem.FormatBytes(f.Size)}  ·  {Path.GetRelativePath(@"D:\프로젝트", f.Path)}  ·  {f.Kind.Why}", f.Selected)), f => f.Warning,
-                ("recycle", "휴지통으로"), ("skip", "그대로 두기"));
+            g.Say(Foldy.Core.Localization.Loc.F("dev.rb.found", 5, "2.8 GB"));
+            _ = g.PickAsync(Foldy.Core.Localization.Loc.T("dev.rb.pick"),
+                items.Select(f => (f, $"{Foldy.Presentation.Files.FileItem.FormatBytes(f.Size)}  ·  {Path.GetRelativePath(DemoProj, f.Path)}  ·  {f.Kind.Why}", f.Selected)), f => f.Warning,
+                ("recycle", Foldy.Core.Localization.Loc.T("ops.toRecycle")), ("skip", Foldy.Core.Localization.Loc.T("cf.keep")));
             await DocShotDialogAsync("rebuildable", g, 600);
             g.Close();
         });
 
         // 빠른 검색 (Ctrl+Space): 바로 찾는 것(기능·설정), 파일(냄새 잘 맡는 개), 계산·단위 변환
-        foreach (var (scene, query, wait) in new[] { ("quicksearch", "보고서", 1500), ("quicksearch-settings", "디스", 600), ("quicksearch-calc", "32평", 600), ("quicksearch-talk", "다운로드 정리해줘", 900) })
+        foreach (var (scene, query, wait) in new[] { ("quicksearch", Foldy.Core.Localization.Loc.T("demo.q.report"), 1500), ("quicksearch-settings", Foldy.Core.Localization.Loc.T("demo.q.disp"), 600), ("quicksearch-calc", Foldy.Core.Localization.Loc.T("demo.q.calc"), 600), ("quicksearch-talk", Foldy.Core.Localization.Loc.T("demo.q.talk"), 900) })
         {
             await DocSceneAsync(scene, async () =>
             {
                 _startApps ??= [];
-                var qs = BuildQuickSearch(Shell.ActivePane.ActiveFolder?.Path, "파일은 지금 폴더 안에서 찾아요. Enter 열기 · Ctrl+Enter 들어 있는 폴더 · Esc 닫기");
+                var qs = BuildQuickSearch(Shell.ActivePane.ActiveFolder?.Path, Foldy.Core.Localization.Loc.T("demo.qsFooter"));
                 qs.KeepOpen = true;
                 ThemeManager.Attach(qs);
                 qs.Show();

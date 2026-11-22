@@ -1179,7 +1179,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("tag.done", Foldy.Core.Localization.Loc.T("sw.c.done"), () => ActiveView.ToggleTag(Foldy.Core.Tags.FileTags.Default), gesture: "Ctrl+D");
         foreach (var t in Foldy.Core.Tags.FileTags.Builtin.Skip(1))
         {
-            Add("tag." + t.Name, Foldy.Core.Localization.Loc.F("sw.tag.toggle", t.Name), () => ActiveView.ToggleTag(t.Name));
+            Add("tag." + t.Name, Foldy.Core.Localization.Loc.F("sw.tag.toggle", Foldy.Core.Tags.FileTags.DisplayName(t.Name)), () => ActiveView.ToggleTag(t.Name));
         }
 
         Add("folder.manage", Foldy.Core.Localization.Loc.T("sw.c.method"), () =>

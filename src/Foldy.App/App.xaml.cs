@@ -35,7 +35,7 @@ public partial class App : Application
     /// 모든 화면 글을 언어 파일로 옮겼나 (다국어 작업 중, 2026-11-21~). 거짓이면 "Windows 언어 따르기"도 한국어로 시작한다.
     /// 다 옮기고 번역을 검수하면 참으로 바꾼다 (DECISIONS 다국어).
     /// </summary>
-    public const bool TranslationComplete = false;
+    public const bool TranslationComplete = true; // 0.9.43: 화면·설명서·템플릿·문서 그림까지 옮김 → 기본은 Windows 언어를 따른다
 
     /// <summary>화면 언어를 정한다 (설정 Language, auto면 Windows 언어). 창을 만들기 전에 불러야 XAML 글이 그 언어로 나온다.</summary>
     private static void ApplyLanguage()
