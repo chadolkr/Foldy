@@ -1,0 +1,17 @@
+---
+import Base from '../../layouts/Base.astro';
+import Privacy from '../../components/Privacy.astro';
+import { locales, defaultLocale, type Locale } from '../../i18n';
+import { privacy } from '../../i18n/privacy';
+
+export function getStaticPaths() {
+  return locales
+    .filter((l) => l.path !== defaultLocale)
+    .map((l) => ({ params: { lang: l.path }, props: { locale: l } }));
+}
+const { locale } = Astro.props as { locale: Locale };
+const c = privacy[locale.path];
+---
+<Base locale={locale} page={{ title: c.title, description: c.description, sub: 'privacy' }}>
+  <Privacy locale={locale} />
+</Base>

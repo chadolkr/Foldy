@@ -1,0 +1,58 @@
+---
+// 개인정보 처리방침 (Microsoft Store 제출 주소: https://chadolkr.github.io/Foldy/privacy/ 와 언어별 /<lang>/privacy/).
+import { locales, localeHref, type Locale } from '../i18n';
+import { privacy, privacyUpdated } from '../i18n/privacy';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = privacy[locale.path];
+const url = /(https:\/\/\S+)/;
+const linkify = (s: string) => s.split(url);
+---
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href={localeHref(locale.path)}>Foldy</a>
+    <nav aria-label={locale.dict.nav.language}>
+      {locales.map((l) => (
+        <a href={`${localeHref(l.path)}privacy/`} lang={l.htmlLang} aria-current={l.path === locale.path ? 'page' : undefined}>{l.name}</a>
+      ))}
+    </nav>
+  </div>
+</header>
+<main class="wrap narrow privacy">
+  <h1>{c.title}</h1>
+  <p class="muted">{c.updatedLabel}: <time datetime={privacyUpdated}>{privacyUpdated}</time></p>
+  <p class="lead">{c.intro}</p>
+  {c.sections.map((s) => (
+    <section>
+      <h2>{s.h}</h2>
+      {s.p?.map((p) => <p>{linkify(p).map((part) => (url.test(part) ? <a class="link" href={part}>{part}</a> : part))}</p>)}
+      {s.items && (
+        <dl>
+          {s.items.map((i) => (
+            <>
+              <dt>{i.t}</dt>
+              <dd>{i.d}</dd>
+            </>
+          ))}
+        </dl>
+      )}
+    </section>
+  ))}
+  <p class="back"><a class="link" href={localeHref(locale.path)}>← {c.back}</a></p>
+</main>
+
+<style>
+  .privacy { padding: 48px 24px 80px; }
+  .privacy h1 { font-size: clamp(28px, 4.5vw, 40px); font-weight: 800; }
+  .privacy .lead { margin-top: 20px; font-size: 19px; }
+  .privacy section { margin-top: 36px; }
+  .privacy h2 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+  .privacy p + p { margin-top: 10px; }
+  .privacy dt { margin-top: 16px; font-weight: 700; }
+  .privacy dd { margin: 4px 0 0; color: var(--text-2); }
+  .privacy .back { margin-top: 48px; }
+  .top nav { flex-wrap: wrap; }
+</style>
