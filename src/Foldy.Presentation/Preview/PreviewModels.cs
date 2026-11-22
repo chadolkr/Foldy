@@ -32,12 +32,12 @@ public enum PreviewStatus
 /// <summary>상태 줄에 쓰는 문구 (DESIGN.md 느린 드라이브 규칙).</summary>
 public static class PreviewMessages
 {
-    public const string NotPreviewable = "미리 볼 수 없음";
-    public const string CloudOnly = "클라우드 파일 — 내려받지 않음";
-    public const string NetworkDrive = "네트워크·클라우드 드라이브 — [미리보기]";
-    public const string Loading = "불러오는 중…";
-    public const string Failed = "미리 볼 수 없음 (처리기 오류)";
-    public const string Folder = "폴더";
+    public static string NotPreviewable => Foldy.Core.Localization.Loc.T("preview.notPreviewable");
+    public static string CloudOnly => Foldy.Core.Localization.Loc.T("preview.cloudOnly");
+    public static string NetworkDrive => Foldy.Core.Localization.Loc.T("preview.networkDrive");
+    public static string Loading => Foldy.Core.Localization.Loc.T("preview.loading");
+    public static string Failed => Foldy.Core.Localization.Loc.T("preview.failed");
+    public static string Folder => Foldy.Core.Localization.Loc.T("preview.folder");
 
     public static string TooLarge(long bytes, long limit) =>
         Foldy.Core.Localization.Loc.F("preview.tooBig", FileItem.FormatBytes(bytes), FileItem.FormatBytes(limit));

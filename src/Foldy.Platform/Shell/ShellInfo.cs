@@ -24,7 +24,7 @@ public static class ShellInfo
     /// <summary>파일마다 아이콘이 다른 확장자 (내용을 읽어야 함 → 보이는 행만, 느린 드라이브는 제외).</summary>
     public static readonly HashSet<string> PerFileIconExtensions = new(StringComparer.OrdinalIgnoreCase) { ".exe", ".lnk", ".ico", ".url", ".cur", ".ani", ".msc", ".scr" };
 
-    public static string TypeName(string name, bool isFolder)
+    public static string TypeName(string name, bool isFolder, Func<string, string>? extFallback = null)
     {
         if (isFolder)
         {
@@ -41,7 +41,7 @@ public static class ShellInfo
         {
             var info = default(SHFILEINFOW);
             var r = Native.SHGetFileInfoW("x" + e, FILE_ATTRIBUTE_NORMAL, ref info, (uint)Marshal.SizeOf<SHFILEINFOW>(), SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES);
-            return r != IntPtr.Zero && !string.IsNullOrEmpty(info.szTypeName) ? info.szTypeName : e.TrimStart('.').ToUpperInvariant() + " 파일";
+            return r != IntPtr.Zero && !string.IsNullOrEmpty(info.szTypeName) ? info.szTypeName : extFallback?.Invoke(e.TrimStart('.').ToUpperInvariant()) ?? e.TrimStart('.').ToUpperInvariant() + " 파일";
         });
     }
 

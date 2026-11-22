@@ -86,7 +86,7 @@ S = {
     # 설정: 언어
     "settings.language": {"ko": "언어", "en": "Language", "es": "Idioma", "ja": "言語", "zh-Hans": "语言"},
     "settings.language.auto": {"ko": "시스템 설정 따르기", "en": "Use system setting", "es": "Usar la configuración del sistema", "ja": "システム設定に従う", "zh-Hans": "跟随系统设置"},
-    "settings.language.hint": {"ko": "바꾸면 Foldy를 다시 켤 때 적용돼요. 한국어 말고는 아직 번역 중이라 일부만 바뀌어요.", "en": "Takes effect the next time Foldy starts. Translation is in progress, so only part of Foldy is translated yet.", "es": "Se aplica la próxima vez que inicies Foldy. La traducción está en curso: por ahora solo una parte está traducida.", "ja": "次に Foldy を起動したときに反映されます。翻訳中のため、まだ一部だけです。", "zh-Hans": "下次启动 Foldy 时生效。翻译仍在进行中，目前只翻译了一部分。"},
+    "settings.language.hint": {"ko": "바꾸면 Foldy를 다시 켤 때 적용돼요.", "en": "Takes effect the next time Foldy starts.", "es": "Se aplica la próxima vez que inicies Foldy.", "ja": "次に Foldy を起動したときに反映されます。", "zh-Hans": "下次启动 Foldy 时生效。"},
 }
 
 

@@ -162,5 +162,9 @@ public sealed class FolderWatchService : IFolderWatchService
 
 public static class TypeNames
 {
-    public static string Get(FsEntry e) => ShellInfo.TypeName(e.Name, e.Kind is FsKind.Folder or FsKind.Drive);
+    /// <summary>폴더·드라이브·확장자 없는 파일은 화면 언어 글, 나머지는 Windows가 주는 종류 이름(Windows 언어).</summary>
+    public static string Get(FsEntry e) =>
+        e.Kind is FsKind.Folder or FsKind.Drive || !System.IO.Path.HasExtension(e.Name)
+            ? Foldy.Presentation.Files.FileItem.DefaultTypeName(e)
+            : ShellInfo.TypeName(e.Name, false, ext => Foldy.Core.Localization.Loc.F("file.typeExt", ext));
 }
