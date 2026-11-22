@@ -30,3 +30,6 @@ TestResults/
 # 파이썬 캐시 (build/i18n 스크립트 실행 때 생김)
 __pycache__/
 *.pyc
+
+# Store 제출 파일 모음 (저장소에 넣지 않음)
+store-upload/

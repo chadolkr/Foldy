@@ -1,8 +1,28 @@
-# Foldy 진행 현황 (2026-11-22 기준, 1.3.0)
+# Foldy 진행 현황 (2026-11-23 기준, 1.3.0)
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
 - 2026-11-22 (1.3.0 준비): 무엇이든 찾기에 제어판·관리 도구 25개와 Windows 설정 11개 더, 쉬운 말 낱말 나눠 맞추기, 보기 단추(모두·앱·설정·폴더·파일·Foldy 기능)·Tab·더 보기·[열기] 단추. DECISIONS.md 같은 날짜 항목.
+
+## 세션 정리 (2026-11-23 01시 KST, 하루 마무리)
+
+**지금 상태**
+- 최신 릴리스 v1.3.0 (main 38a4fea). 2026-11-22 하루에 1.0.0(정식), 1.0.1, 1.1.0, 1.2.0, 1.2.1, 1.3.0을 냈다. 모두 CI·릴리스 성공, update.json 서명 확인.
+- Microsoft Store: 1.3.0 MSIX(v1.3.0 Release 실행의 foldy-store-msix 첨부)로 첫 제출, 2026-11-23 00:50 KST, 인증 중. 제출 파일을 모은 store-upload/ 폴더는 저장소에 넣지 않는다(.gitignore).
+- 업데이트 서명 키는 GitHub release 환경 시크릿(FOLDY_UPDATE_SIGNING_KEY)에만 있다. 2026-11-22에 한 번 잘못 들어가 1.0.0 서명 단계가 멈췄고, 사용자가 키 파일로 다시 넣어 해결.
+- 사용자 노트북: 1.0.1에서 업데이트가 AI 연결용 Foldy 때문에 멈춰 재부팅으로 넘김. 1.1.0부터 서비스·MSI가 AI 연결용 Foldy(--mcp)를 끝내고 설치하지만, 그 판이 깔린 뒤의 업데이트부터 효과가 있다.
+
+**오늘 한 일 (자세한 것은 CHANGELOG·DECISIONS)**
+- AI 연결: 새 Store판 Claude 설정 위치(Claude-Data) 찾기, 연결 뒤 할 일 안내·[Claude 다시 시작], Antigravity 추가. 실제 Claude Desktop에서 Foldy 도구 연결 확인.
+- 미리보기: DRM·암호로 보호된 파일 안내 (실제 DRM 파일로 확인).
+- 업데이트·다시 설치: AI 연결용 Foldy 강제 종료 후 설치. 제목 "… 버전으로".
+- 다른 스레드: 덮어쓰기 복구·금고 2GB+·빈 공간 확인(1.0.0), 금고 처음 쓰기·파일 더 넣기(1.1.0), 기능 찾기 쉽게(1.2.0), 창 숨김·짧은 소개 기억(1.2.1), 무엇이든 찾기 제어판·묶음(1.3.0), Store 등록 정보·개인정보 처리방침, 보안 근거(SBOM·체크섬 등).
+
+**남은 일**
+- Store 인증 결과 확인, 통과하면 사이트·README에 Store 링크.
+- GitHub 저장소 설정: Advanced Security(코드 스캔·비밀 검사) 켜기, About 설명·태그(topics).
+- Google Search Console에 사이트 등록.
+- 홍보 (계획은 개인 노트로 옮김).
 
 ## 세션 정리 (2026-11-21 09:30 KST, 노트북 끄기 전)
 
