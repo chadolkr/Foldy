@@ -136,7 +136,8 @@ public partial class GuideWindow : Window
         var p2 = new PasswordBox { MinWidth = 260, Margin = new Thickness(0, 2, 0, 2) };
         var err = new TextBlock { Foreground = (Brush)FindResource("Brush.Error"), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
         var panel = new StackPanel();
-        panel.Children.Add(new TextBlock { Text = Foldy.Core.Localization.Loc.T("guide.password") });
+        // 새 암호는 길이 제한을 미리 보여 준다 (사용자 원칙: 제한은 미리 알리기)
+        panel.Children.Add(new TextBlock { Text = confirm ? Foldy.Core.Localization.Loc.F("guide.passwordNew", MinNewPasswordLength) : Foldy.Core.Localization.Loc.T("guide.password") });
         panel.Children.Add(p1);
         if (confirm)
         {

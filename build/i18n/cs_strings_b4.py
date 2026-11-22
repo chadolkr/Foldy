@@ -62,7 +62,7 @@ B4 = [
     ("pane.tagSharedTip", "태그를 저장소에 함께 올려요 (.foldy.md가 git status에 보여요)", "Tags are committed with the repository (.foldy.md shows in git status)", "Las etiquetas se suben con el repositorio (.foldy.md aparece en git status)", "タグをリポジトリと一緒に上げます (.foldy.md が git status に表示されます)", "标签随仓库一起提交（.foldy.md 会出现在 git status 中）"),
     ("pane.tagLocalTip", "태그를 이 폴더에만 둬요 (저장소에는 올리지 않아요)", "Tags stay in this folder only (not committed to the repository)", "Las etiquetas se quedan solo en esta carpeta (no se suben al repositorio)", "タグはこのフォルダーにだけ置きます (リポジトリには上げません)", "标签只保存在此文件夹（不提交到仓库）"),
     ("pane.tidyOk", " · 잘 정리돼 있어요", " · nicely organized", " · bien ordenada", " · きちんと整理されています", " · 整理得很好"),
-    ("pane.menu.encrypt", "🔒 암호 걸기…", "🔒 Encrypt…", "🔒 Cifrar…", "🔒 パスワードをかける…", "🔒 加密…"),
+    ("pane.menu.encrypt", "🔒 잠그기 (암호)…", "🔒 Lock (password)…", "🔒 Bloquear (contraseña)…", "🔒 ロック (パスワード)…", "🔒 锁定（密码）…"),
     ("pane.menu.versions", "이전 버전 보기…", "Previous versions…", "Versiones anteriores…", "以前のバージョンを見る…", "查看以前的版本…"),
     ("pane.menu.vault", "🔒 금고에 넣기…", "🔒 Put in vault…", "🔒 Guardar en la caja fuerte…", "🔒 金庫に入れる…", "🔒 放入保险箱…"),
     ("pane.clipWrite", "클립보드를 쓸 수 없습니다: ", "Can't write to the clipboard: ", "No se puede escribir en el portapapeles: ", "クリップボードに書き込めません: ", "无法写入剪贴板："),

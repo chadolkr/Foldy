@@ -93,7 +93,7 @@ La franja de la izquierda reúne las funciones que usas desde cualquier panel. C
 - **Herramientas**: el resto de funciones se reúne en cuatro grupos. Al pulsar un grupo se abre su menú.
   - 🔍 **Buscar**: búsqueda de archivos, análisis de carpetas, solo imágenes
   - 🧹 **Ordenar**: ordenar esta carpeta, carpeta nueva desde plantilla, asistente de carpetas, elegir un método de gestión, ordenar escritorio, Descargas y registros
-  - 🔒 **Proteger**: nota nueva, nota bloqueada, cifrar, caja fuerte, versiones anteriores (botón derecho), papelera
+  - 🔒 **Proteger**: nota nueva, nota bloqueada, bloquear un archivo, caja fuerte, versiones anteriores (botón derecho), papelera
   - 🔗 **Conectar**: SFTP, vista Git, terminal
 - **Papelera**: muestra cuánto se ha acumulado; **Vaciar** la vacía al momento.
 - **Abajo del todo**: configuración (**Ctrl+,**), ayuda (**F1**), más (todos los comandos **Ctrl+Shift+P**, tema, archivos ocultos, espaciado de la lista, actualizaciones, informar de un error, recorrido, acerca de Foldy).
@@ -498,7 +498,7 @@ Cuando una copia o un movimiento con Foldy **sobrescribe** un archivo del mismo 
 
 La contraseña del wifi, el código de la puerta: cosas que debes recordar pero no quieres apuntar en cualquier sitio. Guárdalas en una **nota bloqueada**. Pide la contraseña cada vez que la abres, y puedes leerla y editarla dentro de Foldy.
 
-- **Crear**: barra lateral **Proteger** → **Nota bloqueada nueva**. Aparece `Nueva nota.memo.foldylock` en la carpeta actual y se abre el editor. Cambia el nombre con F2.
+- **Crear**: barra lateral **Proteger** → **🔒 Escribir una nota bloqueada**. Aparece `Nueva nota.memo.foldylock` en la carpeta actual (en Documentos si la carpeta actual no está en este PC) y se abre el editor. Cambia el nombre con F2. Después Foldy selecciona el archivo nuevo en la lista y muestra dónde se guardó arriba de la ventana de la nota.
 - **Abrir**: doble clic, escribe la contraseña y se abre el editor. Texto a la izquierda, vista previa a la derecha (Markdown).
 - **Imágenes**: captura la pantalla y pega con **Ctrl+V**, o arrastra un archivo de imagen, y queda guardado dentro de la nota.
 ![Editor de notas bloqueadas](images/es/memo.png)
@@ -507,19 +507,19 @@ La contraseña del wifi, el código de la puerta: cosas que debes recordar pero 
 - El contenido se descifra solo en memoria. El texto descifrado nunca queda en el disco (ni en archivos temporales).
 - 💡 Si tienes muchas contraseñas importantes, también vale la pena usar un gestor como Bitwarden o KeePass.
 
-### Cifrar un archivo
+### Bloquear un archivo
 
-Puedes poner contraseña a un archivo existente, como un contrato. Botón derecho en el archivo → **🔒 Cifrar…**. Aparece `contrato.pdf.foldylock` en la misma carpeta; tras comprobar que se descifra bien, Foldy pregunta "¿Envío el original a la papelera?".
+Puedes bloquear un archivo existente, como un contrato. Botón derecho en el archivo → **🔒 Bloquear (contraseña)…**, o en la barra lateral **Proteger** → **🔒 Bloquear un archivo** (si no hay ninguno seleccionado, se abre una ventana para elegirlo). Aparece `contrato.pdf.foldylock` en la misma carpeta; tras comprobar que se descifra bien, Foldy pregunta "¿Envío el original a la papelera?".
 
 - Doble clic para escribir la contraseña; las imágenes y el texto se muestran dentro de Foldy. Para otros archivos, Foldy dice "Ábrelo con su programa habitual" y **[Descifrar y abrir]** lo convierte de nuevo en el archivo original y lo abre.
 - Recuperas exactamente lo que bloqueaste. No cambia ni un byte.
 
 ### Caja fuerte
 
-Guarda una carpeta importante entera en una caja fuerte. Botón derecho en la carpeta → **🔒 Guardar en la caja fuerte…**. Aparece un único archivo `nombredecarpeta.foldyvault`; tras comprobar cada archivo descifrándolo, Foldy pregunta si envía la carpeta original a la papelera.
+Guarda una carpeta importante entera en una caja fuerte. Botón derecho en la carpeta → **🔒 Guardar en la caja fuerte…**, o en la barra lateral **Proteger** → **🔒 Guardar una carpeta en una caja fuerte** (si no hay ninguna seleccionada, se abre una ventana para elegirla). Aparece un único archivo `nombredecarpeta.foldyvault`; tras comprobar cada archivo descifrándolo, Foldy pregunta si envía la carpeta original a la papelera.
 
 - **No hay límite de tamaño.** Los archivos de más de 4 GB entran y salen sin problema. Eso sí, Foldy conserva los originales hasta terminar, así que necesita ese espacio libre extra, y una memoria USB antigua en FAT32 no puede guardar una caja fuerte de más de 4 GB. Foldy lo comprueba **antes** de pedir la contraseña, te avisa enseguida si falta espacio y te ofrece [Liberar espacio] para hacer sitio.
-- Doble clic para escribir la contraseña y ver la lista de archivos de dentro. Elige archivos para **previsualizar** (solo en memoria), **extraer** o **extraer todo**.
+- Doble clic para escribir la contraseña y ver la lista de archivos de dentro. Elige archivos para **previsualizar** (solo en memoria), **extraer** o **extraer todo**. Los archivos que saques van sin contraseña a una carpeta con el mismo nombre junto a la caja fuerte, y también se quedan dentro.
 
 ### Sobre los archivos bloqueados
 

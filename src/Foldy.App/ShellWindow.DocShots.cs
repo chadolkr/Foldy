@@ -669,6 +669,63 @@ public partial class ShellWindow
             m.Close();
         });
 
+        // 지키기 (사용자 2026-11-22: 잠긴 메모·금고가 직관적이지 않다): 메뉴, 새 잠긴 메모의 첫 화면, 다 만든 뒤 메모 창, 파일 잠그기 끝, 금고 열기
+        await DocSceneAsync("secure-menu", async () =>
+        {
+            var btn = DocFind<Button>((FrameworkElement)Content).First(b => b.ContextMenu?.Items.OfType<MenuItem>().Any(i => i.Tag as string == "secure.vault") == true);
+            var menu = btn.ContextMenu!;
+            menu.PlacementTarget = btn;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Right;
+            menu.IsOpen = true;
+            await DocSettleAsync(800);
+            DocSave("secure-menu", DocRender(menu, Brushes.Transparent, 2), 2);
+            menu.IsOpen = false;
+        });
+
+        await DocSceneAsync("secure-memo-new", async () =>
+        {
+            var g = (GuideWindow)DocOpen(new GuideWindow(Foldy.Core.Localization.Loc.T("sec.newLocked")) { Height = 620 });
+            g.Say(Foldy.Core.Localization.Loc.T("sec.newLockedHello"));
+            g.Say(Foldy.Core.Localization.Loc.T("sec.pwManagerTip"));
+            g.Say(Foldy.Core.Localization.Loc.T("sec.policyNote"));
+            _ = g.AskPasswordAsync(Foldy.Core.Localization.Loc.T("sec.forgetWarning"), confirm: true, okLabel: Foldy.Core.Localization.Loc.T("sec.makeMemo"));
+            await DocShotDialogAsync("secure-memo-new", g, 600);
+            g.Close();
+        });
+
+        await DocSceneAsync("secure-memo-where", async () =>
+        {
+            var note = new Foldy.Core.Vault.LockedNote { Markdown = Foldy.Core.Localization.Loc.T("demo.lockedNote") };
+            var name = Foldy.Core.Localization.Loc.T("sec.newMemoName") + Foldy.Core.Vault.SecureZip.MemoSuffix;
+            var m = (MemoWindow)DocOpen(new MemoWindow(Path.Combine(r, name), note, "doc-shot"));
+            m.Tell(Foldy.Core.Localization.Loc.F("sec.memoWhere", name, DocShotsSandbox.Documents(r)));
+            await DocShotDialogAsync("secure-memo-where", m, 900);
+            m.Close();
+        });
+
+        await DocSceneAsync("secure-lock-done", async () =>
+        {
+            var file = Foldy.Core.Localization.Loc.T("demo.quote");
+            var g = (GuideWindow)DocOpen(new GuideWindow(Foldy.Core.Localization.Loc.T("sec.encrypt")) { Height = 560 });
+            g.Say(Foldy.Core.Localization.Loc.F("sec.encryptAsk", file, file, Foldy.Core.Vault.SecureZip.LockExtension));
+            g.Say(Foldy.Core.Localization.Loc.T("sec.encrypting"));
+            _ = g.AskAsync(Foldy.Core.Localization.Loc.F("sec.encryptDone", file + Foldy.Core.Vault.SecureZip.LockExtension),
+                ("recycle", Foldy.Core.Localization.Loc.T("sec.origToBin")), ("delete", Foldy.Core.Localization.Loc.T("sec.origDelete")), ("keep", Foldy.Core.Localization.Loc.T("sec.origKeep")));
+            await DocShotDialogAsync("secure-lock-done", g, 600);
+            g.Close();
+        });
+
+        await DocSceneAsync("secure-vault-open", async () =>
+        {
+            var g = (GuideWindow)DocOpen(new GuideWindow(Foldy.Core.Localization.Loc.T("sec.vaultOpen")) { Height = 600 });
+            g.Say(Foldy.Core.Localization.Loc.F("sec.vaultList", 4, Foldy.Core.Localization.Loc.T("demo.lockedName")));
+            var files = new[] { (Foldy.Core.Localization.Loc.T("demo.messy5"), 312_400L, true), (Foldy.Core.Localization.Loc.T("demo.messy4"), 1_204_000L, false), (Foldy.Core.Localization.Loc.T("demo.quote"), 48_200L, false), (Foldy.Core.Localization.Loc.T("demo.p1jpg"), 2_480_000L, false) };
+            _ = g.PickAsync(Foldy.Core.Localization.Loc.T("sec.fileList"), files.Select(f => (f.Item1, $"{f.Item1}  ·  {Foldy.Presentation.Files.FileItem.FormatBytes(f.Item2)}", f.Item3)),
+                ("preview", Foldy.Core.Localization.Loc.T("sec.previewPicked")), ("extract", Foldy.Core.Localization.Loc.T("sec.extractPicked")), ("all", Foldy.Core.Localization.Loc.T("sec.extractAll")), ("close", Foldy.Core.Localization.Loc.T("cf.close")));
+            await DocShotDialogAsync("secure-vault-open", g, 600);
+            g.Close();
+        });
+
         await DocSceneAsync("setup", async () =>
         {
             var g = (GuideWindow)DocOpen(new GuideWindow(Foldy.Core.Localization.Loc.T("cf.fr.title")) { Width = 720, Height = 640, FontSize = 18, EchoChoices = false });

@@ -96,6 +96,9 @@ public partial class MemoWindow : Window
         return new MemoWindow(path, note, null, startInView);
     }
 
+    /// <summary>위쪽 안내 줄에 한마디 (예: 새 잠긴 메모를 어디에 저장했는지, 다시 여는 법).</summary>
+    public void Tell(string text) => StatusText.Text = text;
+
     private void OnIdleTick(object? sender, EventArgs e)
     {
         if (DateTime.UtcNow - _lastInput > IdleLimit)

@@ -17,7 +17,7 @@ B8 = [
     # GuideWindow
     ("guide.toggleAll", "모두 고르기 / 모두 풀기", "Select all / clear all", "Seleccionar todo / quitar todo", "すべて選択 / すべて解除", "全选 / 全部取消"),
     ("guide.password", "암호", "Password", "Contraseña", "パスワード", "密码"),
-    ("guide.again", "한 번 더", "Once more", "Otra vez", "もう一度", "再输一次"),
+    ("guide.again", "같은 암호를 한 번 더", "Same password again", "La misma contraseña otra vez", "同じパスワードをもう一度", "再输一次同样的密码"),
     ("guide.enterPw", "암호를 입력해 주세요.", "Please enter a password.", "Escribe una contraseña.", "パスワードを入力してください。", "请输入密码。"),
     ("guide.mismatch", "두 암호가 달라요. 다시 입력해 주세요.", "The two passwords don't match. Please try again.", "Las dos contraseñas no coinciden. Vuelve a escribirlas.", "2 つのパスワードが違います。もう一度入力してください。", "两次输入的密码不一致，请重新输入。"),
     ("guide.pwMin", "암호는 {0}글자 이상으로 정해 주세요. 단어 몇 개를 띄어 쓴 문장이 기억하기 쉽고 안전해요.", "Use at least {0} characters. A few words with spaces in between are easy to remember and safe.", "Usa al menos {0} caracteres. Unas cuantas palabras separadas por espacios son fáciles de recordar y seguras.", "パスワードは {0} 文字以上にしてください。単語をいくつか空白でつないだ文が覚えやすく安全です。", "密码请至少 {0} 个字符。用空格隔开的几个词既好记又安全。"),
