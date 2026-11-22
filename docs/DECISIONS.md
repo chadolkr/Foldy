@@ -7,6 +7,8 @@
 - **결정**: 짧은 소개는 `help\images\<언어>\<그림>`이 있으면 그것을, 없으면 지금처럼 한국어판 그림을 쓴다. [건너뛰기]·[시작하기] 단추도 번역(tour.skip, tour.start). 언어별 그림은 `build/doc-screenshots.ps1 -Lang en -Out assets\help\images\en`으로 찍는다(FOLDY_LANGUAGE로 언어 고정).
 - **언제 찍나**: 앱 화면 번역이 끝난 뒤(TranslationComplete). 지금 찍으면 반은 영어·반은 한국어인 화면이 된다. 샘플 폴더의 파일 이름(보고서_2026_Q1.docx 등)도 그때 언어별로 바꾼다.
 - **다른 안**: 다른 언어에서는 그림을 숨기고 글만 (기능이 안 보여 기각).
+- **소개 사이트도 같은 그림 (사용자 제보 "Pages에 화면캡처가 영문이나 다른 언어에서 한글 화면이다")**: 사이트도 `assets/help/images/<앱 언어>/`가 있으면 그것을, 없으면 한국어판 `docs/images`. 한 번 찍으면 앱 쇼츠와 사이트가 함께 바뀐다. 한국어판으로 대신한 그림이 있을 때만 "화면 사진은 한국어판" 한 줄.
+- **찍는 계획**: ① 앱 번역 완료(TranslationComplete = true) ② 샘플 폴더 파일 이름을 언어별로(DocShotsSandbox) ③ 노트북에서 `doc-screenshots.ps1 -Lang en|es|ja|zh-Hans -Out assets\help\images\<언어>` 네 번 ④ 눈으로 훑고 PR. 사이트와 쇼츠는 코드 수정 없이 바뀐다.
 
 ## 2026-11-22 · 설치 화면을 Foldy 모양으로 (0.9.33, 사용자 요청)
 - **경위**: "MSI 설치 화면도 디자인을 반영해야겠더라. 쇼츠처럼 문구도 반영하고."
