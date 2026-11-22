@@ -1,4 +1,4 @@
-# Foldy 진행 현황 (2026-11-22 기준, 1.0.2)
+# Foldy 진행 현황 (2026-11-22 기준, 1.1.0)
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
@@ -37,8 +37,7 @@
 - 0.9.7: 탭 줄 SFTP 단추, 서버 트리 한 단계 펼치기.
 - 0.9.8: 수다쟁이 Foldy(원칙 1.4), 업데이트 진행 창, 트리 "불러오는 중".
 - 0.9.9: 이미지만 보기 안내 줄과 [모든 파일 보기].
-- **이어서 할 일 (2026-11-22 저녁, 노트북 재부팅 전)**: 브랜치 claude/update-mcp-wait(1.0.2)를 .NET 빌드·전체 시험(UpdateProgressTextTests 포함) 돌리고 PR → 병합 → v1.0.2 태그. Rust foldy-index 시험·clippy, MSI 빌드(ICE 경고 없음)는 확인함. 사용자 노트북은 1.0.1 업데이트·재설치가 막혀 재부팅함: 재부팅 뒤 1.0.1이 깔렸는지 확인, 아니면 MSI로 다시 설치. 원인 기록은 DECISIONS 2026-11-22 "AI 연결용 Foldy".
-- 1.0.2: 업데이트·다시 설치가 AI 연결용 Foldy(--mcp)를 끝내고 진행 (engine/foldy-index/src/update: Host::mcp_processes·end_process, win.rs command_line/is_mcp_command_line, 설치 프로그램 CustomAction EndAiConnectionFoldy). 업데이트 창 제목 "… 버전으로".
+- 1.1.0 (SemVer 부: 금고에 파일 더 넣기 기능이 같이 들어가 1.0.2 대신 1.1.0): 업데이트·다시 설치가 AI 연결용 Foldy(--mcp)를 끝내고 진행 (engine/foldy-index/src/update: Host::mcp_processes·end_process, win.rs command_line/is_mcp_command_line, 설치 프로그램 CustomAction EndAiConnectionFoldy). 업데이트 창 제목 "… 버전으로".
 - 1.0.1: 미리보기 DRM·암호 안내 (Foldy.Presentation/Preview/FileProtectionCheck.cs, PreviewStatus.Protected, 문구 build/i18n/preview_strings.py, 시험 tests/Foldy.Preview.Tests/FileProtectionTests.cs).
 - 1.0.0: 정식 릴리스 (코드·보안·번역 최종 점검 docs/reviews/2026-11-22-1.0-final-review.md). 덮어쓰기 복구·금고 2GB+·시작 전 빈 공간 확인(PR #23), AI 연결: Claude Desktop 설정 폴더를 판마다 찾음(McpClientConfig.ClaudeDesktopDirs, Claude-Data, .user-data-left 표시 폴더 제외), 연결 뒤 할 일(McpNextSteps, McpWindow.ShowNext, [Claude 다시 시작] = ClaudeRestart/ClaudeDesktopApp), Antigravity(~/.gemini/config/mcp_config.json), 그림 mcp-next.png(언어별).
 - 0.9.44: 짧은 소개 초점(문서 캡처가 <그림>.focus.json에 실제 요소 위치를 적고 ShortsWindow.Camera가 그리로 다가감, 시험 Short_intro_images_have_a_focus_area), 남은 한국어(qs.top, dog.*, mcpex.*), SemVer 규칙 docs/versioning.md.
