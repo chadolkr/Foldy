@@ -164,6 +164,40 @@ const es: Dictionary = {
       { title: 'Cualquiera puede leer el código', text: 'Foldy es código abierto GPL-3.0. Comprueba exactamente qué hace y ayuda a mejorarlo.' },
     ],
     link: 'Leer la política de privacidad',
+    proof: {
+      title: "¿Cómo saber que no hay código malicioso?",
+      lead: "En lugar de pedirte que confíes en nosotros, publicamos pruebas que cualquiera puede comprobar. Las generan otras empresas y organizaciones, como GitHub y VirusTotal, no la persona que creó Foldy.",
+      items: [
+        { id: "source", title: "Todo el código es público", text: "Cualquiera puede leer las instrucciones con las que está hecho el programa (el código fuente). No hay nada oculto.", link: "Ver el código fuente" },
+        { id: "build", title: "Se fabrica sin intervención humana", text: "Los instaladores los crean servidores públicos de GitHub solo a partir del código público, nunca en el ordenador de una persona. Cada compilación deja un registro.", link: "Ver los registros" },
+        { id: "attest", title: "Cada archivo tiene un certificado de origen", text: "GitHub firma un certificado que dice \"este archivo se creó con este código\". No se puede falsificar y un archivo falso no pasa la comprobación.", link: "Ver los certificados" },
+        { id: "virus", title: "Revisado por más de 70 antivirus", text: "Cada versión nueva se analiza en VirusTotal y el enlace a los resultados se pone en la página de descarga.", link: "Resultados de la última versión" },
+        { id: "codeql", title: "El código se revisa automáticamente", text: "El analizador de seguridad de GitHub (CodeQL) busca puntos débiles en cada cambio y cada semana. Se bloquean las piezas (bibliotecas) con problemas conocidos.", link: "Ver los análisis" },
+        { id: "scorecard", title: "Una puntuación de seguridad pública", text: "La Open Source Security Foundation (OpenSSF) puntúa lo bien que se gestiona el proyecto y lo muestra a todos.", link: "Ver la puntuación" },
+        { id: "review", title: "Revisión de seguridad antes de publicar", text: "Antes de la versión 0.9 se revisaron aparte el código y la seguridad, y se corrigió todo lo encontrado. La revisión es pública.", link: "Leer la revisión" },
+        { id: "network", title: "Todas las conexiones a internet, a la vista", text: "Solo la búsqueda de actualizaciones (GitHub) y los informes de errores de quien los active. Nada más, salvo las conexiones SFTP o Git que tú mismo abras.", link: "Ver la lista" },
+      ],
+      more: "Cómo comprobar que tu descarga es auténtica",
+    },
+    fake: {
+      title: "Cuidado con los Foldy falsos",
+      lead: "A veces aparecen sitios falsos que imitan programas gratuitos conocidos para repartir programas dañinos. Descarga Foldy solo de estos dos sitios.",
+      officialTitle: "Estas son las únicas direcciones oficiales",
+      store: "En Microsoft Store: \"Foldy File Manager\", de David CHA (muy pronto)",
+      points: [
+        "Foldy es gratis. Si te piden un pago, un registro o una \"clave de licencia\", es falso.",
+        "Foldy se actualiza solo. Un correo o una ventana que te pida descargar un \"archivo de actualización\" es falso.",
+        "Un Foldy instalado solo instala actualizaciones con una firma digital válida, así que un sitio falso no puede colarse.",
+      ],
+      checkTitle: "Comprueba que tu descarga es auténtica",
+      checks: [
+        "Pulsa el enlace de VirusTotal en la página de descarga (versión en GitHub) para ver los resultados del antivirus.",
+        "Comprueba que la huella (SHA-256) de tu archivo coincide con SHA256SUMS.txt de la página de descarga.",
+        "Si te manejas con el ordenador, comprueba el certificado de origen con la orden gh attestation verify.",
+      ],
+      report: "¿Has visto un sitio o archivo falso? No lo descargues ni lo abras; solo envíanos la dirección.",
+      reportLink: "Avisar de un falso",
+    },
   },
   why: {
     eyebrow: '¿Por qué código abierto?',
@@ -201,6 +235,7 @@ const es: Dictionary = {
   faq: {
     title: 'Preguntas',
     items: [
+      { q: "¿Tiene virus o código de hackeo?", a: "No. Y no hace falta creernos: todo el código es público y los instaladores se crean solo en servidores públicos, con certificado de origen y resultados del antivirus. Míralo arriba, en \"¿Cómo saber que no hay código malicioso?\". Esto vale solo para los archivos de las dos direcciones oficiales." },
       { q: '¿De verdad es gratis?', a: 'Sí. Sin anuncios ni funciones de pago. Es código abierto GPL-3.0, así que cualquiera puede leer el código fuente.' },
       { q: '¿Sustituye al Explorador de archivos?', a: 'Puedes usar los dos. Los menús del clic derecho, arrastrar y soltar y los atajos son iguales, así que casi no hay nada que aprender.' },
       { q: '¿Necesita internet?', a: 'No. Todo funciona sin conexión. Internet solo se usa para buscar actualizaciones y para las conexiones SFTP o Git que tú inicies.' },
@@ -217,6 +252,7 @@ const es: Dictionary = {
     made: 'Hecho por David CHA',
     license: 'Código abierto GPL-3.0',
     privacy: 'Privacidad',
+    security: "Seguridad",
     issues: 'Informar de un problema',
     source: 'Código fuente',
     note: 'Todas las capturas de este sitio son de Foldy real, hechas con carpetas de ejemplo inventadas.',

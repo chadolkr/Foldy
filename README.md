@@ -8,6 +8,8 @@
 
 **한국어** · [English](README.en.md)
 
+[![CI](https://github.com/chadolkr/Foldy/actions/workflows/ci.yml/badge.svg)](https://github.com/chadolkr/Foldy/actions/workflows/ci.yml) [![CodeQL](https://github.com/chadolkr/Foldy/actions/workflows/codeql.yml/badge.svg)](https://github.com/chadolkr/Foldy/actions/workflows/codeql.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/chadolkr/Foldy/badge)](https://scorecard.dev/viewer/?uri=github.com/chadolkr/Foldy)
+
 > **English:** Foldy is a free, open-source dual-pane file manager for Windows 10/11 with instant Ctrl+Space search, a disk space analyzer and step-by-step Desktop and Downloads cleanup. Everything works offline. → [Read in English](README.en.md) · [Website](https://chadolkr.github.io/Foldy/en/)
 
 - **검색**은 0.003초
@@ -70,6 +72,7 @@
 - [소스에서 빌드](#소스에서-빌드)
 - [기여하기](#기여하기)
 - [Code signing policy](#code-signing-policy)
+- [안전한가요?](SECURITY.md)
 - [왜 오픈소스인가요](#왜-오픈소스인가요)
 - [라이선스](#라이선스)
 
@@ -85,6 +88,8 @@
 ## 설치
 
 [Releases](https://github.com/chadolkr/Foldy/releases)에서 받습니다.
+
+> **공식 주소는 https://github.com/chadolkr/Foldy 와 https://chadolkr.github.io/Foldy/ 두 곳뿐입니다.** 다른 곳에서 받은 Foldy는 가짜일 수 있어요. 받은 파일이 진짜인지 확인하는 방법(VirusTotal, SHA-256 지문, 빌드 출처 증명)과 Foldy가 인터넷에 연결하는 경우는 [SECURITY.md](SECURITY.md)에 있습니다.
 
 | 방법 | 파일 | 설명 |
 | --- | --- | --- |

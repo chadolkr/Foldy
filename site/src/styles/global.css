@@ -171,6 +171,35 @@ kbd { font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text
 @media (max-width: 560px) { .card-grid { grid-template-columns: 1fr; } }
 #safety .center { margin-top: 32px; }
 
+/* 안전한가요? 근거 */
+.proof { margin-top: 64px; }
+.proof > h3, .fake > h3 { font-size: 26px; font-weight: 800; text-align: center; }
+.proof > .muted { text-align: center; max-width: 720px; margin: 12px auto 0; font-size: 18px; }
+.proof-list { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.proof-list li { display: flex; gap: 14px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.proof-list li > .icon { flex: none; color: var(--accent-strong); margin-top: 3px; }
+.proof-list h4 { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.4; }
+.proof-list li > div > p { margin-top: 4px; }
+.proof-list p { margin-top: 6px; color: var(--text-2); font-size: 16px; }
+.proof-list .link { display: inline-block; margin-top: 8px; font-size: 16px; }
+@media (max-width: 760px) { .proof-list { grid-template-columns: 1fr; } }
+
+/* 가짜 Foldy 조심 */
+.fake { margin: 56px auto 0; max-width: 760px; background: var(--surface); border: 2px solid var(--accent-strong); border-radius: var(--radius); padding: 28px; }
+.fake > h3 { display: flex; gap: 10px; align-items: center; justify-content: center; }
+.fake > h3 .icon { color: var(--accent-strong); }
+.fake > p { margin-top: 12px; font-size: 17px; }
+.fake-label { margin-top: 20px; font-weight: 700; font-size: 17px; }
+.fake-official ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.fake-official code { display: inline-block; font-size: 17px; padding: 6px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--text); overflow-wrap: anywhere; }
+.fake-official a { text-decoration: none; }
+.fake-official .muted { margin-top: 8px; }
+.fake-points { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 10px; }
+.fake-points li { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; }
+.fake-points .icon { flex: none; color: var(--accent-strong); margin-top: 2px; }
+.fake-checks { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 6px; font-size: 16px; }
+.fake-report { margin-top: 20px; font-size: 16px; }
+
 /* AI */
 .apps { margin-top: 16px; font-size: 15px; color: var(--text-2); font-weight: 500; }
 .examples-title { margin-top: 24px; font-weight: 700; }
@@ -227,3 +256,4 @@ kbd { font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text
 .gpl li { display: grid; gap: 2px; padding-left: 18px; border-left: 3px solid var(--accent); }
 .gpl li span { color: var(--text-2); font-size: 17px; }
 @media (max-width: 560px) { .gpl { padding: 22px 18px; } }
+@media (max-width: 560px) { .fake { padding: 20px; } .proof > h3, .fake > h3 { font-size: 22px; } }

@@ -1,0 +1,43 @@
+name: OpenSSF Scorecard
+
+# OpenSSF Scorecard: 오픈소스 프로젝트가 안전하게 관리되는지(코드 리뷰, 서명, 의존성 고정, 위험한 워크플로 등)
+# 제3자 기준으로 점수를 매긴다. 결과는 https://scorecard.dev/viewer/?uri=github.com/chadolkr/Foldy 에 공개된다.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '41 4 * * 2'
+  branch_protection_rule:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write   # 결과를 Code scanning에 올림
+      id-token: write          # 결과를 scorecard.dev에 공개(서명)
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@23f22cd43608bae7a1f1fa2603d7314dee9538a5 # v2.6.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 7
+
+      - uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          sarif_file: results.sarif

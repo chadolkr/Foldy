@@ -18,6 +18,8 @@ Foldy will not transfer any information to other networked systems unless specif
 - 광고, 사용 통계, 추적 기능은 없습니다. / There are no ads, analytics or tracking.
 - 제거하면 프로그램과 서비스가 함께 지워집니다 (README의 제거 방법 참고). / Uninstalling removes the program and the service.
 
+내려받은 파일이 진짜인지 확인하는 방법과 공개 보안 근거 / How to verify downloads and public security evidence: [SECURITY.md](SECURITY.md)
+
 Microsoft Store 판은 업데이트를 직접 확인하지 않고 Microsoft Store가 업데이트합니다. / The Microsoft Store edition does not check for updates itself; Microsoft Store updates it.
 
 5개 언어로 쉽게 쓴 같은 내용: <https://chadolkr.github.io/Foldy/privacy/> (Store 제출 주소) / The same policy in plain words, in five languages: <https://chadolkr.github.io/Foldy/en/privacy/>
