@@ -42,6 +42,19 @@ jobs:
         shell: pwsh
         run: ./build.ps1
 
+      # Rust 프로그램이 Visual C++ 재배포 패키지 없이 도는지 (engine/.cargo/config.toml의 crt-static).
+      # 런타임 DLL을 찾으면 그런 PC에서 색인 서비스가 시작하지 못해 MSI 설치가 되돌려진다 (1.3.0, winget 검증).
+      - name: Rust binaries need no VC++ runtime
+        shell: pwsh
+        run: |
+          foreach ($f in 'foldy-index.exe', 'foldy-update.exe', 'foldy_copy.dll') {
+            $p = "engine/target/release/$f"
+            if (-not (Test-Path $p)) { throw "$p 없음" }
+            $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($p))
+            if ($text -match '(?i)vcruntime140(_1)?\.dll|msvcp140\.dll') { throw "$f 가 $($Matches[0])을 찾습니다" }
+            Write-Host "$f OK"
+          }
+
       # 화면 자동 점검: 모든 장면(메인, 대화 창, 메모, 작은 화면 1366x768, 큰 글씨 130%, 다크 테마, 설정, 위저드 …)을
       # 실제로 띄워 찍어 본다. 창이 하나라도 열리지 않거나 예외가 나면 실패한다. 찍은 그림은 아티팩트로 남긴다.
       - name: UI smoke (all scenes)
