@@ -46,7 +46,7 @@ const es: Dictionary = {
       { icon: 'search', title: 'También el Panel de control', text: 'Escribe "Agregar o quitar programas", "Administrador de dispositivos" o "variables de entorno" en Ctrl+Space para abrir el Panel de control clásico y las herramientas administrativas. Los resultados se agrupan en aplicaciones, ajustes, carpetas y archivos, como en la búsqueda de Windows.' },
       { icon: 'info', title: 'Fácil desde el primer día', text: 'Los grupos del menú muestran una marca ›, y Foldy te avisa de una función una sola vez, justo cuando sirve. La presentación corta recuerda lo que ya viste y solo enseña lo nuevo.' },
       { icon: 'lock', title: 'Cajas fuertes y notas bloqueadas más sencillas', text: 'Cada opción del menú dice para qué sirve, y Foldy te indica dónde se guardó todo. Ahora puedes añadir más archivos a una caja fuerte que ya creaste.' },
-      { icon: 'update', title: 'Actualizaciones que no se atascan', text: 'Las actualizaciones ya no esperan a un Foldy que una app de IA abrió en segundo plano. Los archivos protegidos con DRM de empresa lo indican en la vista previa.' },
+      { icon: 'update', title: 'Se instala en cualquier PC', text: 'Desde la 1.3.1, Foldy se instala en PCs nuevos que no tienen el runtime de Visual C++. Las actualizaciones ya no esperan a un Foldy que una app de IA abrió en segundo plano.' },
     ],
     link: 'Ver todos los cambios',
   },
