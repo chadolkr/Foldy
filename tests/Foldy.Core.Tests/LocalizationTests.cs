@@ -100,6 +100,38 @@ public sealed partial class LocalizationTests
         used.Where(k => !k.EndsWith('.') && !ko.ContainsKey(k)).Should().BeEmpty("strings.py 표에 넣고 python build/i18n/strings.py로 언어 파일을 다시 만들어야 한다");
     }
 
+    /// <summary>언어별 설명서(assets/help/index.&lt;언어&gt;.md)의 그림이 다 있어야 하고, 한국어 말고는 본문에 한국어가 거의 없어야 한다.</summary>
+    [Fact]
+    public void Help_files_point_to_existing_images()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Foldy.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        var help = Path.Combine(dir!.FullName, "assets", "help");
+        var files = Directory.GetFiles(help, "index*.md");
+        files.Should().Contain(f => Path.GetFileName(f) == "index.md");
+        foreach (var f in files)
+        {
+            var text = File.ReadAllText(f);
+            foreach (Match m in ImageLink().Matches(text))
+            {
+                File.Exists(Path.Combine(help, m.Groups[1].Value.Replace('/', Path.DirectorySeparatorChar))).Should().BeTrue($"{Path.GetFileName(f)}: 그림 {m.Groups[1].Value}");
+            }
+
+            if (Path.GetFileName(f) != "index.md")
+            {
+                // 예전 한국어 폴더 이름 같은 몇 곳만 남는다
+                Hangul().Count(text).Should().BeLessThan(80, $"{Path.GetFileName(f)}에 한국어가 많이 남았다");
+            }
+        }
+    }
+
+    [GeneratedRegex(@"!\[[^\]]*\]\((images/[^)]+)\)")]
+    private static partial Regex ImageLink();
+
     [GeneratedRegex(@"Loc\.[TF]\(""([^""]+)""")]
     private static partial Regex CodeKey();
 

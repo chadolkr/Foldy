@@ -1179,7 +1179,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("tag.done", Foldy.Core.Localization.Loc.T("sw.c.done"), () => ActiveView.ToggleTag(Foldy.Core.Tags.FileTags.Default), gesture: "Ctrl+D");
         foreach (var t in Foldy.Core.Tags.FileTags.Builtin.Skip(1))
         {
-            Add("tag." + t.Name, Foldy.Core.Localization.Loc.F("sw.tag.toggle", t.Name), () => ActiveView.ToggleTag(t.Name));
+            Add("tag." + t.Name, Foldy.Core.Localization.Loc.F("sw.tag.toggle", Foldy.Core.Tags.FileTags.DisplayName(t.Name)), () => ActiveView.ToggleTag(t.Name));
         }
 
         Add("folder.manage", Foldy.Core.Localization.Loc.T("sw.c.method"), () =>
@@ -2805,7 +2805,9 @@ public partial class ShellWindow : Window, IPaneHost
     private void ShowHelp()
     {
         var src = Path.Combine(AppContext.BaseDirectory, "help");
-        var index = Path.Combine(src, "index.md");
+        // 앱 언어의 설명서(index.<언어>.md)가 있으면 그것, 없으면 한국어판 (그림은 images\<언어>\, 문서 안 경로로 고른다)
+        var name = File.Exists(Path.Combine(src, $"index.{Foldy.Core.Localization.Loc.Current}.md")) ? $"index.{Foldy.Core.Localization.Loc.Current}.md" : "index.md";
+        var index = Path.Combine(src, name);
         if (!File.Exists(index))
         {
             Foldy.UI.Dialogs.FoldyDialog.Info(this, Foldy.Core.Localization.Loc.T("cmd.help"), Foldy.Core.Localization.Loc.T("sw.help.missing") + index, Foldy.UI.Dialogs.DialogKind.Warning);
@@ -2831,7 +2833,7 @@ public partial class ShellWindow : Window, IPaneHost
                 }
             }
 
-            index = Path.Combine(dst, "index.md");
+            index = Path.Combine(dst, name);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

@@ -121,3 +121,7 @@ from cs_strings_up import UP  # noqa: E402
 CS = CS + UP
 from cs_strings_b8 import B8  # noqa: E402
 CS = CS + B8
+from cs_strings_demo import DEMO  # noqa: E402
+CS = CS + DEMO
+from cs_strings_demo2 import DEMO2  # noqa: E402
+CS = CS + DEMO2

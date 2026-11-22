@@ -137,7 +137,8 @@ public sealed class TemplateLibrary
             }
 
             t.IsBuiltIn = true;
-            t.Guide ??= ReadResource(asm, ResourcePrefix + fileId + ".guide.md");
+            // 사용법은 앱 언어판(<id>.guide.<언어>.md)이 있으면 그것, 없으면 한국어 원본
+            t.Guide ??= ReadResource(asm, ResourcePrefix + fileId + ".guide." + Foldy.Core.Localization.Loc.Current + ".md") ?? ReadResource(asm, ResourcePrefix + fileId + ".guide.md");
             list.Add(t);
         }
 

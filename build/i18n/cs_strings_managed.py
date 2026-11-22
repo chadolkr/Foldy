@@ -28,3 +28,10 @@ MANAGED = [
     ("cn.downloads", "다운로드 폴더에 정리할 만한 파일이 {0} 있어요.", "Your Downloads folder has {0} of files worth tidying.", "Tu carpeta Descargas tiene {0} en archivos que conviene ordenar.", "ダウンロード フォルダーに整理できそうなファイルが {0} あります。", "下载文件夹里有 {0} 可以整理的文件。"),
     ("cn.desktop", "바탕화면에 한동안 쓰지 않은 파일이 {0:N0}개 있어요. 지우지 않고 종류별로 보관해 드릴까요?", "There are {0:N0} files on your desktop you haven't used for a while. Shall I archive them by type, without deleting anything?", "Hay {0:N0} archivos en tu escritorio que no usas desde hace tiempo. ¿Los archivo por tipo, sin borrar nada?", "デスクトップにしばらく使っていないファイルが {0:N0} 個あります。消さずに種類別に保管しましょうか?", "桌面上有 {0:N0} 个一段时间没用的文件。要不删除、按类型归档吗？"),
 ]
+
+MANAGED += [
+    ("tag.done", "작업 완료", "Done", "Hecho", "完了", "已完成"),
+    ("tag.applied", "반영 완료", "Applied", "Aplicado", "反映済み", "已应用"),
+    ("tag.review", "검토 중", "In review", "En revisión", "レビュー中", "审阅中"),
+    ("tag.submitted", "제출 완료", "Submitted", "Entregado", "提出済み", "已提交"),
+]
