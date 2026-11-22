@@ -179,6 +179,7 @@ const es: Dictionary = {
       { title: 'Puedes ver por dentro', text: 'Todo el código fuente de Foldy es público, así que cualquiera puede comprobar qué hace.' },
       { title: 'Cámbialo y compártelo', text: 'Puedes adaptar Foldy a tu gusto y dárselo a otras personas.' },
       { title: 'Compártelo igual de abierto', text: 'Si das a otros un Foldy modificado, debe seguir bajo GPL-3.0 e ir acompañado de su código fuente. Así Foldy sigue abierto para todos, lo cambie quien lo cambie.' },
+      { title: 'En qué se diferencia de MIT', text: 'Usarlo es libre para todos. Pero si creas un programa con el código de Foldy y lo das a otros, ese programa también debe ser GPL-3.0 con su código fuente público. Por eso el código de Foldy no puede ir en programas comerciales de código cerrado. Con MIT basta con citar el origen y puedes mantener tu código cerrado.' },
       { title: 'Sin garantía', text: 'Como se comparte gratis, no hay garantía si algo falla. Pasa con casi todo el software libre. Cuéntanos los problemas y los arreglamos juntos.' },
     ],
     link: 'Leer la licencia completa (en inglés)',
