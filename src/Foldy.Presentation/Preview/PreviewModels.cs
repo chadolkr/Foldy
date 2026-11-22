@@ -40,7 +40,7 @@ public static class PreviewMessages
     public const string Folder = "폴더";
 
     public static string TooLarge(long bytes, long limit) =>
-        $"파일이 커서 미리 볼 수 없음 ({FileItem.FormatBytes(bytes)} > {FileItem.FormatBytes(limit)})";
+        Foldy.Core.Localization.Loc.F("preview.tooBig", FileItem.FormatBytes(bytes), FileItem.FormatBytes(limit));
 }
 
 /// <summary>

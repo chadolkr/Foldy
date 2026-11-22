@@ -73,28 +73,28 @@ public sealed partial class UpdateViewModel : ObservableObject
         {
             if (!ServiceAvailable)
             {
-                return "업데이트 서비스를 사용할 수 없습니다";
+                return Foldy.Core.Localization.Loc.T("upd.unavailable");
             }
 
             if (IsBusy && Status.Phase is not UpdatePhase.Downloading)
             {
-                return "업데이트 확인 중…";
+                return Foldy.Core.Localization.Loc.T("sw.upd.checking");
             }
 
             var v = Status.AvailableVersion;
             return Status.Phase switch
             {
                 _ when Mode == UpdateMode.Off && Status.Phase is UpdatePhase.Idle or UpdatePhase.Disabled or UpdatePhase.UpToDate
-                    => "자동 업데이트 꺼짐",
-                UpdatePhase.Idle => "아직 확인하지 않았습니다",
-                UpdatePhase.Checking => "업데이트 확인 중…",
-                UpdatePhase.UpToDate => $"최신 버전입니다 ({Status.CurrentVersion})",
-                UpdatePhase.Downloading => $"새 버전 {v} 내려받는 중… {Math.Clamp(Status.DownloadProgress, 0, 1).ToString("P0", CultureInfo.CurrentCulture)}",
-                UpdatePhase.ReadyToInstall when Status.Mandatory => $"필수 업데이트 {v} 설치 준비됨",
-                UpdatePhase.ReadyToInstall => $"새 버전 {v} 설치 준비됨",
-                UpdatePhase.InstallScheduled => $"작업이 끝나면 {v}을(를) 설치합니다",
-                UpdatePhase.Skipped => $"{v} 버전을 건너뛰었습니다",
-                UpdatePhase.Disabled => "자동 업데이트 꺼짐",
+                    => Foldy.Core.Localization.Loc.T("upd.off"),
+                UpdatePhase.Idle => Foldy.Core.Localization.Loc.T("upd.notChecked"),
+                UpdatePhase.Checking => Foldy.Core.Localization.Loc.T("sw.upd.checking"),
+                UpdatePhase.UpToDate => Foldy.Core.Localization.Loc.F("upd.latest", Status.CurrentVersion),
+                UpdatePhase.Downloading => Foldy.Core.Localization.Loc.F("upd.downloading", v, Math.Clamp(Status.DownloadProgress, 0, 1).ToString("P0", CultureInfo.CurrentCulture)),
+                UpdatePhase.ReadyToInstall when Status.Mandatory => Foldy.Core.Localization.Loc.F("upd.requiredReady", v),
+                UpdatePhase.ReadyToInstall => Foldy.Core.Localization.Loc.F("upd.ready", v),
+                UpdatePhase.InstallScheduled => Foldy.Core.Localization.Loc.F("upd.afterJobs", v),
+                UpdatePhase.Skipped => Foldy.Core.Localization.Loc.F("upd.skipped", v),
+                UpdatePhase.Disabled => Foldy.Core.Localization.Loc.T("upd.off"),
                 _ => "",
             };
         }
@@ -102,8 +102,8 @@ public sealed partial class UpdateViewModel : ObservableObject
 
     /// <summary>설정 화면의 "마지막 확인" 줄. 네트워크 장애는 이 시간이 멈추는 것으로만 보인다.</summary>
     public string LastCheckText => Status.LastCheck is { } t
-        ? "마지막 확인: " + TimeZoneInfo.ConvertTime(t, _time.LocalTimeZone).ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture)
-        : "마지막 확인: 없음";
+        ? Foldy.Core.Localization.Loc.F("upd.lastCheck", TimeZoneInfo.ConvertTime(t, _time.LocalTimeZone).ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture))
+        : Foldy.Core.Localization.Loc.T("upd.lastNone");
 
     /// <summary>화면을 열 때 서비스의 현재 상태를 읽는다.</summary>
     public async Task RefreshAsync(CancellationToken ct = default)

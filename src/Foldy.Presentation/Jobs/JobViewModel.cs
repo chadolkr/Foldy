@@ -22,7 +22,7 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
     private string _title;
 
     [ObservableProperty]
-    private string _detail = "준비 중…";
+    private string _detail = Foldy.Core.Localization.Loc.T("job.preparing");
 
     [ObservableProperty]
     private double _progress; // 0~1, 모르면 -1
@@ -89,27 +89,27 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
         {
             State = JobState.Done;
             Progress = 1;
-            Detail = $"완료 · {FormatElapsed(_sw.Elapsed)}" + (string.IsNullOrEmpty(r.Error) ? "" : $" · {r.Error}");
+            Detail = Foldy.Core.Localization.Loc.F("job.done", FormatElapsed(_sw.Elapsed)) + (string.IsNullOrEmpty(r.Error) ? "" : $" · {r.Error}");
         }
         else if (r.Aborted)
         {
             State = JobState.Canceled;
-            Detail = "취소됨";
+            Detail = Foldy.Core.Localization.Loc.T("ops.cancelled");
         }
         else
         {
             State = JobState.Failed;
-            Detail = r.Error ?? "실패";
+            Detail = r.Error ?? Foldy.Core.Localization.Loc.T("job.failed");
         }
 
         _cts.Dispose();
     }
 
-    private static string FormatElapsed(TimeSpan t) => t.TotalSeconds < 1 ? $"{t.TotalMilliseconds:0}ms" : $"{t.TotalSeconds:0.0}초";
+    private static string FormatElapsed(TimeSpan t) => t.TotalSeconds < 1 ? $"{t.TotalMilliseconds:0}ms" : Foldy.Core.Localization.Loc.F("job.seconds", t.TotalSeconds);
 
     public static string Describe(IReadOnlyList<string> paths) =>
-        paths.Count == 1 ? $"'{System.IO.Path.GetFileName(paths[0].TrimEnd('\\'))}'" : $"{paths.Count:N0}개 항목";
+        paths.Count == 1 ? $"'{System.IO.Path.GetFileName(paths[0].TrimEnd('\\'))}'" : Foldy.Core.Localization.Loc.F("pane.items", paths.Count);
 
     internal static string SizeOrCount(IReadOnlyList<FileItem> items) =>
-        items.Count == 1 ? items[0].Name : $"{items.Count:N0}개 항목";
+        items.Count == 1 ? items[0].Name : Foldy.Core.Localization.Loc.F("pane.items", items.Count);
 }

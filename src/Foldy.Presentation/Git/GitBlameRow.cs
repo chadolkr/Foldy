@@ -9,14 +9,14 @@ public sealed record GitBlameRow(
 {
     public string ShaShown => IsBlockStart ? (IsUncommitted ? "·······" : ShortHash) : "";
 
-    public string AuthorShown => IsBlockStart ? (IsUncommitted ? "커밋 안 됨" : Author) : "";
+    public string AuthorShown => IsBlockStart ? (IsUncommitted ? Foldy.Core.Localization.Loc.T("git.uncommitted") : Author) : "";
 
     public string DateShown => IsBlockStart ? (IsUncommitted ? "" : DateText) : "";
 
     /// <summary>커밋 해시를 눌러 이동할 수 있는 줄인가.</summary>
     public bool CanNavigate => IsBlockStart && !IsUncommitted;
 
-    public string Tooltip => IsUncommitted ? "아직 커밋하지 않은 변경" : $"{ShortHash} · {Author} · {DateText}\n{Summary}";
+    public string Tooltip => IsUncommitted ? Foldy.Core.Localization.Loc.T("git.uncommittedChanges") : $"{ShortHash} · {Author} · {DateText}\n{Summary}";
 
     public string Display => Text.Contains('\t') ? Text.Replace("\t", "    ") : Text;
 
@@ -32,11 +32,11 @@ public static class GitTime
     {
         var d = now - date;
         if (d < TimeSpan.Zero) d = TimeSpan.Zero;
-        if (d < TimeSpan.FromMinutes(1)) return "방금 전";
-        if (d < TimeSpan.FromHours(1)) return $"{(int)d.TotalMinutes}분 전";
-        if (d < TimeSpan.FromDays(1)) return $"{(int)d.TotalHours}시간 전";
-        if (d < TimeSpan.FromDays(30)) return $"{(int)d.TotalDays}일 전";
-        if (d < TimeSpan.FromDays(365)) return $"{(int)(d.TotalDays / 30)}개월 전";
-        return $"{(int)(d.TotalDays / 365)}년 전";
+        if (d < TimeSpan.FromMinutes(1)) return Foldy.Core.Localization.Loc.T("git.justNow");
+        if (d < TimeSpan.FromHours(1)) return Foldy.Core.Localization.Loc.F("git.minAgo", (int)d.TotalMinutes);
+        if (d < TimeSpan.FromDays(1)) return Foldy.Core.Localization.Loc.F("git.hoursAgo", (int)d.TotalHours);
+        if (d < TimeSpan.FromDays(30)) return Foldy.Core.Localization.Loc.F("git.daysAgo", (int)d.TotalDays);
+        if (d < TimeSpan.FromDays(365)) return Foldy.Core.Localization.Loc.F("git.monthsAgo", (int)(d.TotalDays / 30));
+        return Foldy.Core.Localization.Loc.F("git.yearsAgo", (int)(d.TotalDays / 365));
     }
 }

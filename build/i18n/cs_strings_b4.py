@@ -39,7 +39,7 @@ B4 = [
     # PaneView
     ("pane.col.name", "이름", "Name", "Nombre", "名前", "名称"),
     ("pane.col.size", "크기", "Size", "Tamaño", "サイズ", "大小"),
-    ("pane.col.modified", "수정", "Modified", "Modificado", "更新日時", "修改时间"),
+    ("pane.col.modified", "수정", "Modified", "Modificado", "更新", "修改"),
     ("pane.col.location", "위치", "Location", "Ubicación", "場所", "位置"),
     ("pane.escCancel", " · Esc 취소", " · Esc to cancel", " · Esc para cancelar", " · Esc でキャンセル", " · Esc 取消"),
     ("pane.git.added", "추가", "Added", "Añadido", "追加", "已添加"),

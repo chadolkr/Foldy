@@ -148,12 +148,12 @@ public sealed partial class FolderWizardViewModel : ObservableObject
             }
         };
 
-        Steps.Add(new WizardStepItem(WizardStep.Purpose, "용도 고르기"));
-        Steps.Add(new WizardStepItem(WizardStep.Questions, "몇 가지 질문"));
-        Steps.Add(new WizardStepItem(WizardStep.Recommend, "추천과 설명"));
-        Steps.Add(new WizardStepItem(WizardStep.Customize, "내 상황에 맞추기"));
-        Steps.Add(new WizardStepItem(WizardStep.Confirm, "확인"));
-        Steps.Add(new WizardStepItem(WizardStep.Done, "완료"));
+        Steps.Add(new WizardStepItem(WizardStep.Purpose, Foldy.Core.Localization.Loc.T("wiz.step.purpose")));
+        Steps.Add(new WizardStepItem(WizardStep.Questions, Foldy.Core.Localization.Loc.T("wiz.step.questions")));
+        Steps.Add(new WizardStepItem(WizardStep.Recommend, Foldy.Core.Localization.Loc.T("wiz.step.recommend")));
+        Steps.Add(new WizardStepItem(WizardStep.Customize, Foldy.Core.Localization.Loc.T("wiz.step.customize")));
+        Steps.Add(new WizardStepItem(WizardStep.Confirm, Foldy.Core.Localization.Loc.T("dlg.ok")));
+        Steps.Add(new WizardStepItem(WizardStep.Done, Foldy.Core.Localization.Loc.T("wiz.step.done")));
 
         foreach (var p in definition.Purposes)
         {
@@ -249,10 +249,10 @@ public sealed partial class FolderWizardViewModel : ObservableObject
 
     public string NextLabel => CurrentStep switch
     {
-        WizardStep.Purpose when SelectedPurpose?.Action == "organize" => "정리 시작",
-        WizardStep.Confirm => "만들기",
-        WizardStep.Done => "마침",
-        _ => "다음",
+        WizardStep.Purpose when SelectedPurpose?.Action == "organize" => Foldy.Core.Localization.Loc.T("wiz.startTidy"),
+        WizardStep.Confirm => Foldy.Core.Localization.Loc.T("wiz.create"),
+        WizardStep.Done => Foldy.Core.Localization.Loc.T("wiz.finish"),
+        _ => Foldy.Core.Localization.Loc.T("wiz.next"),
     };
 
     partial void OnCurrentStepChanged(WizardStep value)
@@ -448,7 +448,7 @@ public sealed partial class FolderWizardViewModel : ObservableObject
             Result = TemplateApplier.Apply(plan, template, _fs, new TemplateApplyOptions { WriteDescription = WriteDescription });
             if (!Result.Succeeded)
             {
-                Error = "일부를 만들지 못했습니다: " + string.Join(", ", Result.Failed.Select(f => Path.GetFileName(f.Path)));
+                Error = Foldy.Core.Localization.Loc.T("wiz.partial") + string.Join(", ", Result.Failed.Select(f => Path.GetFileName(f.Path)));
             }
 
             if (SaveAsMyTemplate && Customizer.BuildCustomizedCopy() is { } copy)

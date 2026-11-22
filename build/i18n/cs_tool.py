@@ -154,6 +154,36 @@ def dump(path, prefix):
             print(f'$\t{show(ko)}\t' + ' | '.join(args))
 
 
+def unwrap_string_create(raw):
+    """string.Create(CultureInfo.X, Loc.F(...)) → Loc.F(...) (보간 처리기 자리에는 Loc.F를 넘길 수 없다. Loc.F는 지금 문화권으로 쓴다)."""
+    pat = re.compile(r'string\.Create\(\s*(?:System\.Globalization\.)?CultureInfo\.\w+,\s*(?=' + re.escape(F) + r'\()')
+    while True:
+        m = pat.search(raw)
+        if not m:
+            return raw
+        i = m.end()
+        depth = 0
+        j = i
+        while True:
+            c = raw[j]
+            if c in '"\'':
+                j = skip_literal(raw, j, c)
+                continue
+            if c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        # raw[i:j+1] 은 Loc.F(...), 그 뒤의 ')' 는 string.Create 닫는 괄호
+        k = j + 1
+        while raw[k] in ' \r\n\t':
+            k += 1
+        assert raw[k] == ')', raw[m.start():k + 1]
+        raw = raw[:m.start()] + raw[i:j + 1] + raw[k + 1:]
+
+
 def table():
     sys.path.insert(0, HERE)
     from cs_strings import CS  # noqa
@@ -187,6 +217,7 @@ def apply(path):
             np_ += 1
         else:
             left.append(v)
+    raw = unwrap_string_create(raw)
     open(path, 'w', encoding='utf-8').write(raw)
     print(os.path.basename(path), 'interp', ni, 'plain', np_, 'left', len(left))
     for v in reversed(left):
