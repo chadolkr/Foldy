@@ -36,19 +36,19 @@ public static class RebuildableFolders
     /// <summary>기본 종류 (이름 순서는 화면에 보이는 순서).</summary>
     public static readonly IReadOnlyList<RebuildableKind> Defaults =
     [
-        new("node_modules", "npm install 하면 다시 생겨요", Js),
-        new("bin", "빌드하면 다시 생겨요 (.NET)", DotNet),
-        new("obj", "빌드하면 다시 생겨요 (.NET)", DotNet),
-        new("target", "빌드하면 다시 생겨요 (Rust·Java)", ["Cargo.toml", "pom.xml"]),
-        new("__pycache__", "파이썬이 실행할 때 다시 만들어요", []),
-        new(".venv", "파이썬 가상 환경: 다시 만들면 돼요", [], "pyvenv.cfg"),
-        new("venv", "파이썬 가상 환경: 다시 만들면 돼요", [], "pyvenv.cfg"),
-        new("dist", "빌드하면 다시 생겨요", ["package.json", "pyproject.toml", "setup.py"]),
-        new("build", "빌드하면 다시 생겨요", ["package.json", "build.gradle", "build.gradle.kts", "CMakeLists.txt", "pyproject.toml", "setup.py"]),
-        new(".gradle", "Gradle이 다시 만들어요", ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"]),
-        new("__history", "편집기(Delphi·RAD Studio)가 남긴 예전 사본이에요", []),
-        new("__recovery", "편집기(Delphi·RAD Studio)가 남긴 복구용 사본이에요", []),
-        new(".git", "Git 기록이에요. 지우면 되돌릴 수 없어요 (백업 사본 안이라면 지워도 돼요)", [], "HEAD", CanRebuild: false),
+        new("node_modules", Foldy.Core.Localization.Loc.T("rb.npm"), Js),
+        new("bin", Foldy.Core.Localization.Loc.T("rb.dotnet"), DotNet),
+        new("obj", Foldy.Core.Localization.Loc.T("rb.dotnet"), DotNet),
+        new("target", Foldy.Core.Localization.Loc.T("rb.rustJava"), ["Cargo.toml", "pom.xml"]),
+        new("__pycache__", Foldy.Core.Localization.Loc.T("rb.pycache"), []),
+        new(".venv", Foldy.Core.Localization.Loc.T("rb.venv"), [], "pyvenv.cfg"),
+        new("venv", Foldy.Core.Localization.Loc.T("rb.venv"), [], "pyvenv.cfg"),
+        new("dist", Foldy.Core.Localization.Loc.T("rb.build"), ["package.json", "pyproject.toml", "setup.py"]),
+        new("build", Foldy.Core.Localization.Loc.T("rb.build"), ["package.json", "build.gradle", "build.gradle.kts", "CMakeLists.txt", "pyproject.toml", "setup.py"]),
+        new(".gradle", Foldy.Core.Localization.Loc.T("rb.gradle"), ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"]),
+        new("__history", Foldy.Core.Localization.Loc.T("rb.history"), []),
+        new("__recovery", Foldy.Core.Localization.Loc.T("rb.recovery"), []),
+        new(".git", Foldy.Core.Localization.Loc.T("rb.git"), [], "HEAD", CanRebuild: false),
     ];
 
     /// <summary>"최근에 썼다"로 보는 기간.</summary>
@@ -67,7 +67,7 @@ public static class RebuildableFolders
                 continue;
             }
 
-            list.Add(new RebuildableKind(name, "직접 더한 이름이에요", []));
+            list.Add(new RebuildableKind(name, Foldy.Core.Localization.Loc.T("rb.custom"), []));
         }
 
         return list;
@@ -148,8 +148,8 @@ public static class RebuildableFolders
         if (!kind.CanRebuild)
         {
             warning = recent
-                ? $"{(int)Math.Max(0, (nowUtc - last).TotalDays)}일 전에도 쓴 Git 기록이에요. 지금 쓰는 프로젝트라면 지우지 마세요"
-                : "지우면 Git 기록(커밋·브랜치)이 없어져요. 다른 곳에 원본이 있을 때만 지우세요";
+                ? Foldy.Core.Localization.Loc.F("rb.gitRecent", (int)Math.Max(0, (nowUtc - last).TotalDays))
+                : Foldy.Core.Localization.Loc.T("rb.gitWarn");
         }
 
         // 다시 만들 수 있고 최근에 안 쓴 것만 기본으로 고른다 (.git은 늘 사용자가 직접)

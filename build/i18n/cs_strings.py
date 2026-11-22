@@ -115,3 +115,5 @@ from cs_strings_core import CORE  # noqa: E402
 CS = CS + CORE
 from cs_strings_managed import MANAGED  # noqa: E402
 CS = CS + MANAGED
+from cs_strings_b7 import B7  # noqa: E402
+CS = CS + B7

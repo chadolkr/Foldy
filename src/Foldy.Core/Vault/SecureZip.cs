@@ -6,7 +6,7 @@ using ICSharpCode.SharpZipLib.Zip;
 namespace Foldy.Core.Vault;
 
 /// <summary>암호가 틀렸을 때.</summary>
-public sealed class WrongPasswordException() : Exception("암호가 맞지 않아요.");
+public sealed class WrongPasswordException() : Exception(Foldy.Core.Localization.Loc.T("sz.wrongPw"));
 
 /// <summary>
 /// 금고(.foldyvault)와 잠긴 파일(.foldylock)의 바탕: AES-256 zip.
@@ -390,22 +390,22 @@ public static class SecureZip
                 Header header;
                 using (var hs = zf.GetInputStream(h))
                 {
-                    header = JsonSerializer.Deserialize<Header>(hs) ?? throw new InvalidDataException("금고 머리 정보가 비어 있어요.");
+                    header = JsonSerializer.Deserialize<Header>(hs) ?? throw new InvalidDataException(Foldy.Core.Localization.Loc.T("sz.noHeader"));
                 }
 
                 if (header.Format != 2 || header.Kdf != "pbkdf2-sha256" || header.IterationCount is < MinIterations or > MaxIterations)
                 {
-                    throw new InvalidDataException("지원하지 않는 금고 형식이에요. Foldy를 업데이트해 주세요.");
+                    throw new InvalidDataException(Foldy.Core.Localization.Loc.T("sz.unsupported"));
                 }
 
                 var salt = Convert.FromBase64String(header.Salt);
                 if (salt.Length < 16)
                 {
-                    throw new InvalidDataException("금고 머리 정보가 잘못됐어요.");
+                    throw new InvalidDataException(Foldy.Core.Localization.Loc.T("sz.badHeader"));
                 }
 
                 zf.Password = CachedKey(password, salt, header.IterationCount);
-                var idx = zf.GetEntry(IndexEntry) ?? throw new InvalidDataException("금고 목록이 없어요.");
+                var idx = zf.GetEntry(IndexEntry) ?? throw new InvalidDataException(Foldy.Core.Localization.Loc.T("sz.noList"));
                 List<IndexItem> list;
                 try
                 {
@@ -504,7 +504,7 @@ public sealed class LockedNote
     {
         for (var i = Images.Count + 1; ; i++)
         {
-            var name = $"{folder}그림-{i}{ext}";
+            var name = Foldy.Core.Localization.Loc.F("sz.imageName", folder, i, ext);
             if (!Images.ContainsKey(name))
             {
                 Images[name] = bytes;
@@ -639,7 +639,7 @@ public static class VaultMaker
                     {
                         if ((d.Attributes & FileAttributes.ReparsePoint) != 0)
                         {
-                            skipped.Add((d.FullName, "폴더 링크(정션·바로 가기 폴더)라 따라가지 않았어요"));
+                            skipped.Add((d.FullName, Foldy.Core.Localization.Loc.T("sz.link")));
                         }
                         else
                         {
@@ -654,7 +654,7 @@ public static class VaultMaker
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
             {
-                skipped.Add((dir, "열 수 없는 폴더예요"));
+                skipped.Add((dir, Foldy.Core.Localization.Loc.T("sz.cantOpen")));
             }
         }
 
