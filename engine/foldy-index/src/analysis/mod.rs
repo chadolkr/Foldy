@@ -18,7 +18,7 @@
 
 pub mod rules;
 
-use foldy_ntfs::VolumeIndex;
+use foldy_ntfs::{VolumeIndex, fold_name};
 use foldy_ntfs::index::flags;
 use rules::{DirFacts, FileFacts, RuleSet};
 use rusqlite::{Connection, params};
@@ -203,6 +203,93 @@ pub fn extract(idx: &VolumeIndex) -> Extracted {
         files.push(XFile { id: i, dir: d, name_off, name_len, size: nd.size, alloc: nd.alloc, mtime: nd.mtime, flags: nd.flags });
     }
     Extracted { root_path: idx.root_path().to_string(), names, dirs, files }
+}
+
+/// 다른 사용자의 프로필 폴더 같은 곳은 그 폴더 한 줄(하위 전체 크기)만 남기고 안의 폴더·파일 이름은 뺀다
+/// (보안 리뷰 2026-11-22 V4, 사용자 결정 "다른 계정 폴더는 합계만"). `hidden`은 전체 경로이고 대소문자는 가리지 않는다.
+/// 서비스는 SYSTEM으로 드라이브 전체를 색인하므로, 그대로 두면 분석을 요청한 사람이 DB를 직접 열어 다른 사람의 파일 이름을 볼 수 있다.
+pub fn hide_folders(ex: Extracted, hidden: &[String]) -> Extracted {
+    let nd = ex.dirs.len();
+    if nd == 0 || hidden.is_empty() {
+        return ex;
+    }
+    let root = fold_name(ex.root_path.trim_end_matches('\\'));
+    let mut sealed = vec![false; nd];
+    for h in hidden {
+        let h = fold_name(h.replace('/', "\\").trim_end_matches('\\'));
+        let Some(rest) = h.strip_prefix(root.as_str()) else { continue };
+        if !rest.starts_with('\\') {
+            continue; // 루트 자신이거나 이름만 앞이 같은 다른 폴더
+        }
+        // 루트에서 한 단계씩 내려가며 이름이 같은 폴더를 찾는다 (프로필은 보통 \Users\이름, 두 단계)
+        let mut level: Vec<u32> = vec![0];
+        for comp in rest.split('\\').filter(|c| !c.is_empty()) {
+            let next: Vec<u32> = (1..nd as u32)
+                .filter(|&k| {
+                    let d = &ex.dirs[k as usize];
+                    level.contains(&d.parent) && fold_name(ex.dir_name(d)) == comp
+                })
+                .collect();
+            level = next;
+            if level.is_empty() {
+                break;
+            }
+        }
+        for k in level {
+            if k != 0 {
+                sealed[k as usize] = true;
+            }
+        }
+    }
+    if !sealed.iter().any(|&x| x) {
+        return ex;
+    }
+    // 가려진 폴더의 하위인가 (0=미정, 1=남김, 2=뺌)
+    let mut state = vec![0u8; nd];
+    state[0] = 1;
+    let mut chain = Vec::new();
+    for start in 0..nd {
+        chain.clear();
+        let mut cur = start;
+        let verdict = loop {
+            if state[cur] != 0 {
+                break state[cur];
+            }
+            chain.push(cur);
+            let p = ex.dirs[cur].parent;
+            if p == NONE || chain.len() > MAX_DEPTH {
+                break 1;
+            }
+            if sealed[p as usize] {
+                break 2;
+            }
+            cur = p as usize;
+        };
+        for &c in &chain {
+            state[c] = verdict;
+        }
+    }
+    let mut remap = vec![NONE; nd];
+    let mut dirs = Vec::with_capacity(nd);
+    for (k, d) in ex.dirs.iter().enumerate() {
+        if state[k] == 1 {
+            remap[k] = dirs.len() as u32;
+            dirs.push(*d);
+        }
+    }
+    for d in &mut dirs {
+        if d.parent != NONE {
+            d.parent = remap[d.parent as usize];
+        }
+    }
+    let files = ex
+        .files
+        .iter()
+        .filter(|f| state[f.dir as usize] == 1 && !sealed[f.dir as usize])
+        .map(|f| XFile { dir: remap[f.dir as usize], ..*f })
+        .collect();
+    // 이름 버퍼(names)는 그대로 둔다: 뺀 항목의 이름은 DB에 쓰이지 않는다
+    Extracted { root_path: ex.root_path, names: ex.names, dirs, files }
 }
 
 // ───────────── 2. 폴더별 집계 ─────────────
@@ -864,10 +951,28 @@ pub(crate) fn analysis_sddl(me: Option<&str>, readers: &[String]) -> String {
     if let Some(me) = me.filter(|m| is_plain_sid(m)) {
         s.push_str(&format!("(A;OICI;FA;;;{me})"));
     }
+    // 읽는 사람은 폴더 자신만 (안의 DB 파일로 물려주지 않는다). DB 파일마다 그 DB를 요청한 사람만 [`secure_snapshot`]으로 더한다.
     for r in readers.iter().filter(|r| is_plain_sid(r)) {
-        s.push_str(&format!("(A;OICI;FRFX;;;{r})"));
+        s.push_str(&format!("(A;;FRFX;;;{r})"));
     }
     s
+}
+
+/// 분석 DB 파일 하나의 SDDL: 상속 끊고 SYSTEM·Administrators·서비스 계정 + 요청한 사람만 읽기 (시험용으로 따로 둔다).
+pub(crate) fn snapshot_sddl(me: Option<&str>, reader: Option<&str>) -> String {
+    let mut s = String::from("D:P(A;;FA;;;SY)(A;;FA;;;BA)");
+    if let Some(me) = me.filter(|m| is_plain_sid(m)) {
+        s.push_str(&format!("(A;;FA;;;{me})"));
+    }
+    if let Some(r) = reader.filter(|r| is_plain_sid(r)) {
+        s.push_str(&format!("(A;;FRFX;;;{r})"));
+    }
+    s
+}
+
+/// 분석 DB 파일을 요청한 사람만 읽게 한다 (폴더의 다른 읽는 사람 권한을 물려받지 않게).
+pub fn secure_snapshot(path: &Path, reader: Option<&str>) -> std::io::Result<()> {
+    set_dacl(path, &snapshot_sddl(crate::acl::current_user_sid().as_deref(), reader))
 }
 
 /// 색인 스냅샷 폴더: SYSTEM·Administrators만 (일반 사용자는 읽기도 불가: 다른 사용자의 파일 이름이 들어 있다).
@@ -876,13 +981,17 @@ pub fn secure_dir_private(dir: &Path) -> std::io::Result<()> {
 }
 
 fn secure_dir_with(dir: &Path, readers: Option<&[String]>) -> std::io::Result<()> {
-    use windows_sys::Win32::Foundation::{HLOCAL, LocalFree};
-    use windows_sys::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1, SE_FILE_OBJECT, SetNamedSecurityInfoW};
-    use windows_sys::Win32::Security::{ACL, DACL_SECURITY_INFORMATION, GetSecurityDescriptorDacl, PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR};
     let sddl = match readers {
         Some(r) => analysis_sddl(crate::acl::current_user_sid().as_deref(), r),
         None => "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)".to_string(),
     };
+    set_dacl(dir, &sddl)
+}
+
+fn set_dacl(dir: &Path, sddl: &str) -> std::io::Result<()> {
+    use windows_sys::Win32::Foundation::{HLOCAL, LocalFree};
+    use windows_sys::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1, SE_FILE_OBJECT, SetNamedSecurityInfoW};
+    use windows_sys::Win32::Security::{ACL, DACL_SECURITY_INFORMATION, GetSecurityDescriptorDacl, PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR};
     let wide: Vec<u16> = sddl.encode_utf16().chain([0]).collect();
     let mut sd: PSECURITY_DESCRIPTOR = std::ptr::null_mut();
     // SAFETY: wide는 NUL로 끝나는 UTF-16. 성공하면 sd는 LocalAlloc 메모리이고 아래에서 해제한다.

@@ -185,6 +185,12 @@ public static class FoldyMcpTools
                     var lines = new List<string>();
                     foreach (var p in paths)
                     {
+                        if (CheckPath(p) is { } bad)
+                        {
+                            lines.Add($"{p}: {bad.Text}"); // 태그를 읽으려고 그 폴더의 .foldy.md를 열기 전에 거른다
+                            continue;
+                        }
+
                         var tags = host.Tags(p);
                         o[p] = new JsonArray([.. tags.Select(t => (JsonNode?)JsonValue.Create(t))]);
                         lines.Add($"{p}: {(tags.Count == 0 ? "태그 없음" : string.Join(", ", tags))}");
@@ -256,7 +262,11 @@ public static class FoldyMcpTools
             });
     }
 
-    /// <summary>경로 확인: 전체 경로(드라이브 문자 또는 \\서버\공유)만 받는다. 장치 경로(\\?\, \\.\)는 받지 않는다.</summary>
+    /// <summary>
+    /// 경로 확인: 드라이브 문자로 시작하는 전체 경로만 받는다. 장치 경로(\\?\, \\.\)와 네트워크 경로(\\서버\공유, //서버/공유)는 받지 않는다.
+    /// 네트워크 경로는 있는지 보기만 해도 Windows가 그 서버에 로그인 정보(NTLM)를 보내므로, 웹 페이지·문서에 숨은 지시에 속은 AI가
+    /// 모르는 서버 경로를 넣으면 사용자 정보가 밖으로 나갈 수 있다 (보안 리뷰 2026-11-22 V2). 회사 드라이브는 연결된 드라이브 문자(K:\…)로 쓰면 된다.
+    /// </summary>
     internal static McpResult? CheckPath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -264,9 +274,9 @@ public static class FoldyMcpTools
             return McpResult.Error("path(경로)를 넣어 주세요.");
         }
 
-        if (path.StartsWith(@"\\?\", StringComparison.Ordinal) || path.StartsWith(@"\\.\", StringComparison.Ordinal) || path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+        if (IsUncOrDevice(path) || path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
         {
-            return McpResult.Error($"이 경로는 쓸 수 없어요: {path}");
+            return McpResult.Error($"이 경로는 쓸 수 없어요 (네트워크 경로는 드라이브 문자로 연결된 것만, 예: \"K:\\폴더\"): {path}");
         }
 
         if (!Path.IsPathFullyQualified(path))
@@ -274,7 +284,26 @@ public static class FoldyMcpTools
             return McpResult.Error($"전체 경로를 넣어 주세요 (예: \"C:\\폴더\"): {path}");
         }
 
+        try
+        {
+            if (IsUncOrDevice(Path.GetFullPath(path)))
+            {
+                return McpResult.Error($"이 경로는 쓸 수 없어요: {path}");
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return McpResult.Error($"이 경로는 쓸 수 없어요: {path}");
+        }
+
         return null;
+    }
+
+    /// <summary>앞의 두 글자가 모두 경로 구분자(\ 또는 /): \\서버\공유, //서버/공유, \\?\, \\.\, //?/ 등.</summary>
+    internal static bool IsUncOrDevice(string path)
+    {
+        var p = path.TrimStart();
+        return p.Length >= 2 && (p[0] is '\\' or '/') && (p[1] is '\\' or '/');
     }
 
     private static string Local(DateTime utc) =>

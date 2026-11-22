@@ -21,6 +21,11 @@ impl Visibility {
         self.own_sid.as_deref()
     }
 
+    /// 이 사용자에게 숨길 폴더들 (다른 사용자 프로필, 소문자). 폴더 분석 DB를 만들 때도 쓴다.
+    pub fn hidden_folders(&self) -> &[String] {
+        &self.hidden
+    }
+
     pub fn new(own_sid: Option<&str>, profiles: &[(String, String)]) -> Self {
         let own = own_sid.map(|s| s.to_ascii_uppercase());
         let hidden = profiles

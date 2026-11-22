@@ -38,6 +38,67 @@ public static class VersionHistory
     /// <summary>테스트용: 보관 폴더 위치를 바꾼다.</summary>
     internal static Func<string, string>? RootOverride { get; set; }
 
+    /// <summary>테스트용: 보관해도 되는 드라이브인지 판단을 바꾼다.</summary>
+    internal static Func<string, bool>? LocalDriveOverride { get; set; }
+
+    /// <summary>
+    /// 보관해도 되는 드라이브인가: 이 PC에 붙은 고정 디스크(DriveType.Fixed)만.
+    /// 네트워크 드라이브·USB에 두면 (1) 덮어쓴 파일의 예전 내용이 공유 폴더 맨 위나 남에게 건넨 USB에 7일 동안 남고,
+    /// (2) 같은 공유를 쓰는 다른 사람이 index.jsonl을 바꿔 이 PC의 다른 파일을 지우게 만들 수 있다 (보안 리뷰 2026-11-22 V1).
+    /// </summary>
+    public static bool IsLocalDrive(string path)
+    {
+        if (LocalDriveOverride is { } o)
+        {
+            return o(path);
+        }
+
+        try
+        {
+            if (path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var root = Path.GetPathRoot(Path.GetFullPath(path));
+            return !string.IsNullOrEmpty(root) && new DriveInfo(root).DriveType == DriveType.Fixed;
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 기록 한 줄을 믿어도 되나: 보관본은 이 드라이브의 보관 폴더 안, 원래 파일은 같은 드라이브여야 한다.
+    /// index.jsonl은 사용자가 아닌 누군가가 고칠 수 있는 파일일 수 있으므로, 지우기·옮기기 전에 꼭 확인한다.
+    /// </summary>
+    internal static bool IsTrusted(SavedVersion v, string historyRoot)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(v.Saved) || string.IsNullOrEmpty(v.Original) || !Path.IsPathFullyQualified(v.Saved) || !Path.IsPathFullyQualified(v.Original))
+            {
+                return false;
+            }
+
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(historyRoot)) + Path.DirectorySeparatorChar;
+            var saved = Path.GetFullPath(v.Saved);
+            if (!saved.StartsWith(root, StringComparison.OrdinalIgnoreCase) || saved.Length <= root.Length)
+            {
+                return false;
+            }
+
+            // 원래 파일의 보관 폴더가 바로 이 폴더여야 한다 (다른 드라이브의 파일을 가리키는 기록은 받지 않는다)
+            var own = Path.TrimEndingDirectorySeparator(Path.GetFullPath(HistoryRoot(v.Original))) + Path.DirectorySeparatorChar;
+            return string.Equals(own, root, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// 보관 폴더. 같은 드라이브여야 옮기기가 즉시 끝난다. 시스템 드라이브(C:)는 루트에 쓰지 않고
     /// 사용자 폴더(%LOCALAPPDATA%\Foldy\이전 버전) 안에 둔다.
@@ -65,7 +126,7 @@ public static class VersionHistory
         try
         {
             var fi = new FileInfo(file);
-            if (!fi.Exists || file.Length < 3 || file[1] != ':' || fi.Length > CapFor(file))
+            if (!fi.Exists || file.Length < 3 || file[1] != ':' || !IsLocalDrive(file) || fi.Length > CapFor(file))
             {
                 return null;
             }
@@ -109,7 +170,7 @@ public static class VersionHistory
     {
         try
         {
-            if (!File.Exists(v.Saved))
+            if (!IsTrusted(v, HistoryRoot(v.Original)) || !File.Exists(v.Saved))
             {
                 return false;
             }
@@ -139,6 +200,11 @@ public static class VersionHistory
     {
         try
         {
+            if (!IsTrusted(v, HistoryRoot(v.Original)))
+            {
+                return null;
+            }
+
             var dir = Path.GetDirectoryName(v.Original)!;
             var when = v.SavedUtc.ToLocalTime().ToString("yyyy-MM-dd HHmm", System.Globalization.CultureInfo.InvariantCulture);
             var dst = Path.Combine(dir, Foldy.Core.Localization.Loc.F("vh.name", Path.GetFileNameWithoutExtension(v.Original), when, Path.GetExtension(v.Original)));
@@ -221,7 +287,7 @@ public static class VersionHistory
                 {
                     try
                     {
-                        if (JsonSerializer.Deserialize<SavedVersion>(line) is { } v)
+                        if (JsonSerializer.Deserialize<SavedVersion>(line) is { } v && IsTrusted(v, HistoryRoot(anyPathOnDrive)))
                         {
                             list.Add(v);
                         }

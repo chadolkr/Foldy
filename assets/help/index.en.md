@@ -489,7 +489,7 @@ Jot down whatever comes to mind. 🔒 **Protect → New note** creates `New note
 When copying or moving with Foldy **overwrites** a file with the same name, Foldy quietly keeps the original for 7 days. Overwrote something by mistake? Don't worry.
 
 - **Restoring**: right-click the file → **Previous versions…** → pick a time and press **[Restore]** (the current file is kept too, so you can switch back) or **[Save a copy beside it]** (next to it as "name (previous version date).ext").
-- **Where they're kept**: a hidden folder on the same drive (`X:\.foldy\이전 버전`; on the system drive, `%LOCALAPPDATA%\Foldy\이전 버전`). Being on the same drive, it takes no time to move.
+- **Where they're kept**: a hidden folder on the same drive (`X:\.foldy\이전 버전`; on the system drive, `%LOCALAPPDATA%\Foldy\이전 버전`). Being on the same drive, it takes no time to move. They are kept only on disks inside this PC. Nothing is kept on USB or network drives (such as a shared work drive), because other people could see it there.
 - **Limits**: after 7 days, or beyond 2 GB per drive (or 5% of the drive, whichever is smaller), the oldest are deleted first. Files larger than the limit aren't kept.
 - Overwrites made outside Foldy (by other programs) aren't covered. Turn it off in Settings → General → **Previous versions**.
 

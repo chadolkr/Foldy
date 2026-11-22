@@ -7,7 +7,31 @@ use foldy_proto::*;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
-pub fn start_build(ix: &Arc<Indexer>, volume: &str) -> BuildAnalysisReply {
+/// 분석을 요청한 사람. 분석 DB는 사람마다 따로 만들고(파일 이름에 SID 해시), 그 사람만 읽게 한다.
+/// 그 사람에게 보이면 안 되는 폴더(다른 사용자 프로필)는 합계만 남긴다 (보안 리뷰 2026-11-22 V4).
+#[derive(Debug, Clone, Default)]
+pub struct Requester {
+    pub sid: Option<String>,
+    pub hidden: Vec<String>,
+}
+
+impl Requester {
+    pub fn from_visibility(v: &crate::visibility::Visibility) -> Self {
+        Requester { sid: v.user_sid().map(str::to_string), hidden: v.hidden_folders().to_vec() }
+    }
+
+    /// 볼륨 키 + 사람 표시. 예전(사람 구분 없는) 키와 앞부분이 "<볼륨 키>."로 겹치지 않게 '-'로 잇는다.
+    pub fn key(&self, volume_key: &str) -> String {
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for b in self.sid.as_deref().unwrap_or("none").to_ascii_uppercase().as_bytes() {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        format!("{volume_key}-u{h:016x}")
+    }
+}
+
+pub fn start_build(ix: &Arc<Indexer>, volume: &str, who: &Requester) -> BuildAnalysisReply {
     let reply = |status, message: &str| BuildAnalysisReply { status, message: message.to_string() };
     let Some(slot) = ix.find_volume(volume).cloned() else {
         return reply(analysis_status::UNKNOWN_VOLUME, "색인 서비스가 다루지 않는 볼륨");
@@ -19,15 +43,15 @@ pub fn start_build(ix: &Arc<Indexer>, volume: &str) -> BuildAnalysisReply {
         return reply(analysis_status::ALREADY_RUNNING, "이미 분석 중");
     }
     slot.analysis.set(analysis_state::BUILDING, 0, "색인 읽는 중");
-    let ix2 = ix.clone();
+    let (ix2, who) = (ix.clone(), who.clone());
     std::thread::Builder::new()
         .name(format!("analysis {}", slot.name))
-        .spawn(move || run(&ix2, &slot))
+        .spawn(move || run(&ix2, &slot, &who))
         .map(|_| reply(analysis_status::OK, "분석 시작"))
         .unwrap_or_else(|e| reply(analysis_status::NOT_READY, &format!("스레드를 만들 수 없음: {e}")))
 }
 
-fn run(ix: &Indexer, slot: &VolumeSlot) {
+fn run(ix: &Indexer, slot: &VolumeSlot, who: &Requester) {
     analysis::lower_thread_priority();
     let job = &slot.analysis;
     let started_at = analysis::now_filetime();
@@ -43,6 +67,8 @@ fn run(ix: &Indexer, slot: &VolumeSlot) {
         };
         analysis::extract(idx)
     };
+    // 다른 사용자 프로필 안의 이름은 DB에 넣지 않는다 (그 폴더 한 줄의 합계만)
+    let ex = analysis::hide_folders(ex, &who.hidden);
     job.set(analysis_state::BUILDING, 100, "규칙 적용");
     let dir = ix.analysis_dir();
     let rules = RuleSet::load_default_locations();
@@ -58,10 +84,24 @@ fn run(ix: &Indexer, slot: &VolumeSlot) {
             eprintln!("[{}] 분석 폴더 ACL 설정 실패: {e}", slot.name);
         }
     }
-    let key = analysis::volume_key(&slot.name);
+    let volume_key = analysis::volume_key(&slot.name);
+    let key = who.key(&volume_key);
+    // 사람 구분 없이 만들던 예전 DB(다른 사람 프로필 이름이 든)는 지운다
+    for (old, _) in analysis::list_snapshots(&dir, &volume_key) {
+        let _ = std::fs::remove_file(old);
+    }
     let progress = |p: u16, m: &str| job.set(analysis_state::BUILDING, p.min(999), m);
     match analysis::build_into_dir(&dir, &key, &ex, &rules, &opts, &progress, &ix.shutdown) {
         Ok((path, st)) => {
+            // 이 DB는 요청한 사람만 읽는다 (폴더에 걸린 다른 사람의 읽기 권한을 물려받지 않게)
+            if ix.analysis_dir.is_none()
+                && let Err(e) = analysis::secure_snapshot(&path, who.sid.as_deref())
+            {
+                eprintln!("[{}] 분석 DB 권한 설정 실패, 지웁니다: {e}", slot.name);
+                let _ = std::fs::remove_file(&path);
+                job.set(analysis_state::FAILED, 0, "분석 DB 권한을 정하지 못했어요");
+                return;
+            }
             let msg = format!(
                 "분석 완료: 폴더 {}개, 파일 {}개, 제안 {}개, {:.1}MB ({})",
                 st.dirs,
@@ -92,12 +132,12 @@ pub fn allow_reader(ix: &Indexer, sid: Option<&str>) {
     }
 }
 
-pub fn info(ix: &Indexer, volume: &str) -> AnalysisInfoReply {
+pub fn info(ix: &Indexer, volume: &str, who: &Requester) -> AnalysisInfoReply {
     let empty = |status, volume: String| AnalysisInfoReply { status, volume, db_path: String::new(), scan_time: 0, previous: Vec::new() };
     let Some(slot) = ix.find_volume(volume) else {
         return empty(analysis_status::UNKNOWN_VOLUME, volume.to_string());
     };
-    let snaps = analysis::list_snapshots(&ix.analysis_dir(), &analysis::volume_key(&slot.name));
+    let snaps = analysis::list_snapshots(&ix.analysis_dir(), &who.key(&analysis::volume_key(&slot.name)));
     let Some((latest, t)) = snaps.first() else {
         return empty(analysis_status::NOT_FOUND, slot.name.clone());
     };
@@ -129,11 +169,11 @@ mod tests {
         ix.volumes.push(slot.clone());
         let ix = Arc::new(ix);
         // 색인 준비 전
-        assert_eq!(start_build(&ix, "D:").status, analysis_status::NOT_READY);
-        assert_eq!(start_build(&ix, "Q:").status, analysis_status::UNKNOWN_VOLUME);
-        assert_eq!(info(&ix, "d:\\").status, analysis_status::NOT_FOUND);
+        assert_eq!(start_build(&ix, "D:", &Requester::default()).status, analysis_status::NOT_READY);
+        assert_eq!(start_build(&ix, "Q:", &Requester::default()).status, analysis_status::UNKNOWN_VOLUME);
+        assert_eq!(info(&ix, "d:\\", &Requester::default()).status, analysis_status::NOT_FOUND);
         slot.publish(crate::analysis::tests::sample_index());
-        assert_eq!(start_build(&ix, "d:").status, analysis_status::OK);
+        assert_eq!(start_build(&ix, "d:", &Requester::default()).status, analysis_status::OK);
         let t = Instant::now();
         while slot.analysis.state.load(Ordering::Acquire) == analysis_state::BUILDING {
             assert!(t.elapsed() < Duration::from_secs(30));
@@ -143,7 +183,8 @@ mod tests {
         assert_eq!(st.analysis.len(), 1);
         assert_eq!(st.analysis[0].state, analysis_state::READY, "{}", st.analysis[0].message);
         assert_eq!(st.analysis[0].progress_permille, 1000);
-        let r = info(&ix, "D:");
+        let r = info(&ix, "D:", &Requester::default());
+        assert_eq!(info(&ix, "D:", &Requester { sid: Some("S-1-5-21-9".into()), hidden: vec![] }).status, analysis_status::NOT_FOUND, "다른 사람의 분석 DB는 보이지 않는다");
         assert_eq!(r.status, analysis_status::OK);
         assert!(std::path::Path::new(&r.db_path).exists());
         assert!(r.scan_time > 0 && r.previous.is_empty());

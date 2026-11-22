@@ -489,7 +489,7 @@ Apunta lo que se te ocurra. 🔒 **Proteger → Nota nueva** crea `Nueva nota.md
 Cuando una copia o un movimiento con Foldy **sobrescribe** un archivo del mismo nombre, Foldy guarda el original en silencio durante 7 días. ¿Sobrescribiste algo sin querer? Tranquilo.
 
 - **Recuperar**: botón derecho en el archivo → **Versiones anteriores…** → elige un momento y pulsa **[Restaurar]** (el archivo actual también se guarda, así que puedes volver) o **[Guardar una copia al lado]** (junto a él como "nombre (versión anterior fecha).ext").
-- **Dónde se guardan**: en una carpeta oculta de la misma unidad (`X:\.foldy\이전 버전`; en la unidad del sistema, `%LOCALAPPDATA%\Foldy\이전 버전`). Al estar en la misma unidad, no tarda nada en moverse.
+- **Dónde se guardan**: en una carpeta oculta de la misma unidad (`X:\.foldy\이전 버전`; en la unidad del sistema, `%LOCALAPPDATA%\Foldy\이전 버전`). Al estar en la misma unidad, no tarda nada en moverse. Solo se guardan en los discos de este PC. En unidades USB o de red (como una unidad compartida del trabajo) no se guarda nada, porque otras personas podrían verlo.
 - **Límites**: pasados 7 días, o por encima de 2 GB por unidad (o el 5% de la unidad, lo que sea menor), se borran primero los más antiguos. Los archivos más grandes que el límite no se guardan.
 - No cubre lo que sobrescriben otros programas fuera de Foldy. Desactívalo en Configuración → General → **Versiones anteriores**.
 

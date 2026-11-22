@@ -143,7 +143,7 @@ async fn serve(pipe: NamedPipeServer, ix: Arc<Indexer>) -> io::Result<()> {
                 let reply = match decode_body::<BuildAnalysis>(&body) {
                     Ok(req) => {
                         crate::analysis_job::allow_reader(&ix, vis.user_sid());
-                        encode(MsgType::BuildAnalysisReply, &crate::analysis_job::start_build(&ix, &req.volume))
+                        encode(MsgType::BuildAnalysisReply, &crate::analysis_job::start_build(&ix, &req.volume, &crate::analysis_job::Requester::from_visibility(&vis)))
                     }
                     Err(e) => err(1, &e.to_string()),
                 };
@@ -154,10 +154,10 @@ async fn serve(pipe: NamedPipeServer, ix: Arc<Indexer>) -> io::Result<()> {
             MsgType::AnalysisInfo => {
                 let reply = match decode_body::<AnalysisInfo>(&body) {
                     Ok(req) => {
-                        let (ix2, sid) = (ix.clone(), vis.user_sid().map(str::to_string));
+                        let (ix2, who) = (ix.clone(), crate::analysis_job::Requester::from_visibility(&vis));
                         match tokio::task::spawn_blocking(move || {
-                            crate::analysis_job::allow_reader(&ix2, sid.as_deref());
-                            crate::analysis_job::info(&ix2, &req.volume)
+                            crate::analysis_job::allow_reader(&ix2, who.sid.as_deref());
+                            crate::analysis_job::info(&ix2, &req.volume, &who)
                         })
                         .await
                         {
