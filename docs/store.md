@@ -59,7 +59,7 @@
 
 - A안: `build/store/` MSIX 빌드 스크립트 (payload에서 서비스·업데이트 도구 제외, `AppxManifest.xml`, 아이콘 크기별 생성, `makeappx`), 빌드 설정 `FOLDY_STORE`로 Store 판 분기, release.yml에서 `.msixupload` 만들기. 제출은 처음엔 Partner Center에서 손으로, 익숙해지면 Microsoft Store 제출 API/`msstore` CLI로.
 - B안: release.yml의 서명 단계를 Certum(SimplySign)용으로 바꾸고, Store 제출에는 GitHub Releases의 MSI 주소를 넣는다.
-- 공통: Store 소개 글·스크린샷(이미 있는 문서 스크린샷 재사용), 개인정보 정책 주소는 PRIVACY.md.
+- 공통: Store 소개 글·스크린샷·제출 칸별 값은 [store-listing/](store-listing/README.md), 개인정보 처리방침은 https://chadolkr.github.io/Foldy/privacy/.
 
 ## 출처
 
