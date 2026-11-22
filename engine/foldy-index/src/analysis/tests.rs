@@ -337,7 +337,11 @@ fn bench_1m() {
 fn analysis_acl_reads_only_for_requesting_users() {
     // 로그온한 모든 사용자(IU)가 아니라 분석을 요청한 사용자만 읽기
     let s = super::analysis_sddl(Some("S-1-5-18"), &["S-1-5-21-1-2-3-1001".to_string(), "bad;(A;;FA;;;WD)".to_string()]);
-    assert_eq!(s, "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;S-1-5-18)(A;OICI;FRFX;;;S-1-5-21-1-2-3-1001)");
+    assert_eq!(s, "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;S-1-5-18)(A;;FRFX;;;S-1-5-21-1-2-3-1001)");
+    // DB 파일은 그 DB를 요청한 사람만 (폴더의 다른 읽는 사람은 물려받지 않는다)
+    let f = super::snapshot_sddl(Some("S-1-5-18"), Some("S-1-5-21-1-2-3-1001"));
+    assert_eq!(f, "D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;S-1-5-18)(A;;FRFX;;;S-1-5-21-1-2-3-1001)");
+    assert_eq!(super::snapshot_sddl(None, Some("bad;(A;;FA;;;WD)")), "D:P(A;;FA;;;SY)(A;;FA;;;BA)");
     assert!(!s.contains("IU"));
     assert!(!s.contains("WD"));
 }
@@ -354,5 +358,27 @@ fn securing_dir_reaches_existing_db_files() {
     let out = std::process::Command::new("icacls").arg(&f).output().unwrap();
     let text = String::from_utf8_lossy(&out.stdout).to_uppercase();
     assert!(!text.contains("INTERACTIVE"), "{text}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn other_users_profiles_keep_only_their_total() {
+    // 보안 리뷰 2026-11-22 V4: 다른 사용자 프로필(D:\Users\me를 남의 것으로 본다) 안의 이름은 DB에 없고, 그 폴더 한 줄의 크기만 남는다
+    let idx = sample_index();
+    let full = extract(&idx);
+    let me_alloc = full.dirs.iter().find(|d| full.dir_name(d) == "me").unwrap().alloc;
+    let ex = hide_folders(extract(&idx), &[r"d:\users\ME".to_string(), r"Q:\Users\x".to_string(), r"D:\Users\없음".to_string()]);
+    let dir = temp_dir("hide");
+    let (p, _) = build_into_dir(&dir, "test", &ex, &RuleSet::defaults(), &opts(), &|_, _| {}, &AtomicBool::new(false)).unwrap();
+    let c = ro(&p);
+    assert_eq!(one::<i64>(&c, "SELECT COUNT(*) FROM dir WHERE name IN ('Downloads')"), 0);
+    assert_eq!(one::<i64>(&c, "SELECT COUNT(*) FROM file WHERE name IN ('setup.exe', 'photo.JPG')"), 0);
+    assert_eq!(one::<i64>(&c, "SELECT alloc FROM dir WHERE name = 'me'"), me_alloc as i64, "프로필 폴더 한 줄과 합계 크기는 남는다");
+    assert_eq!(one::<i64>(&c, "SELECT COUNT(*) FROM candidate c JOIN file f ON f.id = c.file_id WHERE f.name = 'setup.exe'"), 0);
+    // 다른 곳은 그대로
+    assert_eq!(one::<i64>(&c, "SELECT COUNT(*) FROM file WHERE name = 'big.js'"), 1);
+    assert_eq!(one::<i64>(&c, "SELECT COUNT(*) FROM dir"), 9);
+    // 숨길 것이 없으면 똑같다
+    assert_eq!(hide_folders(extract(&idx), &[]).dirs.len(), full.dirs.len());
     let _ = std::fs::remove_dir_all(&dir);
 }
