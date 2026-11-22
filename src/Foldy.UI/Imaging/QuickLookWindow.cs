@@ -65,7 +65,7 @@ public sealed class QuickLookWindow : Window
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
         WindowState = WindowState.Maximized;
-        Title = "빠른 보기";
+        Title = Foldy.Core.Localization.Loc.T("ql.title");
         SetResourceReference(BackgroundProperty, "Brush.Window");
 
         foreach (var tb in new[] { _title, _info })

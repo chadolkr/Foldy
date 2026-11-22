@@ -316,7 +316,7 @@ public static class CleanupFlows
             return;
         }
 
-        var byType = string.Join(", ", plan.GroupBy(m => m.Group).OrderByDescending(g => g.Count()).Select(g => Foldy.Core.Localization.Loc.F("cf.dt.typeCount", g.Key, g.Count())));
+        var byType = string.Join(", ", plan.GroupBy(m => m.Group).OrderByDescending(g => g.Count()).Select(g => Foldy.Core.Localization.Loc.F("cf.dt.typeCount", Foldy.Core.Organize.FileTypeGroups.DisplayName(g.Key), g.Count())));
         w.Say(Foldy.Core.Localization.Loc.F("cf.dt.found", plan.Count, byType, DesktopTidy.RecentDays));
         var choice = await w.AskAsync(
             Foldy.Core.Localization.Loc.T("cf.dt.plan"),

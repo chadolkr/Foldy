@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="clr-namespace:Foldy.UI.Localization"
         xmlns:t="clr-namespace:Foldy.UI.Templates"
-        Title="{Binding FolderName, StringFormat='설명 편집 - {0}'}" Width="900" Height="600" MinWidth="620" MinHeight="420"
+        Title="{Binding FolderName, StringFormat={loc:T desc.editTitle}}" Width="900" Height="600" MinWidth="620" MinHeight="420"
         ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
         Style="{DynamicResource Foldy.Window}"
         Background="{DynamicResource Brush.Surface}" Foreground="{DynamicResource Brush.Text}"

@@ -24,6 +24,11 @@ public static class VersionHistory
     /// <summary>보관 한도 (드라이브 크기를 알면 그 5%와 2GB 중 작은 쪽).</summary>
     public static long CapFor(string path)
     {
+        if (CapOverride is { } cap)
+        {
+            return cap;
+        }
+
         try
         {
             var total = new DriveInfo(Path.GetPathRoot(path)!).TotalSize;
@@ -34,6 +39,9 @@ public static class VersionHistory
             return MaxBytes;
         }
     }
+
+    /// <summary>테스트용: 보관 한도를 바꾼다.</summary>
+    internal static long? CapOverride { get; set; }
 
     /// <summary>테스트용: 보관 폴더 위치를 바꾼다.</summary>
     internal static Func<string, string>? RootOverride { get; set; }
@@ -119,8 +127,11 @@ public static class VersionHistory
 
     /// <summary>
     /// 덮어쓸 파일을 보관한다. 보관했으면 그 기록, 못 했으면(파일 없음, 너무 큼, 권한 없음, 로컬 드라이브 아님) null.
+    /// 보관은 파일을 <b>옮기는</b> 것이므로, 그 뒤 덮어쓰기가 안 되면 부르는 쪽이 <see cref="PutBack"/>으로 제자리에 돌려놓아야 한다.
+    /// <paramref name="prune"/>가 false면 오래된 보관본 정리를 미룬다(여러 파일을 한꺼번에 덮어쓰는 복사 작업:
+    /// 앞서 보관한 파일이 아직 덮어써지기 전에 한도 때문에 지워지지 않게). 미룬 정리는 <see cref="PrunePending"/>.
     /// </summary>
-    public static SavedVersion? Preserve(string file, DateTime? nowUtc = null)
+    public static SavedVersion? Preserve(string file, DateTime? nowUtc = null, bool prune = true)
     {
         var now = nowUtc ?? DateTime.UtcNow;
         try
@@ -149,12 +160,71 @@ public static class VersionHistory
                 File.AppendAllText(Path.Combine(root, IndexName), JsonSerializer.Serialize(v) + "\n");
             }
 
-            Prune(file, now);
+            if (prune)
+            {
+                Prune(file, now);
+            }
+            else
+            {
+                lock (Gate)
+                {
+                    PendingPrune.TryAdd(root, file);
+                }
+            }
+
             return v;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             return null;
+        }
+    }
+
+    /// <summary>정리를 미룬 보관 폴더 → 그 드라이브의 파일 하나.</summary>
+    private static readonly Dictionary<string, string> PendingPrune = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 덮어쓰기가 끝내 안 됐을 때(취소·실패·원본이 열려 있음) 보관본을 제자리로 돌려놓는다.
+    /// 그 자리에 이미 파일이 있으면(덮어쓰기가 됐으면) 아무것도 하지 않는다. 돌려놓았으면 true.
+    /// </summary>
+    public static bool PutBack(SavedVersion v)
+    {
+        try
+        {
+            if (File.Exists(v.Original) || Directory.Exists(v.Original) || !File.Exists(v.Saved) || !IsTrusted(v, HistoryRoot(v.Original)))
+            {
+                return false;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(v.Original)!);
+            File.Move(v.Saved, v.Original);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>미뤄 둔 정리(<see cref="Preserve"/>의 prune: false)를 한다.</summary>
+    public static void PrunePending(DateTime? nowUtc = null)
+    {
+        string[] roots;
+        lock (Gate)
+        {
+            roots = [.. PendingPrune.Values];
+            PendingPrune.Clear();
+        }
+
+        foreach (var anyFile in roots)
+        {
+            try
+            {
+                Prune(anyFile, nowUtc);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+            }
         }
     }
 
@@ -222,7 +292,10 @@ public static class VersionHistory
         }
     }
 
-    /// <summary>7일이 지났거나 한도를 넘은 오래된 보관본을 지운다.</summary>
+    /// <summary>
+    /// 7일이 지났거나 한도를 넘은 오래된 보관본을 지운다. 단, 원래 자리에 파일이 없는 보관본은 그 내용의 유일한 사본일 수 있으므로
+    /// (덮어쓰기 중이거나 실패해 돌려놓기를 기다림) 한도 때문에는 지우지 않고 7일이 지날 때만 지운다.
+    /// </summary>
     public static void Prune(string anyPathOnDrive, DateTime? nowUtc = null)
     {
         var now = nowUtc ?? DateTime.UtcNow;
@@ -235,7 +308,7 @@ public static class VersionHistory
             var keep = new List<SavedVersion>();
             foreach (var v in all)
             {
-                if (now - v.SavedUtc > Keep || total > cap)
+                if (now - v.SavedUtc > Keep || (total > cap && File.Exists(v.Original)))
                 {
                     try
                     {

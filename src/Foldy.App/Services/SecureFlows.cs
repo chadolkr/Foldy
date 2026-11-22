@@ -14,8 +14,8 @@ namespace Foldy.App.Services;
 /// </summary>
 public static class SecureFlows
 {
-    private const string PolicyNote = "회사 PC라면 파일 암호화가 보안 정책에 맞는지 먼저 확인해 주세요.";
-    private const string ForgetWarning = "암호를 잊으면 Foldy도 열 수 없어요. 꼭 기억할 수 있는 암호로 정해 주세요.";
+    private static string PolicyNote => Foldy.Core.Localization.Loc.T("sec.policyNote");
+    private static string ForgetWarning => Foldy.Core.Localization.Loc.T("sec.forgetWarning");
 
     private static (string, string) C(string id, string label) => (id, label);
 
@@ -178,6 +178,7 @@ public static class SecureFlows
         string? pw;
         string inner;
         byte[] bytes;
+        long size;
         while (true)
         {
             pw = await w.AskPasswordAsync(Foldy.Core.Localization.Loc.F("sec.pwFor", Path.GetFileName(path)), confirm: false, okLabel: Foldy.Core.Localization.Loc.T("sec.open"));
@@ -190,21 +191,29 @@ public static class SecureFlows
             try
             {
                 var p = pw;
-                (inner, bytes) = await Task.Run(() =>
+                // 미리보기에 쓸 만큼만 메모리로 (큰 동영상 등은 앞부분만 읽어 암호를 확인하고, 풀 때 파일로 바로 푼다)
+                (inner, bytes, size) = await Task.Run(() =>
                 {
                     var n = FileLocker.InnerName(path, p);
-                    return (n, SecureZip.ReadEntry(path, p, n));
+                    var (h, sz) = SecureZip.ReadEntryHead(path, p, n, PreviewLimit);
+                    return (n, h, sz);
                 });
                 break;
             }
-            catch (Exception ex) when (ex is WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException or IOException)
+            catch (Exception ex) when (ex is WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException)
             {
                 w.Say(Foldy.Core.Localization.Loc.T("sec.wrongPw"));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.decryptFailed") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+                w.Close();
+                return;
             }
         }
 
         var head = bytes.AsSpan(0, Math.Min(bytes.Length, 4096));
-        if (FileLocker.LooksPreviewable(inner, head) && Preview(inner, bytes) is { } view)
+        if (size <= PreviewLimit && FileLocker.LooksPreviewable(inner, head) && Preview(inner, bytes) is { } view)
         {
             w.Say(Foldy.Core.Localization.Loc.F("sec.memContent", inner));
             w.ShowContent(view);
@@ -237,7 +246,7 @@ public static class SecureFlows
                     await shell.RecycleAsync([path]);
                 }
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or WrongPasswordException or InvalidDataException or ICSharpCode.SharpZipLib.SharpZipBaseException)
             {
                 await w.AskAsync(Foldy.Core.Localization.Loc.T("sec.decryptFailed") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             }
@@ -247,6 +256,9 @@ public static class SecureFlows
         SecureZip.ForgetKeys();
         w.Close();
     }
+
+    /// <summary>미리보기로 메모리에 읽는 최대 크기. 더 큰 파일은 미리 보지 않고 풀어서 연다.</summary>
+    private const int PreviewLimit = 32 << 20;
 
     private static FrameworkElement? Preview(string name, byte[] bytes)
     {
@@ -461,9 +473,20 @@ public static class SecureFlows
                 foreach (var n in picked.Take(5))
                 {
                     var p = pw;
-                    var bytes = await Task.Run(() => SecureZip.ReadEntry(vault, p, n));
+                    byte[] bytes;
+                    long size;
+                    try
+                    {
+                        (bytes, size) = await Task.Run(() => SecureZip.ReadEntryHead(vault, p, n, PreviewLimit));
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException)
+                    {
+                        w.Say(Foldy.Core.Localization.Loc.F("sec.cantPreviewN", n));
+                        continue;
+                    }
+
                     var head = bytes.AsSpan(0, Math.Min(bytes.Length, 4096));
-                    if (FileLocker.LooksPreviewable(n, head) && Preview(n, bytes) is { } view)
+                    if (size <= PreviewLimit && FileLocker.LooksPreviewable(n, head) && Preview(n, bytes) is { } view)
                     {
                         w.Say(n);
                         w.ShowContent(view);
@@ -486,25 +509,26 @@ public static class SecureFlows
                 }
 
                 var p = pw;
-                var n = await Task.Run(() =>
+                int n;
+                IReadOnlyList<(string Name, string Reason)> failed;
+                try
                 {
-                    var done = 0;
-                    foreach (var name in names)
-                    {
-                        if (SecureZip.SafeTarget(dest, name) is not { } target)
-                        {
-                            continue; // 금고 밖으로 나가는 이름은 꺼내지 않는다
-                        }
+                    // 항목마다 파일로 바로 푼다 (2GB 넘는 파일도). 하나가 실패해도 나머지는 계속 (금고 밖으로 나가는 이름은 건너뜀)
+                    (n, failed) = await Task.Run(() => SecureZip.Extract(vault, p, names, dest));
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or WrongPasswordException or ICSharpCode.SharpZipLib.SharpZipBaseException)
+                {
+                    (n, failed) = (0, [(Path.GetFileName(vault), ex.Message)]);
+                }
 
-                        var dst = SecureZip.Unique(target);
-                        Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
-                        File.WriteAllBytes(dst, SecureZip.ReadEntry(vault, p, name));
-                        done++;
-                    }
+                var msg = Foldy.Core.Localization.Loc.F("sec.extractedN", n, dest);
+                if (failed.Count > 0)
+                {
+                    msg += "\n\n" + Foldy.Core.Localization.Loc.F("sec.extractFailedN", failed.Count,
+                        string.Join("\n", failed.Take(5).Select(f => $"{f.Name} — {f.Reason}")));
+                }
 
-                    return done;
-                });
-                var c = await w.AskAsync(Foldy.Core.Localization.Loc.F("sec.extractedN", n, dest), C("open", Foldy.Core.Localization.Loc.T("cf.openFolder")), C("more", Foldy.Core.Localization.Loc.T("sec.keepViewing")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+                var c = await w.AskAsync(msg, C("open", Foldy.Core.Localization.Loc.T("cf.openFolder")), C("more", Foldy.Core.Localization.Loc.T("sec.keepViewing")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
                 if (c == "open")
                 {
                     shell.ActivePane.NewFolderTab(dest);

@@ -102,13 +102,13 @@ public partial class ShellWindow : Window, IPaneHost
                     {
                         ResolveConflict = ConflictWindow.AskAsync,
                         ThreadsProvider = () => _settings.CopyThreads,
+                        // 덮어쓸 파일은 이전 버전으로 옮겨 두고, 끝내 덮어쓰지 못하면(취소·실패) 제자리로 돌려놓는다.
+                        // 한 작업에서 여러 파일을 보관할 때 앞 파일이 한도 때문에 먼저 지워지지 않게 정리는 작업 끝에 한 번.
                         BeforeOverwrite = dest =>
-                        {
-                            if (_settings.KeepPreviousVersions)
-                            {
-                                Foldy.Core.History.VersionHistory.Preserve(dest);
-                            }
-                        },
+                            _settings.KeepPreviousVersions && Foldy.Core.History.VersionHistory.Preserve(dest, prune: false) is { } v
+                                ? new Action(() => Foldy.Core.History.VersionHistory.PutBack(v))
+                                : null,
+                        AfterOverwrites = () => Foldy.Core.History.VersionHistory.PrunePending(),
                     }),
                 _sftp.Provider,
                 new SftpTransferOptions { ResolveConflict = ConflictWindow.AskTransferAsync }),

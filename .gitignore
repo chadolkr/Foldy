@@ -24,3 +24,7 @@ bench-data/
 # 배포용 설치 폴더
 dist/
 TestResults/
+
+# 파이썬 캐시 (build/i18n 스크립트 실행 때 생김)
+__pycache__/
+*.pyc

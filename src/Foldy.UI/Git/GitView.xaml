@@ -567,7 +567,7 @@
     <Border Grid.Row="0" Style="{DynamicResource Foldy.CommandBar}">
       <StackPanel Orientation="Horizontal">
         <!-- 현재 브랜치: 누르면 다른 브랜치로 바꾸거나 새로 만든다 -->
-        <Button x:Name="BranchBtn" Style="{StaticResource Git.ChipBtn}" Click="OnBranchMenu" IsEnabled="{Binding IsIdle}" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="{Binding BranchName, StringFormat=브랜치 {0}}"
+        <Button x:Name="BranchBtn" Style="{StaticResource Git.ChipBtn}" Click="OnBranchMenu" IsEnabled="{Binding IsIdle}" Padding="10,0" Margin="0,0,8,0" AutomationProperties.Name="{Binding BranchName, StringFormat={loc:T git.branchA11y}}"
                 ToolTip="{loc:T git.branch.tip}">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="&#xE8A1;" FontFamily="{DynamicResource Font.Icon}" Foreground="{DynamicResource Brush.Accent}" Margin="0,1,6,0" VerticalAlignment="Center" />

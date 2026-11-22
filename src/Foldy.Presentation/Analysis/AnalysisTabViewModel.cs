@@ -251,7 +251,8 @@ public sealed partial class AnalysisTabViewModel : TabBase
         var progress = new Progress<AnalysisProgress>(p =>
         {
             Progress = p.Fraction;
-            Status = p.Message;
+            // 분석 엔진(앱·색인 서비스)의 진행 글은 한국어라, 다른 언어에서는 "분석하는 중… 45%"로 보인다
+            Status = Foldy.Core.Localization.Loc.Current == "ko" ? p.Message : Foldy.Core.Localization.Loc.F("an.progressPct", (int)Math.Round(p.Fraction * 100));
         });
         try
         {

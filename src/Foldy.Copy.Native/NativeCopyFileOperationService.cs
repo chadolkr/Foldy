@@ -35,9 +35,13 @@ public sealed class NativeCopyFileOperationOptions
 
     /// <summary>
     /// 덮어쓰기 직전에 대상 파일을 넘긴다 (이전 버전 보관). 이게 있으면 "모두 덮어쓰기"도 엔진에 한꺼번에 맡기지 않고
-    /// 파일마다 이 함수를 부른 뒤 하나씩 덮어쓴다.
+    /// 파일마다 이 함수를 부른 뒤 하나씩 덮어쓴다. 보관이 파일을 옮기는 방식이면 "돌려놓기"를 돌려준다:
+    /// 작업이 끝났을 때(완료·실패·취소) 그 대상이 없으면(덮어쓰지 못함) 불러서 원래 파일을 제자리에 돌려놓는다.
     /// </summary>
-    public Action<string>? BeforeOverwrite { get; init; }
+    public Func<string, Action?>? BeforeOverwrite { get; init; }
+
+    /// <summary>작업이 끝나고 돌려놓기까지 마친 뒤 한 번 불린다 (미뤄 둔 이전 버전 정리).</summary>
+    public Action? AfterOverwrites { get; init; }
 
     private static string DefaultDataPath(string name) =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Foldy", name);
@@ -118,18 +122,26 @@ public sealed class NativeCopyFileOperationService(
         {
             var asked = new HashSet<ulong>();
             var overwriteAll = new StrongBox<bool>();
+            var putBacks = new List<(string Dest, Action PutBack)>();
             while (true)
             {
                 var p = job.Poll();
                 progress?.Report(new FileOpProgress((long)p.BytesDone, (long)p.BytesTotal, SafeName(job)));
                 if (p.IsTerminal)
                 {
+                    // 덮어쓰려고 옮겨 둔 원래 파일 중 끝내 덮어쓰지 못한 것(취소·실패)은 제자리로 (데이터 손실 방지, 1.0 점검 B1)
+                    PutBackUnwritten(putBacks);
+                    if (putBacks.Count > 0 && _options.AfterOverwrites is { } after)
+                    {
+                        SafeInvoke(after);
+                    }
+
                     return Finish(p, job, journal);
                 }
 
                 if (p.State == NativeJobState.NeedsAttention && resolver is not null && !ct.IsCancellationRequested)
                 {
-                    await AskAsync(job, resolver, asked, overwriteAll, _options.BeforeOverwrite, ct);
+                    await AskAsync(job, resolver, asked, overwriteAll, _options.BeforeOverwrite, putBacks, ct);
                 }
 
                 // 취소 후에도 엔진이 Canceled가 될 때까지 기다린다 (워커가 대상 정리를 끝내도록).
@@ -139,7 +151,7 @@ public sealed class NativeCopyFileOperationService(
     }
 
     private static async Task AskAsync(ICopyJob job, Func<CopyIssue, CancellationToken, Task<ConflictDecision>> resolver, HashSet<ulong> asked,
-        StrongBox<bool> overwriteAll, Action<string>? beforeOverwrite, CancellationToken ct)
+        StrongBox<bool> overwriteAll, Func<string, Action?>? beforeOverwrite, List<(string Dest, Action PutBack)> putBacks, CancellationToken ct)
     {
         foreach (var issue in job.GetIssues())
         {
@@ -168,7 +180,11 @@ public sealed class NativeCopyFileOperationService(
             if (d.Action == ConflictAction.Overwrite && beforeOverwrite is not null)
             {
                 // 이전 버전을 보관하려면 파일마다 알아야 하므로 "모두"도 하나씩 처리한다
-                SafeInvoke(beforeOverwrite, issue.Dest);
+                if (SafeInvoke(beforeOverwrite, issue.Dest) is { } putBack)
+                {
+                    putBacks.Add((issue.Dest, putBack));
+                }
+
                 overwriteAll.Value |= d.ApplyToAll;
                 job.Resolve(issue.Id, ConflictAction.Overwrite, false);
                 continue;
@@ -181,15 +197,39 @@ public sealed class NativeCopyFileOperationService(
         }
     }
 
-    private static void SafeInvoke(Action<string> a, string path)
+    private static Action? SafeInvoke(Func<string, Action?> f, string path)
     {
         try
         {
-            a(path);
+            return f(path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // 보관하지 못해도 사용자가 고른 덮어쓰기는 그대로 한다
+            return null;
+        }
+    }
+
+    private static void SafeInvoke(Action a)
+    {
+        try
+        {
+            a();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+        }
+    }
+
+    /// <summary>작업이 끝났는데 대상 자리가 비어 있으면(덮어쓰지 못함) 옮겨 둔 원래 파일을 돌려놓는다.</summary>
+    internal static void PutBackUnwritten(IEnumerable<(string Dest, Action PutBack)> putBacks)
+    {
+        foreach (var (dest, putBack) in putBacks)
+        {
+            if (!File.Exists(dest))
+            {
+                SafeInvoke(putBack);
+            }
         }
     }
 
@@ -201,13 +241,13 @@ public sealed class NativeCopyFileOperationService(
                 return FileOpResult.Ok();
             case NativeJobState.Done:
                 var first = job.GetIssues().FirstOrDefault(i => i.Kind == CopyIssueKind.Failed);
-                return FileOpResult.Fail($"파일 {p.FilesFailed}개를 처리하지 못했습니다" + (first is null ? "" : $": {first.Source} — {first.Message}"));
+                return FileOpResult.Fail(Foldy.Core.Localization.Loc.F("copy.failedN", p.FilesFailed) + (first is null ? "" : $": {first.Source} — {first.Message}"));
             case NativeJobState.Canceled:
                 // 사용자가 취소한 작업은 이어 하지 않으므로 저널을 지운다.
                 TryDelete(journal);
                 return FileOpResult.Canceled;
             default:
-                return FileOpResult.Fail($"복사 엔진 오류 (코드 {p.LastError})");
+                return FileOpResult.Fail(Foldy.Core.Localization.Loc.F("copy.engineError", p.LastError));
         }
     }
 
