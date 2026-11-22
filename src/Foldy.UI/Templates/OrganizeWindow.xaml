@@ -1,8 +1,9 @@
 <Window x:Class="Foldy.UI.Templates.OrganizeWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Foldy.UI.Localization"
         xmlns:t="clr-namespace:Foldy.UI.Templates"
-        Title="폴더 정리" Width="1120" Height="720" MinWidth="860" MinHeight="540"
+        Title="{loc:T org.title}" Width="1120" Height="720" MinWidth="860" MinHeight="540"
         ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
         Style="{DynamicResource Foldy.Window}"
         Background="{DynamicResource Brush.Surface}" Foreground="{DynamicResource Brush.Text}"
@@ -29,31 +30,31 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel>
-        <TextBlock Text="정리할 폴더" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
+        <TextBlock Text="{loc:T org.folder}" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
         <TextBox Style="{StaticResource Tpl.Input}" Text="{Binding RootPath, UpdateSourceTrigger=PropertyChanged}" />
       </StackPanel>
       <StackPanel Grid.Column="1" Margin="12,0,0,0" Width="150">
-        <TextBlock Text="정리 방식" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
+        <TextBlock Text="{loc:T org.mode}" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
         <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" DisplayMemberPath="Label" MinHeight="30" />
       </StackPanel>
       <StackPanel Grid.Column="2" Margin="12,0,0,0" Width="190" Visibility="{Binding IsTemplateMode, Converter={StaticResource BoolVis}}">
-        <TextBlock Text="스타일" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
+        <TextBlock Text="{loc:T org.style}" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
         <ComboBox ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}" DisplayMemberPath="Name" MinHeight="30" />
       </StackPanel>
       <StackPanel Grid.Column="2" Margin="12,0,0,0" Width="150" Visibility="{Binding IsDateMode, Converter={StaticResource BoolVis}}">
-        <TextBlock Text="날짜 폴더 형식" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
+        <TextBlock Text="{loc:T org.dateFormat}" Style="{StaticResource Tpl.Section}" Margin="0,0,0,4" />
         <TextBox Style="{StaticResource Tpl.Input}" Text="{Binding DateFormat}" />
       </StackPanel>
-      <Button Grid.Column="3" Content="계획 만들기" Command="{Binding PlanCommand}" VerticalAlignment="Bottom" Margin="12,0,0,0" MinWidth="104" MinHeight="30" />
+      <Button Grid.Column="3" Content="{loc:T org.plan}" Command="{Binding PlanCommand}" VerticalAlignment="Bottom" Margin="12,0,0,0" MinWidth="104" MinHeight="30" />
     </Grid>
 
     <!-- 2) 옵션 + 직접 규칙 -->
     <StackPanel Grid.Row="1" Margin="0,8,0,0">
       <TextBlock Text="{Binding SelectedMode.Description}" Style="{StaticResource Tpl.Secondary}" Margin="0,0,0,6" />
       <WrapPanel>
-        <CheckBox Content="하위 폴더 안까지 정리" IsChecked="{Binding IncludeSubfolders}" Margin="0,0,18,0" />
-        <CheckBox Content="같은 파일은 _중복 후보로 모으기" IsChecked="{Binding DetectDuplicates}" Margin="0,0,18,0" />
-        <CheckBox Content="이름 앞에 수정 날짜 붙이기 (yyyy-MM-dd_)" IsChecked="{Binding PrefixDate}" Margin="0,0,18,0" />
+        <CheckBox Content="{loc:T org.recursive}" IsChecked="{Binding IncludeSubfolders}" Margin="0,0,18,0" />
+        <CheckBox Content="{loc:T org.dups}" IsChecked="{Binding DetectDuplicates}" Margin="0,0,18,0" />
+        <CheckBox Content="{loc:T org.datePrefix}" IsChecked="{Binding PrefixDate}" Margin="0,0,18,0" />
       </WrapPanel>
       <Border Style="{StaticResource Tpl.Card}" Margin="0,10,0,0" Padding="12,10" Visibility="{Binding IsCustomMode, Converter={StaticResource BoolVis}}">
         <StackPanel>
@@ -65,10 +66,10 @@
               <ColumnDefinition Width="90" />
               <ColumnDefinition Width="36" />
             </Grid.ColumnDefinitions>
-            <TextBlock Text="이름 패턴 (*.pdf)" Style="{StaticResource Tpl.Secondary}" />
-            <TextBlock Grid.Column="1" Text="이름에 든 말" Style="{StaticResource Tpl.Secondary}" Margin="8,0,0,0" />
-            <TextBlock Grid.Column="2" Text="→ 옮길 폴더" Style="{StaticResource Tpl.Secondary}" Margin="8,0,0,0" />
-            <TextBlock Grid.Column="3" Text="폴더에도" Style="{StaticResource Tpl.Secondary}" Margin="8,0,0,0" />
+            <TextBlock Text="{loc:T org.rule.pattern}" Style="{StaticResource Tpl.Secondary}" />
+            <TextBlock Grid.Column="1" Text="{loc:T org.rule.keywords}" Style="{StaticResource Tpl.Secondary}" Margin="8,0,0,0" />
+            <TextBlock Grid.Column="2" Text="{loc:T org.rule.target}" Style="{StaticResource Tpl.Secondary}" Margin="8,0,0,0" />
+            <TextBlock Grid.Column="3" Text="{loc:T org.rule.folders}" Style="{StaticResource Tpl.Secondary}" Margin="8,0,0,0" />
           </Grid>
           <ItemsControl ItemsSource="{Binding CustomRules}" Focusable="False">
             <ItemsControl.ItemTemplate>
@@ -85,14 +86,14 @@
                   <TextBox Grid.Column="1" Style="{StaticResource Tpl.Input}" Text="{Binding Keywords}" Margin="8,0,0,0" />
                   <TextBox Grid.Column="2" Style="{StaticResource Tpl.Input}" Text="{Binding Target}" Margin="8,0,0,0" />
                   <CheckBox Grid.Column="3" IsChecked="{Binding ApplyToFolders}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                  <Button Grid.Column="4" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE711;" ToolTip="규칙 삭제"
+                  <Button Grid.Column="4" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE711;" ToolTip="{loc:T org.rule.delete}"
                           Command="{Binding DataContext.RemoveRuleCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
           <Button Style="{StaticResource Tpl.LinkButton}" Command="{Binding AddRuleCommand}" HorizontalAlignment="Left">
-            <TextBlock Text="+ 규칙 추가" />
+            <TextBlock Text="{loc:T org.rule.add}" />
           </Button>
         </StackPanel>
       </Border>
@@ -112,21 +113,21 @@
         </Grid.ColumnDefinitions>
         <Border Style="{StaticResource Tpl.Card}" Padding="10">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="지금" Style="{StaticResource Tpl.Section}" Margin="2,0,0,6" />
+            <TextBlock DockPanel.Dock="Top" Text="{loc:T org.now}" Style="{StaticResource Tpl.Section}" Margin="2,0,0,6" />
             <TreeView ItemsSource="{Binding BeforeTree}" ItemTemplate="{StaticResource Tpl.OrganizeNode}" />
           </DockPanel>
         </Border>
         <TextBlock Grid.Column="1" Style="{StaticResource Tpl.Icon}" Text="&#xE72A;" FontSize="18" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" />
         <Border Grid.Column="2" Style="{StaticResource Tpl.Card}" Padding="10">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="정리 후" Style="{StaticResource Tpl.Section}" Margin="2,0,0,6" />
+            <TextBlock DockPanel.Dock="Top" Text="{loc:T org.after}" Style="{StaticResource Tpl.Section}" Margin="2,0,0,6" />
             <TreeView ItemsSource="{Binding AfterTree}" ItemTemplate="{StaticResource Tpl.OrganizeNode}" />
           </DockPanel>
         </Border>
       </Grid>
 
       <TabControl Grid.Row="1" Style="{StaticResource Tpl.Tabs}" Margin="0,10,0,0" SelectedIndex="{Binding SelectedListTab}">
-        <TabItem Header="옮길 파일">
+        <TabItem Header="{loc:T org.moves}">
           <ListView ItemsSource="{Binding Moves}">
             <ListView.View>
               <GridView>
@@ -137,26 +138,26 @@
                     </DataTemplate>
                   </GridViewColumn.CellTemplate>
                 </GridViewColumn>
-                <GridViewColumn Header="지금 위치" Width="260" DisplayMemberBinding="{Binding SourceRelative}" />
-                <GridViewColumn Header="옮길 폴더" Width="180">
+                <GridViewColumn Header="{loc:T org.col.from}" Width="260" DisplayMemberBinding="{Binding SourceRelative}" />
+                <GridViewColumn Header="{loc:T org.col.to}" Width="180">
                   <GridViewColumn.CellTemplate>
                     <DataTemplate>
                       <TextBox Style="{StaticResource Tpl.Input}" MinHeight="24" Padding="4,1" Text="{Binding TargetFolder, UpdateSourceTrigger=LostFocus}" Width="164" />
                     </DataTemplate>
                   </GridViewColumn.CellTemplate>
                 </GridViewColumn>
-                <GridViewColumn Header="정리 후 이름" Width="200" DisplayMemberBinding="{Binding DestinationName}" />
-                <GridViewColumn Header="이유" Width="300" DisplayMemberBinding="{Binding Reason}" />
+                <GridViewColumn Header="{loc:T org.col.newName}" Width="200" DisplayMemberBinding="{Binding DestinationName}" />
+                <GridViewColumn Header="{loc:T org.col.reason}" Width="300" DisplayMemberBinding="{Binding Reason}" />
               </GridView>
             </ListView.View>
           </ListView>
         </TabItem>
-        <TabItem Header="건너뛸 파일">
+        <TabItem Header="{loc:T org.skipped}">
           <ListView ItemsSource="{Binding Skipped}">
             <ListView.View>
               <GridView>
-                <GridViewColumn Header="경로" Width="520" DisplayMemberBinding="{Binding FullPath}" />
-                <GridViewColumn Header="이유" Width="380" DisplayMemberBinding="{Binding Reason}" />
+                <GridViewColumn Header="{loc:T org.col.path}" Width="520" DisplayMemberBinding="{Binding FullPath}" />
+                <GridViewColumn Header="{loc:T org.col.reason}" Width="380" DisplayMemberBinding="{Binding Reason}" />
               </GridView>
             </ListView.View>
           </ListView>
@@ -167,9 +168,9 @@
     <!-- 4) 상태 + 버튼 -->
     <DockPanel Grid.Row="3" Margin="0,12,0,0">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-        <Button Content="정리하기" Style="{StaticResource Tpl.Primary}" IsDefault="True" Command="{Binding ExecuteCommand}" MinWidth="96" Margin="0,0,8,0" />
-        <Button Content="되돌리기" Command="{Binding UndoCommand}" MinWidth="90" Margin="0,0,8,0" />
-        <Button Content="닫기" IsCancel="True" Command="{Binding CancelCommand}" MinWidth="80" />
+        <Button Content="{loc:T org.run}" Style="{StaticResource Tpl.Primary}" IsDefault="True" Command="{Binding ExecuteCommand}" MinWidth="96" Margin="0,0,8,0" />
+        <Button Content="{loc:T org.undo}" Command="{Binding UndoCommand}" MinWidth="90" Margin="0,0,8,0" />
+        <Button Content="{loc:T shell.close}" IsCancel="True" Command="{Binding CancelCommand}" MinWidth="80" />
       </StackPanel>
       <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
         <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" />

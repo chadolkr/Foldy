@@ -1,6 +1,7 @@
 <UserControl x:Class="Foldy.UI.Markdown.MarkdownView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Foldy.UI.Localization"
              xmlns:md="clr-namespace:Foldy.UI.Markdown"
              Background="{DynamicResource Brush.Window}"
              Foreground="{DynamicResource Brush.Text}"
@@ -68,25 +69,25 @@
       <DockPanel LastChildFill="True">
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
           <Button x:Name="BackButton" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72B;"
-                  ToolTip="뒤로 (Alt+←)" Click="OnBack" IsEnabled="{Binding CanGoBack}" />
+                  ToolTip="{loc:T pane.back}" Click="OnBack" IsEnabled="{Binding CanGoBack}" />
           <Button x:Name="ForwardButton" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE72A;"
-                  ToolTip="앞으로 (Alt+→)" Click="OnForward" IsEnabled="{Binding CanGoForward}" />
-          <ToggleButton x:Name="SourceToggle" Style="{StaticResource Md.ToggleButton}" ToolTip="Markdown 원문 보기"
+                  ToolTip="{loc:T pane.forward}" Click="OnForward" IsEnabled="{Binding CanGoForward}" />
+          <ToggleButton x:Name="SourceToggle" Style="{StaticResource Md.ToggleButton}" ToolTip="{loc:T md.source.tip}"
                         IsChecked="{Binding ShowSource, Mode=TwoWay}">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource Md.Glyph}" Text="&#xE943;" />
-              <TextBlock Text="원문 보기" Margin="6,0,0,0" VerticalAlignment="Center" />
+              <TextBlock Text="{loc:T md.source}" Margin="6,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
           </ToggleButton>
-          <ToggleButton x:Name="OutlineToggle" Style="{StaticResource Md.ToggleButton}" ToolTip="목차 보이기/숨기기"
+          <ToggleButton x:Name="OutlineToggle" Style="{StaticResource Md.ToggleButton}" ToolTip="{loc:T md.toc.tip}"
                         IsChecked="{Binding IsOutlineVisible, RelativeSource={RelativeSource AncestorType=md:MarkdownView}, Mode=TwoWay}">
             <StackPanel Orientation="Horizontal">
               <TextBlock Style="{StaticResource Md.Glyph}" Text="&#xE8FD;" />
-              <TextBlock Text="목차" Margin="6,0,0,0" VerticalAlignment="Center" />
+              <TextBlock Text="{loc:T md.toc}" Margin="6,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
           </ToggleButton>
-          <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE70F;" ToolTip="쓰기 (Foldy 메모 창에서 고치기, 그림 붙여넣기·화면 캡처)" Click="OnEdit" />
-          <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE721;" ToolTip="문서에서 찾기 (Ctrl+F)" Click="OnShowFind" />
+          <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE70F;" ToolTip="{loc:T md.edit.tip}" Click="OnEdit" />
+          <Button Style="{DynamicResource Foldy.ToolButton}" Content="&#xE721;" ToolTip="{loc:T md.find}" Click="OnShowFind" />
         </StackPanel>
         <TextBlock x:Name="StatusText" Style="{DynamicResource Foldy.StatusText}" HorizontalAlignment="Right"
                    Foreground="{DynamicResource Brush.TextSecondary}" />
@@ -97,9 +98,9 @@
     <Border x:Name="ImageBanner" Grid.Row="1" Visibility="Collapsed" Background="{DynamicResource Brush.SurfaceAlt}"
             BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="10,4">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Content="이미지 불러오기" Padding="10,2" Click="OnAllowRemoteImages" />
+        <Button DockPanel.Dock="Right" Content="{loc:T md.loadImages}" Padding="10,2" Click="OnAllowRemoteImages" />
         <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}"
-                   Text="개인정보 보호를 위해 인터넷 이미지를 차단했습니다." />
+                   Text="{loc:T md.imagesBlocked}" />
       </DockPanel>
     </Border>
 
@@ -107,9 +108,9 @@
     <Border x:Name="FindBar" Grid.Row="2" Visibility="Collapsed" Background="{DynamicResource Brush.Surface}"
             BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="6,3">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE711;" ToolTip="닫기 (Esc)" Click="OnCloseFind" />
-        <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74B;" ToolTip="다음 (Enter, F3)" Click="OnFindNext" />
-        <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74A;" ToolTip="이전 (Shift+Enter)" Click="OnFindPrevious" />
+        <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE711;" ToolTip="{loc:T md.close}" Click="OnCloseFind" />
+        <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74B;" ToolTip="{loc:T md.next}" Click="OnFindNext" />
+        <Button DockPanel.Dock="Right" Style="{DynamicResource Foldy.ToolButton}" Content="&#xE74A;" ToolTip="{loc:T md.prev}" Click="OnFindPrevious" />
         <TextBlock x:Name="FindCount" DockPanel.Dock="Right" Margin="8,0" VerticalAlignment="Center"
                    Foreground="{DynamicResource Brush.TextSecondary}" />
         <Border Style="{DynamicResource Foldy.InputBorder}">

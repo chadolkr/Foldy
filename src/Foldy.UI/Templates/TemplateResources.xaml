@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Foldy.UI.Localization"
                     xmlns:t="clr-namespace:Foldy.UI.Templates">
   <!--
     폴더 템플릿·위저드·정리 대화상자 공용 스타일. 색은 모두 테마 토큰(Brush.*)을 DynamicResource로 참조한다.
@@ -400,8 +401,8 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-      <CheckBox Content="번호 접두어 끄기 (01_계약 → 계약)" IsChecked="{Binding StripNumberPrefix}" />
-      <CheckBox Content="폴더 이름 영문으로" IsChecked="{Binding UseEnglishNames}" Visibility="{Binding HasEnglishNames, Converter={StaticResource BoolVis}}" />
+      <CheckBox Content="{loc:T tpl.stripNumbers}" IsChecked="{Binding StripNumberPrefix}" />
+      <CheckBox Content="{loc:T tpl.english}" IsChecked="{Binding UseEnglishNames}" Visibility="{Binding HasEnglishNames, Converter={StaticResource BoolVis}}" />
     </StackPanel>
   </DataTemplate>
 

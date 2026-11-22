@@ -83,6 +83,10 @@ public partial class App : Application
 
         Options = AppOptions.Parse(e.Args);
         ApplyLanguage();
+        if (Options.DocShots is not null || Options.IsCapture)
+        {
+            Foldy.UI.Views.PaneView.FollowCurrentFolderInTree = false; // 문서 그림에 이 PC의 실제 폴더 이름이 찍히지 않게
+        }
         if (Options.DocShots is not null)
         {
             // 문서용 캡처는 항상 모던 라이트. 사용자 설정·세션을 건드리지 않도록 FOLDY_DATA_DIR(임시 폴더)가 꼭 필요하다.

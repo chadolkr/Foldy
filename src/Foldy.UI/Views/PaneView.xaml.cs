@@ -1552,9 +1552,15 @@ public partial class PaneView : UserControl
     /// 트리가 지금 폴더를 따라가게: 위 폴더를 펼치고 그 폴더를 강조해 보이게 스크롤한다 (양쪽 패널 각자, 주소 입력·Ctrl+Space·탭·드라이브 바꾸기 모두).
     /// 트리가 접혀 있으면 하지 않는다(보일 때 다시). 폴더 목록은 비동기라 느린 드라이브도 화면을 막지 않는다.
     /// </summary>
+    /// <summary>
+    /// 트리가 지금 폴더를 따라 펼쳐지나. 문서용 화면 캡처는 끈다: 예시 폴더가 실제 C: 아래에 있어,
+    /// 펼치면 그 PC의 다른 폴더 이름이 그림에 찍힌다 (2026-11-22, 공개 그림에 실제 폴더 이름이 나간 일).
+    /// </summary>
+    public static bool FollowCurrentFolderInTree { get; set; } = true;
+
     private async Task RevealInTreeAsync(string? path)
     {
-        if (_tree is null || TreeColumnHidden())
+        if (_tree is null || TreeColumnHidden() || !FollowCurrentFolderInTree)
         {
             return;
         }

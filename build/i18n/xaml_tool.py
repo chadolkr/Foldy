@@ -29,8 +29,9 @@ def apply(path):
     sys.path.insert(0, HERE)
     from xaml_strings import XAML  # noqa
     from shell_strings import SHELL  # noqa
+    from xaml_strings2 import XAML2  # noqa
     by_ko = {}
-    for k, ko, *_ in XAML + SHELL:
+    for k, ko, *_ in XAML + XAML2 + SHELL:
         by_ko.setdefault(ko, k)
     raw = open(path, encoding='utf-8').read()
     masked = strip_comments(raw)

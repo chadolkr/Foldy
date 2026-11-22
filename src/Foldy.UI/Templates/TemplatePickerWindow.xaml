@@ -1,8 +1,9 @@
 <Window x:Class="Foldy.UI.Templates.TemplatePickerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Foldy.UI.Localization"
         xmlns:t="clr-namespace:Foldy.UI.Templates"
-        Title="템플릿으로 만들기" Width="1020" Height="660" MinWidth="760" MinHeight="480"
+        Title="{loc:T tpl.title}" Width="1020" Height="660" MinWidth="760" MinHeight="480"
         ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
         Style="{DynamicResource Foldy.Window}"
         Background="{DynamicResource Brush.Surface}" Foreground="{DynamicResource Brush.Text}"
@@ -24,7 +25,7 @@
 
     <!-- 왼쪽: 템플릿 목록 -->
     <DockPanel Grid.Column="0" Margin="16,16,8,0">
-      <TextBlock DockPanel.Dock="Top" Text="스타일" Style="{StaticResource Tpl.Section}" Margin="2,0,0,8" />
+      <TextBlock DockPanel.Dock="Top" Text="{loc:T org.style}" Style="{StaticResource Tpl.Section}" Margin="2,0,0,8" />
       <ListBox Style="{StaticResource Tpl.ListBox}" ItemContainerStyle="{StaticResource Tpl.GroupedListItem}" ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}">
         <ListBox.ItemTemplate>
           <DataTemplate>
@@ -54,21 +55,21 @@
           <StackPanel>
             <TextBlock Text="{Binding SelectedTemplate.Name}" Style="{StaticResource Tpl.Title}" TextWrapping="Wrap" />
             <TextBlock Text="{Binding SelectedTemplate.GuideSummary}" Style="{StaticResource Tpl.Secondary}" />
-            <TextBlock Text="입력" Style="{StaticResource Tpl.Section}" />
+            <TextBlock Text="{loc:T tpl.input}" Style="{StaticResource Tpl.Section}" />
             <ContentControl Content="{Binding Customizer}" ContentTemplate="{StaticResource Tpl.CustomizerInputs}" Focusable="False" />
-            <TextBlock Text="만들 위치" Style="{StaticResource Tpl.Section}" />
+            <TextBlock Text="{loc:T wiz.location}" Style="{StaticResource Tpl.Section}" />
             <TextBox Style="{StaticResource Tpl.Input}" Text="{Binding Customizer.TargetFolder, UpdateSourceTrigger=PropertyChanged, Delay=300}" />
             <CheckBox Margin="0,10,0,0" IsChecked="{Binding WriteDescription}">
-              <TextBlock Text="폴더 설명에 사용법 넣기" />
+              <TextBlock Text="{loc:T tpl.writeGuide}" />
             </CheckBox>
           </StackPanel>
         </ScrollViewer>
         <Border Grid.Column="1" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0" Padding="14,8,14,14">
           <TabControl Style="{StaticResource Tpl.Tabs}" SelectedIndex="{Binding SelectedTabIndex}">
-            <TabItem Header="미리보기">
+            <TabItem Header="{loc:T set.preview}">
               <ContentControl Content="{Binding Customizer}" ContentTemplate="{StaticResource Tpl.PreviewTree}" Focusable="False" />
             </TabItem>
-            <TabItem Header="사용법">
+            <TabItem Header="{loc:T tpl.guide}">
               <FlowDocumentScrollViewer t:SimpleMarkdown.Text="{Binding SelectedTemplate.Guide}" VerticalScrollBarVisibility="Auto"
                                         Background="Transparent" IsToolBarVisible="False" />
             </TabItem>
@@ -80,13 +81,13 @@
     <!-- 아래: 문제 표시 + 버튼 -->
     <DockPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="16,12,16,16" LastChildFill="True">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-        <Button Content="만들기" Style="{StaticResource Tpl.Primary}" IsDefault="True" Command="{Binding CreateCommand}" MinWidth="96" Margin="0,0,8,0" />
-        <Button Content="취소" IsCancel="True" Command="{Binding CancelCommand}" MinWidth="80" />
+        <Button Content="{loc:T git.create}" Style="{StaticResource Tpl.Primary}" IsDefault="True" Command="{Binding CreateCommand}" MinWidth="96" Margin="0,0,8,0" />
+        <Button Content="{loc:T shell.cancel}" IsCancel="True" Command="{Binding CancelCommand}" MinWidth="80" />
       </StackPanel>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="{Binding Customizer.ProblemText}" Style="{StaticResource Tpl.Error}" />
         <TextBlock Text="{Binding Error}" Style="{StaticResource Tpl.Error}" />
-        <TextBlock Text="같은 이름이 있으면 그대로 두고 없는 것만 만듭니다. 덮어쓰지 않습니다." Style="{StaticResource Tpl.Secondary}" FontSize="11.5" />
+        <TextBlock Text="{loc:T tpl.noOverwrite}" Style="{StaticResource Tpl.Secondary}" FontSize="11.5" />
       </StackPanel>
     </DockPanel>
   </Grid>

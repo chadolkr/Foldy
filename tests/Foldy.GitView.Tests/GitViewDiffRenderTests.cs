@@ -139,7 +139,7 @@ public class GitViewDiffRenderTests
             await vm.RefreshAsync();
             var (win, view) = await ShowAsync(vm, 700, 500);
             vm.ShowSetup.Should().BeTrue();
-            Descendants<Button>(view).Any(b => b.Content as string == "여기에 Git 저장소 만들기 (git init)" && b.IsVisible).Should().BeTrue();
+            Descendants<Button>(view).Any(b => b.Content as string == Foldy.Core.Localization.Loc.T("git.init") && b.IsVisible).Should().BeTrue();
             Render(view, 700, 500);
             win.Close();
         });
