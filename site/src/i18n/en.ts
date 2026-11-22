@@ -36,6 +36,20 @@ const en: Dictionary = {
     { value: '$0', label: 'No ads, no paid tiers, source code included', note: 'GPL-3.0' },
     { value: 'Offline', label: 'Every feature works without the internet', note: 'Stays on your PC' },
   ],
+  // 1.0 정식 버전 안내 (맨 위 배지 + 바뀐 점)
+  news: {
+    badge: 'Foldy 1.0 is here',
+    eyebrow: 'Foldy 1.0',
+    title: 'What’s new in 1.0',
+    lead: 'Polished through daily use on home and work PCs since 0.9. If you already use Foldy, it updates to 1.0 on its own.',
+    items: [
+      { icon: 'globe', title: 'Five languages', text: 'Foldy starts in your Windows language: 한국어, English, Español, 日本語 or 简体中文. The manual (F1), the short intro and the folders templates create all follow it.' },
+      { icon: 'panes', title: 'Start with what you want to do', text: 'The four things people do most sit at the top left. Tidying asks one question at a time, shows the result before anything moves, and can always be undone.' },
+      { icon: 'check', title: '13 folder templates', text: 'From easy methods like PARA to project management (PMBOK), IT development documents (ISO/IEC/IEEE 12207) and construction information (ISO 19650), each folder explains what goes in it.' },
+      { icon: 'shield', title: 'Checked carefully', text: 'Before 1.0 we reviewed the code and security again from the start. Updates still install only after their signature is verified.' },
+    ],
+    link: 'See everything that changed',
+  },
   features: {
     eyebrow: 'The four things people do most',
     title: 'Start with what you want to do',
@@ -202,6 +216,7 @@ const en: Dictionary = {
     title: 'Questions',
     items: [
       { q: 'Is it really free?', a: 'Yes. No ads and no paid features. It is GPL-3.0 open source, so anyone can read the source code.' },
+      { q: 'Can I use it in other languages?', a: 'Yes. Foldy follows your Windows language if it is Korean, English, Spanish, Japanese or Simplified Chinese, and uses English otherwise. You can change it any time in Settings → Language.' },
       { q: 'Does it replace File Explorer?', a: 'You can use both. Right-click menus, drag and drop and shortcuts match File Explorer, so there is very little to learn.' },
       { q: 'Does it need the internet?', a: 'No. Every feature works offline. The internet is only used to check for updates and for SFTP or Git connections you start yourself.' },
       { q: 'Will it work on my work PC?', a: 'Slow secure drives and network drives won’t freeze it, and updates work behind company proxies.' },

@@ -36,6 +36,20 @@ const es: Dictionary = {
     { value: '0 €', label: 'Sin anuncios ni planes de pago, con el código fuente', note: 'GPL-3.0' },
     { value: 'Sin conexión', label: 'Todas las funciones van sin internet', note: 'Todo se queda en tu PC' },
   ],
+  // 1.0 정식 버전 안내 (맨 위 배지 + 바뀐 점)
+  news: {
+    badge: 'Ya está aquí Foldy 1.0',
+    eyebrow: 'Foldy 1.0',
+    title: 'Novedades de la 1.0',
+    lead: 'Pulido con el uso diario en el PC de casa y del trabajo desde la 0.9. Si ya usas Foldy, se actualiza a la 1.0 por sí solo.',
+    items: [
+      { icon: 'globe', title: 'Cinco idiomas', text: 'Foldy se abre en el idioma de Windows: 한국어, English, Español, 日本語 o 简体中文. El manual (F1), la presentación corta y las carpetas que crean las plantillas también.' },
+      { icon: 'panes', title: 'Empieza por lo que quieres hacer', text: 'Las cuatro tareas más comunes están arriba a la izquierda. Al ordenar, Foldy pregunta una cosa cada vez, te enseña el resultado antes de mover nada y siempre puedes deshacerlo.' },
+      { icon: 'check', title: '13 plantillas de carpetas', text: 'Desde métodos sencillos como PARA hasta gestión de proyectos (PMBOK), documentación de desarrollo de TI (ISO/IEC/IEEE 12207) e información de construcción (ISO 19650). Cada carpeta explica qué guardar en ella.' },
+      { icon: 'shield', title: 'Revisado con calma', text: 'Antes de la 1.0 volvimos a revisar el código y la seguridad desde el principio. Las actualizaciones se siguen instalando solo después de comprobar su firma.' },
+    ],
+    link: 'Ver todos los cambios',
+  },
   features: {
     eyebrow: 'Las cuatro cosas que más se hacen',
     title: 'Empieza por lo que quieres hacer',
@@ -202,6 +216,7 @@ const es: Dictionary = {
     title: 'Preguntas',
     items: [
       { q: '¿De verdad es gratis?', a: 'Sí. Sin anuncios ni funciones de pago. Es código abierto GPL-3.0, así que cualquiera puede leer el código fuente.' },
+      { q: '¿Puedo usarlo en otros idiomas?', a: 'Sí. Foldy sigue el idioma de Windows si es coreano, inglés, español, japonés o chino simplificado; en otro caso, se abre en inglés. Puedes cambiarlo cuando quieras en Configuración → Idioma.' },
       { q: '¿Sustituye al Explorador de archivos?', a: 'Puedes usar los dos. Los menús del clic derecho, arrastrar y soltar y los atajos son iguales, así que casi no hay nada que aprender.' },
       { q: '¿Necesita internet?', a: 'No. Todo funciona sin conexión. Internet solo se usa para buscar actualizaciones y para las conexiones SFTP o Git que tú inicies.' },
       { q: '¿Funcionará en el PC del trabajo?', a: 'Las unidades seguras lentas y las de red no lo bloquean, y las actualizaciones funcionan detrás de proxies de empresa.' },
