@@ -937,7 +937,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         }
 
         var parts = Columns.Select(c => c.Text(item)).Where(t => t.Length > 0);
-        var text = $"{string.Join(", ", parts)}, {_focus + 1}/{list.Count}{(IsSelected(_focus) ? ", 선택됨" : "")}";
+        var text = $"{string.Join(", ", parts)}, {_focus + 1}/{list.Count}{(IsSelected(_focus) ? Foldy.Core.Localization.Loc.T("list.a11ySelected") : "")}";
         System.Windows.Automation.AutomationProperties.SetName(this, text);
         if (UIElementAutomationPeer.FromElement(this) is { } peer)
         {

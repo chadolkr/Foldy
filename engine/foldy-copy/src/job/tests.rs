@@ -386,6 +386,31 @@ fn copy_into_itself_is_rejected() {
 }
 
 #[test]
+fn not_enough_space_stops_before_writing_anything() {
+    // 사용자 원칙 2026-11-22: 한참 복사하다가 모자란다고 하지 말고, 쓰기 전에 알린다
+    let t = Tmp::new("nospace");
+    let src = t.0.join("s");
+    std::fs::create_dir_all(src.join("sub")).unwrap();
+    std::fs::write(src.join("a.bin"), vec![1u8; 10_000]).unwrap();
+    std::fs::write(src.join("sub").join("b.bin"), vec![2u8; 5_000]).unwrap();
+    let dst = t.0.join("new-dest");
+    let (h, p) = run(json!({"sources": [src], "dest_dir": dst, "_test_free_bytes": 1000}));
+    assert_eq!((p.state, p.last_error), (JobState::Failed as u32, FC_ERR_NO_SPACE), "{p:?}");
+    assert_eq!(p.bytes_done, 0);
+    assert_eq!(p.bytes_total, crate::space::on_disk(10_000) + crate::space::on_disk(5_000) + crate::space::SLACK);
+    assert!(!dst.exists(), "대상 폴더도 만들지 않는다");
+    assert_eq!(issues(h).len(), 1);
+
+    // 공간이 넉넉하면 그대로 복사한다
+    let (_, p) = run(json!({"sources": [src], "dest_dir": dst, "_test_free_bytes": 100u64 << 20}));
+    assert_eq!(p.state, JobState::Done as u32, "{p:?}");
+
+    // 같은 파일을 덮어쓰면 자리를 다시 쓰므로 더 필요 없다
+    let (_, p) = run(json!({"sources": [src], "dest_dir": dst, "conflict": "overwrite", "_test_free_bytes": 0}));
+    assert_eq!(p.state, JobState::Done as u32, "{p:?}");
+}
+
+#[test]
 fn auto_tuner_saves_best_value() {
     let t = Tmp::new("tune");
     let src = t.0.join("s");

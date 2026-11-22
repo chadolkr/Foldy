@@ -15,6 +15,7 @@ robocopy를 호출하지 않고 `robocopy /MT`와 같은 병렬 복사를 Foldy 
 | --- | --- | --- |
 | 스캐너 | 원본을 펼쳐 폴더(부모 먼저)·파일 목록. 링크·정션은 따라가지 않음. 읽지 못한 하위 폴더는 실패 목록 | `scan.rs` |
 | 계획기 | 대상 폴더를 먼저 순서대로 만들고, 대상 폴더마다 한 번만 열거해 충돌 판단 (skip/overwrite/rename/ask), 같은 작업 안의 중복 대상도 잡음 | `plan.rs`, `job.rs` |
+| 공간 확인 | 계획이 끝나면 **한 바이트도 쓰기 전에**(대상 폴더도 만들기 전에) 대상 드라이브 빈 공간(클러스터 4KB 올림 + 1MB 여유, 덮어쓰기·충돌은 크기 차이만)과 FAT32 한 파일 한도(4GB-1)를 본다. 모자라면 `-9`/`-10`으로 멈춘다 (사용자 원칙 2026-11-22). 빈 공간을 모르면 막지 않음 | `space.rs`, `job.rs` |
 | 워커 | 상한(SSD 16, HDD 2, 네트워크 32)만큼 미리 만들고 `Gate`로 동시 실행 수만 조절. CopyFile2 + 진행률 콜백 | `job.rs`, `win.rs` |
 | 검증기 | 크기 + 수정 시간(GetFileAttributesExW, 핸들 안 엶, 2초 허용), 선택 시 CRC32 내용 비교 | `verify.rs` |
 | 마무리 | 폴더 시간 복원(깊은 것부터), 이동이면 빈 원본 폴더 삭제, 최적 스레드 저장, 저널 End | `job.rs` |
@@ -79,7 +80,7 @@ ABI 버전 1 → 2: `FcProgress`가 커졌습니다 (함수 시그니처는 그�
 | `fc_journal_read_spec(path, len, buf, cap, *out_len)` | 저널의 명세 JSON |
 
 문자열을 돌려주는 함수는 `out_len`에 항상 필요한 u16 개수를 쓰고, 버퍼가 작으면 `FC_ERR_BUFFER_TOO_SMALL(-6)`.
-오류 코드: `-1` 인자, `-2` 핸들, `-3` panic, `-4` 상태, `-5` I/O(Done인데 -5면 일부 파일 실패), `-6` 버퍼, `-7` 해결할 항목 없음, `-8` 시험용 중단.
+오류 코드: `-1` 인자, `-2` 핸들, `-3` panic, `-4` 상태, `-5` I/O(Done인데 -5면 일부 파일 실패), `-6` 버퍼, `-7` 해결할 항목 없음, `-8` 시험용 중단, `-9` 빈 공간 부족(시작 전, `bytes_total` = 필요한 바이트), `-10` FAT32 드라이브에 4GB 넘는 파일(시작 전, `bytes_total` = 그 파일 크기).
 
 `FcProgress` (80바이트): `state`(0 Created 1 Running 2 Paused 3 Done 4 Failed 5 Canceled 6 NeedsAttention),
 `last_error`, `files_done`(건너뜀 포함), `files_total`, `bytes_done`, `bytes_total`, `bytes_per_sec`,

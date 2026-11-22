@@ -120,6 +120,38 @@ public sealed class VaultTests : IDisposable
     }
 
     [Fact]
+    public void Picked_entries_are_streamed_to_files_and_preview_reads_only_the_head()
+    {
+        // 1.0 점검 B2: 꺼내기·풀기·미리보기가 항목 전체를 메모리에 올려 2GB가 넘는 파일은 꺼낼 수 없었다.
+        // 이제 파일로 바로 풀고(ExtractEntry·Extract), 미리보기는 앞부분만(ReadEntryHead) 읽는다.
+        var folder = Path.Combine(_root, "영상");
+        Directory.CreateDirectory(folder);
+        var big = Enumerable.Range(0, 3_000_000).Select(i => (byte)(i * 31)).ToArray();
+        File.WriteAllBytes(Path.Combine(folder, "큰.bin"), big);
+        File.WriteAllText(Path.Combine(folder, "메모.txt"), "작은 것");
+        var vault = VaultMaker.Create(folder, "pw").VaultPath;
+
+        var (head, size) = SecureZip.ReadEntryHead(vault, "pw", "큰.bin", 4096);
+        size.Should().Be(big.Length);
+        head.Should().Equal(big.Take(4096));
+        SecureZip.ReadEntryHead(vault, "pw", "메모.txt", 4096).Head.Should().Equal("작은 것"u8.ToArray(), "작은 항목은 전부");
+
+        var dst = Path.Combine(_root, "꺼냄");
+        var (done, failed) = SecureZip.Extract(vault, "pw", ["큰.bin", "메모.txt"], dst);
+        done.Should().Be(2);
+        failed.Should().BeEmpty();
+        File.ReadAllBytes(Path.Combine(dst, "큰.bin")).Should().Equal(big);
+        SecureZip.Extract(vault, "pw", ["큰.bin"], dst).Done.Should().Be(1);
+        File.Exists(Path.Combine(dst, "큰 (2).bin")).Should().BeTrue("이미 있으면 덮어쓰지 않는다");
+
+        var one = Path.Combine(_root, "하나.bin");
+        SecureZip.ExtractEntry(vault, "pw", "큰.bin", one);
+        File.ReadAllBytes(one).Should().Equal(big);
+        FluentActions.Invoking(() => SecureZip.ExtractEntry(vault, "틀림", "큰.bin", Path.Combine(_root, "x.bin"))).Should().Throw<Exception>();
+        File.Exists(Path.Combine(_root, "x.bin")).Should().BeFalse("틀린 암호면 빈 파일도 남기지 않는다");
+    }
+
+    [Fact]
     public void Extract_ignores_entries_that_escape_the_destination_zip_slip()
     {
         var vault = Path.Combine(_root, "evil.foldyvault");

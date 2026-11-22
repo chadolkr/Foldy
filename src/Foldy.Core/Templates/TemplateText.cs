@@ -73,7 +73,7 @@ public static class TemplateText
             sb.Append(n.Pattern);
             if (n.Examples.Count > 0)
             {
-                sb.Append("\n예: ").Append(string.Join(", ", n.Examples));
+                sb.Append('\n').Append(Foldy.Core.Localization.Loc.T("tpl.examples")).Append(string.Join(", ", n.Examples));
             }
         }
 

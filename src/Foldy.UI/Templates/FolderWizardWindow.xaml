@@ -214,7 +214,7 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TextBlock Text="{Binding SavedTemplatePath, StringFormat='내 템플릿으로 저장함: {0}'}" Style="{StaticResource Tpl.Secondary}"
+        <TextBlock Text="{Binding SavedTemplatePath, StringFormat={loc:T tpl.savedAs}}" Style="{StaticResource Tpl.Secondary}"
                    Visibility="{Binding SavedTemplatePath, Converter={StaticResource BoolVis}}" Margin="0,8,0,0" />
       </StackPanel>
     </Grid>

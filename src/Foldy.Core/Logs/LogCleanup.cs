@@ -58,6 +58,29 @@ public static class LogPlanner
             .OrderByDescending(g => g.Size)
             .ToList();
 
+    /// <summary>
+    /// 압축하기 전에 볼 공간 (사용자 원칙 2026-11-22). 원본은 휴지통으로 가서 바로 비워지지 않으므로 새 zip 크기를 다 더하고,
+    /// 이미 있는 월별 zip은 새 파일로 다시 쓰므로 그중 가장 큰 것만큼 잠깐 더 든다.
+    /// </summary>
+    public static long SpaceNeeded(IReadOnlyList<LogGroup> groups)
+    {
+        ArgumentNullException.ThrowIfNull(groups);
+        long zips = 0, rewrite = 0;
+        foreach (var g in groups)
+        {
+            zips += (long)(g.Size * (1 - SavingRatio));
+            try
+            {
+                rewrite = Math.Max(rewrite, File.Exists(g.ZipPath) ? new FileInfo(g.ZipPath).Length : 0);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
+        return zips + rewrite + Foldy.Core.Space.DiskSpace.Slack;
+    }
+
     public static bool IsSerious(long saving, long freeBytes) =>
         saving >= NoticeBytes || (freeBytes > 0 && saving >= freeBytes * NoticeFreeRatio && saving >= 100L << 20);
 }

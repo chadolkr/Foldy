@@ -239,19 +239,19 @@ public sealed class McpWindow : Window
         var name = new TextBlock { Text = t.Name, FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 10, 0) };
         name.SetResourceReference(ForegroundProperty, "Brush.Accent");
         head.Children.Add(name);
-        head.Children.Add(Text(t.Title, 15, bold: true));
+        head.Children.Add(Text(Shown($"mcp.tool.{t.Name}", t.Title), 15, bold: true));
         var badge = new Border { CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         badge.SetResourceReference(Border.BackgroundProperty, "Brush.Surface");
         badge.Child = Text(t.ReadOnly ? Foldy.Core.Localization.Loc.T("mcp.readOnly") : Foldy.Core.Localization.Loc.T("mcp.confirmFirst"), 12, secondary: true);
         head.Children.Add(badge);
         p.Children.Add(head);
-        p.Children.Add(Text(t.Description, 14, secondary: true, margin: new Thickness(0, 4, 0, 4)));
+        p.Children.Add(Text(Shown($"mcp.tool.{t.Name}.desc", t.Description), 14, secondary: true, margin: new Thickness(0, 4, 0, 4)));
         foreach (var a in t.Params)
         {
             var row = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 13.5, Margin = new Thickness(12, 2, 0, 0) };
             var n = new System.Windows.Documents.Run(a.Name) { FontFamily = new FontFamily("Cascadia Mono, Consolas") };
             row.Inlines.Add(n);
-            row.Inlines.Add(new System.Windows.Documents.Run($"  {TypeName(a.Type)}{(a.Required ? Foldy.Core.Localization.Loc.T("mcp.required") : "")}  —  {a.Description}"));
+            row.Inlines.Add(new System.Windows.Documents.Run($"  {TypeName(a.Type)}{(a.Required ? Foldy.Core.Localization.Loc.T("mcp.required") : "")}  —  {Shown($"mcp.param.{a.Name}", a.Description)}"));
             row.SetResourceReference(ForegroundProperty, "Brush.Text");
             p.Children.Add(row);
         }
@@ -264,6 +264,16 @@ public sealed class McpWindow : Window
         var b = new Border { Child = p, Padding = new Thickness(14, 10, 14, 10), Margin = new Thickness(0, 0, 0, 8), CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1) };
         b.SetResourceReference(Border.BorderBrushProperty, "Brush.Border");
         return b;
+    }
+
+    /// <summary>
+    /// 도구 설명을 화면 언어로. AI에게 보내는 설명(McpTool)은 그대로 두고 이 화면에서만 바꾼다.
+    /// 번역이 없는 새 도구·입력값이면 원래 설명을 보인다.
+    /// </summary>
+    private static string Shown(string key, string original)
+    {
+        var s = Foldy.Core.Localization.Loc.T(key);
+        return s == key ? original : s;
     }
 
     private static string TypeName(string t) => t switch

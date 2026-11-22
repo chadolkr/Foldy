@@ -73,6 +73,27 @@ public sealed class FolderCompareTests : IDisposable
     }
 
     [Fact]
+    public void A_copy_that_fails_after_preserving_puts_the_old_file_back()
+    {
+        // 1.0 점검 B1: 이전 버전으로 옮긴 뒤 원본이 열려 있어 복사가 안 되면, 오른쪽 파일이 사라졌다
+        Put(L, "a.txt", "left newer", T0.AddHours(2));
+        Put(R, "a.txt", "right older", T0.AddHours(1));
+        var steps = FolderCompare.Plan(L, R, FolderCompare.Compare(L, R), MergeDirection.LeftToRight);
+        steps.Should().ContainSingle();
+        var journal = Path.Combine(_root, "j.json");
+        (IReadOnlyList<MergeRecord> Done, IReadOnlyList<(string Path, string Reason)> Skipped) r;
+        using (new FileStream(Path.Combine(L, "a.txt"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            r = FolderCompare.Apply(steps, journal);
+        }
+
+        r.Done.Should().BeEmpty();
+        r.Skipped.Should().ContainSingle();
+        File.ReadAllText(Path.Combine(R, "a.txt")).Should().Be("right older", "복사하지 못했으면 원래 파일이 제자리에 있어야 한다");
+        File.Exists(Path.Combine(R, "a.txt.foldy-bak")).Should().BeFalse();
+    }
+
+    [Fact]
     public void Conflicts_need_a_choice_and_apply_can_be_undone()
     {
         Put(L, "a.txt", "left edit", T0.AddHours(2));

@@ -55,7 +55,7 @@ public static class OrganizeScanner
         return false;
     }
 
-    public const string ProjectRootReason = "Git 저장소·개발·AI 프로젝트 폴더(.git, .sln, package.json, .claude, CLAUDE.md 등이 있음)는 정리하지 않습니다. 파일을 옮기면 빌드나 Git 기록이 깨질 수 있어요. 프로젝트 밖의 일반 폴더에서 정리해 주세요.";
+    public static string ProjectRootReason => Foldy.Core.Localization.Loc.T("os.project");
 
     /// <summary>정리하면 안 되는 폴더면 이유, 아니면 null. <paramref name="allowProject"/>면 프로젝트 폴더도 허용한다.</summary>
     public static string? CheckRoot(string root, bool allowProject = false)

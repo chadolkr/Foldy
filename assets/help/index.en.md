@@ -517,6 +517,7 @@ You can put a password on an existing file, such as a contract. Right-click the 
 
 Put an important folder into a vault, whole. Right-click the folder → **🔒 Put in vault…**. A single `foldername.foldyvault` file appears; after checking each file by decrypting it, Foldy asks whether to send the original folder to the Recycle Bin.
 
+- **There's no size limit.** Files over 4 GB go in and come out fine. Foldy keeps the originals until it's done, though, so it needs that much extra free space, and an older USB stick formatted as FAT32 can't hold a vault over 4 GB. Foldy checks **before** asking for a password, tells you right away if space is short, and offers [Free up space] to help you clear some.
 - Double-click to enter the password and see the list of files inside. Pick files to **preview** (in memory only), **extract**, or **extract all**.
 
 ### About locked files

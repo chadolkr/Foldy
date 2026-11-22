@@ -17,6 +17,7 @@ public sealed class VersionHistoryTests : IDisposable
     {
         VersionHistory.RootOverride = null;
         VersionHistory.LocalDriveOverride = null;
+        VersionHistory.CapOverride = null;
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -57,6 +58,47 @@ public sealed class VersionHistoryTests : IDisposable
         VersionHistory.Preserve(f);
         File.Exists(old!.Saved).Should().BeFalse("7일이 지난 보관본은 지운다");
         VersionHistory.VersionsOf(f).Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Put_back_returns_the_original_only_when_the_overwrite_never_happened()
+    {
+        // 1.0 점검 B1: 보관(옮기기) 뒤 덮어쓰기가 취소·실패하면 원래 파일을 제자리로
+        var f = Path.Combine(_root, "견적서.xlsx");
+        File.WriteAllText(f, "원래");
+        var v = VersionHistory.Preserve(f)!;
+        File.Exists(f).Should().BeFalse();
+        VersionHistory.PutBack(v).Should().BeTrue();
+        File.ReadAllText(f).Should().Be("원래");
+        VersionHistory.VersionsOf(f).Should().BeEmpty("보관본은 제자리로 돌아갔다");
+
+        var w = VersionHistory.Preserve(f)!;
+        File.WriteAllText(f, "새것"); // 덮어쓰기 성공
+        VersionHistory.PutBack(w).Should().BeFalse("덮어쓴 파일은 건드리지 않는다");
+        File.ReadAllText(f).Should().Be("새것");
+        File.ReadAllText(w.Saved).Should().Be("원래");
+    }
+
+    [Fact]
+    public void A_batch_of_overwrites_keeps_every_original_until_the_job_ends()
+    {
+        // 1.0 점검 B1: 한 작업에서 여러 파일을 보관할 때, 앞 파일의 보관본이 한도 때문에 덮어쓰기 전에 지워지면 안 된다
+        VersionHistory.CapOverride = 10;
+        var a = Path.Combine(_root, "a.txt");
+        var b = Path.Combine(_root, "b.txt");
+        File.WriteAllText(a, "aaaaaaaa");
+        File.WriteAllText(b, "bbbbbbbb");
+        var va = VersionHistory.Preserve(a, prune: false)!;
+        var vb = VersionHistory.Preserve(b, prune: false)!;
+        File.Exists(va.Saved).Should().BeTrue("16바이트 > 한도 10이어도 작업 중에는 지우지 않는다");
+        File.Exists(vb.Saved).Should().BeTrue();
+
+        File.WriteAllText(a, "new a"); // a만 덮어쓰기 됨, b는 실패
+        VersionHistory.PrunePending();
+        File.Exists(va.Saved).Should().BeFalse("덮어쓰기가 끝난 a의 예전 내용은 한도 때문에 정리된다");
+        File.Exists(vb.Saved).Should().BeTrue("자리가 빈 b의 보관본은 유일한 사본이라 한도 때문에 지우지 않는다");
+        VersionHistory.PutBack(vb).Should().BeTrue();
+        File.ReadAllText(b).Should().Be("bbbbbbbb");
     }
 
     [Fact]

@@ -47,7 +47,19 @@ public static class FileTypeGroups
     public static string FolderName(string group, string? parent)
     {
         ArgumentNullException.ThrowIfNull(group);
-        var key = group switch
+        var key = KeyOf(group);
+        return key is null ? group : Foldy.Core.Localization.FolderNames.Pick(parent, group, Foldy.Core.Localization.Loc.T(key));
+    }
+
+    /// <summary>화면에 보일 그룹 이름 (앱 언어). 예: 문서 → Documents.</summary>
+    public static string DisplayName(string group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        return KeyOf(group) is { } key ? Foldy.Core.Localization.Loc.T(key) : group;
+    }
+
+    private static string? KeyOf(string group) =>
+        group switch
         {
             Documents => "ftg.documents",
             Images => "ftg.images",
@@ -59,8 +71,6 @@ public static class FileTypeGroups
             Other => "ftg.other",
             _ => null,
         };
-        return key is null ? group : Foldy.Core.Localization.FolderNames.Pick(parent, group, Foldy.Core.Localization.Loc.T(key));
-    }
 
     public static string GroupOf(string fileName)
     {
