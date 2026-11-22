@@ -14,7 +14,8 @@
   </ItemGroup>
   <ItemGroup>
     <!-- 내장 폴더 템플릿·사용법·위저드 규칙 (설계서 5.10). TemplateLibrary가 "Foldy.Templates.<파일명>"으로 읽는다. -->
-    <EmbeddedResource Include="..\..\assets\templates\*.json;..\..\assets\templates\*.md" LogicalName="Foldy.Templates.%(Filename)%(Extension)" />
+    <!-- WithCulture=false: 이름에 언어가 든 사용법(para.guide.en.md)을 위성 어셈블리로 빼지 않고 이 DLL에 넣는다 -->
+    <EmbeddedResource Include="..\..\assets\templates\*.json;..\..\assets\templates\*.md" LogicalName="Foldy.Templates.%(Filename)%(Extension)" WithCulture="false" />
     <EmbeddedResource Include="..\..\assets\templates\i18n\*.json" LogicalName="Foldy.Templates.i18n.%(Filename)%(Extension)" />
     <!-- 다국어 글: 언어마다 JSON 하나 (Loc). 파일 하나를 더하면 언어가 늘어난다 -->
     <EmbeddedResource Include="..\..\assets\i18n\*.json" LogicalName="Foldy.I18n.%(Filename)%(Extension)" />

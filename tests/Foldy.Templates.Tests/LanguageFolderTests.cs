@@ -46,6 +46,18 @@ public sealed partial class LanguageFolderTests
 
     [Theory]
     [MemberData(nameof(Others))]
+    public void Template_guides_are_in_the_app_language(string language)
+    {
+        using var _ = Use(language);
+        foreach (var t in TemplateLibrary.LoadBuiltIn())
+        {
+            t.Guide.Should().NotBeNullOrWhiteSpace(t.Id);
+            Hangul().IsMatch(t.Guide!).Should().BeFalse($"{language}: {t.Id} 사용법에 한국어가 남았다");
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Others))]
     public void Wizard_questions_are_translated(string language)
     {
         using var _ = Use(language);
