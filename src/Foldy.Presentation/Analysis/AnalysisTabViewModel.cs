@@ -31,7 +31,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
         ArgumentNullException.ThrowIfNull(root);
         _coordinator = coordinator;
         Root = root;
-        Title = "분석: " + root;
+        Title = Foldy.Core.Localization.Loc.F("an.title", root);
         _ruleTitles = coordinator.Rules.Rules.ToDictionary(r => r.Id, r => r.Title ?? r.Id, StringComparer.Ordinal);
     }
 
@@ -215,7 +215,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
     {
         ErrorText = "";
         IsBusy = true;
-        Status = "지난 분석 결과를 찾는 중…";
+        Status = Foldy.Core.Localization.Loc.T("an.findingLast");
         try
         {
             var set = await _coordinator.FindLatestAsync(Root, _cts.Token);
@@ -247,7 +247,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
         ErrorText = "";
         IsBusy = true;
         Progress = 0;
-        Status = "분석을 시작합니다…";
+        Status = Foldy.Core.Localization.Loc.T("an.starting");
         var progress = new Progress<AnalysisProgress>(p =>
         {
             Progress = p.Fraction;
@@ -260,7 +260,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
         }
         catch (OperationCanceledException)
         {
-            Status = "분석을 취소했습니다";
+            Status = Foldy.Core.Localization.Loc.T("an.cancelled");
         }
         catch (Exception ex)
         {
@@ -283,7 +283,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
     private void Fail(Exception ex)
     {
         ErrorText = ex is UnauthorizedAccessException
-            ? "분석 결과 파일을 읽을 권한이 없습니다: " + ex.Message
+            ? Foldy.Core.Localization.Loc.T("an.noAccess") + ex.Message
             : ex.Message;
         Status = "";
     }
@@ -292,7 +292,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
     public async Task LoadSnapshotAsync(SnapshotSet set)
     {
         ArgumentNullException.ThrowIfNull(set);
-        Status = "분석 결과를 여는 중…";
+        Status = Foldy.Core.Localization.Loc.T("an.opening");
         var root = Root;
         var loaded = await WithDbAsync(set, db =>
         {
@@ -304,7 +304,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
                 LoadTopFolders(db),
                 [.. db.TopFiles(TopN).Select(f => new FileListItem(f))],
                 [.. db.MostFilesFolders(TopN).Select(f => new FolderListItem(f, f.TotalFiles))],
-                ToExtItems(db.ExtensionStats().Take(TopN).Select(e => (e.Ext.Length == 0 ? "(확장자 없음)" : "." + e.Ext, e.Files, e.Alloc, ExtensionGroups.GroupOf(e.Ext))), scan.TotalAlloc),
+                ToExtItems(db.ExtensionStats().Take(TopN).Select(e => (e.Ext.Length == 0 ? Foldy.Core.Localization.Loc.T("an.noExt") : "." + e.Ext, e.Files, e.Alloc, ExtensionGroups.GroupOf(e.Ext))), scan.TotalAlloc),
                 ToExtItems(db.GroupStats().Select(g => (g.Group, g.Files, g.Alloc, string.Join(", ", g.Extensions.Select(x => x.Length == 0 ? "-" : "." + x)))), scan.TotalAlloc),
                 LoadOldFiles(db),
                 db.Candidates());
@@ -317,9 +317,8 @@ public sealed partial class AnalysisTabViewModel : TabBase
 
         HasSnapshot = true;
         var s = loaded.Scan;
-        var source = set.FromService ? "색인 서비스" : "직접 열거";
-        ScanText = string.Create(CultureInfo.CurrentCulture,
-            $"{s.StartedUtc.ToLocalTime():yyyy-MM-dd HH:mm} 분석 · 파일 {s.TotalFiles:N0}개 · 폴더 {s.TotalDirs:N0}개 · {AnalysisText.FormatSize(s.TotalAlloc)} · {source}");
+        var source = set.FromService ? Foldy.Core.Localization.Loc.T("an.fromService") : Foldy.Core.Localization.Loc.T("an.fromScan");
+        ScanText = Foldy.Core.Localization.Loc.F("an.summary", s.StartedUtc.ToLocalTime(), s.TotalFiles, s.TotalDirs, AnalysisText.FormatSize(s.TotalAlloc), source);
         TopFolders = loaded.TopFolders;
         TopFiles = loaded.TopFiles;
         MostFilesFolders = loaded.MostFiles;
@@ -372,14 +371,14 @@ public sealed partial class AnalysisTabViewModel : TabBase
     {
         if (prev is null)
         {
-            return new GrowthResult([], "비교할 지난 분석이 없습니다. 다음에 분석하면 이번 결과와 비교합니다.");
+            return new GrowthResult([], Foldy.Core.Localization.Loc.T("an.noPrev"));
         }
 
         var rows = db.Growth(prev.DbPath, TopN);
         var total = db.Scan().TotalAlloc - db.PreviousTotal(prev.DbPath);
         return new GrowthResult(
             [.. rows.Where(r => r.Delta != 0).Select(r => new GrowthItem(r))],
-            string.Create(CultureInfo.CurrentCulture, $"{prev.ScanTimeUtc.ToLocalTime():yyyy-MM-dd HH:mm} 분석 대비 전체 {(total >= 0 ? "+" : "")}{AnalysisText.FormatSize(total)}"));
+            Foldy.Core.Localization.Loc.F("an.vsPrev", prev.ScanTimeUtc.ToLocalTime(), (total >= 0 ? "+" : ""), AnalysisText.FormatSize(total)));
     }
 
     private void ApplyGrowth(GrowthResult r)
@@ -479,8 +478,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
             Breadcrumb.Add(new BreadcrumbItem(id, name));
         }
 
-        CurrentFolderText = string.Create(CultureInfo.CurrentCulture,
-            $"{r.Folder.Path} · {AnalysisText.FormatSize(r.Folder.Alloc)} · 파일 {r.Folder.TotalFiles:N0}개");
+        CurrentFolderText = Foldy.Core.Localization.Loc.F("an.folderRow", r.Folder.Path, AnalysisText.FormatSize(r.Folder.Alloc), r.Folder.TotalFiles);
     }
 
     private sealed record FolderView(FolderRow Folder, IReadOnlyList<TreemapChild> Children, IReadOnlyList<(long Id, string Name)> Chain);
@@ -506,7 +504,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
         var rest = folderAlloc - shown;
         if (rest > 0 && rest >= folderAlloc / 200)
         {
-            list.Add(new TreemapNode(-1, false, "기타 (작은 파일·시스템)", rest, -2, null, IsRemainder: true));
+            list.Add(new TreemapNode(-1, false, Foldy.Core.Localization.Loc.T("an.other"), rest, -2, null, IsRemainder: true));
             list.Sort((a, b) => b.Alloc.CompareTo(a.Alloc));
         }
 
@@ -546,8 +544,8 @@ public sealed partial class AnalysisTabViewModel : TabBase
     {
         var total = Candidates.Sum(c => c.Row.Reclaim);
         ReclaimText = Candidates.Count == 0
-            ? "정리할 만한 항목을 찾지 못했습니다."
-            : string.Create(CultureInfo.CurrentCulture, $"제안 {Candidates.Count:N0}개 · 최대 {AnalysisText.FormatSize(total)} 확보 가능");
+            ? Foldy.Core.Localization.Loc.T("an.nothing")
+            : Foldy.Core.Localization.Loc.F("an.suggestions", Candidates.Count, AnalysisText.FormatSize(total));
     }
 
     [RelayCommand]

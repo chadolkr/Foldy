@@ -94,6 +94,22 @@ public sealed partial class LanguageFolderTests
         plan[0].Dst.Should().Contain("デスクトップ保管").And.Contain(Path.DirectorySeparatorChar + "文書" + Path.DirectorySeparatorChar);
     }
 
+    [Fact]
+    public void Managed_folder_inbox_follows_the_language_and_reuses_korean()
+    {
+        using var _ = Use("en");
+        using var tmp = new TempDir();
+        File.WriteAllText(Path.Combine(tmp.Path, "loose.txt"), "x");
+        var s = Foldy.Core.Managed.ManagedFolders.Suggest(tmp.Path, Foldy.Core.Managed.FolderMethod.NumberPrefix, DateTime.UtcNow);
+        s.SelectMany(x => x.Moves).Should().ContainSingle().Which.Dst.Should().Be(Path.Combine(tmp.Path, "00_Inbox", "loose.txt"));
+        Foldy.Core.Managed.FolderMethod.NumberPrefix.DisplayName.Should().Be("Numbers and dates");
+        Foldy.Core.Managed.FolderMethod.Find("번호·날짜 붙이기").Should().Be(Foldy.Core.Managed.FolderMethod.NumberPrefix, ".foldy.md에 적힌 한국어 이름도 알아본다");
+
+        Directory.CreateDirectory(Path.Combine(tmp.Path, "00_받은 파일"));
+        Foldy.Core.Managed.ManagedFolders.Suggest(tmp.Path, Foldy.Core.Managed.FolderMethod.NumberPrefix, DateTime.UtcNow)
+            .SelectMany(x => x.Moves).Single().Dst.Should().Be(Path.Combine(tmp.Path, "00_받은 파일", "loose.txt"), "이미 있는 한국어 받은 파일 폴더를 쓴다");
+    }
+
     private static IEnumerable<TemplateNode> Flat(TemplateNode n) => new[] { n }.Concat(n.Children.SelectMany(Flat));
 
     private static Restore Use(string language)

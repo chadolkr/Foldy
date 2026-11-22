@@ -17,3 +17,7 @@ TR = {
     "이미 파일이 있는 폴더 정리하기": ("Tidy a folder that already has files", "Ordenar una carpeta que ya tiene archivos", "すでにファイルがあるフォルダーを整理", "整理已有文件的文件夹"),
     "지금 폴더의 파일을 종류·날짜·스타일대로 옮깁니다 (실행 전 미리보기, 되돌리기 가능).": ("Moves the files in the current folder by type, date or style (preview first, can be undone).", "Mueve los archivos de la carpeta actual por tipo, fecha o estilo (vista previa antes, se puede deshacer).", "いまのフォルダーのファイルを種類・日付・スタイルどおりに移します (実行前にプレビュー、元に戻せます)。", "按类型、日期或风格移动当前文件夹的文件（执行前可预览，可撤销）。"),
 }
+
+TR.update({
+    "01 받은 파일": ("01 Inbox", "01 Bandeja de entrada", "01 受信", "01 收件箱"),
+})

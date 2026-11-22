@@ -19,6 +19,8 @@ LANGS = ['en', 'es', 'ja', 'zh-Hans']
 HANGUL = re.compile(r'[가-힣]')
 SKIP = {'groups', 'id', 'key', 'when', 'file', 'regex', 'extensions', 'nameEn', 'weights', 'schemaVersion', 'value', 'templates', 'template'}
 PATHS = {'name', 'target', 'folder'}
+# 템플릿에는 없지만 Foldy가 같은 표로 이름을 붙이는 폴더 (폴더 관리 방식의 받은 파일 칸 등)
+EXTRA = ['01 받은 파일']
 
 
 def is_path(key, in_tree):
@@ -51,6 +53,9 @@ def collect():
                     if p not in out:
                         out.append(p)
         walk(d)
+    for extra in EXTRA:
+        if extra not in out:
+            out.append(extra)
     return out
 
 

@@ -62,7 +62,7 @@ public static class CleanupNotifier
             if (LogPlanner.IsSerious(saving, d.AvailableFreeSpace))
             {
                 return new CleanupFinding(
-                    $"{d.Name.TrimEnd('\\')} 드라이브에 오래된 로그가 {FileItem.FormatBytes(groups.Sum(g => g.Size))} 쌓였어요. 압축하면 약 {FileItem.FormatBytes(saving)} 줄어요.",
+                    Foldy.Core.Localization.Loc.F("cn.logs", d.Name.TrimEnd('\\'), FileItem.FormatBytes(groups.Sum(g => g.Size)), FileItem.FormatBytes(saving)),
                     "logs", d.RootDirectory.FullName);
             }
         }
@@ -82,7 +82,7 @@ public static class CleanupNotifier
                 var moves = list.Sum(s => s.Moves.Count);
                 if (moves >= 5)
                 {
-                    return new CleanupFinding($"\"{Path.GetFileName(root)}\" 폴더({m.Method.Name})에 정리할 것이 {list.Count:N0}가지 있어요. 어떻게 옮길지 먼저 보여 드릴게요.", "managed", root);
+                    return new CleanupFinding(Foldy.Core.Localization.Loc.F("cn.managed", Path.GetFileName(root), m.Method.DisplayName, list.Count), "managed", root);
                 }
             }
         }
@@ -97,7 +97,7 @@ public static class CleanupNotifier
             var total = items.Sum(i => i.Size);
             if (total >= DownloadsPlanner.NoticeBytes)
             {
-                return new CleanupFinding($"다운로드 폴더에 정리할 만한 파일이 {FileItem.FormatBytes(total)} 있어요.", "downloads", dl);
+                return new CleanupFinding(Foldy.Core.Localization.Loc.F("cn.downloads", FileItem.FormatBytes(total)), "downloads", dl);
             }
         }
 
@@ -107,7 +107,7 @@ public static class CleanupNotifier
             var moves = await Task.Run(() => Foldy.Core.Desktop.DesktopTidy.Plan(desktop, CleanupPaths.DesktopArchive, DateTime.UtcNow), ct);
             if (moves.Count >= Foldy.Core.Desktop.DesktopTidy.NoticeCount)
             {
-                return new CleanupFinding($"바탕화면에 한동안 쓰지 않은 파일이 {moves.Count:N0}개 있어요. 지우지 않고 종류별로 보관해 드릴까요?", "desktop", desktop);
+                return new CleanupFinding(Foldy.Core.Localization.Loc.F("cn.desktop", moves.Count), "desktop", desktop);
             }
         }
 

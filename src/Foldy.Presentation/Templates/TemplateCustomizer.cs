@@ -24,7 +24,7 @@ public sealed class TemplateItemViewModel(FolderTemplate template)
 
     public bool IsBuiltIn => Template.IsBuiltIn;
 
-    public string Origin => Template.IsBuiltIn ? "내장" : "내 템플릿";
+    public string Origin => Template.IsBuiltIn ? Foldy.Core.Localization.Loc.T("tpl.builtIn") : Foldy.Core.Localization.Loc.T("tpl.mine");
 
     public string Guide => Template.Guide ?? "";
 
@@ -103,8 +103,8 @@ public sealed partial class PreviewNodeViewModel : ObservableObject
     /// <summary>오른쪽 작은 표시: 새로 만듦 / 이미 있음 / 만들 수 없음.</summary>
     public string StateText => Node.State switch
     {
-        PlannedState.Exists => "이미 있음",
-        PlannedState.Blocked => Node.Problem ?? "만들 수 없음",
+        PlannedState.Exists => Foldy.Core.Localization.Loc.T("tpl.exists"),
+        PlannedState.Blocked => Node.Problem ?? Foldy.Core.Localization.Loc.T("tpl.cantCreate"),
         PlannedState.Excluded => "",
         _ => "",
     };
@@ -281,7 +281,7 @@ public sealed partial class TemplateCustomizer : ObservableObject
         {
             Plan = null;
             CanApply = false;
-            ProblemText = Template is null ? "템플릿을 고르세요." : "만들 위치를 정하세요.";
+            ProblemText = Template is null ? Foldy.Core.Localization.Loc.T("tpl.pick") : Foldy.Core.Localization.Loc.T("tpl.pickWhere");
             Summary = "";
             return;
         }
@@ -295,7 +295,7 @@ public sealed partial class TemplateCustomizer : ObservableObject
         {
             Plan = null;
             CanApply = false;
-            ProblemText = "만들 위치가 올바르지 않습니다: " + ex.Message;
+            ProblemText = Foldy.Core.Localization.Loc.T("tpl.badWhere") + ex.Message;
             return;
         }
 
@@ -309,15 +309,15 @@ public sealed partial class TemplateCustomizer : ObservableObject
         if (plan.MissingVariables.Count > 0)
         {
             var labels = plan.MissingVariables.Select(k => Variables.FirstOrDefault(v => v.Key == k)?.Label ?? k);
-            problems.Add("입력이 필요합니다: " + string.Join(", ", labels));
+            problems.Add(Foldy.Core.Localization.Loc.T("tpl.needInput") + string.Join(", ", labels));
         }
 
         problems.AddRange(plan.Issues.Select(i => i.Message).Distinct(StringComparer.Ordinal).Take(3));
         ProblemText = string.Join("\n", problems);
         CanApply = plan.CanApply && plan.CreateCount > 0;
         Summary = plan.CreateCount == 0 && plan.CanApply
-            ? "모두 이미 있습니다. 새로 만들 것이 없습니다."
-            : $"새로 만듦 {plan.CreateCount}개" + (plan.ExistingCount > 0 ? $" · 이미 있어 그대로 둠 {plan.ExistingCount}개" : "");
+            ? Foldy.Core.Localization.Loc.T("tpl.allExist")
+            : Foldy.Core.Localization.Loc.F("tpl.createN", plan.CreateCount) + (plan.ExistingCount > 0 ? Foldy.Core.Localization.Loc.F("tpl.existingN", plan.ExistingCount) : "");
     }
 
     private void OnToggled(PreviewNodeViewModel node, bool isChecked)
@@ -392,7 +392,7 @@ public sealed partial class TemplateCustomizer : ObservableObject
         var c = TemplateText.Clone(Template);
         TemplateText.Prune(c, _excluded);
         c.Id = Template.Id + "-my";
-        c.Name = Template.Name + " (내 템플릿)";
+        c.Name = Template.Name + Foldy.Core.Localization.Loc.T("tpl.mineSuffix");
         c.IsBuiltIn = false;
         c.SourcePath = null;
         foreach (var v in c.Variables)

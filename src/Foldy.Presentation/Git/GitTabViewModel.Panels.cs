@@ -127,15 +127,15 @@ public sealed partial class GitTabViewModel
         PanelMode = GitSidePanelMode.Diff;
         SetHeader(target.Path, target.Kind switch
         {
-            GitDiffKind.Staged => "Staged 변경 (HEAD와 비교)",
-            GitDiffKind.Commit => $"커밋 {ShortHash(target.Hash)}의 변경",
-            _ => target.Untracked ? "새 파일 (아직 추적 안 함)" : "Unstaged 변경 (Stage된 내용과 비교)",
+            GitDiffKind.Staged => Foldy.Core.Localization.Loc.T("git.diff.staged"),
+            GitDiffKind.Commit => Foldy.Core.Localization.Loc.F("git.commitChanges", ShortHash(target.Hash)),
+            _ => target.Untracked ? Foldy.Core.Localization.Loc.T("git.diff.untracked") : Foldy.Core.Localization.Loc.T("git.diff.unstaged"),
         });
         BlameRows = [];
         if (target.Path.EndsWith('/'))
         {
             ApplyDiff(FileDiff.Empty);
-            PanelMessage = "폴더는 비교할 수 없습니다. 폴더 안의 파일을 선택하세요.";
+            PanelMessage = Foldy.Core.Localization.Loc.T("git.diff.folder");
             return;
         }
         await LoadDiffAsync();
@@ -154,7 +154,7 @@ public sealed partial class GitTabViewModel
             if (!r.Success || r.Value is null)
             {
                 ApplyDiff(FileDiff.Empty);
-                PanelMessage = FailureText(r.Result, "변경 내용을 읽지 못했습니다.");
+                PanelMessage = FailureText(r.Result, Foldy.Core.Localization.Loc.T("git.diff.readFailed"));
                 return;
             }
             ApplyDiff(r.Value);
@@ -174,11 +174,11 @@ public sealed partial class GitTabViewModel
         DiffLines = diff.Lines;
         SideRows = SideBySide ? GitDiffParser.BuildSideBySide(diff.Lines) : [];
         DiffTruncated = diff.Truncated;
-        DiffTruncatedText = diff.Truncated ? $"{diff.Lines.Count:N0} / {diff.TotalLines:N0}줄만 표시 중" : "";
+        DiffTruncatedText = diff.Truncated ? Foldy.Core.Localization.Loc.F("git.linesShown", diff.Lines.Count, diff.TotalLines) : "";
         DiffSummary = diff.IsBinary || diff.IsEmpty ? "" : $"+{diff.AddedCount:N0}  −{diff.RemovedCount:N0}";
         PanelMessage = diff.IsBinary
-            ? "바이너리 파일"
-            : diff.IsEmpty ? "표시할 변경 내용이 없습니다 (파일 모드나 줄 끝만 바뀌었을 수 있습니다)." : "";
+            ? Foldy.Core.Localization.Loc.T("git.diff.binary")
+            : diff.IsEmpty ? Foldy.Core.Localization.Loc.T("git.diff.none") : "";
     }
 
     /// <summary>잘린 diff 를 20,000줄 더 보인다.</summary>
@@ -205,7 +205,7 @@ public sealed partial class GitTabViewModel
     public async Task ShowBlameAsync(string path, string? revision = null)
     {
         PanelMode = GitSidePanelMode.Blame;
-        SetHeader(path, revision is null ? "Blame (작업 폴더 기준)" : $"Blame (커밋 {ShortHash(revision)} 기준)");
+        SetHeader(path, revision is null ? Foldy.Core.Localization.Loc.T("git.blame.work") : Foldy.Core.Localization.Loc.F("git.blame.at", ShortHash(revision)));
         BlameRows = [];
         PanelMessage = "";
         DiffTruncated = false;
@@ -218,12 +218,12 @@ public sealed partial class GitTabViewModel
             if (cts.IsCancellationRequested) return;
             if (!r.Success || r.Value is null)
             {
-                PanelMessage = FailureText(r.Result, "blame을 읽지 못했습니다.");
+                PanelMessage = FailureText(r.Result, Foldy.Core.Localization.Loc.T("git.blame.failed"));
                 return;
             }
             var now = DateTimeOffset.Now;
             BlameRows = [.. r.Value.Select(l => GitBlameRow.From(l, now))];
-            if (BlameRows.Count == 0) PanelMessage = "빈 파일입니다.";
+            if (BlameRows.Count == 0) PanelMessage = Foldy.Core.Localization.Loc.T("git.emptyFile");
         }
         catch (OperationCanceledException)
         {
@@ -265,7 +265,7 @@ public sealed partial class GitTabViewModel
         }
         if (row is null)
         {
-            ProgressText = "그 커밋은 불러온 이력에 없습니다.";
+            ProgressText = Foldy.Core.Localization.Loc.T("git.commitNotLoaded");
             return;
         }
         if (!Commits.Contains(row)) SearchText = "";   // 검색 필터에 가려져 있으면 필터를 푼다

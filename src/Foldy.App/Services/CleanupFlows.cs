@@ -376,7 +376,7 @@ public static class CleanupFlows
         var current = ManagedFolders.Resolve(folder);
         if (current is { } cur && string.Equals(cur.Root.TrimEnd('\\'), folder.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
         {
-            var c = await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.current", name, cur.Method.Name),
+            var c = await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.current", name, cur.Method.DisplayName),
                 C("suggest", Foldy.Core.Localization.Loc.T("cf.m.viewNow")), C("change", Foldy.Core.Localization.Loc.T("cf.m.change")), C("off", Foldy.Core.Localization.Loc.T("cf.m.off")), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             if (c == "suggest")
             {
@@ -404,10 +404,10 @@ public static class CleanupFlows
         w.Say(Foldy.Core.Localization.Loc.F("cf.m.ask", name));
         foreach (var m in FolderMethod.All)
         {
-            w.Say($"• {m.Name}: {m.Explanation}");
+            w.Say($"• {m.DisplayName}: {m.ExplanationText}");
         }
 
-        var pick = await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.m.which"), [.. FolderMethod.All.Select(m => C(m.Id, m.Name)), C("close", Foldy.Core.Localization.Loc.T("sw.later"))]);
+        var pick = await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.m.which"), [.. FolderMethod.All.Select(m => C(m.Id, m.DisplayName)), C("close", Foldy.Core.Localization.Loc.T("sw.later"))]);
         if (FolderMethod.Find(pick) is not { } method)
         {
             Later(w);
@@ -420,7 +420,7 @@ public static class CleanupFlows
         }
 
         var create = method.TemplateId is not null
-            ? await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.makeAsk", method.Name), C("yes", Foldy.Core.Localization.Loc.T("cf.m.make")), C("no", Foldy.Core.Localization.Loc.T("cf.m.self")))
+            ? await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.makeAsk", method.DisplayName), C("yes", Foldy.Core.Localization.Loc.T("cf.m.make")), C("no", Foldy.Core.Localization.Loc.T("cf.m.self")))
             : "no";
         try
         {
@@ -439,7 +439,7 @@ public static class CleanupFlows
             return;
         }
 
-        var next = await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.set", name, method.Name),
+        var next = await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.set", name, method.DisplayName),
             C("suggest", Foldy.Core.Localization.Loc.T("cf.m.lookNow")), C("close", Foldy.Core.Localization.Loc.T("sw.later")));
         w.Close();
         if (next == "suggest")
@@ -465,7 +465,7 @@ public static class CleanupFlows
     /// <summary>관리 방법에 따른 제안을 하나씩 설명하고, 확인을 받아 한 번에 옮긴다. 끝나면 [되돌리기].</summary>
     public static async Task SuggestAsync(Window owner, string root, FolderMethod method)
     {
-        var w = Open(owner, Foldy.Core.Localization.Loc.F("cf.m.tidyWith", method.Name));
+        var w = Open(owner, Foldy.Core.Localization.Loc.F("cf.m.tidyWith", method.DisplayName));
         var name = Path.GetFileName(root.TrimEnd('\\'));
         IReadOnlyList<ManagedSuggestion> list;
         try
@@ -481,12 +481,12 @@ public static class CleanupFlows
 
         if (list.Count == 0)
         {
-            await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.allGood", name, method.Name), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+            await w.AskAsync(Foldy.Core.Localization.Loc.F("cf.m.allGood", name, method.DisplayName), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
-        w.Say(Foldy.Core.Localization.Loc.F("cf.m.found", name, method.Name, list.Count));
+        w.Say(Foldy.Core.Localization.Loc.F("cf.m.found", name, method.DisplayName, list.Count));
         if (ExplorerFolderMark.SyncWarning(root) is { } sync)
         {
             w.Say("⚠ " + sync);

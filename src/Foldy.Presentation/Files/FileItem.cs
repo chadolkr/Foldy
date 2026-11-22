@@ -58,10 +58,10 @@ public sealed class FileItem(FsEntry entry, Func<FsEntry, string>? typeName = nu
 
     public static string DefaultTypeName(FsEntry e) => e.Kind switch
     {
-        FsKind.Folder => "파일 폴더",
-        FsKind.Link => "링크",
-        FsKind.Drive => "드라이브",
-        _ => System.IO.Path.GetExtension(e.Name) is { Length: > 1 } ext ? ext[1..].ToUpperInvariant() + " 파일" : "파일",
+        FsKind.Folder => Foldy.Core.Localization.Loc.T("file.folder"),
+        FsKind.Link => Foldy.Core.Localization.Loc.T("file.link"),
+        FsKind.Drive => Foldy.Core.Localization.Loc.T("file.drive"),
+        _ => System.IO.Path.GetExtension(e.Name) is { Length: > 1 } ext ? Foldy.Core.Localization.Loc.F("file.typeExt", ext[1..].ToUpperInvariant()) : Foldy.Core.Localization.Loc.T("sw.qs.file"),
     };
 
     /// <summary>탐색기와 같은 KB 단위(올림) 표기.</summary>

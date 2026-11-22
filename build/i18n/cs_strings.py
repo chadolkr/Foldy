@@ -109,3 +109,9 @@ from cs_strings_b4 import B4  # noqa: E402
 CS = CS + B4
 from cs_strings_folders import FOLDERS  # noqa: E402
 CS = CS + FOLDERS
+from cs_strings_pres import PRES  # noqa: E402
+CS = CS + PRES
+from cs_strings_core import CORE  # noqa: E402
+CS = CS + CORE
+from cs_strings_managed import MANAGED  # noqa: E402
+CS = CS + MANAGED

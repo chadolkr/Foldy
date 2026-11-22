@@ -422,7 +422,7 @@ public sealed partial class GitTabViewModel : TabBase
     {
         var paths = items.Select(i => i.Path).Distinct().ToList();
         if (paths.Count == 0) return;
-        await ExecAsync("스테이지", (_, ct) => _git.StageAsync(RepoRoot, paths, ct), RefreshScope.Status, "");
+        await ExecAsync(Foldy.Core.Localization.Loc.T("git.op.stage"), (_, ct) => _git.StageAsync(RepoRoot, paths, ct), RefreshScope.Status, "");
     }
 
     private async Task UnstageCoreAsync(IEnumerable<GitChangeItem> items)
@@ -430,7 +430,7 @@ public sealed partial class GitTabViewModel : TabBase
         // 이름 변경은 새 경로와 원본 경로를 함께 되돌려야 인덱스에서 완전히 빠진다
         var paths = items.SelectMany(i => i.OrigPath is null ? [i.Path] : new[] { i.Path, i.OrigPath }).Distinct().ToList();
         if (paths.Count == 0) return;
-        await ExecAsync("스테이지 해제", (_, ct) => _git.UnstageAsync(RepoRoot, paths, ct), RefreshScope.Status, "");
+        await ExecAsync(Foldy.Core.Localization.Loc.T("git.op.unstage"), (_, ct) => _git.UnstageAsync(RepoRoot, paths, ct), RefreshScope.Status, "");
     }
 
     [RelayCommand]
@@ -438,7 +438,7 @@ public sealed partial class GitTabViewModel : TabBase
     {
         if (!CanCommit) return;
         var (msg, amend) = (CommitMessage, Amend);
-        if (await ExecAsync("커밋", (_, ct) => _git.CommitAsync(RepoRoot, msg, amend, ct), RefreshScope.All, "커밋 완료"))
+        if (await ExecAsync(Foldy.Core.Localization.Loc.T("git.op.commit"), (_, ct) => _git.CommitAsync(RepoRoot, msg, amend, ct), RefreshScope.All, Foldy.Core.Localization.Loc.T("git.op.commitDone")))
         {
             CommitMessage = "";
             Amend = false;
@@ -451,7 +451,7 @@ public sealed partial class GitTabViewModel : TabBase
     {
         if (!CanCommit) return;
         var (msg, amend, setUpstream) = (CommitMessage, Amend, !HasUpstream);
-        var ok = await ExecAsync("커밋 후 올리기", async (p, ct) =>
+        var ok = await ExecAsync(Foldy.Core.Localization.Loc.T("git.op.commitPush"), async (p, ct) =>
         {
             var c = await _git.CommitAsync(RepoRoot, msg, amend, ct);
             if (!c.Success) return c;
@@ -461,25 +461,25 @@ public sealed partial class GitTabViewModel : TabBase
             // amend 한 커밋은 이미 올라간 경우가 많아 일반 push 가 거절될 수 있다 (강제 push 는 별도 확인 경로)
             return await _git.PushAsync(RepoRoot, setUpstream, false, p, ct);
         });
-        if (ok) { ProgressText = "커밋 후 올리기 완료"; ShowToast(ProgressText); }
+        if (ok) { ProgressText = Foldy.Core.Localization.Loc.T("git.op.commitPushDone"); ShowToast(ProgressText); }
     }
 
     // ───────────── 원격 ─────────────
 
     [RelayCommand]
-    public Task FetchAsync() => ExecAsync("가져오기", (p, ct) => _git.FetchAsync(RepoRoot, p, interactive: true, ct), RefreshScope.All, "가져오기 완료");
+    public Task FetchAsync() => ExecAsync(Foldy.Core.Localization.Loc.T("git.op.fetch"), (p, ct) => _git.FetchAsync(RepoRoot, p, interactive: true, ct), RefreshScope.All, Foldy.Core.Localization.Loc.T("git.op.fetchDone"));
 
     [RelayCommand]
-    public Task PullMergeAsync() => PullCoreAsync("받기", PullMode.Merge);
+    public Task PullMergeAsync() => PullCoreAsync(Foldy.Core.Localization.Loc.T("sw.git.pull"), PullMode.Merge);
 
     [RelayCommand]
-    public Task PullRebaseAsync() => PullCoreAsync("받기 (rebase)", PullMode.Rebase);
+    public Task PullRebaseAsync() => PullCoreAsync(Foldy.Core.Localization.Loc.T("git.op.pullRebase"), PullMode.Rebase);
 
     private Task<bool> PullCoreAsync(string label, PullMode mode)
     {
         var n = Behind;
         return ExecAsync(label, (p, ct) => _git.PullAsync(RepoRoot, mode, p, ct), RefreshScope.All,
-            n > 0 ? $"받기 완료: {n}개 커밋" : "받기 완료: 이미 최신입니다");
+            n > 0 ? Foldy.Core.Localization.Loc.F("git.op.pulledN", n) : Foldy.Core.Localization.Loc.T("git.op.pullUpToDate"));
     }
 
     public Task PullAsync(PullMode mode) => mode == PullMode.Rebase ? PullRebaseAsync() : PullMergeAsync();
@@ -489,8 +489,8 @@ public sealed partial class GitTabViewModel : TabBase
     {
         var setUpstream = !HasUpstream;
         var n = Ahead;
-        return ExecAsync("올리기", (p, ct) => _git.PushAsync(RepoRoot, setUpstream, false, p, ct), RefreshScope.All,
-            n > 0 ? $"올리기 완료: {n}개 커밋" : "올리기 완료");
+        return ExecAsync(Foldy.Core.Localization.Loc.T("sw.git.push"), (p, ct) => _git.PushAsync(RepoRoot, setUpstream, false, p, ct), RefreshScope.All,
+            n > 0 ? Foldy.Core.Localization.Loc.F("git.op.pushedN", n) : Foldy.Core.Localization.Loc.T("git.op.pushDone"));
     }
 
     /// <summary>--force-with-lease 푸시. Confirm 콜백이 true 를 돌려줄 때만 실행한다 (콜백이 없으면 실행하지 않음).</summary>
@@ -498,33 +498,33 @@ public sealed partial class GitTabViewModel : TabBase
     public async Task PushForceWithLeaseAsync()
     {
         if (Confirm is null || !await Confirm(
-                "원격 브랜치를 내 커밋으로 덮어씁니다 (--force-with-lease).\n그 사이 다른 사람이 올린 커밋이 있으면 거절되지만, 없으면 원격의 기존 커밋이 사라질 수 있습니다.\n계속할까요?"))
+                Foldy.Core.Localization.Loc.T("git.op.forceAsk")))
         {
-            ProgressText = "강제 Push를 취소했습니다.";
+            ProgressText = Foldy.Core.Localization.Loc.T("git.op.forceCancelled");
             return;
         }
         var setUpstream = !HasUpstream;
-        await ExecAsync("강제 올리기", (p, ct) => _git.PushAsync(RepoRoot, setUpstream, true, p, ct));
+        await ExecAsync(Foldy.Core.Localization.Loc.T("git.op.force"), (p, ct) => _git.PushAsync(RepoRoot, setUpstream, true, p, ct));
     }
 
     // ───────────── Stash / 브랜치 ─────────────
 
     [RelayCommand]
-    public Task StashPushAsync() => ExecAsync("임시 보관", (_, ct) => _git.StashPushAsync(RepoRoot, null, true, ct), RefreshScope.All, "임시 보관 완료: 변경한 내용을 치워 두었습니다");
+    public Task StashPushAsync() => ExecAsync(Foldy.Core.Localization.Loc.T("git.op.stash"), (_, ct) => _git.StashPushAsync(RepoRoot, null, true, ct), RefreshScope.All, Foldy.Core.Localization.Loc.T("git.op.stashDone"));
 
     /// <summary>선택한 Stash 를 적용하고 지운다. 선택이 없으면 가장 최근 것.</summary>
     [RelayCommand]
     public Task StashPopAsync()
     {
         var name = SelectedStash?.Name;
-        return ExecAsync("임시 보관 꺼내기", (_, ct) => _git.StashPopAsync(RepoRoot, name, ct));
+        return ExecAsync(Foldy.Core.Localization.Loc.T("git.op.stashPop"), (_, ct) => _git.StashPopAsync(RepoRoot, name, ct));
     }
 
     [RelayCommand]
     public async Task CheckoutAsync(GitBranchItem? branch)
     {
         if (branch is null || (branch.IsCurrent && !branch.IsRemote)) return;
-        await ExecAsync("브랜치 전환", (_, ct) => _git.CheckoutAsync(RepoRoot, branch.Name, ct));
+        await ExecAsync(Foldy.Core.Localization.Loc.T("git.op.switch"), (_, ct) => _git.CheckoutAsync(RepoRoot, branch.Name, ct));
     }
 
     /// <summary>NewBranchName 으로 새 브랜치를 만들어 이동한다.</summary>
@@ -535,10 +535,10 @@ public sealed partial class GitTabViewModel : TabBase
         if (name.Length == 0) return;
         if (name.Any(char.IsWhiteSpace))
         {
-            ErrorText = "브랜치 이름에는 공백을 쓸 수 없습니다.";
+            ErrorText = Foldy.Core.Localization.Loc.T("git.op.noSpaces");
             return;
         }
-        if (await ExecAsync("새 브랜치", (_, ct) => _git.CreateBranchAsync(RepoRoot, name, null, true, ct)))
+        if (await ExecAsync(Foldy.Core.Localization.Loc.T("git.op.newBranch"), (_, ct) => _git.CreateBranchAsync(RepoRoot, name, null, true, ct)))
             NewBranchName = "";
     }
 
@@ -547,7 +547,7 @@ public sealed partial class GitTabViewModel : TabBase
     public async Task TrustRepositoryAsync()
     {
         var path = SafeDirectoryCandidate ?? RepoRoot;
-        if (await ExecAsync("저장소 신뢰", (_, ct) => _git.AddSafeDirectoryAsync(path, ct), RefreshScope.None))
+        if (await ExecAsync(Foldy.Core.Localization.Loc.T("git.op.trust"), (_, ct) => _git.AddSafeDirectoryAsync(path, ct), RefreshScope.None))
         {
             CanTrustRepo = false;
             await RefreshAsync();
@@ -580,20 +580,20 @@ public sealed partial class GitTabViewModel : TabBase
             if (ok)
             {
                 // doneText "" = 알림 없이 조용히 (스테이지 같은 잦은 동작)
-                ProgressText = doneText is { Length: > 0 } ? doneText : label + " 완료";
+                ProgressText = doneText is { Length: > 0 } ? doneText : Foldy.Core.Localization.Loc.F("git.op.done", label);
                 if (doneText != "") ShowToast(ProgressText);
             }
-            else if (r.Failure == GitFailure.Cancelled) ProgressText = label + " 취소됨";
+            else if (r.Failure == GitFailure.Cancelled) ProgressText = Foldy.Core.Localization.Loc.F("git.op.cancelled", label);
             else
             {
-                ProgressText = label + " 실패";
+                ProgressText = Foldy.Core.Localization.Loc.F("git.op.failed", label);
                 ToastText = "";
                 Report(r);
             }
         }
         catch (OperationCanceledException)
         {
-            ProgressText = label + " 취소됨";
+            ProgressText = Foldy.Core.Localization.Loc.F("git.op.cancelled", label);
         }
         finally
         {

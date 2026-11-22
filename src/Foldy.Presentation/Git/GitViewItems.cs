@@ -24,14 +24,14 @@ public sealed record GitChangeItem(string Path, string? OrigPath, GitChange Chan
     /// <summary>목록 배지 글자 (한국어): 수정 · 추가 · 삭제 · 새 파일 · 충돌 …</summary>
     public string Label => Change switch
     {
-        GitChange.Modified => "수정",
-        GitChange.Added => "추가",
-        GitChange.Deleted => "삭제",
-        GitChange.Renamed => "이름 변경",
-        GitChange.Copied => "복사",
-        GitChange.TypeChanged => "형식 변경",
-        GitChange.Untracked => "새 파일",
-        GitChange.Conflicted => "충돌",
+        GitChange.Modified => Foldy.Core.Localization.Loc.T("pane.col.modified"),
+        GitChange.Added => Foldy.Core.Localization.Loc.T("pane.git.added"),
+        GitChange.Deleted => Foldy.Core.Localization.Loc.T("git.kind.deleted"),
+        GitChange.Renamed => Foldy.Core.Localization.Loc.T("git.kind.renamed"),
+        GitChange.Copied => Foldy.Core.Localization.Loc.T("ops.copy"),
+        GitChange.TypeChanged => Foldy.Core.Localization.Loc.T("git.kind.typeChanged"),
+        GitChange.Untracked => Foldy.Core.Localization.Loc.T("pane.git.untracked"),
+        GitChange.Conflicted => Foldy.Core.Localization.Loc.T("pane.git.conflict"),
         _ => "",
     };
 

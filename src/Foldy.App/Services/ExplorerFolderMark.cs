@@ -68,7 +68,7 @@ public static class ExplorerFolderMark
 
             var exe = IconPath(Environment.ProcessPath ?? "");
             var extra = keep ? KeepReadOnly + "\r\n" : "";
-            File.WriteAllText(ini, $"[.ShellClassInfo]\r\nIconResource={exe},0\r\nInfoTip={method.Name} 방법으로 관리 중 (Foldy)\r\n{Marker}\r\n{extra}", System.Text.Encoding.Unicode);
+            File.WriteAllText(ini, $"[.ShellClassInfo]\r\nIconResource={exe},0\r\nInfoTip={Foldy.Core.Localization.Loc.F("pane.managed", method.DisplayName)} (Foldy)\r\n{Marker}\r\n{extra}", System.Text.Encoding.Unicode);
             File.SetAttributes(ini, FileAttributes.Hidden | FileAttributes.System);
             d.Attributes |= FileAttributes.ReadOnly; // 탐색기가 desktop.ini를 읽게 하는 표시 (폴더 안 파일은 그대로 쓸 수 있음)
         }

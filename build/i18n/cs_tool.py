@@ -104,7 +104,7 @@ def interps(raw, masked):
     """한국어가 든 보간 문자열: (시작, 끝, 틀, 식들). 안쪽 문자열에만 한국어가 있으면 바깥 틀은 넘긴다."""
     out = []
     for m in re.finditer(r'(?<![@\w])\$"(?!")', masked):
-        if skipped_line(line_of(masked, m.start())):
+        if skipped_line(line_of(masked, m.start())) or 'i18n:skip' in line_of(raw, m.start()):
             continue
         end, ko, args = scan_interp(raw, m.start())
         if HANGUL.search(ko):
@@ -115,7 +115,7 @@ def interps(raw, masked):
 def plains(raw, masked):
     out = []
     for m in LIT.finditer(masked):
-        if skipped_line(line_of(masked, m.start())):
+        if skipped_line(line_of(masked, m.start())) or 'i18n:skip' in line_of(raw, m.start()):
             continue
         v = raw[m.start(1):m.end(1)]
         out.append((m.start(), m.end(), re.sub(r'\\(.)', lambda e: ESC.get(e.group(1), '\\' + e.group(1)), v)))
@@ -154,6 +154,36 @@ def dump(path, prefix):
             print(f'$\t{show(ko)}\t' + ' | '.join(args))
 
 
+def unwrap_string_create(raw):
+    """string.Create(CultureInfo.X, Loc.F(...)) → Loc.F(...) (보간 처리기 자리에는 Loc.F를 넘길 수 없다. Loc.F는 지금 문화권으로 쓴다)."""
+    pat = re.compile(r'string\.Create\(\s*(?:System\.Globalization\.)?CultureInfo\.\w+,\s*(?=' + re.escape(F) + r'\()')
+    while True:
+        m = pat.search(raw)
+        if not m:
+            return raw
+        i = m.end()
+        depth = 0
+        j = i
+        while True:
+            c = raw[j]
+            if c in '"\'':
+                j = skip_literal(raw, j, c)
+                continue
+            if c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        # raw[i:j+1] 은 Loc.F(...), 그 뒤의 ')' 는 string.Create 닫는 괄호
+        k = j + 1
+        while raw[k] in ' \r\n\t':
+            k += 1
+        assert raw[k] == ')', raw[m.start():k + 1]
+        raw = raw[:m.start()] + raw[i:j + 1] + raw[k + 1:]
+
+
 def table():
     sys.path.insert(0, HERE)
     from cs_strings import CS  # noqa
@@ -187,6 +217,7 @@ def apply(path):
             np_ += 1
         else:
             left.append(v)
+    raw = unwrap_string_create(raw)
     open(path, 'w', encoding='utf-8').write(raw)
     print(os.path.basename(path), 'interp', ni, 'plain', np_, 'left', len(left))
     for v in reversed(left):

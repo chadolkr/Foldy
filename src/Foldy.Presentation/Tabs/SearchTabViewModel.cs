@@ -36,7 +36,7 @@ public sealed partial class SearchTabViewModel : TabBase
         _query = query;
         _typeName = typeName;
         Scope = scope;
-        Title = "검색: " + query;
+        Title = Foldy.Core.Localization.Loc.F("search.title", query);
     }
 
     public override TabKind Kind => TabKind.Search;
@@ -68,24 +68,24 @@ public sealed partial class SearchTabViewModel : TabBase
         Items = list;
         IsBusy = true;
         var sw = Stopwatch.StartNew();
-        Status = _search.IsIndexed ? "색인에서 찾는 중…" : $"{Scope} 아래를 찾는 중…";
+        Status = _search.IsIndexed ? Foldy.Core.Localization.Loc.T("search.inIndex") : Foldy.Core.Localization.Loc.F("search.under", Scope);
         try
         {
             await foreach (var batch in _search.SearchAsync(Query, Scope, cts.Token))
             {
                 list.AddBatch(batch.Select(e => new FileItem(e, _typeName)));
-                Status = $"{list.Count:N0}개 찾는 중… {sw.Elapsed.TotalSeconds:0.0}초";
+                Status = Foldy.Core.Localization.Loc.F("search.progress", list.Count, sw.Elapsed.TotalSeconds);
             }
 
-            Status = $"{list.Count:N0}개 · {sw.Elapsed.TotalMilliseconds:N0}ms" + (_search.IsIndexed ? " (색인)" : "");
+            Status = Foldy.Core.Localization.Loc.F("search.done", list.Count, sw.Elapsed.TotalMilliseconds) + (_search.IsIndexed ? Foldy.Core.Localization.Loc.T("search.indexTag") : "");
         }
         catch (OperationCanceledException)
         {
-            Status = $"취소됨 · {list.Count:N0}개";
+            Status = Foldy.Core.Localization.Loc.F("search.cancelled", list.Count);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Status = "검색 오류: " + ex.Message;
+            Status = Foldy.Core.Localization.Loc.T("search.error") + ex.Message;
         }
         finally
         {

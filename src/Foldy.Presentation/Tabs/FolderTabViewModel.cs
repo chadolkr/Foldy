@@ -147,7 +147,7 @@ public sealed partial class FolderTabViewModel : TabBase
         var target = PathUtil.Normalize(input);
         if (target is null)
         {
-            Error = $"경로 형식이 올바르지 않습니다: {input}";
+            Error = Foldy.Core.Localization.Loc.F("tab.badPath", input);
             State = LoadState.Error;
             return Task.CompletedTask;
         }
@@ -273,7 +273,7 @@ public sealed partial class FolderTabViewModel : TabBase
                     FirstBatchTime = sw.Elapsed;
                     if (_env.Speed.Record(target, FirstBatchTime))
                     {
-                        slowNotice = $"느린 드라이브({DriveSpeedTracker.RootOf(target)}) — 미리보기·썸네일·Git 감지를 줄였습니다";
+                        slowNotice = Foldy.Core.Localization.Loc.F("tab.slowDrive", DriveSpeedTracker.RootOf(target));
                     }
 
                     IsSlowDrive = _env.Speed.IsSlow(target);
@@ -281,7 +281,7 @@ public sealed partial class FolderTabViewModel : TabBase
 
                 if (sw.Elapsed > TimeSpan.FromSeconds(2))
                 {
-                    Status = $"불러오는 중… {all.Count:N0}개";
+                    Status = Foldy.Core.Localization.Loc.F("tab.loading", all.Count);
                 }
             }
 
@@ -322,7 +322,7 @@ public sealed partial class FolderTabViewModel : TabBase
             if (gen == _generation)
             {
                 State = LoadState.Idle;
-                Status = $"취소됨 ({all.Count:N0}개까지 표시)";
+                Status = Foldy.Core.Localization.Loc.F("tab.cancelled", all.Count);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or System.Security.SecurityException)
@@ -335,10 +335,10 @@ public sealed partial class FolderTabViewModel : TabBase
             _env.Loaded?.Invoke(target, sw.Elapsed, 0, ex);
             Error = ex switch
             {
-                DirectoryNotFoundException when target.Length <= 3 => $"드라이브 {target}를 열 수 없습니다. 네트워크 드라이브라면 연결 상태를 확인하고 [다시 시도]를 누르세요. (Foldy를 탐색기와 다른 권한으로 실행하면 매핑 드라이브가 안 보일 수 있습니다)",
-                DirectoryNotFoundException => $"폴더를 찾을 수 없습니다: {target}",
-                UnauthorizedAccessException => $"접근 권한이 없습니다: {target}",
-                Core.Threading.DriveUnresponsiveException => $"드라이브가 응답하지 않습니다: {target}",
+                DirectoryNotFoundException when target.Length <= 3 => Foldy.Core.Localization.Loc.F("tab.driveOffline", target),
+                DirectoryNotFoundException => Foldy.Core.Localization.Loc.F("tab.notFound", target),
+                UnauthorizedAccessException => Foldy.Core.Localization.Loc.F("tab.noAccess", target),
+                Core.Threading.DriveUnresponsiveException => Foldy.Core.Localization.Loc.F("tab.noResponse", target),
                 _ => ex.Message,
             };
             State = LoadState.Error;

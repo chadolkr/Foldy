@@ -9,7 +9,7 @@ public sealed record TreemapNode(long Id, bool IsDir, string Name, long Alloc, i
 {
     public string SizeText => AnalysisText.FormatSize(Alloc);
 
-    public string ToolTip => Name + "\n" + SizeText + (Tag is null ? "" : $"  [{Tag}]") + (IsDir ? "\n클릭하면 들어갑니다" : "");
+    public string ToolTip => Name + "\n" + SizeText + (Tag is null ? "" : $"  [{Tag}]") + (IsDir ? Foldy.Core.Localization.Loc.T("an.clickToOpen") : "");
 }
 
 public sealed record BreadcrumbItem(long Id, string Name);
@@ -22,9 +22,9 @@ public sealed record FolderListItem(FolderRow Row, long SortValue)
 
     public string OwnSizeText => AnalysisText.FormatSize(Row.OwnAlloc);
 
-    public string FilesText => Row.TotalFiles.ToString("N0", CultureInfo.CurrentCulture) + "개";
+    public string FilesText => Foldy.Core.Localization.Loc.F("an.nFiles", Row.TotalFiles);
 
-    public string OwnFilesText => Row.OwnFiles.ToString("N0", CultureInfo.CurrentCulture) + "개";
+    public string OwnFilesText => Foldy.Core.Localization.Loc.F("an.nFiles", Row.OwnFiles);
 
     public string? Tag => Row.Tag;
 }
@@ -45,7 +45,7 @@ public sealed record ExtensionListItem(string Label, long Files, long Alloc, dou
 {
     public string SizeText => AnalysisText.FormatSize(Alloc);
 
-    public string FilesText => Files.ToString("N0", CultureInfo.CurrentCulture) + "개";
+    public string FilesText => Foldy.Core.Localization.Loc.F("an.nFiles", Files);
 
     public double BarWidth => Math.Max(2, Fraction * 160);
 }
