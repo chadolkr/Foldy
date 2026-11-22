@@ -49,7 +49,14 @@ public static class DevCaches
             {
                 try
                 {
-                    var p = Path.Combine(dir.Trim('"'), exe);
+                    // PATH의 상대 경로(".", "bin" 등)는 Foldy가 지금 서 있는 폴더 기준이 되어, 그 폴더에 놓인 npm.cmd를 실행할 수 있다: 전체 경로만 본다
+                    var d = dir.Trim('"');
+                    if (!Path.IsPathFullyQualified(d))
+                    {
+                        continue;
+                    }
+
+                    var p = Path.Combine(d, exe);
                     if (File.Exists(p) && !p.Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase)) // Store의 python.exe 바로 가기(설치 안내)는 뺀다
                     {
                         return p;

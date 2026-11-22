@@ -16,6 +16,7 @@ public sealed class VersionHistoryTests : IDisposable
     public void Dispose()
     {
         VersionHistory.RootOverride = null;
+        VersionHistory.LocalDriveOverride = null;
         try
         {
             Directory.Delete(_root, recursive: true);
@@ -62,5 +63,36 @@ public sealed class VersionHistoryTests : IDisposable
     public void Missing_files_are_not_preserved()
     {
         VersionHistory.Preserve(Path.Combine(_root, "없음.txt")).Should().BeNull();
+    }
+
+    [Fact]
+    public void A_tampered_index_cannot_make_foldy_delete_or_move_files_outside_the_history_folder()
+    {
+        // 보안 리뷰 2026-11-22 V1: 같은 공유 드라이브를 쓰는 다른 사람이 index.jsonl을 고쳐 둔 경우
+        var victim = Path.Combine(_root, "중요한 파일.docx");
+        File.WriteAllText(victim, "지키기");
+        var f = Path.Combine(_root, "a.txt");
+        File.WriteAllText(f, "1");
+        var history = VersionHistory.HistoryRoot(f);
+        Directory.CreateDirectory(history);
+        var forged = new SavedVersion(Path.GetFullPath(f), victim, DateTime.UtcNow.AddDays(-30), 5);
+        File.WriteAllText(Path.Combine(history, "index.jsonl"), System.Text.Json.JsonSerializer.Serialize(forged) + "\n");
+
+        VersionHistory.Prune(f);
+        File.Exists(victim).Should().BeTrue("보관 폴더 밖의 파일은 지우지 않는다");
+        VersionHistory.VersionsOf(f).Should().BeEmpty("보관 폴더 밖을 가리키는 기록은 보여 주지 않는다");
+        VersionHistory.Restore(forged).Should().BeFalse();
+        VersionHistory.ExtractBeside(forged).Should().BeNull();
+        File.ReadAllText(f).Should().Be("1");
+    }
+
+    [Fact]
+    public void Files_on_network_or_removable_drives_are_not_kept()
+    {
+        VersionHistory.LocalDriveOverride = _ => false;
+        var f = Path.Combine(_root, "공유.txt");
+        File.WriteAllText(f, "1");
+        VersionHistory.Preserve(f).Should().BeNull("공유 폴더·USB에는 예전 내용을 남기지 않는다");
+        File.Exists(f).Should().BeTrue();
     }
 }

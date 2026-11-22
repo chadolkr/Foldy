@@ -137,6 +137,24 @@ public sealed class DevCachesTests : IDisposable
         File.WriteAllText(Path.Combine(store, "python.exe"), "");
         DevCaches.FindOnPath(["python.exe"], store).Should().BeNull();
     }
+
+    [Fact]
+    public void Relative_path_entries_are_ignored()
+    {
+        // PATH의 "."이나 "bin"은 Foldy가 지금 서 있는 폴더 기준이라, 그 폴더에 놓인 파일을 실행하게 될 수 있다
+        var here = Directory.GetCurrentDirectory();
+        var planted = Path.Combine(here, "foldy-test-npm.cmd");
+        File.WriteAllText(planted, "");
+        try
+        {
+            DevCaches.FindOnPath(["foldy-test-npm.cmd"], ".;.\\").Should().BeNull();
+            DevCaches.FindOnPath(["foldy-test-npm.cmd"], here).Should().Be(planted);
+        }
+        finally
+        {
+            File.Delete(planted);
+        }
+    }
 }
 
 public sealed class DesktopSuggestTests

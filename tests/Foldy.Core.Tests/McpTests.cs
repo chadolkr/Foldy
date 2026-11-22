@@ -99,12 +99,27 @@ public sealed class McpServerTests
     [InlineData("상대경로\\폴더")]
     [InlineData(@"\\?\C:\Windows")]
     [InlineData(@"\\.\PhysicalDrive0")]
+    [InlineData(@"\\attacker.example\share")]
+    [InlineData("//attacker.example/share")]
+    [InlineData(@"//?/C:/Windows")]
+    [InlineData(@"  \\server\share\x")]
     [InlineData("")]
     public async Task Paths_must_be_full_normal_paths(string path)
     {
         var s = Server();
         var r = await Ask(s, JsonSerializer.Serialize(new { jsonrpc = "2.0", id = 1, method = "tools/call", @params = new { name = "list_folder", arguments = new { path } } }));
         Assert.True((bool)r["result"]!["isError"]!);
+    }
+
+    [Fact]
+    public async Task Tags_are_not_read_from_network_paths()
+    {
+        // 보안 리뷰 2026-11-22 V2: 네트워크 경로는 열어 보기만 해도 로그인 정보(NTLM)가 그 서버로 간다
+        var asked = new List<string>();
+        var s = Server(new FoldyMcpHost { Tags = p => { asked.Add(p); return ["완료"]; } });
+        var r = await Ask(s, JsonSerializer.Serialize(new { jsonrpc = "2.0", id = 1, method = "tools/call", @params = new { name = "get_file_tags", arguments = new { paths = new[] { @"\\attacker.example\share\a.docx", @"C:\보고서\a.docx" } } } }));
+        Assert.False((bool)r["result"]!["isError"]!);
+        Assert.Equal(new[] { @"C:\보고서\a.docx" }, asked);
     }
 
     [Fact]
