@@ -54,7 +54,7 @@ The first time you start Foldy, it helps you make things comfortable to read.
 1. **Text size**: Normal, Large, Larger and Largest, shown on a real file list. Changes apply as soon as you press, so choose while you look.
 2. **Brightness**: Light, Dark or Follow Windows.
 3. **Quick search shortcut**: checks whether Ctrl+Space clashes with another program and, if it does, lets you pick another key right there.
-4. **Short intro**: like a vertical short video, the real Foldy screen moves while one line at a time shows the main features (Ctrl+Space quick search — files, Windows settings, math and plain-language commands; drag and drop to copy; folder analysis; desktop tidy; folder tidy; locked notes; folder structure templates; Git). It advances by itself; click the right side for next, the left side for previous, and [Skip] anytime. It also plays once after you reinstall or update, and you can watch it again anytime from the **?** button at the bottom of the sidebar → "Short intro".
+4. **Short intro**: like a vertical short video, the real Foldy screen moves while one line at a time shows the main features (Ctrl+Space quick search — files, Windows settings, math and plain-language commands; drag and drop to copy; folder analysis; desktop tidy; folder tidy; locked notes; folder structure templates; Git). It advances by itself; click the right side for next, the left side for previous, and [Skip] anytime. Scenes you have seen do not play again after you reinstall or update; when an update adds a new feature, only that scene plays once. You can watch the whole intro again anytime from the **?** button at the bottom of the sidebar → "Short intro".
 
    ![Short intro](images/en/tour.png)
 

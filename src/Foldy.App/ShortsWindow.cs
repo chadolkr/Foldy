@@ -18,7 +18,7 @@ namespace Foldy.App;
 internal sealed class ShortsWindow : Window
 {
     /// <summary>장면 하나: 그림, 다가갈 곳(그림 안 비율), 확대 시작·끝, 큰 글, 작은 글.</summary>
-    public sealed record Scene(string Image, double FocusX, double FocusY, double ZoomFrom, double ZoomTo, string Title, string Sub);
+    public sealed record Scene(string Image, double FocusX, double FocusY, double ZoomFrom, double ZoomTo, string Title, string Sub, string Key = "");
 
     /// <summary>장면 목록 (다국어 준비: 문구는 여기만).</summary>
     public static readonly Scene[] Scenes =
@@ -45,7 +45,7 @@ internal sealed class ShortsWindow : Window
     ];
 
     private static Scene S(string image, double fx, double fy, double zf, double zt, string key) =>
-        new(image, fx, fy, zf, zt, Foldy.Core.Localization.Loc.T(key + ".t"), Foldy.Core.Localization.Loc.T(key + ".s"));
+        new(image, fx, fy, zf, zt, Foldy.Core.Localization.Loc.T(key + ".t"), Foldy.Core.Localization.Loc.T(key + ".s"), key);
 
     /// <summary>마지막 장: 한 줄 소개 (사용자 2026-11-21).</summary>
     public static string EndTitle => Foldy.Core.Branding.Tagline;
@@ -79,8 +79,18 @@ internal sealed class ShortsWindow : Window
     /// </summary>
     private Rect? _focus;
 
+    /// <summary>이번에 보여 줄 장면 (모두, 또는 업데이트 뒤 새 장면만).</summary>
+    private readonly IReadOnlyList<Scene> _scenes;
+
     public ShortsWindow()
+        : this(Scenes)
     {
+    }
+
+    /// <summary>고른 장면만 (사용자 2026-11-22: 업데이트 뒤에는 새로 생긴 기능 장면만).</summary>
+    public ShortsWindow(IReadOnlyList<Scene> scenes)
+    {
+        _scenes = scenes is { Count: > 0 } ? scenes : Scenes;
         Title = Foldy.Core.Localization.Loc.T("tour.windowTitle");
         SetResourceReference(StyleProperty, "Foldy.Window");
         SetResourceReference(BackgroundProperty, "Brush.Window");
@@ -92,7 +102,7 @@ internal sealed class ShortsWindow : Window
         TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
         _imageDir = System.IO.Path.Combine(AppContext.BaseDirectory, "help", "images");
 
-        for (var i = 0; i <= Scenes.Length; i++)
+        for (var i = 0; i <= _scenes.Count; i++)
         {
             var track = new Border { Width = 20, Height = 5, CornerRadius = new CornerRadius(2.5), Margin = new Thickness(3, 0, 3, 0), ClipToBounds = true };
             track.SetResourceReference(Border.BackgroundProperty, "Brush.Border");
@@ -173,10 +183,10 @@ internal sealed class ShortsWindow : Window
 
     public void Go(int i)
     {
-        _index = Math.Clamp(i, 0, Scenes.Length);
+        _index = Math.Clamp(i, 0, _scenes.Count);
         _elapsed = TimeSpan.Zero;
         _last = DateTime.UtcNow;
-        var end = _index == Scenes.Length;
+        var end = _index == _scenes.Count;
         _start.Visibility = end ? Visibility.Visible : Visibility.Collapsed;
         _skip.Visibility = end ? Visibility.Collapsed : Visibility.Visible;
         if (end)
@@ -189,10 +199,10 @@ internal sealed class ShortsWindow : Window
         }
         else
         {
-            _title.Text = Scenes[_index].Title;
-            _sub.Text = Scenes[_index].Sub;
-            _bitmap = Load(Scenes[_index].Image);
-            _focus = LoadFocus(Scenes[_index].Image);
+            _title.Text = _scenes[_index].Title;
+            _sub.Text = _scenes[_index].Sub;
+            _bitmap = Load(_scenes[_index].Image);
+            _focus = LoadFocus(_scenes[_index].Image);
         }
 
         _image.Source = _bitmap;
@@ -321,7 +331,7 @@ internal sealed class ShortsWindow : Window
     private void Tick()
     {
         var now = DateTime.UtcNow;
-        if (!_paused && _index < Scenes.Length)
+        if (!_paused && _index < _scenes.Count)
         {
             _elapsed += now - _last;
             if (_elapsed >= SceneLength)
@@ -343,7 +353,7 @@ internal sealed class ShortsWindow : Window
             var track = (Border)_bars.Children[i];
             var fill = (Border)track.Child;
             fill.Width = track.Width;
-            var amount = i < _index ? 1 : i == _index ? (_index == Scenes.Length ? 1 : u) : 0;
+            var amount = i < _index ? 1 : i == _index ? (_index == _scenes.Count ? 1 : u) : 0;
             if (fill.RenderTransform is not ScaleTransform st)
             {
                 fill.RenderTransform = st = new ScaleTransform(0, 1);
@@ -360,8 +370,8 @@ internal sealed class ShortsWindow : Window
             return;
         }
 
-        var end = _index >= Scenes.Length;
-        var scene = end ? new Scene("main.png", 0.5, 0.5, 1, 1, "", "") : Scenes[_index];
+        var end = _index >= _scenes.Count;
+        var scene = end ? new Scene("main.png", 0.5, 0.5, 1, 1, "", "") : _scenes[_index];
         var iw = _bitmap.PixelWidth / 2.0;
         var ih = _bitmap.PixelHeight / 2.0;
         var ease = u * u * (3 - (2 * u));

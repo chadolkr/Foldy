@@ -581,41 +581,25 @@ public static class FirstRunTour
 
     private static string CurrentVersion => typeof(FirstRunTour).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
+    /// <summary>본 장면 기록: 장면 이름(tour.qs …)을 한 줄에 하나씩.</summary>
+    private static string SeenFile => Path.Combine(App.DataDir, "tour-seen.txt");
+
     /// <summary>
-    /// 이 버전에서 짧은 소개를 이미 봤나. 사용자 요청(2026-11-21): 다시 설치하거나 업데이트한 뒤 처음 켤 때도 보인다.
-    /// 기록은 "버전|시각". 버전이 다르면(업데이트) 다시, 같은 버전이라도 Foldy.exe가 기록보다 나중에 설치됐으면(다시 설치) 다시.
-    /// "always"는 시험용(늘 본 것으로).
+    /// 아직 안 본 장면 (사용자 결정 2026-11-22, 1.2.0 업데이트 뒤: "한번 본것은 안보게", "새로운 것은 쇼츠를 보게").
+    /// 업데이트·다시 설치 뒤에는 이것만 한 번 보여 준다. 없으면 아무것도 띄우지 않는다. 건너뛰어도 본 것으로 친다.
+    /// (2026-11-21의 "업데이트 뒤 다시 보이기"를 바꿈)
     /// </summary>
-    public static bool ShownForThisVersion => ShownFor(ReadStamp(), CurrentVersion, ExeInstalledUtc());
-
-    public static bool ShownFor(string? stamp, string version, DateTime? exeInstalledUtc)
+    internal static IReadOnlyList<ShortsWindow.Scene> UnseenScenes()
     {
-        if (stamp is null)
-        {
-            return false;
-        }
-
-        if (stamp.Trim() == "always")
-        {
-            return true;
-        }
-
-        var parts = stamp.Trim().Split('|');
-        if (parts.Length < 2 || parts[0] != version)
-        {
-            return false; // 예전 기록(날짜만)이거나 다른 버전 → 업데이트 뒤 처음
-        }
-
-        return !(exeInstalledUtc is { } t
-            && DateTime.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var seen)
-            && t > seen.ToUniversalTime().AddMinutes(1)); // 본 뒤에 다시 설치됨
+        var unseen = Foldy.Core.Tour.ShortsSeen.Unseen([.. ShortsWindow.Scenes.Select(x => x.Key)], ReadStamp(), ReadSeen());
+        return [.. ShortsWindow.Scenes.Where(x => unseen.Contains(x.Key))];
     }
 
-    private static string? ReadStamp()
+    private static string[]? ReadSeen()
     {
         try
         {
-            return File.Exists(Stamp) ? File.ReadAllText(Stamp) : null;
+            return File.Exists(SeenFile) ? File.ReadAllLines(SeenFile) : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -623,11 +607,22 @@ public static class FirstRunTour
         }
     }
 
-    private static DateTime? ExeInstalledUtc()
+    private static void MarkSeen(IEnumerable<ShortsWindow.Scene> scenes)
     {
         try
         {
-            return Environment.ProcessPath is { } exe ? File.GetCreationTimeUtc(exe) : null;
+            File.WriteAllLines(SeenFile, Foldy.Core.Tour.ShortsSeen.Merge(ReadSeen(), scenes.Select(x => x.Key)));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static string? ReadStamp()
+    {
+        try
+        {
+            return File.Exists(Stamp) ? File.ReadAllText(Stamp) : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -733,12 +728,17 @@ public static class FirstRunTour
         return box;
     }
 
-    public static async Task RunAsync(Window owner)
+    /// <summary>짧은 소개 전부 (처음 실행, ? → 짧은 소개 보기).</summary>
+    public static Task RunAsync(Window owner) => RunAsync(owner, ShortsWindow.Scenes);
+
+    /// <summary>고른 장면만 (업데이트 뒤 새 장면). 띄우는 순간 본 것으로 기억한다.</summary>
+    internal static async Task RunAsync(Window owner, IReadOnlyList<ShortsWindow.Scene> scenes)
     {
         MarkShown();
+        MarkSeen(scenes);
 
         // 쇼츠처럼 보는 짧은 소개 (글 대신 실제 화면이 움직이며 한 줄씩, 사용자 요청 2026-11-21)
-        var w = new ShortsWindow();
+        var w = new ShortsWindow(scenes);
         if (owner.IsLoaded)
         {
             w.Owner = owner;
