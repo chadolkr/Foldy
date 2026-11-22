@@ -2,6 +2,11 @@
 
 정한 것을 짧게 남긴다: 날짜, 무엇을, 왜, 다른 안. 최근 것이 위.
 
+## 2026-11-23 · Rust 프로그램은 C 런타임을 넣어서 만든다 (crt-static)
+- **무슨 일**: winget-pkgs 검증(깨끗한 Windows에서 조용히 설치)에서 1.3.0 MSI 설치가 실패했다(Validation-Shell-Execute). foldy-index.exe·foldy-update.exe·foldy_copy.dll이 VCRUNTIME140.dll을 가져오는데 MSI에 없다. 재배포 패키지가 없는 PC에서는 색인 서비스가 시작하지 못하고, 서비스가 Vital이라 설치 전체가 되돌려진다. 개발 PC와 집·회사 PC에는 재배포 패키지가 이미 있어 몰랐다.
+- **결정**: engine/.cargo/config.toml에서 `+crt-static`. build-msi.ps1이 세 파일에 런타임 DLL 이름이 있으면 멈춘다. 1.3.1로 내고 winget에는 1.3.1로 다시 낸다.
+- **다른 안**: vcruntime140.dll을 MSI에 같이 넣기 (앱 폴더 배포는 가능하지만 파일이 늘고 업데이트 관리가 필요해 기각), 재배포 패키지 설치를 winget 의존성으로 걸기 (MSI 직접 설치 사용자는 그대로 실패해 기각).
+
 ## 2026-11-23 · Microsoft Store 첫 제출은 1.3.0 MSIX (사용자)
 - **무엇을**: v1.3.0 Release 실행이 만든 foldy-store-msix(Store 서명용, 릴리스 페이지에는 올리지 않음)를 Partner Center에 첫 제출했다 (2026-11-23 00:50 KST, 인증 중).
 - **왜 릴리스 페이지에 없나**: Store용 MSIX는 Store가 다시 서명해 배포하므로 GitHub 릴리스에는 일반 설치용(MSI·zip)과 업데이트 파일만 둔다. 제출 파일 모음(store-upload/)은 저장소에 넣지 않는다.

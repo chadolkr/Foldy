@@ -41,6 +41,18 @@ foreach ($f in 'Foldy.exe', 'foldy-index.exe') {
     if (-not (Test-Path (Join-Path $payload $f))) { throw "페이로드에 $f 가 없습니다: $payload (engine 빌드 필요: cd engine; cargo build --release)" }
 }
 
+# ── Rust 프로그램이 Visual C++ 런타임 없이 도는지 확인 ──
+# VCRUNTIME140.dll을 찾는 파일이 있으면 재배포 패키지가 없는 PC에서 서비스가 시작하지 못해 설치가 되돌려진다
+# (engine/.cargo/config.toml의 crt-static). 가져오기 표에 이름이 그대로 들어 있어 글자로 찾는다.
+foreach ($f in 'foldy-index.exe', 'foldy-update.exe', 'foldy_copy.dll') {
+    $p = Join-Path $payload $f
+    if (-not (Test-Path $p)) { continue }
+    $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($p))
+    if ($text -match '(?i)vcruntime140(_1)?\.dll|msvcp140\.dll') {
+        throw "$f 가 Visual C++ 런타임 DLL($($Matches[0]))을 찾습니다. engine/.cargo/config.toml의 crt-static을 확인하세요."
+    }
+}
+
 # ── LICENSE → RTF (설치 UI의 라이선스 화면) ──
 $work = Join-Path $root 'dist\installer'
 New-Item -ItemType Directory -Force $work | Out-Null
