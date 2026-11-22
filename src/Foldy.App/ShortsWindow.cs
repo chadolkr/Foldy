@@ -73,6 +73,12 @@ internal sealed class ShortsWindow : Window
     private bool _paused;
     private BitmapImage? _bitmap;
 
+    /// <summary>
+    /// 이 장면에서 보여 줄 곳 (그림 안 비율의 사각형). 문서 캡처가 그 기능의 실제 화면 요소 위치로 적어 둔 &lt;그림&gt;.focus.json.
+    /// 있으면 가운데가 아니라 그 사각형으로 카메라가 다가가고, 사각형이 화면에 꽉 차게 확대한다 (언어마다 위치가 달라도 맞는다).
+    /// </summary>
+    private Rect? _focus;
+
     public ShortsWindow()
     {
         Title = "Foldy 짧은 소개";
@@ -178,6 +184,7 @@ internal sealed class ShortsWindow : Window
             _title.Text = EndTitle;
             _sub.Text = EndSub;
             _bitmap = Load("main.png");
+            _focus = null;
             _start.Focus();
         }
         else
@@ -185,6 +192,7 @@ internal sealed class ShortsWindow : Window
             _title.Text = Scenes[_index].Title;
             _sub.Text = Scenes[_index].Sub;
             _bitmap = Load(Scenes[_index].Image);
+            _focus = LoadFocus(Scenes[_index].Image);
         }
 
         _image.Source = _bitmap;
@@ -198,6 +206,58 @@ internal sealed class ShortsWindow : Window
         _canvas.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350)));
         _image.Opacity = end ? 0.25 : 1;
         Render();
+    }
+
+    /// <summary>그림 옆의 &lt;이름&gt;.focus.json ({"x","y","w","h"}: 그림 안 비율). 없거나 읽지 못하면 null.</summary>
+    internal Rect? LoadFocus(string name)
+    {
+        try
+        {
+            var file = System.IO.Path.ChangeExtension(name, ".focus.json");
+            var path = System.IO.Path.Combine(_imageDir, Foldy.Core.Localization.Loc.Current, file);
+            if (!File.Exists(path) || !File.Exists(System.IO.Path.Combine(_imageDir, Foldy.Core.Localization.Loc.Current, name)))
+            {
+                path = System.IO.Path.Combine(_imageDir, file); // 그림을 한국어판으로 대신할 때는 초점도 한국어판
+            }
+
+            return File.Exists(path) ? ParseFocus(File.ReadAllText(path)) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    internal static Rect? ParseFocus(string json)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var r = doc.RootElement;
+            var rect = new Rect(r.GetProperty("x").GetDouble(), r.GetProperty("y").GetDouble(), r.GetProperty("w").GetDouble(), r.GetProperty("h").GetDouble());
+            return rect.Width > 0.01 && rect.Height > 0.01 && rect.X >= 0 && rect.Y >= 0 && rect.Right <= 1.001 && rect.Bottom <= 1.001 ? rect : null;
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException or FormatException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 초점 사각형이 있을 때의 카메라: 장면이 시작할 때는 그림 전체에 가깝게, 끝날 때는 그 사각형이 화면의 85%를 채우게.
+    /// (가로 w, 세로 h는 보이는 칸, iw·ih는 그림 크기). 반환: 배율, 초점 x, 초점 y (그림 안 비율).
+    /// </summary>
+    internal static (double Scale, double X, double Y) Camera(Rect focus, double w, double h, double iw, double ih, double ease)
+    {
+        // 시작: 그림 전체가 보이게(가로가 넘치면 가로에 맞춤), 끝: 초점 사각형이 화면의 85%를 채우게.
+        // 화면(세로로 긴 쇼츠)을 꽉 채우려고 배율을 억지로 올리지 않는다: 넓은 그림은 위아래가 비어도 초점이 다 보이는 게 낫다.
+        var whole = Math.Min(w / iw, h / ih);
+        var fit = Math.Min(w / (focus.Width * iw), h / (focus.Height * ih)) * 0.85;
+        var target = Math.Clamp(fit, whole, Math.Max(whole, 3.0));
+        var start = Math.Max(whole, target * 0.55);
+        var cx = focus.X + (focus.Width / 2);
+        var cy = focus.Y + (focus.Height / 2);
+        return (Lerp(start, target, ease), Lerp(0.5, cx, ease), Lerp(0.5, cy, ease));
     }
 
     private BitmapImage? Load(string name)
@@ -307,10 +367,18 @@ internal sealed class ShortsWindow : Window
         var ease = u * u * (3 - (2 * u));
         // 확대: 장면마다 정한 배율(원래 크기 대비, 글씨가 잘 보이게). 마지막 장은 전체가 흐릿하게 보이게 맞춤
         var s = end ? Math.Min(w / iw, h / ih) : scene.ZoomFrom + ((scene.ZoomTo - scene.ZoomFrom) * ease);
+        var fx = scene.FocusX;
+        var fy = scene.FocusY;
+        if (!end && _focus is { } focus)
+        {
+            // 그 기능의 실제 화면 요소로 다가간다 (문서 캡처가 적어 둔 위치). 기계적으로 가운데를 키우지 않는다
+            (s, fx, fy) = Camera(focus, w, h, iw, ih, ease);
+        }
+
         var dw = iw * s;
         var dh = ih * s;
-        var left = dw <= w ? (w - dw) / 2 : Math.Clamp((w / 2) - (scene.FocusX * dw), w - dw, 0);
-        var top = dh <= h ? (h - dh) / 2 : Math.Clamp((h / 2) - (scene.FocusY * dh), h - dh, 0);
+        var left = dw <= w ? (w - dw) / 2 : Math.Clamp((w / 2) - (fx * dw), w - dw, 0);
+        var top = dh <= h ? (h - dh) / 2 : Math.Clamp((h / 2) - (fy * dh), h - dh, 0);
         _move.Matrix = new Matrix(s, 0, 0, s, left, top);
 
         // 누를 곳에서 동그라미가 톡톡 (1.4초마다 커지며 흐려진다)
@@ -320,8 +388,10 @@ internal sealed class ShortsWindow : Window
             var phase = (_elapsed.TotalSeconds % 1.4) / 1.4;
             _tapScale.ScaleX = _tapScale.ScaleY = 0.75 + (phase * 0.9);
             _tap.Opacity = 1 - phase;
-            _tapMove.X = left + (scene.FocusX * dw) - 20;
-            _tapMove.Y = top + (scene.FocusY * dh) - 20;
+            var tx = _focus is { } tf ? tf.X + (tf.Width / 2) : scene.FocusX;
+            var ty = _focus is { } tg ? tg.Y + (tg.Height / 2) : scene.FocusY;
+            _tapMove.X = left + (tx * dw) - 20;
+            _tapMove.Y = top + (ty * dh) - 20;
         }
     }
 

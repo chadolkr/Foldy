@@ -46,14 +46,9 @@ public sealed class FoldyMcpHost
 public static class FoldyMcpTools
 {
     /// <summary>AI에게 이렇게 물어보세요 (AI 연결 화면·도움말·README에 같은 예시). 도구 하나 이상으로 답할 수 있는 것만.</summary>
-    public static readonly IReadOnlyList<(string Ask, string What)> Examples =
+    public static IReadOnlyList<(string Ask, string What)> Examples =>
     [
-        ("작년 견적서 찾아 줘", "이름으로 파일 찾기 (회사 드라이브·Google Drive 포함)"),
-        ("D 드라이브에서 공간을 많이 차지하는 폴더가 뭐야?", "큰 폴더부터 짚어 보기"),
-        ("다운로드 폴더에 뭐가 있는지 정리해서 알려 줘", "폴더 안 보기"),
-        ("이 프로젝트 폴더 설명 읽어 줘", "Foldy에 적어 둔 폴더 설명"),
-        ("보고서 폴더에서 아직 검토 중인 파일 알려 줘", "파일 상태 태그"),
-        ("드라이브 남은 공간과 색인 상태 알려 줘", "드라이브 상태"),
+        .. Enumerable.Range(1, 6).Select(i => (Localization.Loc.T($"mcpex.{i}.ask"), Localization.Loc.T($"mcpex.{i}.what"))),
     ];
 
     /// <summary>

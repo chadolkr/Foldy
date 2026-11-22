@@ -153,21 +153,83 @@ public partial class ShellWindow
         enc.Save(fs);
     }
 
-    private async Task DocShotWindowAsync(string name, int settleMs = 500)
+    private async Task DocShotWindowAsync(string name, int settleMs = 500, Func<FrameworkElement, IEnumerable<FrameworkElement?>>? focus = null)
     {
         await DocSettleAsync(settleMs);
         DocFixStatus();
         var root = (FrameworkElement)Content;
         DocSave(name, DocRender(root, Background, 2), 2);
+        DocSaveFocus(name, root, focus);
     }
 
-    private async Task DocShotDialogAsync(string name, Window win, int settleMs = 700)
+    private async Task DocShotDialogAsync(string name, Window win, int settleMs = 700, Func<FrameworkElement, IEnumerable<FrameworkElement?>>? focus = null)
     {
         win.UpdateLayout();
         await DocSettleAsync(settleMs);
         var root = VisualTreeHelper.GetChild(win, 0) as FrameworkElement ?? (FrameworkElement)win.Content; // 안쪽 여백(Margin)까지 포함하려고 창의 맨 위 요소를 찍는다
         DocSave(name, DocRender(root, win.Background, 2), 2);
+        DocSaveFocus(name, root, focus);
     }
+
+    /// <summary>
+    /// 짧은 소개가 다가갈 곳 (사용자 2026-11-22: "중요한 곳에 포커싱하면서 줌인되어야 하는데 기계적으로 중앙에 줌인된다").
+    /// 그 장면의 기능을 보여 주는 실제 화면 요소들을 합친 사각형을 그림 안 비율로 &lt;이름&gt;.focus.json 에 적는다. 언어마다 찍으니 위치도 언어마다 맞다.
+    /// </summary>
+    private void DocSaveFocus(string name, FrameworkElement root, Func<FrameworkElement, IEnumerable<FrameworkElement?>>? focus)
+    {
+        if (focus is null)
+        {
+            return;
+        }
+
+        Rect? union = null;
+        foreach (var e in focus(root))
+        {
+            if (e is null || !e.IsVisible || e.ActualWidth < 1 || e.ActualHeight < 1)
+            {
+                continue;
+            }
+
+            var r = e.TransformToAncestor(root).TransformBounds(new Rect(0, 0, e.ActualWidth, e.ActualHeight));
+            r.Intersect(new Rect(0, 0, root.ActualWidth, root.ActualHeight));
+            if (r.IsEmpty)
+            {
+                continue;
+            }
+
+            union = union is { } u ? Rect.Union(u, r) : r;
+        }
+
+        if (union is not { } f)
+        {
+            _docFailures.Add($"{name}: 짧은 소개 초점 요소를 찾지 못함");
+            return;
+        }
+
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var json = string.Format(inv, "{{\"x\":{0:0.####},\"y\":{1:0.####},\"w\":{2:0.####},\"h\":{3:0.####}}}\n",
+            f.X / root.ActualWidth, f.Y / root.ActualHeight, f.Width / root.ActualWidth, f.Height / root.ActualHeight);
+        File.WriteAllText(Path.Combine(_docOut, name + ".focus.json"), json);
+    }
+
+    /// <summary>이름(x:Name)으로 찾기.</summary>
+    private static FrameworkElement? DocNamed(DependencyObject root, string name) =>
+        DocFind<FrameworkElement>(root).FirstOrDefault(e => e.Name == name);
+
+    /// <summary>보이는 것 중 가장 큰 그 종류의 요소 (목록·트리 등).</summary>
+    private static T? DocLargest<T>(DependencyObject root) where T : FrameworkElement =>
+        DocFind<T>(root).Where(e => e.IsVisible).OrderByDescending(e => e.ActualWidth * e.ActualHeight).FirstOrDefault();
+
+    /// <summary>글이 그것과 같은(또는 그것으로 시작하는) 단추.</summary>
+    private static System.Windows.Controls.Primitives.ButtonBase? DocButton(DependencyObject root, string text) =>
+        DocFind<System.Windows.Controls.Primitives.ButtonBase>(root).FirstOrDefault(b => b.IsVisible && DocText(b).StartsWith(text, StringComparison.Ordinal));
+
+    private static string DocText(DependencyObject e) => e switch
+    {
+        ContentControl { Content: string c } => c,
+        TextBlock t => t.Text,
+        _ => string.Join(" ", DocFind<TextBlock>(e).Select(t => t.Text)),
+    };
 
     private Window DocOpen(Window win)
     {
@@ -206,7 +268,8 @@ public partial class ShellWindow
             await DocGoAsync(left, DocShotsSandbox.Repo(r), "README.md");
             await DocGoAsync(right, DocShotsSandbox.Downloads(r), Foldy.Core.Localization.Loc.T("cf.demo.minutes"));
             DocActivate(left);
-            await DocShotWindowAsync("main", 1500);
+            await DocShotWindowAsync("main", 1500, root => [DocFind<TextBlock>(root).FirstOrDefault(t => t.Inlines.OfType<System.Windows.Documents.Run>().FirstOrDefault()?.Text == "F5 ") is { } f5 ? DocAncestorButton(f5) : null,
+                DocFind<TextBlock>(root).FirstOrDefault(t => t.Inlines.OfType<System.Windows.Documents.Run>().FirstOrDefault()?.Text == "F6 ") is { } f6 ? DocAncestorButton(f6) : null]); // 소개: 두 창 사이로 끌거나 F5 복사·F6 이동
         });
 
         // UX 점검용: 작은 노트북 화면(1366×768)과 다크 테마
@@ -289,7 +352,7 @@ public partial class ShellWindow
             var change = git.ChangeRows.FirstOrDefault(c => c.Item?.Path == "src/app.py") ?? git.ChangeRows.FirstOrDefault(c => c.Item is not null);
             git.SelectedChange = change;
             await git.PanelLoadingTask;
-            await DocShotWindowAsync("git-changes", 1200);
+            await DocShotWindowAsync("git-changes", 1200, root => [DocNamed(root, "BranchBtn"), DocNamed(root, "PullBtn"), DocNamed(root, "StashBtn")]); // 소개: 받기·올리기·커밋을 버튼으로
 
             await git.ShowBlameAsync("src/app.py");
             await DocShotWindowAsync("git-blame", 1200);
@@ -337,7 +400,7 @@ public partial class ShellWindow
             left.AddTab(tab, activate: true, assignColor: true);
             await DocSettleAsync(600);
             await tab.AnalyzeAsync();
-            await DocShotWindowAsync("analysis", 2500);
+            await DocShotWindowAsync("analysis", 2500, root => [DocLargest<Foldy.UI.Analysis.TreemapControl>(root)]); // 소개: 큰 상자가 큰 폴더
             left.CloseTab(tab);
             DocWide(leftOnly: false);
         });
@@ -430,7 +493,7 @@ public partial class ShellWindow
                 }
             }
 
-            await DocShotDialogAsync("para-template", win, 1000);
+            await DocShotDialogAsync("para-template", win, 1000, root => [DocLargest<TreeView>(root)]); // 소개: 만들어질 폴더 미리보기
             win.Close();
 
             // 뒤죽박죽 문서함 (가짜 파일): 진행 중인 일·계속 관리하는 일·참고 자료·오래된 것이 섞여 있다
@@ -457,7 +520,7 @@ public partial class ShellWindow
             org.SelectedTemplate = org.Templates.FirstOrDefault(t => t.Id == "para") ?? org.SelectedTemplate;
             var win2 = DocOpen(new Foldy.UI.Templates.OrganizeWindow { DataContext = org });
             await org.PlanCommand.ExecuteAsync(null);
-            await DocShotDialogAsync("para-organize", win2, 1200);
+            await DocShotDialogAsync("para-organize", win2, 1200, root => [DocLargest<ItemsControl>(root)]); // 소개: 어디로 옮길지 계획
             win2.Close();
         });
 
@@ -593,7 +656,7 @@ public partial class ShellWindow
             g.Say(Foldy.Core.Localization.Loc.T("demo.dtFound"));
             _ = g.AskAsync(Foldy.Core.Localization.Loc.T("demo.dtPlan"),
                 ("go", Foldy.Core.Localization.Loc.T("cf.log.go")), ("detail", Foldy.Core.Localization.Loc.T("cf.details")), ("later", Foldy.Core.Localization.Loc.T("sw.later")));
-            await DocShotDialogAsync("guide", g, 500);
+            await DocShotDialogAsync("guide", g, 500, root => [DocNamed(root, "Messages") is Panel m && m.Children.Count > 0 ? m.Children[^1] as FrameworkElement : null, DocNamed(root, "Choices")]); // 소개: 묻는 말과 단추
             g.Close();
         });
 
@@ -602,7 +665,7 @@ public partial class ShellWindow
             var note = new Foldy.Core.Vault.LockedNote { Markdown = Foldy.Core.Localization.Loc.T("demo.lockedNote") };
             var path = Path.Combine(r, Foldy.Core.Localization.Loc.T("demo.lockedName") + Foldy.Core.Vault.SecureZip.MemoSuffix);
             var m = (MemoWindow)DocOpen(new MemoWindow(path, note, "doc-shot"));
-            await DocShotDialogAsync("memo", m, 900);
+            await DocShotDialogAsync("memo", m, 900, root => [DocNamed(root, "Editor"), DocNamed(root, "LockIcon")]); // 소개: 잠긴 메모의 글
             m.Close();
         });
 
@@ -659,7 +722,7 @@ public partial class ShellWindow
                 Fake("Gemini CLI", Foldy.Core.Mcp.McpConfigFormat.McpServers, false),
             };
             var w = (McpWindow)DocOpen(new McpWindow(apps, @"C:\Program Files\Foldy\Foldy.exe", () => true, _ => { }, a => a.Name == "Claude Desktop", preview: true) { Height = 900 });
-            await DocShotDialogAsync("mcp", w, 600);
+            await DocShotDialogAsync("mcp", w, 600, root => [DocButton(root, Foldy.Core.Localization.Loc.T("mcp.connect")) ?? DocButton(root, Foldy.Core.Localization.Loc.T("mcp.apps"))]); // 소개: [AI에 연결] 한 번
 
             // 화면 점검: 다크·레트로에서도 글자가 보이는지 (2026-11-21: 다크에서 체크 상자 글자가 검정이라 안 보였다)
             foreach (var (theme, name) in new[] { (Foldy.UI.Theming.FoldyTheme.Dark, "review-mcp-dark"), (Foldy.UI.Theming.FoldyTheme.Retro, "review-mcp-retro") })
@@ -699,7 +762,7 @@ public partial class ShellWindow
             _ = g.PickAsync(Foldy.Core.Localization.Loc.T("dev.rb.pick"),
                 items.Select(f => (f, $"{Foldy.Presentation.Files.FileItem.FormatBytes(f.Size)}  ·  {Path.GetRelativePath(DemoProj, f.Path)}  ·  {f.Kind.Why}", f.Selected)), f => f.Warning,
                 ("recycle", Foldy.Core.Localization.Loc.T("ops.toRecycle")), ("skip", Foldy.Core.Localization.Loc.T("cf.keep")));
-            await DocShotDialogAsync("rebuildable", g, 600);
+            await DocShotDialogAsync("rebuildable", g, 600, root => [DocNamed(root, "Messages") is Panel m && m.Children.Count > 0 ? m.Children[^1] as FrameworkElement : null]); // 소개: 지워도 되는 폴더 목록
             g.Close();
         });
 
@@ -714,7 +777,7 @@ public partial class ShellWindow
                 ThemeManager.Attach(qs);
                 qs.Show();
                 qs.SetQuery(query);
-                await DocShotDialogAsync(scene, qs, wait);
+                await DocShotDialogAsync(scene, qs, wait, root => [qs.TopResult]); // 소개: 맨 위 가장 알맞은 결과
                 qs.KeepOpen = false;
                 qs.Close();
             });
@@ -740,6 +803,20 @@ public partial class ShellWindow
             await DocShotDialogAsync("about", win, 500);
             win.Close();
         });
+    }
+
+    /// <summary>요소를 품은 단추.</summary>
+    private static FrameworkElement? DocAncestorButton(DependencyObject e)
+    {
+        for (var p = e; p is not null; p = VisualTreeHelper.GetParent(p) ?? LogicalTreeHelper.GetParent(p))
+        {
+            if (p is System.Windows.Controls.Primitives.ButtonBase b)
+            {
+                return b;
+            }
+        }
+
+        return e as FrameworkElement;
     }
 
     private static IEnumerable<T> DocFind<T>(DependencyObject root) where T : DependencyObject
