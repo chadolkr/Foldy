@@ -12,40 +12,40 @@ public static class SystemCatalog
     /// <summary>자주 찾는 Windows 설정 화면 (Microsoft 문서의 ms-settings URI).</summary>
     public static IReadOnlyList<SettingsPage> SettingsPages { get; } =
     [
-        new("디스플레이", "ms-settings:display", "화면 해상도 배율 밝기 모니터 display"),
-        new("소리", "ms-settings:sound", "스피커 마이크 볼륨 음량 sound"),
-        new("알림", "ms-settings:notifications", "알림 방해 금지 notifications"),
-        new("전원 및 배터리", "ms-settings:powersleep", "절전 배터리 전원 잠자기 power battery"),
-        new("저장소", "ms-settings:storagesense", "디스크 공간 용량 저장 공간 센스 storage"),
-        new("멀티태스킹", "ms-settings:multitasking", "창 스냅 multitasking"),
-        new("정보 (PC 이름·사양)", "ms-settings:about", "컴퓨터 이름 사양 버전 about"),
-        new("블루투스 및 장치", "ms-settings:bluetooth", "블루투스 장치 마우스 키보드 bluetooth"),
-        new("프린터 및 스캐너", "ms-settings:printers", "프린터 인쇄 스캐너 printer"),
-        new("마우스", "ms-settings:mousetouchpad", "마우스 포인터 휠 mouse"),
-        new("Wi-Fi", "ms-settings:network-wifi", "와이파이 무선 인터넷 wifi"),
-        new("네트워크 및 인터넷", "ms-settings:network", "인터넷 랜 이더넷 network"),
-        new("프록시", "ms-settings:network-proxy", "프록시 proxy"),
+        new(Foldy.Core.Localization.Loc.T("ws.display"), "ms-settings:display", Foldy.Core.Localization.Loc.T("ws.display.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.sound"), "ms-settings:sound", Foldy.Core.Localization.Loc.T("ws.sound.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.notifications"), "ms-settings:notifications", Foldy.Core.Localization.Loc.T("ws.notifications.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.power"), "ms-settings:powersleep", Foldy.Core.Localization.Loc.T("ws.power.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.storage"), "ms-settings:storagesense", Foldy.Core.Localization.Loc.T("ws.storage.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.multitasking"), "ms-settings:multitasking", Foldy.Core.Localization.Loc.T("ws.multitasking.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.about"), "ms-settings:about", Foldy.Core.Localization.Loc.T("ws.about.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.bluetooth"), "ms-settings:bluetooth", Foldy.Core.Localization.Loc.T("ws.bluetooth.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.printers"), "ms-settings:printers", Foldy.Core.Localization.Loc.T("ws.printers.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.mouse"), "ms-settings:mousetouchpad", Foldy.Core.Localization.Loc.T("ws.mouse.k")),
+        new("Wi-Fi", "ms-settings:network-wifi", Foldy.Core.Localization.Loc.T("ws.wifi.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.network"), "ms-settings:network", Foldy.Core.Localization.Loc.T("ws.network.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.proxy"), "ms-settings:network-proxy", Foldy.Core.Localization.Loc.T("ws.proxy.k")),
         new("VPN", "ms-settings:network-vpn", "vpn"),
-        new("배경", "ms-settings:personalization-background", "바탕화면 배경 사진 wallpaper"),
-        new("색 (밝게·어둡게)", "ms-settings:colors", "다크 모드 테마 색 colors dark"),
-        new("작업 표시줄", "ms-settings:taskbar", "작업표시줄 taskbar"),
-        new("글꼴", "ms-settings:fonts", "폰트 글꼴 fonts"),
-        new("설치된 앱", "ms-settings:appsfeatures", "프로그램 제거 삭제 앱 apps uninstall"),
-        new("기본 앱", "ms-settings:defaultapps", "연결 프로그램 기본 default apps"),
-        new("시작 프로그램", "ms-settings:startupapps", "시작 앱 부팅 startup"),
-        new("계정 정보", "ms-settings:yourinfo", "계정 사용자 account"),
-        new("로그인 옵션", "ms-settings:signinoptions", "암호 PIN 지문 로그인 sign-in"),
-        new("날짜 및 시간", "ms-settings:dateandtime", "시간 날짜 시계 time"),
-        new("언어 및 지역", "ms-settings:regionlanguage", "언어 한국어 영어 지역 language"),
-        new("입력 (키보드)", "ms-settings:typing", "키보드 입력기 한영 typing"),
-        new("텍스트 크기", "ms-settings:easeofaccess-display", "글자 크기 크게 접근성 text size"),
-        new("돋보기", "ms-settings:easeofaccess-magnifier", "확대 돋보기 magnifier"),
-        new("마우스 포인터 크기", "ms-settings:easeofaccess-mousepointer", "커서 크게 pointer"),
-        new("Windows 업데이트", "ms-settings:windowsupdate", "업데이트 update"),
-        new("Windows 보안", "ms-settings:windowsdefender", "백신 바이러스 보안 defender security"),
-        new("개인 정보", "ms-settings:privacy", "권한 위치 카메라 privacy"),
-        new("복구", "ms-settings:recovery", "초기화 복구 recovery"),
-        new("백업", "ms-settings:backup", "백업 backup"),
+        new(Foldy.Core.Localization.Loc.T("ws.background"), "ms-settings:personalization-background", Foldy.Core.Localization.Loc.T("ws.background.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.colors"), "ms-settings:colors", Foldy.Core.Localization.Loc.T("ws.colors.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.taskbar"), "ms-settings:taskbar", Foldy.Core.Localization.Loc.T("ws.taskbar.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.fonts"), "ms-settings:fonts", Foldy.Core.Localization.Loc.T("ws.fonts.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.apps"), "ms-settings:appsfeatures", Foldy.Core.Localization.Loc.T("ws.apps.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.defaultApps"), "ms-settings:defaultapps", Foldy.Core.Localization.Loc.T("ws.defaultApps.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.startup"), "ms-settings:startupapps", Foldy.Core.Localization.Loc.T("ws.startup.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.account"), "ms-settings:yourinfo", Foldy.Core.Localization.Loc.T("ws.account.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.signin"), "ms-settings:signinoptions", Foldy.Core.Localization.Loc.T("ws.signin.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.time"), "ms-settings:dateandtime", Foldy.Core.Localization.Loc.T("ws.time.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.language"), "ms-settings:regionlanguage", Foldy.Core.Localization.Loc.T("ws.language.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.typing"), "ms-settings:typing", Foldy.Core.Localization.Loc.T("ws.typing.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.textSize"), "ms-settings:easeofaccess-display", Foldy.Core.Localization.Loc.T("ws.textSize.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.magnifier"), "ms-settings:easeofaccess-magnifier", Foldy.Core.Localization.Loc.T("ws.magnifier.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.pointer"), "ms-settings:easeofaccess-mousepointer", Foldy.Core.Localization.Loc.T("ws.pointer.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.update"), "ms-settings:windowsupdate", Foldy.Core.Localization.Loc.T("ws.update.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.security"), "ms-settings:windowsdefender", Foldy.Core.Localization.Loc.T("ws.security.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.privacy"), "ms-settings:privacy", Foldy.Core.Localization.Loc.T("ws.privacy.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.recovery"), "ms-settings:recovery", Foldy.Core.Localization.Loc.T("ws.recovery.k")),
+        new(Foldy.Core.Localization.Loc.T("ws.backup"), "ms-settings:backup", Foldy.Core.Localization.Loc.T("ws.backup.k")),
     ];
 
     /// <summary>
@@ -89,7 +89,7 @@ public static class SystemCatalog
 
     public static bool IsNoise(string name)
     {
-        string[] noise = ["uninstall", "제거", "readme", "help", "도움말", "website", "웹 사이트", "홈페이지", "license", "라이선스"];
+        string[] noise = ["uninstall", "제거", "readme", "help", "도움말", "website", "웹 사이트", "홈페이지", "license", "라이선스"]; // i18n:skip (바로 가기 이름에서 찾는 말: 번역하지 않는다)
         return noise.Any(n => name.Contains(n, StringComparison.OrdinalIgnoreCase));
     }
 }

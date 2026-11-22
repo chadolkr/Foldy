@@ -104,7 +104,7 @@ def interps(raw, masked):
     """한국어가 든 보간 문자열: (시작, 끝, 틀, 식들). 안쪽 문자열에만 한국어가 있으면 바깥 틀은 넘긴다."""
     out = []
     for m in re.finditer(r'(?<![@\w])\$"(?!")', masked):
-        if skipped_line(line_of(masked, m.start())):
+        if skipped_line(line_of(masked, m.start())) or 'i18n:skip' in line_of(raw, m.start()):
             continue
         end, ko, args = scan_interp(raw, m.start())
         if HANGUL.search(ko):
@@ -115,7 +115,7 @@ def interps(raw, masked):
 def plains(raw, masked):
     out = []
     for m in LIT.finditer(masked):
-        if skipped_line(line_of(masked, m.start())):
+        if skipped_line(line_of(masked, m.start())) or 'i18n:skip' in line_of(raw, m.start()):
             continue
         v = raw[m.start(1):m.end(1)]
         out.append((m.start(), m.end(), re.sub(r'\\(.)', lambda e: ESC.get(e.group(1), '\\' + e.group(1)), v)))
