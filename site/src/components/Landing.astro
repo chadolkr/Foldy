@@ -26,6 +26,23 @@ const release = await getLatestRelease();
 const repoUrl = `https://github.com/${REPO}`;
 const lines = (s: string) => s.split('\n');
 
+// "안전한가요?" 근거 링크 (글은 i18n의 safety.proof.items, 주소는 여기 한 곳에만)
+const proofLinks: Record<string, string> = {
+  source: repoUrl,
+  build: `${repoUrl}/actions/workflows/release.yml`,
+  attest: `${repoUrl}/attestations`,
+  virus: `${repoUrl}/releases/latest`,
+  codeql: `${repoUrl}/actions/workflows/codeql.yml`,
+  scorecard: 'https://scorecard.dev/viewer/?uri=github.com/chadolkr/Foldy',
+  review: `${repoUrl}/blob/main/docs/reviews/2026-11-19-security-review.md`,
+  network: `${repoUrl}/blob/main/PRIVACY.md`,
+};
+// 공식 주소: 가짜 사이트와 구별하도록 글자 그대로 보여 준다 (SECURITY.md와 같게)
+const OFFICIAL = [
+  { label: 'github.com/chadolkr/Foldy', href: repoUrl },
+  { label: 'chadolkr.github.io/Foldy', href: 'https://chadolkr.github.io/Foldy/' },
+];
+
 let usedKorean = false;
 const img = (k: string): ImageMetadata => {
   const file = files[k];
@@ -211,6 +228,44 @@ Object.keys(files).forEach(img);
         ))}
       </ul>
       <p class="center"><a class="link" href={`${repoUrl}/blob/main/PRIVACY.md`}>{t.safety.link} →</a></p>
+
+      <div id="proof" class="proof">
+        <h3>{t.safety.proof.title}</h3>
+        <p class="muted">{t.safety.proof.lead}</p>
+        <ul class="proof-list">
+          {t.safety.proof.items.map((p) => (
+            <li>
+              <Icon name="check" />
+              <div>
+                <h4>{p.title}</h4>
+                <p>{p.text}</p>
+                <a class="link" href={proofLinks[p.id]} rel="noopener">{p.link} →</a>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p class="center"><a class="link" href={`${repoUrl}/blob/main/SECURITY.md`}>{t.safety.proof.more} →</a></p>
+      </div>
+
+      <div id="fake" class="fake">
+        <h3><Icon name="shield" />{t.safety.fake.title}</h3>
+        <p>{t.safety.fake.lead}</p>
+        <div class="fake-official">
+          <p class="fake-label">{t.safety.fake.officialTitle}</p>
+          <ul>
+            {OFFICIAL.map((u) => <li><a href={u.href}><code>{u.label}</code></a></li>)}
+          </ul>
+          <p class="muted">{t.safety.fake.store}</p>
+        </div>
+        <ul class="fake-points">
+          {t.safety.fake.points.map((x) => <li><Icon name="info" />{x}</li>)}
+        </ul>
+        <p class="fake-label">{t.safety.fake.checkTitle}</p>
+        <ol class="fake-checks">
+          {t.safety.fake.checks.map((x) => <li>{x}</li>)}
+        </ol>
+        <p class="fake-report">{t.safety.fake.report} <a class="link" href={`${repoUrl}/issues/new`}>{t.safety.fake.reportLink} →</a></p>
+      </div>
     </div>
   </section>
 
@@ -305,6 +360,7 @@ Object.keys(files).forEach(img);
     <nav aria-label="Foldy links">
       <a href={repoUrl}>{t.footer.source}</a>
       <a href={`${repoUrl}/blob/main/PRIVACY.md`}>{t.footer.privacy}</a>
+      <a href={`${repoUrl}/blob/main/SECURITY.md`}>{t.footer.security}</a>
       <a href={`${repoUrl}/issues`}>{t.footer.issues}</a>
       <a href={RELEASES_URL}>{t.nav.download}</a>
     </nav>

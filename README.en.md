@@ -8,6 +8,8 @@
 
 [한국어](README.md) · **English**
 
+[![CI](https://github.com/chadolkr/Foldy/actions/workflows/ci.yml/badge.svg)](https://github.com/chadolkr/Foldy/actions/workflows/ci.yml) [![CodeQL](https://github.com/chadolkr/Foldy/actions/workflows/codeql.yml/badge.svg)](https://github.com/chadolkr/Foldy/actions/workflows/codeql.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/chadolkr/Foldy/badge)](https://scorecard.dev/viewer/?uri=github.com/chadolkr/Foldy)
+
 Foldy is a free, open-source dual-pane file manager for Windows 10/11. Its features are rule-based and run on your own PC, with no account and no internet needed. Connecting an AI app is optional.
 
 ![Foldy: folder analysis on the left, Git view on the right](docs/images/hero.png)
@@ -44,6 +46,8 @@ Foldy is being translated into **English, Spanish, Japanese and Simplified Chine
 ## Install
 
 Download from [Releases](https://github.com/chadolkr/Foldy/releases).
+
+> **The only official sources are https://github.com/chadolkr/Foldy and https://chadolkr.github.io/Foldy/.** A Foldy from anywhere else may be fake. [SECURITY.md](SECURITY.md) explains how to verify a download (VirusTotal, SHA-256, build provenance) and lists every network connection Foldy makes.
 
 | Method | File | Notes |
 | --- | --- | --- |

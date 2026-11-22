@@ -7,8 +7,7 @@ on:
     tags: ['v*.*.*']
 
 permissions:
-  contents: write
-  actions: read   # SignPath가 업로드된 아티팩트를 내려받을 때 필요
+  contents: read
 
 # SignPath 코드 서명 (docs/code-signing.md). 저장소 변수 SIGNPATH_ORGANIZATION_ID와
 # 시크릿 SIGNPATH_API_TOKEN이 둘 다 있을 때만 서명한다. 없으면 서명 단계는 건너뛰고 지금처럼 릴리스한다.
@@ -16,6 +15,7 @@ env:
   SIGNPATH_ENABLED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' && secrets.SIGNPATH_API_TOKEN != '' }}
   SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG || 'Foldy' }}
   SIGNPATH_POLICY_SLUG: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+  VT_ENABLED: ${{ secrets.VIRUSTOTAL_API_KEY != '' }}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -25,10 +25,15 @@ jobs:
   release:
     runs-on: windows-latest
     timeout-minutes: 150   # 서명 승인 대기(최대 1시간 × 2) 포함
+    permissions:
+      contents: write      # GitHub Release 만들기
+      actions: read        # SignPath가 업로드된 아티팩트를 내려받을 때 필요
+      id-token: write      # 빌드 출처 증명(attestation) 서명
+      attestations: write  # 빌드 출처 증명 저장
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
 
@@ -64,7 +69,7 @@ jobs:
       - name: Upload payload for signing
         id: up-payload
         if: env.SIGNPATH_ENABLED == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: payload-unsigned
           path: dist/Foldy-Setup/payload
@@ -72,7 +77,7 @@ jobs:
 
       - name: SignPath sign payload
         if: env.SIGNPATH_ENABLED == 'true'
-        uses: signpath/github-action-submit-signing-request@v3
+        uses: signpath/github-action-submit-signing-request@a2c5b60d9c75f073142b653c354b632eedce097b # v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -124,7 +129,7 @@ jobs:
 
       - name: Upload Store MSIX
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: foldy-store-msix
           path: artifacts/store/*.msix
@@ -134,7 +139,7 @@ jobs:
       - name: Upload MSI for signing
         id: up-msi
         if: env.SIGNPATH_ENABLED == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: msi-unsigned
           path: artifacts/release/*.msi
@@ -142,7 +147,7 @@ jobs:
 
       - name: SignPath sign MSI
         if: env.SIGNPATH_ENABLED == 'true'
-        uses: signpath/github-action-submit-signing-request@v3
+        uses: signpath/github-action-submit-signing-request@a2c5b60d9c75f073142b653c354b632eedce097b # v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -184,15 +189,98 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw '내장 공개키로 검증 실패 — keys/update-signing.pub과 시크릿이 짝인지 확인' }
           Get-Content "$out/update.json"
 
+      # ── 안전 근거 (docs/security-evidence.md) ──
+      # SBOM: 이 릴리스에 들어간 라이브러리 목록 (.NET 페이로드의 deps.json·dll + Rust Cargo.lock)
+      - name: Stage SBOM inputs
+        shell: pwsh
+        run: |
+          $d = 'artifacts/sbom-input'
+          New-Item -ItemType Directory -Force $d | Out-Null
+          Copy-Item dist/Foldy-Setup/payload "$d/payload" -Recurse
+          Copy-Item engine/Cargo.toml, engine/Cargo.lock $d
+
+      - name: SBOM (SPDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: artifacts/sbom-input
+          format: spdx-json
+          output-file: artifacts/release/Foldy-${{ steps.ver.outputs.version }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      # SHA256SUMS.txt: 내려받은 파일이 이 빌드와 같은지 누구나 Get-FileHash로 비교할 수 있게
+      - name: SHA-256 checksums
+        shell: pwsh
+        run: |
+          $out = 'artifacts/release'
+          $files = Get-ChildItem $out -File | Where-Object { $_.Extension -ne '.wixpdb' -and $_.Name -ne 'SHA256SUMS.txt' } | Sort-Object Name
+          $lines = foreach ($f in $files) { '{0}  {1}' -f (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $f.Name }
+          [IO.File]::WriteAllLines((Join-Path $out 'SHA256SUMS.txt'), [string[]]$lines)
+          Get-Content (Join-Path $out 'SHA256SUMS.txt')
+
+      # GitHub artifact attestation: "이 파일은 chadolkr/Foldy 저장소의 이 커밋을 GitHub 서버가 공개 워크플로로 빌드했다"는
+      # 서명된 증명. 누구나 `gh attestation verify <파일> --repo chadolkr/Foldy`로 확인한다.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            artifacts/release/*.msi
+            artifacts/release/*.zip
+            artifacts/release/update.json*
+            artifacts/release/*.spdx.json
+            artifacts/release/SHA256SUMS.txt
+
+      - name: Attest SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: |
+            artifacts/release/*.msi
+            artifacts/release/*.zip
+          sbom-path: artifacts/release/Foldy-${{ steps.ver.outputs.version }}.spdx.json
+
+      # VirusTotal: 70여 개 백신으로 설치 파일을 검사하고 결과 링크를 릴리스 노트에 남긴다.
+      # 저장소 시크릿 VIRUSTOTAL_API_KEY(무료 계정 키)가 있을 때만. 없으면 건너뛴다 (docs/security-evidence.md).
+      - name: VirusTotal scan
+        id: vt
+        if: env.VT_ENABLED == 'true'
+        continue-on-error: true   # VirusTotal이 느리거나 한도에 걸려도 릴리스는 막지 않는다
+        uses: crazy-max/ghaction-virustotal@936d8c5c00afe97d3d9a1af26d017cfdf26800a2 # v5.0.0
+        with:
+          vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          request_rate: 4
+          files: |
+            artifacts/release/*.msi
+            artifacts/release/*.zip
+
       - name: GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          VT_RAN: ${{ steps.vt.outcome == 'success' }}
         run: |
           $tag = '${{ github.ref_name }}'
           $files = Get-ChildItem artifacts/release -File | Where-Object Extension -ne '.wixpdb' | ForEach-Object FullName
+          $repo = '${{ github.repository }}'
+          $run = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+          $notes = [System.Collections.Generic.List[string]]::new()
+          $notes.Add('### 이 파일이 진짜인지 확인하기 / Verify this download')
+          $notes.Add('')
+          $notes.Add('- 공식 주소는 https://github.com/chadolkr/Foldy 와 https://chadolkr.github.io/Foldy 뿐입니다. / The only official sources are https://github.com/chadolkr/Foldy and https://chadolkr.github.io/Foldy.')
+          $notes.Add("- 이 릴리스는 사람 손을 거치지 않고 공개 GitHub Actions에서 빌드됐습니다 / Built by public GitHub Actions, untouched by hand: $run")
+          $notes.Add("- 빌드 출처 증명 / Build provenance: ``gh attestation verify <file> --repo $repo`` · https://github.com/$repo/attestations")
+          $notes.Add('- SHA-256: `SHA256SUMS.txt`, SBOM: `*.spdx.json`')
+          if ($env:VT_RAN -eq 'true') {
+            $notes.Add('- VirusTotal:')
+            Get-ChildItem artifacts/release -File | Where-Object { $_.Extension -in '.msi', '.zip' } | ForEach-Object {
+              $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              $notes.Add("  - $($_.Name): https://www.virustotal.com/gui/file/$h")
+            }
+          }
+          $notes.Add('- 자세히 / Details: https://github.com/chadolkr/Foldy/blob/main/SECURITY.md')
+          $notes.Add('')
           # SignPath Foundation 요건: 릴리스 페이지에 Code signing policy 링크
-          'Code signing policy: https://github.com/chadolkr/Foldy#code-signing-policy' | Set-Content release-notes-header.md -Encoding utf8
+          $notes.Add('Code signing policy: https://github.com/chadolkr/Foldy#code-signing-policy')
+          $notes | Set-Content release-notes-header.md -Encoding utf8
           $flags = @('--generate-notes', '--notes-file', 'release-notes-header.md', '--title', "Foldy $tag", '--verify-tag')
           if ('${{ steps.ver.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
           gh release create $tag @files @flags

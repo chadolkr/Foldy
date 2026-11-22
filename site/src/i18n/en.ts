@@ -163,6 +163,40 @@ const en: Dictionary = {
       { title: 'Anyone can read the code', text: 'Foldy is GPL-3.0 open source. See exactly what it does, and help make it better.' },
     ],
     link: 'Read the privacy policy',
+    proof: {
+      title: "How can you trust there is no malicious code?",
+      lead: "Instead of asking you to trust us, we publish evidence anyone can check. It is produced by other companies and organizations, such as GitHub and VirusTotal, not by the person who made Foldy.",
+      items: [
+        { id: "source", title: "All the code is public", text: "Anyone can read the instructions the program is made from (the source code). Nothing is hidden.", link: "See the source code" },
+        { id: "build", title: "Built without human hands", text: "Installers are made by public GitHub servers from the public code only, never on someone's own computer. Every build leaves a record.", link: "See the build records" },
+        { id: "attest", title: "Each file has a proof of origin", text: "GitHub signs a certificate saying \"this file was built from this code\". It cannot be forged, and a fake file cannot pass the check.", link: "See the certificates" },
+        { id: "virus", title: "Checked by 70+ antivirus engines", text: "Every new version is scanned on VirusTotal, and the link to the results is placed on the download page.", link: "Scan results for the latest version" },
+        { id: "codeql", title: "The code is checked automatically", text: "GitHub's security scanner (CodeQL) looks for weak spots on every change and every week. Parts (libraries) with known problems are blocked.", link: "See the scan records" },
+        { id: "scorecard", title: "A public security score", text: "The Open Source Security Foundation (OpenSSF) scores how safely the project is run and shows the score to everyone.", link: "See the score" },
+        { id: "review", title: "Security review before release", text: "The code and its security were reviewed separately before version 0.9, and every issue found was fixed. The review is public.", link: "Read the review" },
+        { id: "network", title: "Every internet connection is listed", text: "Only update checks (GitHub) and crash reports for people who turn them on. Nothing else, except SFTP or Git connections you start yourself.", link: "See the list" },
+      ],
+      more: "How to check that your download is genuine",
+    },
+    fake: {
+      title: "Watch out for fake Foldy",
+      lead: "Fake sites sometimes copy popular free programs to spread malware. Only download Foldy from the two places below.",
+      officialTitle: "These are the only official addresses",
+      store: "On the Microsoft Store: \"Foldy File Manager\" by David CHA (coming soon)",
+      points: [
+        "Foldy is free. Anything asking for payment, sign-up or a \"license key\" is fake.",
+        "Foldy updates itself. An e-mail or window asking you to download an \"update file\" is fake.",
+        "An installed Foldy only installs updates with a valid digital signature, so a fake site cannot sneak in.",
+      ],
+      checkTitle: "Check that your download is genuine",
+      checks: [
+        "Click the VirusTotal link on the download page (GitHub release) to see the antivirus results.",
+        "Make sure the fingerprint (SHA-256) of your file matches SHA256SUMS.txt on the download page.",
+        "If you are comfortable with computers, check the proof of origin with the gh attestation verify command.",
+      ],
+      report: "Seen a fake site or file? Do not download or open it, just tell us the address.",
+      reportLink: "Report a fake",
+    },
   },
   why: {
     eyebrow: 'Why open source?',
@@ -200,6 +234,7 @@ const en: Dictionary = {
   faq: {
     title: 'Questions',
     items: [
+      { q: "Does it contain viruses or hacking code?", a: "No. And you don't have to take our word for it: all the code is public, and installers are built only on public servers, with a proof of origin and antivirus results attached. See \"How can you trust there is no malicious code?\" above. This is true only for files from the two official addresses." },
       { q: 'Is it really free?', a: 'Yes. No ads and no paid features. It is GPL-3.0 open source, so anyone can read the source code.' },
       { q: 'Does it replace File Explorer?', a: 'You can use both. Right-click menus, drag and drop and shortcuts match File Explorer, so there is very little to learn.' },
       { q: 'Does it need the internet?', a: 'No. Every feature works offline. The internet is only used to check for updates and for SFTP or Git connections you start yourself.' },
@@ -216,6 +251,7 @@ const en: Dictionary = {
     made: 'Made by David CHA',
     license: 'GPL-3.0 open source',
     privacy: 'Privacy',
+    security: "Security",
     issues: 'Report a problem',
     source: 'Source code',
     note: 'Every screenshot on this site is real Foldy, taken with made-up sample folders.',
