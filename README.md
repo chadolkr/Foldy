@@ -645,7 +645,7 @@ Git 화면의 **변경 사항** 탭: 커밋할 파일의 체크박스를 켜고(
 
 ![AI 연결 화면](docs/images/mcp.png)
 
-Claude 같은 AI 앱이 Foldy로 내 PC의 파일을 찾게 할 수 있어요(MCP 서버). **더 보기(⋯) → AI 연결 (MCP)…** 또는 Ctrl+Space에서 "AI 연결"을 열고 **[AI에 연결]** 한 번이면 끝이에요. 이 PC에 깔린 AI 앱(Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code)만 보이고, 누르면 그 앱 설정에 Foldy를 넣어 줘요(원래 설정은 백업). 그 앱을 껐다 켜고 "D 드라이브에서 제안서 찾아 줘"라고 해 보세요.
+Claude 같은 AI 앱이 Foldy로 내 PC의 파일을 찾게 할 수 있어요(MCP 서버). **더 보기(⋯) → AI 연결 (MCP)…** 또는 Ctrl+Space에서 "AI 연결"을 열고 **[AI에 연결]** 한 번이면 끝이에요. 이 PC에 깔린 AI 앱(Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code, Antigravity)만 보이고, 누르면 그 앱 설정에 Foldy를 넣어 줘요(원래 설정은 백업). 그 앱을 껐다 켜고 "D 드라이브에서 제안서 찾아 줘"라고 해 보세요.
 
 **연결하면 이렇게 물어보세요** (AI 연결 화면에서 누르면 복사돼요):
 

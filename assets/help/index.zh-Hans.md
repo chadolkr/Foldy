@@ -612,7 +612,20 @@ Wi-Fi 密码、门锁密码这类一定要记住、但随便写在哪里又不�
 
 ![AI 连接窗口](images/zh-Hans/mcp.png)
 
-可以让 Claude 等 AI 应用通过 Foldy 查找你电脑上的文件（MCP 服务器）。打开 **更多（⋯）→ 连接 AI（MCP）…** 或在 Ctrl+Space 中输入“AI 连接”，按一次 **[连接到 AI]** 就完成了。只显示这台电脑上已安装的 AI 应用（Claude Desktop、Claude Code、Codex、Gemini CLI、Cursor、VS Code），点击后会把 Foldy 加入该应用的设置（原设置会备份）。重启该应用后试着说“帮我在 D 盘找提案”。
+可以让 Claude 等 AI 应用通过 Foldy 查找你电脑上的文件（MCP 服务器）。打开 **更多（⋯）→ 连接 AI（MCP）…** 或在 Ctrl+Space 中输入“AI 连接”，按一次 **[连接到 AI]** 就完成了。只显示这台电脑上已安装的 AI 应用（Claude Desktop、Claude Code、Codex、Gemini CLI、Cursor、VS Code、Antigravity），点击后会把 Foldy 加入该应用的设置（原设置会备份）。重启该应用后试着说“帮我在 D 盘找提案”。
+
+**连接之后要做的事**（窗口里会按应用显示这些步骤）
+
+![连接之后要做的事](images/zh-Hans/mcp-next.png)
+
+AI 应用只在启动时读取设置，所以只连接而不重启，是看不到 Foldy 的。
+
+1. **完全退出 AI 应用后重新打开。** 点 Claude Desktop 窗口的 × 并不会退出。在屏幕右下角通知区域右键单击 Claude 图标并退出，或者点击窗口里的 **[重新启动 Claude]**（Claude 正在做的事会停止）。
+2. **新建一个对话。** 之前已打开的对话可能看不到 Foldy。
+3. 在输入框的 [+] 或工具菜单中确认 **foldy** 已开启。第一次使用时如果请求许可，请选择 **允许**。
+4. 试着问“C 盘用了多少空间？”
+
+各应用略有不同。Claude Code、Gemini CLI 和 Codex 命令行请重新运行后用 `/mcp` 确认 foldy 已加载；Cursor 和 VS Code 请重启后在 Agent 模式下使用。Antigravity 只要新建对话即可。如果仍然看不到，请再点一次 [连接到 AI]，然后完全退出应用再重新打开。
 
 **连接后可以这样问**（在 AI 连接窗口中点击即可复制）：
 

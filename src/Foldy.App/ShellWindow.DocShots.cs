@@ -724,6 +724,11 @@ public partial class ShellWindow
             var w = (McpWindow)DocOpen(new McpWindow(apps, @"C:\Program Files\Foldy\Foldy.exe", () => true, _ => { }, a => a.Name == "Claude Desktop", preview: true) { Height = 900 });
             await DocShotDialogAsync("mcp", w, 600, root => [DocButton(root, Foldy.Core.Localization.Loc.T("mcp.connect")) ?? DocButton(root, Foldy.Core.Localization.Loc.T("mcp.apps"))]); // 소개: [AI에 연결] 한 번
 
+            // 연결한 뒤 할 일 (사용자 2026-11-22): Claude Desktop 단계와 [Claude 다시 시작]
+            w.ShowNext([apps[0]]);
+            await DocShotDialogAsync("mcp-next", w, 600, _ => [w.NextPanel]);
+            w.ShowNext([]);
+
             // 화면 점검: 다크·레트로에서도 글자가 보이는지 (2026-11-21: 다크에서 체크 상자 글자가 검정이라 안 보였다)
             foreach (var (theme, name) in new[] { (Foldy.UI.Theming.FoldyTheme.Dark, "review-mcp-dark"), (Foldy.UI.Theming.FoldyTheme.Retro, "review-mcp-retro") })
             {

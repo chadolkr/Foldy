@@ -259,15 +259,164 @@ public sealed class McpClientConfigTests : IDisposable
         Directory.CreateDirectory(Path.Combine(roaming, "Claude"));
         Directory.CreateDirectory(Path.Combine(home, ".codex"));
         var apps = McpClientConfig.Known(roaming, local, home);
-        Assert.Equal(["Claude Desktop", "Claude Code", "Codex", "Gemini CLI", "Cursor", "VS Code"], apps.Select(a => a.Name));
+        Assert.Equal(["Claude Desktop", "Claude Code", "Codex", "Gemini CLI", "Cursor", "VS Code", "Antigravity"], apps.Select(a => a.Name));
         Assert.Equal(["Claude Desktop", "Codex"], apps.Where(a => a.Installed).Select(a => a.Name));
         Assert.DoesNotContain(apps, a => a.Name.Contains("ChatGPT", StringComparison.Ordinal)); // 원격 MCP만 받는 앱은 PC 안 Foldy를 밖에 열어야 해서 하지 않는다
+    }
+
+    /// <summary>
+    /// 사용자 2026-11-22: 연결했는데 Claude 새 대화에 Foldy가 없었다. Foldy는 예전 Store판 폴더(Packages\Claude_…)에 썼고,
+    /// 실제로 켜져 있던 Claude(AnthropicPBC.Claude_…)는 %LOCALAPPDATA%\Claude-Data\&lt;패키지&gt;의 설정을 읽었다.
+    /// 데이터가 옮겨 간 폴더에는 ".user-data-left.…" 표시가 남는다.
+    /// </summary>
+    [Fact]
+    public void Claude_desktop_config_is_where_the_running_claude_reads_it()
+    {
+        var roaming = Path.Combine(_dir, "roaming");
+        var local = Path.Combine(_dir, "local");
+        var home = Path.Combine(_dir, "home");
+        string Make(params string[] p)
+        {
+            var d = Path.Combine([_dir, .. p]);
+            Directory.CreateDirectory(d);
+            return d;
+        }
+
+        // 옮겨 간 예전 폴더들 (표시 파일만 남음)
+        File.WriteAllText(Path.Combine(Make("roaming", "Claude"), ".user-data-left.anthropicpbc.claude_fnn82j28hfe8t"), "{}");
+        var oldStore = Make("local", "Packages", "Claude_pzs8sxrjxfjjc", "LocalCache", "Roaming", "Claude");
+        File.WriteAllText(Path.Combine(oldStore, ".user-data-left.claude_pzs8sxrjxfjjc"), "");
+        File.WriteAllText(Path.Combine(Make("local", "Packages", "AnthropicPBC.Claude_fnn82j28hfe8t", "LocalCache", "Roaming", "Claude"), ".user-data-left.anthropicpbc.claude_fnn82j28hfe8t"), "{}");
+
+        // 새 위치: 지금 쓰는 판과 예전 판
+        var current = Make("local", "Claude-Data", "anthropicpbc.claude_fnn82j28hfe8t");
+        var older = Make("local", "Claude-Data", "claude_pzs8sxrjxfjjc");
+        File.WriteAllText(Path.Combine(current, "claude_desktop_config.json"), """{ "preferences": { "x": 1 } }""");
+        File.WriteAllText(Path.Combine(older, "claude_desktop_config.json"), """{ "preferences": {} }""");
+        File.SetLastWriteTimeUtc(Path.Combine(older, "claude_desktop_config.json"), DateTime.UtcNow.AddDays(-12));
+        File.SetLastWriteTimeUtc(Path.Combine(current, "claude_desktop_config.json"), DateTime.UtcNow.AddMinutes(-5));
+
+        var desktop = McpClientConfig.Known(roaming, local, home)[0];
+        Assert.True(desktop.Installed);
+        Assert.Equal(Path.Combine(current, "claude_desktop_config.json"), desktop.ConfigPath);
+        Assert.Equal([Path.Combine(older, "claude_desktop_config.json")], desktop.OtherConfigPaths);
+
+        // 연결하면 두 판 모두에 들어가고, 다른 설정은 그대로. 옮겨 간 폴더에는 쓰지 않는다
+        Assert.True(McpClientConfig.Connect(desktop, Exe));
+        Assert.True(McpClientConfig.IsConnected(desktop));
+        foreach (var f in new[] { desktop.ConfigPath, desktop.OtherConfigPaths[0] })
+        {
+            Assert.Equal(Exe, (string?)JsonNode.Parse(File.ReadAllText(f))!["mcpServers"]!["foldy"]!["command"]);
+        }
+
+        Assert.Equal(1, (int?)JsonNode.Parse(File.ReadAllText(desktop.ConfigPath))!["preferences"]!["x"]);
+        Assert.False(File.Exists(Path.Combine(oldStore, "claude_desktop_config.json")));
+        Assert.False(File.Exists(Path.Combine(roaming, "Claude", "claude_desktop_config.json")));
+
+        Assert.True(McpClientConfig.Disconnect(desktop));
+        Assert.False(McpClientConfig.IsConnected(desktop));
+        Assert.Null(JsonNode.Parse(File.ReadAllText(desktop.OtherConfigPaths[0]))!["mcpServers"]!["foldy"]);
+    }
+
+    [Fact]
+    public void Claude_desktop_from_the_installer_or_an_old_store_package_still_works()
+    {
+        var local = Path.Combine(_dir, "local");
+        var home = Path.Combine(_dir, "home");
+
+        // 설치 프로그램판: %APPDATA%\Claude
+        var roaming = Path.Combine(_dir, "roaming");
+        Directory.CreateDirectory(Path.Combine(roaming, "Claude"));
+        Assert.Equal(Path.Combine(roaming, "Claude", "claude_desktop_config.json"), McpClientConfig.Known(roaming, local, home)[0].ConfigPath);
+
+        // 예전 Store판만 있을 때 (이름이 AnthropicPBC.Claude_… 인 패키지도 찾는다)
+        var r2 = Path.Combine(_dir, "roaming2");
+        var store = Path.Combine(local, "Packages", "AnthropicPBC.Claude_fnn82j28hfe8t", "LocalCache", "Roaming", "Claude");
+        Directory.CreateDirectory(store);
+        Assert.Equal(Path.Combine(store, "claude_desktop_config.json"), McpClientConfig.Known(r2, local, home)[0].ConfigPath);
+
+        // 아무것도 없으면 설치 안 됨
+        var none = McpClientConfig.Known(Path.Combine(_dir, "r3"), Path.Combine(_dir, "l3"), home)[0];
+        Assert.False(none.Installed);
+        Assert.Empty(none.OtherConfigPaths);
+    }
+
+    /// <summary>사용자 2026-11-22: Antigravity에서는 된다. Antigravity는 ~/.gemini/config/mcp_config.json을 읽는다.</summary>
+    [Fact]
+    public void Antigravity_config_is_found()
+    {
+        var home = Path.Combine(_dir, "home");
+        Directory.CreateDirectory(Path.Combine(home, ".gemini", "antigravity"));
+        var app = McpClientConfig.Known(Path.Combine(_dir, "r"), Path.Combine(_dir, "l"), home).Single(a => a.Name == "Antigravity");
+        Assert.True(app.Installed);
+        Assert.Equal(Path.Combine(home, ".gemini", "antigravity", "mcp_config.json"), app.ConfigPath);
+
+        Directory.CreateDirectory(Path.Combine(home, ".gemini", "config"));
+        app = McpClientConfig.Known(Path.Combine(_dir, "r"), Path.Combine(_dir, "l"), home).Single(a => a.Name == "Antigravity");
+        Assert.Equal(Path.Combine(home, ".gemini", "config", "mcp_config.json"), app.ConfigPath);
+        Assert.True(McpClientConfig.Connect(app, Exe));
+        var o = JsonNode.Parse(File.ReadAllText(app.ConfigPath))!;
+        Assert.Equal(Exe, (string?)o["mcpServers"]!["foldy"]!["command"]);
+        Assert.Null(o["mcpServers"]!["foldy"]!["type"]);
+    }
+
+    [Theory]
+    [InlineData(@"C:\Program Files\WindowsApps\AnthropicPBC.Claude_5.11492.5.0_x64__fnn82j28hfe8t\app\Claude.exe", true)]
+    [InlineData(@"C:\Program Files\WindowsApps\Claude_4.23118.1.0_x64__pzs8sxrjxfjjc\app\claude.exe", true)]
+    [InlineData(@"C:\Users\u\AppData\Local\AnthropicClaude\app-0.9.3\claude.exe", true)]
+    [InlineData(@"C:\Users\u\AppData\Local\Claude-Data\anthropicpbc.claude_fnn82j28hfe8t\claude-code\2.1.325\abc\claude.exe", false)] // Claude Code 명령줄
+    [InlineData(@"C:\Users\u\.local\bin\claude.exe", false)]
+    [InlineData(@"C:\Program Files\WindowsApps\Other_1.0.0.0_x64__abc\claude.exe", false)]
+    [InlineData(null, false)]
+    public void Claude_desktop_is_told_apart_from_claude_code(string? path, bool desktop) =>
+        Assert.Equal(desktop, ClaudeDesktopApp.IsDesktopExe(path));
+
+    [Fact]
+    public void Claude_desktop_relaunch_target()
+    {
+        const string exe = @"C:\Program Files\WindowsApps\AnthropicPBC.Claude_5.11492.5.0_x64__fnn82j28hfe8t\app\Claude.exe";
+        Assert.Equal(@"shell:AppsFolder\AnthropicPBC.Claude_fnn82j28hfe8t!Claude", ClaudeDesktopApp.LaunchTarget(exe, """<Applications><Application Id="Claude" Executable="app\Claude.exe">"""));
+        Assert.Equal(@"shell:AppsFolder\AnthropicPBC.Claude_fnn82j28hfe8t!Claude", ClaudeDesktopApp.LaunchTarget(exe, null));
+        Assert.Equal(@"shell:AppsFolder\AnthropicPBC.Claude_fnn82j28hfe8t!App", ClaudeDesktopApp.LaunchTarget(exe, """<Application Id="App" />"""));
+        const string installer = @"C:\Users\u\AppData\Local\AnthropicClaude\app-0.9.3\claude.exe";
+        Assert.Equal(installer, ClaudeDesktopApp.LaunchTarget(installer, null)); // 위의 claude.exe가 없으면 그대로
     }
 }
 
 [Collection("Loc")]
 public sealed class McpSuggestTests
 {
+    /// <summary>사용자 2026-11-22: 연결한 뒤 할 일을 앱마다 안내한다 (5개 언어).</summary>
+    [Fact]
+    public void Every_ai_app_has_next_steps_in_every_language()
+    {
+        var before = Foldy.Core.Localization.Loc.Current;
+        try
+        {
+            foreach (var lang in Foldy.Core.Localization.Loc.Languages)
+            {
+                Foldy.Core.Localization.Loc.Use(lang.Code);
+                foreach (var app in McpClientConfig.Known("r", "l", "h"))
+                {
+                    var steps = McpNextSteps.For(app.Name);
+                    steps.Should().NotBeEmpty(app.Name);
+                    steps.Should().OnlyContain(s => !s.StartsWith("mcp.next.", StringComparison.Ordinal), $"{lang.Code}:{app.Name}");
+                }
+
+                McpNextSteps.FirstAsk.Should().NotStartWith("mcp.next.");
+                McpNextSteps.For("Claude Desktop")[0].Should().Contain(Foldy.Core.Localization.Loc.T("mcp.next.restart"), "단계 글에 단추 이름이 그대로 나와야 찾을 수 있다");
+                Foldy.Core.Localization.Loc.T("mcp.next.stuck").Should().Contain(Foldy.Core.Localization.Loc.T("mcp.connect"));
+            }
+        }
+        finally
+        {
+            Foldy.Core.Localization.Loc.Use(before);
+        }
+
+        McpNextSteps.CanRestart("Claude Desktop").Should().BeTrue();
+        McpNextSteps.CanRestart("Claude Code").Should().BeFalse();
+    }
+
     private static McpClientApp A(string n, bool installed) => new(n, n + ".json", McpConfigFormat.McpServers, installed);
 
     [Fact]

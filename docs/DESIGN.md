@@ -197,7 +197,7 @@ $MFT 파싱 순서:
 
 ## AI 연결 (MCP 서버)
 
-Foldy.exe --mcp가 공식 MCP 사양(stdio)으로 도는 서버. AI 앱(Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code)이 띄우고, 읽기 전용 도구 6개(파일 찾기, 폴더 보기, 폴더 크기, 폴더 설명, 파일 태그, 드라이브 상태)를 쓴다. 사용자는 "AI 연결" 화면의 [AI에 연결] 한 번으로 그 앱 설정에 Foldy를 넣는다. 자세한 것은 [mcp.md](mcp.md).
+Foldy.exe --mcp가 공식 MCP 사양(stdio)으로 도는 서버. AI 앱(Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code, Antigravity)이 띄우고, 읽기 전용 도구 6개(파일 찾기, 폴더 보기, 폴더 크기, 폴더 설명, 파일 태그, 드라이브 상태)를 쓴다. 사용자는 "AI 연결" 화면의 [AI에 연결] 한 번으로 그 앱 설정에 Foldy를 넣는다. 자세한 것은 [mcp.md](mcp.md).
 
 ## 병렬 복사 엔진
 

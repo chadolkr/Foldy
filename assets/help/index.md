@@ -610,7 +610,20 @@ Git 저장소 폴더(그 폴더나 위쪽 폴더에 `.git`이 있는 곳)에 들
 
 ![AI 연결 화면](images/mcp.png)
 
-Claude 같은 AI 앱이 Foldy로 내 PC의 파일을 찾게 할 수 있어요(MCP 서버). **더 보기(⋯) → AI 연결 (MCP)…** 또는 Ctrl+Space에서 "AI 연결"을 열고 **[AI에 연결]** 한 번이면 끝이에요. 이 PC에 깔린 AI 앱(Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code)만 보이고, 누르면 그 앱 설정에 Foldy를 넣어 줘요(원래 설정은 백업). 그 앱을 껐다 켜고 "D 드라이브에서 제안서 찾아 줘"라고 해 보세요.
+Claude 같은 AI 앱이 Foldy로 내 PC의 파일을 찾게 할 수 있어요(MCP 서버). **더 보기(⋯) → AI 연결 (MCP)…** 또는 Ctrl+Space에서 "AI 연결"을 열고 **[AI에 연결]** 한 번이면 끝이에요. 이 PC에 깔린 AI 앱(Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code, Antigravity)만 보이고, 누르면 그 앱 설정에 Foldy를 넣어 줘요(원래 설정은 백업). 그 앱을 껐다 켜고 "D 드라이브에서 제안서 찾아 줘"라고 해 보세요.
+
+**연결한 뒤 할 일** (연결하면 화면에 앱별로 나와요)
+
+![연결한 뒤 할 일](images/mcp-next.png)
+
+AI 앱은 설정을 켤 때만 읽어요. 그래서 연결만 하고 그대로 쓰면 Foldy가 안 보여요.
+
+1. **AI 앱을 완전히 껐다가 다시 켜요.** Claude Desktop은 창의 X로는 꺼지지 않아요. 화면 오른쪽 아래 알림 영역의 Claude 아이콘을 오른쪽 클릭해서 종료하거나, 화면의 **[Claude 다시 시작]**을 누르세요(Claude에서 하던 일은 멈춰요).
+2. **새 대화를 열어요.** 이미 열려 있던 대화에는 Foldy가 안 보일 수 있어요.
+3. 입력창의 [+] 또는 도구 메뉴에서 **foldy**가 켜져 있는지 봐요. 처음 쓸 때 허용할지 물으면 **허용**을 눌러요.
+4. "C 드라이브 사용량을 보여 줘"라고 물어보세요.
+
+앱마다 조금 달라요. Claude Code·Gemini CLI·Codex 명령줄은 새로 실행한 뒤 `/mcp`로 foldy가 보이는지 확인하고, Cursor·VS Code는 다시 켠 뒤 Agent 모드에서 써요. Antigravity는 새 대화를 열면 돼요. 그래도 안 보이면 [AI에 연결]을 한 번 더 누르고 앱을 완전히 껐다 켜 보세요.
 
 **연결하면 이렇게 물어보세요** (AI 연결 화면에서 누르면 복사돼요):
 
