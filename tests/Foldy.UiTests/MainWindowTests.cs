@@ -221,6 +221,9 @@ public sealed partial class MainWindowTests
         qs.FindFirstDescendant(app.By.ByName("보기: 설정"))!.AsButton().Invoke();
         Retry.WhileNull(() => qs.FindFirstDescendant(app.By.ByName("프로그램 추가/제거")), TimeSpan.FromSeconds(5), ignoreException: true)
             .Result.Should().NotBeNull("설정만 보면 다시 나온다");
+        // 2026-11-23 사용자: "전체가 몇 건인지 알 수 있게" — 묶음 이름에 찾은 수가 붙는다 ("설정 · 3개")
+        qs.FindAllDescendants().Any(e => { try { return e.Name.StartsWith("설정 · ", StringComparison.Ordinal) && e.Name.EndsWith("개", StringComparison.Ordinal); } catch (FlaUI.Core.Exceptions.PropertyNotSupportedException) { return false; } catch (System.Runtime.InteropServices.COMException) { return false; } })
+            .Should().BeTrue("묶음 이름 옆에 찾은 수가 보여야 한다");
         qs.FindFirstDescendant(app.By.ByName("열기")).Should().NotBeNull("오른쪽에 [열기] 단추가 있어야 한다");
         qs.Close();
     }
