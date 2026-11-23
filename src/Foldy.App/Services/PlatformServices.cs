@@ -45,8 +45,28 @@ public sealed class ShellFileOperationService(Func<IntPtr> owner) : IFileOperati
     public async Task<FileOpResult> MoveAsync(IReadOnlyList<string> sources, string destinationFolder, IProgress<FileOpProgress>? progress, CancellationToken ct) =>
         Map(await FileOperations.RunAsync(new FileOpRequest(FileOpKind.Move, sources, destinationFolder), owner(), Cb(progress), ct));
 
-    public async Task<FileOpResult> DeleteAsync(IReadOnlyList<string> paths, bool recycle, IProgress<FileOpProgress>? progress, CancellationToken ct) =>
-        Map(await FileOperations.RunAsync(new FileOpRequest(recycle ? FileOpKind.Recycle : FileOpKind.Delete, paths), owner(), Cb(progress), ct));
+    /// <summary>
+    /// 폴더가 섞인 휴지통·삭제는 도우미 프로세스에서 한다: Windows 파일 작업 안의 남의 코드가 프로세스를 끝내도
+    /// Foldy 창은 남고 실패만 알린다 (1.7.1, <see cref="FileOpWorker"/>). 파일 몇 개는 그 자리에서 바로.
+    /// </summary>
+    public async Task<FileOpResult> DeleteAsync(IReadOnlyList<string> paths, bool recycle, IProgress<FileOpProgress>? progress, CancellationToken ct)
+    {
+        var req = new FileOpRequest(recycle ? FileOpKind.Recycle : FileOpKind.Delete, paths);
+        if (!await Task.Run(() => FileOpWorkerProtocol.ShouldIsolate(true, paths, Directory.Exists), CancellationToken.None))
+        {
+            return Map(await FileOperations.RunAsync(req, owner(), Cb(progress), ct));
+        }
+
+        Foldy.Core.Diagnostics.RunMarker.Note($"{req.Kind} {paths.Count}: {paths[0]}");
+        try
+        {
+            return Map(await FileOpWorker.RunAsync(req, owner(), Cb(progress), ct));
+        }
+        finally
+        {
+            Foldy.Core.Diagnostics.RunMarker.Note(null);
+        }
+    }
 
     public async Task<FileOpResult> RenameAsync(string path, string newName, CancellationToken ct) =>
         Map(await FileOperations.RunAsync(new FileOpRequest(FileOpKind.Rename, [path], NewName: newName), owner(), null, ct));

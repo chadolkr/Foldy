@@ -939,6 +939,7 @@
   "ops.selectFirst": "Select files first",
   "ops.sftpDeleteWarn": "Just a moment! Servers have no Recycle Bin. 🙂\nDeleted files can't be restored, so please check once more.\n\n",
   "ops.toRecycle": "to Recycle Bin",
+  "ops.workerCrashed": "Windows stopped partway through deleting. Foldy is fine. Some items may already be in the Recycle Bin, so try again for what's left.",
   "org.after": "After",
   "org.alreadyUndone": "This tidy was already undone.",
   "org.bg.failed": "Couldn't make the tidy plan for '{0}'",

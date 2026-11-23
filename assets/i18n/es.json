@@ -939,6 +939,7 @@
   "ops.selectFirst": "Selecciona archivos primero",
   "ops.sftpDeleteWarn": "¡Un momento! Los servidores no tienen papelera. 🙂\nLo que borres no se podrá recuperar, así que revísalo una vez más.\n\n",
   "ops.toRecycle": "a la papelera",
+  "ops.workerCrashed": "Windows se detuvo a mitad del borrado. Foldy sigue bien. Puede que algunos elementos ya estén en la papelera; vuelve a intentarlo con lo que quede.",
   "org.after": "Después",
   "org.alreadyUndone": "Este orden ya se deshizo.",
   "org.bg.failed": "No se pudo crear el plan de orden de '{0}'",

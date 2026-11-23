@@ -939,6 +939,7 @@
   "ops.selectFirst": "先にファイルを選んでください",
   "ops.sftpDeleteWarn": "ちょっと待って! サーバーにはごみ箱がありません。🙂\n消すと戻せないので、もう一度だけ確認してください。\n\n",
   "ops.toRecycle": "ごみ箱へ",
+  "ops.workerCrashed": "Windows が削除の途中で止まりました。Foldy は大丈夫です。一部はすでにごみ箱に入っているかもしれないので、残ったものだけもう一度お試しください。",
   "org.after": "整理後",
   "org.alreadyUndone": "すでに元に戻した整理です。",
   "org.bg.failed": "「{0}」の整理の計画を作れませんでした",
