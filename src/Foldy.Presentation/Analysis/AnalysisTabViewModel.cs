@@ -15,6 +15,10 @@ namespace Foldy.Presentation.Analysis;
 /// </summary>
 public sealed partial class AnalysisTabViewModel : TabBase
 {
+    /// <summary>짧은 날짜: 오늘이면 시각("오후 5:50"), 아니면 "11-23". 도구 줄에서 날짜가 잘렸다 (사용자 2026-11-23)</summary>
+    internal static string ShortWhen(DateTime local) =>
+        local.Date == DateTime.Today ? local.ToString("t", System.Globalization.CultureInfo.CurrentCulture) : local.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+
     /// <summary>목록마다 보여 줄 개수.</summary>
     public const int TopN = 100;
 
@@ -319,7 +323,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
         HasSnapshot = true;
         var s = loaded.Scan;
         var source = Foldy.Core.Localization.Loc.T(set.FromService ? "an.fromService" : set.FromList ? "an.fromList" : "an.fromScan");
-        ScanText = Foldy.Core.Localization.Loc.F("an.summary", s.StartedUtc.ToLocalTime(), s.TotalFiles, s.TotalDirs, AnalysisText.FormatSize(s.TotalAlloc), source);
+        ScanText = Foldy.Core.Localization.Loc.F("an.summary", ShortWhen(s.StartedUtc.ToLocalTime()), s.TotalFiles, s.TotalDirs, AnalysisText.FormatSize(s.TotalAlloc), source);
         TopFolders = loaded.TopFolders;
         TopFiles = loaded.TopFiles;
         MostFilesFolders = loaded.MostFiles;

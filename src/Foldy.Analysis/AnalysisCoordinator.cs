@@ -89,7 +89,10 @@ public sealed class AnalysisCoordinator(IAnalysisSnapshotService? service, Clean
         }
 
         // 색인 서비스가 없는 드라이브: 앱이 다 모아 둔 목록이 있으면 드라이브를 다시 읽지 않는다 (2026-11-23 K: 드라이브)
-        if (FindCrawledList(root) is { } list)
+        // 목록이 비었거나 드라이브 사용량과 크게 다르면 쓰지 않고 직접 읽는다 (2026-11-23 K: 29GB 드라이브가 "파일 0개"로 분석됐다)
+        var list = FindCrawledList(root);
+        var listRight = list is not null && await Task.Run(() => ListLooksRight(root, list, UsedSpaceOf(root), ct), ct).ConfigureAwait(false);
+        if (list is not null && listRight)
         {
             var age = DateTime.UtcNow - list.CompletedUtc;
             progress?.Report(new AnalysisProgress(0.02, $"모아 둔 목록으로 분석하는 중 ({AnalysisText.Ago(age)} 목록, 드라이브를 다시 읽지 않습니다)…"));
@@ -106,7 +109,9 @@ public sealed class AnalysisCoordinator(IAnalysisSnapshotService? service, Clean
         }
         else
         {
-            progress?.Report(new AnalysisProgress(0, "폴더를 직접 읽는 중 (이 드라이브는 아직 다 모으지 못했습니다)…"));
+            progress?.Report(new AnalysisProgress(0, list is null
+                ? "폴더를 직접 읽는 중 (이 드라이브는 아직 다 모으지 못했습니다)…"
+                : "폴더를 직접 읽는 중 (모아 둔 목록이 드라이브에 쓴 공간과 많이 달라 쓰지 않습니다)…"));
             await FallbackScanner.ScanAsync(root, LocalDirectory, Rules, progress, ct, PreviousFileCount(root)).ConfigureAwait(false);
         }
 
@@ -133,6 +138,69 @@ public sealed class AnalysisCoordinator(IAnalysisSnapshotService? service, Clean
             return 0;
         }
     }
+
+    /// <summary>드라이브 맨 위를 분석할 때 쓴 공간 (모르면 0). 테스트에서 바꾼다.</summary>
+    internal Func<string, long> UsedSpaceOf { get; set; } = DefaultUsedSpace;
+
+    private static long DefaultUsedSpace(string root)
+    {
+        try
+        {
+            if (!string.Equals(Path.GetPathRoot(root)?.TrimEnd('\\'), root.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+            {
+                return 0; // 폴더 하나만 볼 때는 드라이브 사용량과 비교할 수 없다
+            }
+
+            var d = new DriveInfo(root);
+            return d.IsReady ? d.TotalSize - d.TotalFreeSpace : 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// 모아 둔 목록을 믿어도 되나: 고른 곳 아래 항목이 있고, 드라이브 맨 위라면 파일 크기 합이 쓴 공간의 4분의 1 이상.
+    /// 휴지통·시스템 파일·압축 때문에 조금 다른 것은 괜찮다. 다 세지 않고 충분해지면 바로 멈춘다.
+    /// </summary>
+    internal static bool ListLooksRight(string root, CrawledList list, long usedBytes, CancellationToken ct)
+    {
+        var prefix = root.EndsWith('\\') ? root : root + "\\";
+        var need = usedBytes > SmallDrive ? usedBytes / 4 : 0;
+        var any = false;
+        long sum = 0;
+        try
+        {
+            foreach (var item in list.Read(ct))
+            {
+                if (!item.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                any = true;
+                if (!item.IsFolder)
+                {
+                    sum += Math.Max(0, item.Size);
+                }
+
+                if (sum >= need)
+                {
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return false;
+        }
+
+        return any && sum >= need;
+    }
+
+    /// <summary>이보다 적게 쓴 드라이브는 사용량과 비교하지 않는다 (빈 USB 같은 것).</summary>
+    internal const long SmallDrive = 64L * 1024 * 1024;
 
     private CrawledList? FindCrawledList(string root)
     {
