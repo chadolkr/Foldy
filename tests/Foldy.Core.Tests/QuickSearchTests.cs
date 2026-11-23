@@ -276,3 +276,77 @@ public sealed class DiscoveryHintsTests
         Assert.Equal(DiscoveryRule.None, DiscoveryHints.Pick("sftp://host/home/사진", Files(40, 0), null, false, Img, out _));
     }
 }
+
+/// <summary>
+/// 2026-11-23 사용자: "더 보기는 아래까지 스크롤하면 안 보인다. 인피니티 스크롤이나 페이지 번호로, 전체가 몇 건인지 알 수 있게".
+/// 찾은 것은 모두 세고, 처음 몇 개만 그리다가 아래 끝에 닿으면 한 묶음씩 더 그린다.
+/// </summary>
+public sealed class ResultPagerTests
+{
+    private static int[] Range(int start, int count) => [.. Enumerable.Range(start, count)];
+
+    [Fact]
+    public void Counts_everything_but_shows_first_page()
+    {
+        var p = new ResultPager<int>(30);
+        p.Add(Range(0, 100));
+        p.Add(Range(100, 120));
+        Assert.Equal(220, p.Total);
+        Assert.Equal(Range(0, 30), p.TakeNew().ToArray());
+        Assert.Empty(p.TakeNew()); // 아래로 내리기 전에는 더 그리지 않는다
+        Assert.True(p.HasMore);
+        Assert.Equal(30, p.Shown);
+    }
+
+    [Fact]
+    public void Scrolling_to_the_end_shows_the_next_page_until_all()
+    {
+        var p = new ResultPager<int>(30);
+        p.Add(Range(0, 220));
+        p.TakeNew();
+        p.WantMore();
+        Assert.Equal(Range(30, ResultPaging.Page), p.TakeNew().ToArray());
+        p.WantMore();
+        p.WantMore(); // 그리기 전에 두 번 닿아도 한 묶음만
+        Assert.Equal(ResultPaging.Page, p.TakeNew().Count);
+        p.WantMore();
+        Assert.Equal(ResultPaging.Page, p.TakeNew().Count);
+        p.WantMore();
+        Assert.Equal(220 - 180, p.TakeNew().Count); // 마지막 묶음은 남은 만큼
+        p.WantMore();
+        Assert.Empty(p.TakeNew());
+        p.Finish();
+        Assert.False(p.HasMore);
+        Assert.False(p.Capped);
+        Assert.Equal(220, p.Shown);
+    }
+
+    [Fact]
+    public void Results_arriving_later_fill_the_first_page()
+    {
+        var p = new ResultPager<int>(30);
+        p.Add(Range(0, 10));
+        Assert.Equal(10, p.TakeNew().Count);
+        p.Add(Range(10, 50));
+        Assert.Equal(20, p.TakeNew().Count); // 처음 30개까지 채운다
+        Assert.Equal(60, p.Total);
+    }
+
+    [Fact]
+    public void Very_many_results_are_counted_but_kept_up_to_a_limit()
+    {
+        var p = new ResultPager<int>(30);
+        p.Add(Range(0, ResultPaging.MaxKept + 500));
+        Assert.Equal(ResultPaging.MaxKept, p.Kept);
+        Assert.Equal(ResultPaging.MaxKept + 500, p.Total);
+        Assert.True(p.Capped);
+    }
+
+    [Theory]
+    [InlineData(0, 480, 2000, false)]
+    [InlineData(1400, 480, 2000, true)]
+    [InlineData(0, 480, 300, true)] // 목록이 창보다 짧으면 이미 끝
+    [InlineData(0, 480, 0, false)]
+    public void Near_end(double offset, double viewport, double extent, bool expected) =>
+        Assert.Equal(expected, ResultPaging.NearEnd(offset, viewport, extent));
+}

@@ -45,6 +45,38 @@ public sealed partial class JobViewModel : ObservableObject, IProgress<FileOpPro
     /// <summary>같은 작업을 다시 하는 방법 (작업을 만든 쪽이 채운다).</summary>
     public Func<Task>? Retry { get; set; }
 
+    /// <summary>끝난 뒤 [열기] 단추로 할 일 (뒤에서 만든 정리 계획 보기 등). 없으면 단추가 없다.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanOpen))]
+    private Action? _open;
+
+    /// <summary>[열기] 단추 글자.</summary>
+    [ObservableProperty]
+    private string _openLabel = "";
+
+    public bool CanOpen => Open is not null && State == JobState.Done;
+
+    partial void OnStateChanged(JobState value) => OnPropertyChanged(nameof(CanOpen));
+
+    /// <summary>복사·지우기가 아닌 작업(정리 계획 만들기 등)을 끝낸다. 진행 시간도 멈춘다.</summary>
+    public void Finish(JobState state, string detail)
+    {
+        if (IsFinished)
+        {
+            return;
+        }
+
+        _sw.Stop();
+        State = state;
+        if (state == JobState.Done)
+        {
+            Progress = 1;
+        }
+
+        Detail = detail;
+        _cts.Dispose();
+    }
+
     /// <summary>마스코트(연주·우진) 장면을 고르는 작업 종류.</summary>
     public Foldy.Presentation.Mascot.JobKind MascotKind { get; init; } = Foldy.Presentation.Mascot.JobKind.Copy;
 

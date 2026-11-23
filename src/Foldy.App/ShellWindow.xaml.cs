@@ -162,6 +162,7 @@ public partial class ShellWindow : Window, IPaneHost
         RestorePlacement(session);
         LeftPane.Attach(this, Shell.Left);
         RightPane.Attach(this, Shell.Right);
+        InitSinglePane();
         // 두 패널 모두 왼쪽에 폴더 트리, 오른쪽에 파일 목록 (Ctrl+B로 숨기기, 가운데 선을 끌어 너비 조절)
         LeftPane.TreeWidth = session.LeftTreeWidth;
         RightPane.TreeWidth = session.RightTreeWidth;
@@ -459,7 +460,23 @@ public partial class ShellWindow : Window, IPaneHost
     /// 서비스가 네트워크 오류로 확인하지 못하면 사용자 권한(사용자의 PAC·프록시·로그온 자격 증명)으로 직접 확인·다운로드한다.
     /// 찾으면 이번 실행 동안 기존 방식(설치할 때 관리자 확인 한 번)으로 바꾼다. 서명·해시 확인은 같다.
     /// </summary>
-    private async Task<bool> TryUserProxyFallbackAsync()
+    private Task<bool> TryUserProxyFallbackAsync()
+    {
+        // 이미 직접 확인·다운로드 중이면(자동 확인 뒤 [업데이트]를 누른 경우 등) 새로 시작하지 않고 그 결과를 기다린다.
+        // 둘이 같은 MSI를 동시에 받다가 "다른 프로세스가 파일을 사용 중"으로 실패했다 (사용자 2026-11-23, 회사 PC 1.4.0)
+        if (_userProxyCheck is { IsCompleted: false } running)
+        {
+            return running;
+        }
+
+        var t = UserProxyFallbackCoreAsync();
+        _userProxyCheck = t;
+        return t;
+    }
+
+    private Task<bool>? _userProxyCheck;
+
+    private async Task<bool> UserProxyFallbackCoreAsync()
     {
         if (_triedUserProxyFallback || _updater is not ServiceUpdater { LastError: { } err } || !IsNetworkError(err))
         {
@@ -869,7 +886,7 @@ public partial class ShellWindow : Window, IPaneHost
                 ? new WindowPlacement(Left, Top, Width, Height, WindowState == WindowState.Maximized)
                 : new WindowPlacement(RestoreBounds.Left, RestoreBounds.Top, RestoreBounds.Width, RestoreBounds.Height, WindowState == WindowState.Maximized);
             var total = LeftColumn.ActualWidth + RightColumn.ActualWidth;
-            var split = total > 0 ? LeftColumn.ActualWidth / total : 0.5;
+            var split = _singlePane is not null ? _splitBeforeSingle : total > 0 ? LeftColumn.ActualWidth / total : 0.5;
             JsonFileStore.Save(_sessionPath, s with
             {
                 Window = placement,
@@ -1097,6 +1114,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("folder.wizard", Foldy.Core.Localization.Loc.T("sw.c.wizard"), OpenWizard);
         Add("folder.organize", Foldy.Core.Localization.Loc.T("sw.c.organize"), () => OpenOrganize(Shell.ActivePane.ActiveFolder?.Path));
         Add("folder.description", Foldy.Core.Localization.Loc.T("sw.c.editDescription"), EditDescription);
+        Add("pane.single", Foldy.Core.Localization.Loc.T("cmd.singlePane"), () => ToggleSinglePane(ActiveView));
         Add("view.images", Foldy.Core.Localization.Loc.T("cmd.images"), () => ActiveView.ToggleImages(), Key.I, ModifierKeys.Control | ModifierKeys.Shift);
         Add("git.open", Foldy.Core.Localization.Loc.T("cmd.git"), () =>
         {
@@ -1506,7 +1524,7 @@ public partial class ShellWindow : Window, IPaneHost
         w.Say(Foldy.Core.Localization.Loc.T("sw.tidy.preview"));
         await Task.Delay(400);
         w.Close();
-        var org = new Foldy.Presentation.Templates.OrganizeViewModel(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates);
+        var org = NewOrganize(folder);
         org.SelectedMode = org.Modes.First(m => m.Mode == how switch
         {
             "date" => Foldy.Core.Organize.OrganizeMode.ByDate,
@@ -1518,9 +1536,13 @@ public partial class ShellWindow : Window, IPaneHost
             org.SelectedTemplate = org.Templates.FirstOrDefault(t => t.Id == "para") ?? org.SelectedTemplate;
         }
 
-        _ = org.PlanCommand.ExecuteAsync(null); // 창이 열리면 바로 정리 후 모습이 보이게
-        Foldy.UI.Templates.TemplateDialogs.ShowOrganize(this, org);
-        _ = Shell.RefreshFoldersAsync([folder]);
+        // 창이 열리면 바로 정리 후 모습이 보이게. 저장해 둔 계획이 있으면 [이어서 하기]·[새로 만들기]를 먼저 보인다
+        if (!await org.CheckSavedPlanAsync())
+        {
+            _ = org.PlanCommand.ExecuteAsync(null);
+        }
+
+        ShowOrganizeDialog(org, folder);
     }
 
     private void OpenOrganize(string? folder)
@@ -1530,9 +1552,137 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        var org = new Foldy.Presentation.Templates.OrganizeViewModel(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates);
+        var org = NewOrganize(folder);
+        _ = org.CheckSavedPlanAsync(); // 저장해 둔 계획이 있으면 창 위에 [이어서 하기]가 뜬다
+        ShowOrganizeDialog(org, folder);
+    }
+
+    /// <summary>큰 폴더의 정리 계획을 저장해 두는 곳 (%LOCALAPPDATA%\Foldy\organize-plans.db, 7일 지나면 지운다).</summary>
+    private static readonly Foldy.Presentation.Templates.OrganizePlanStore OrganizePlans = new(Foldy.Presentation.Templates.OrganizePlanStore.DefaultPath);
+
+    private Foldy.Presentation.Templates.OrganizeViewModel NewOrganize(string folder) =>
+        new(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates) { SizeHint = IndexedFolderSizeAsync, PlanStore = OrganizePlans };
+
+    /// <summary>색인이 아는 폴더 전체 크기 (정리 계획을 만들 때 바로 보여 주는 용량). 색인 밖이면 null.</summary>
+    private async Task<long?> IndexedFolderSizeAsync(string folder, CancellationToken ct)
+    {
+        if (_indexer is not { IsFaulted: false } client || folder.Length < 3 || folder[1] != ':')
+        {
+            return null;
+        }
+
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(3));
+            var r = await client.FolderSizesAsync(folder, timeout.Token);
+            return r.Status == Foldy.Indexer.Client.FolderSizesStatus.Ok ? (long)r.TotalSize : null;
+        }
+        catch (Exception ex) when (ex is IOException or Foldy.Indexer.Client.ProtocolException or OperationCanceledException or TimeoutException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 정리 창을 띄운다. 큰 폴더에서 [뒤에서 하기]를 누르면 창이 닫히고 작업 창에 "정리 계획 만드는 중"이 올라간다.
+    /// 다 되면 작업 창의 [계획 보기]와 Windows 알림으로 알려 주고, 누르면 같은 계획을 다시 띄운다 (사용자 2026-11-23).
+    /// </summary>
+    private void ShowOrganizeDialog(Foldy.Presentation.Templates.OrganizeViewModel org, string folder)
+    {
         Foldy.UI.Templates.TemplateDialogs.ShowOrganize(this, org);
+        _ = org.FlushSavesAsync(); // 막 바꾼 체크도 저장해 둔다 (뒤에서)
+        if (org.IsInBackground && org.State == Foldy.Presentation.Templates.OrganizeState.Planning)
+        {
+            TrackOrganizeInBackground(org, folder);
+            return;
+        }
+
+        // 계획을 만드는 중에 창을 닫았으면(뒤에서 하기가 아니면) 그만 만든다
+        if (org.State == Foldy.Presentation.Templates.OrganizeState.Planning)
+        {
+            org.CancelCommand.Execute(null);
+        }
+
         _ = Shell.RefreshFoldersAsync([folder]);
+    }
+
+    private void TrackOrganizeInBackground(Foldy.Presentation.Templates.OrganizeViewModel org, string folder)
+    {
+        var name = Foldy.Presentation.Navigation.PathUtil.DisplayName(folder);
+        var job = Shell.AddJob(Foldy.Core.Localization.Loc.F("org.bg.job", name), Foldy.Presentation.Mascot.JobKind.Analyze);
+        job.OpenLabel = Foldy.Core.Localization.Loc.T("org.bg.open");
+        void Sync()
+        {
+            job.Detail = string.IsNullOrEmpty(org.ScanInfo) ? org.Status : org.ScanInfo;
+            job.Progress = Math.Max(job.Progress, Math.Clamp(org.Progress, 0, 1));
+        }
+
+        System.ComponentModel.PropertyChangedEventHandler changed = (_, e) =>
+        {
+            if (e.PropertyName is nameof(org.Status) or nameof(org.ScanInfo) or nameof(org.Progress) && !job.IsFinished)
+            {
+                Sync();
+            }
+        };
+        org.PropertyChanged += changed;
+        Sync();
+        job.Token.Register(() => Dispatcher.BeginInvoke(() =>
+        {
+            if (org.IsBusy)
+            {
+                org.CancelCommand.Execute(null);
+            }
+        }));
+
+        void Open()
+        {
+            Shell.Jobs.Remove(job);
+            org.PrepareToShowAgain();
+            Activate();
+            ShowOrganizeDialog(org, folder);
+        }
+
+        EventHandler? finished = null;
+        finished = (_, _) =>
+        {
+            org.PlanFinished -= finished;
+            org.PropertyChanged -= changed;
+            switch (org.State)
+            {
+                case Foldy.Presentation.Templates.OrganizeState.Ready:
+                    job.Open = Open;
+                    job.Finish(Foldy.Presentation.Jobs.JobState.Done, org.Summary);
+                    Shell.Status = Foldy.Core.Localization.Loc.F("org.bg.ready", name);
+                    if (!IsActive)
+                    {
+                        TrayNotice.Show(Foldy.Core.Localization.Loc.F("org.bg.ready", name), org.Summary, () => Dispatcher.BeginInvoke(() => Open()));
+                    }
+
+                    break;
+                case Foldy.Presentation.Templates.OrganizeState.Idle:
+                    job.Finish(Foldy.Presentation.Jobs.JobState.Canceled, Foldy.Core.Localization.Loc.T("ops.cancelled"));
+                    Shell.RemoveJobLater(job);
+                    break;
+                default:
+                    job.Finish(Foldy.Presentation.Jobs.JobState.Failed, org.Status);
+                    if (!IsActive)
+                    {
+                        TrayNotice.Show(Foldy.Core.Localization.Loc.F("org.bg.failed", name), org.Status, () => Dispatcher.BeginInvoke(() => Activate()));
+                    }
+
+                    break;
+            }
+        };
+        org.PlanFinished += finished;
+    }
+
+    private void OnJobOpen(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: JobViewModel { CanOpen: true, Open: { } open } })
+        {
+            open();
+        }
     }
 
     private void EditDescription()

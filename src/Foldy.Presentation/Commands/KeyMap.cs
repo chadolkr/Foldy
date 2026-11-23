@@ -240,6 +240,7 @@ public sealed class KeyMap
         new("folder.organize", Foldy.Core.Localization.Loc.T("cmd.organize"), null),
         new("folder.description", Foldy.Core.Localization.Loc.T("cmd.editDescription"), null),
         new("pane.switch", Foldy.Core.Localization.Loc.T("cmd.switchPane"), "Tab"),
+        new("pane.single", Foldy.Core.Localization.Loc.T("cmd.singlePane"), null),
         new("tab.new", Foldy.Core.Localization.Loc.T("cmd.newTab"), "Ctrl+T"),
         new("tab.close", Foldy.Core.Localization.Loc.T("cmd.closeTab"), "Ctrl+W"),
         new("tab.next", Foldy.Core.Localization.Loc.T("cmd.nextTab"), "Ctrl+Tab"),

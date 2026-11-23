@@ -120,8 +120,57 @@ public sealed class PlannedMove
 
     public long Size { get; init; }
 
+    /// <summary>
+    /// 계획을 만들 때 본 원본의 수정 시각 (파일만). [정리하기] 직전에 크기와 함께 다시 보고, 다르면 그사이 바뀐 것이라 옮기지 않는다.
+    /// 모르면 null (크기만 본다).
+    /// </summary>
+    public DateTime? SourceLastWriteUtc { get; init; }
+
     public string Name => Path.GetFileName(Destination);
+
+    /// <summary>같은 파일 묶음에 든 파일이면 그 묶음 (미리보기에서 남길 파일을 바꿀 때 쓴다).</summary>
+    public DuplicateSet? DuplicateSet { get; set; }
 }
+
+/// <summary>
+/// 이름·크기·내용이 같은 파일 묶음. 하나(<see cref="Keeper"/>)만 원래 규칙대로 두고 나머지는 _중복 후보로 옮긴다.
+/// 미리보기에서 어느 것을 남길지 바꿀 수 있다 (<see cref="OrganizePlanner.ChooseKeeper"/>). 아무것도 지우지 않는다.
+/// </summary>
+public sealed class DuplicateSet
+{
+    /// <summary>오래된 것부터 (처음 남길 파일이 맨 앞).</summary>
+    public List<DuplicateMember> Members { get; } = [];
+
+    public required DuplicateMember Keeper { get; set; }
+
+    /// <summary>나머지를 모으는 폴더 (정리할 폴더 기준 상대 경로, 예: _중복 후보).</summary>
+    public required string TargetFolder { get; init; }
+
+    public string Name => Path.GetFileName(Keeper.FullPath);
+
+    public long Size => Keeper.Size;
+}
+
+/// <summary>같은 파일 묶음의 파일 하나와, 이것을 남길 때 갈 곳.</summary>
+public sealed class DuplicateMember
+{
+    public required string FullPath { get; init; }
+
+    public long Size { get; init; }
+
+    public DateTime LastWriteUtc { get; init; }
+
+    /// <summary>남길 때 갈 폴더 (정리할 폴더 기준 상대 경로, 원래 규칙대로).</summary>
+    public string KeepTarget { get; set; } = "";
+
+    public string KeepReason { get; set; } = "";
+
+    /// <summary>옮긴 뒤 이름 (이름 앞 날짜 붙이기 반영).</summary>
+    public string NewName { get; set; } = "";
+}
+
+/// <summary>남길 파일을 바꾼 결과: 새로 생긴 이동, 없어진 이동(제자리에 남게 됨), 바뀐 이동.</summary>
+public sealed record KeeperChange(IReadOnlyList<PlannedMove> Added, IReadOnlyList<PlannedMove> Removed, IReadOnlyList<PlannedMove> Changed);
 
 public sealed class OrganizePlan
 {
@@ -130,6 +179,9 @@ public sealed class OrganizePlan
     public List<PlannedMove> Moves { get; } = [];
 
     public List<SkippedEntry> Skipped { get; } = [];
+
+    /// <summary>같은 파일 묶음 (중복 후보가 있을 때).</summary>
+    public List<DuplicateSet> DuplicateSets { get; } = [];
 
     /// <summary>계획 자체를 막는 이유 (시스템 폴더 등). 있으면 실행하지 않는다.</summary>
     public string? Blocked { get; set; }
@@ -144,6 +196,81 @@ public sealed class OrganizePlan
             .ToList();
 }
 
+public enum OrganizePlanStage { Scanning, Duplicates, Planning }
+
+/// <summary>계획을 만드는 동안 어느 단계에서 몇 개를 했는지 (여러 스레드가 더하고, 화면이 가끔 읽는다).</summary>
+public sealed class OrganizePlanProgress
+{
+    private int _stage;
+    private long _done;
+    private long _total;
+
+    public OrganizePlanStage Stage => (OrganizePlanStage)Volatile.Read(ref _stage);
+
+    public long Done => Interlocked.Read(ref _done);
+
+    public long Total => Interlocked.Read(ref _total);
+
+    public void Start(OrganizePlanStage stage, long total)
+    {
+        Interlocked.Exchange(ref _total, total);
+        Interlocked.Exchange(ref _done, 0);
+        Volatile.Write(ref _stage, (int)stage);
+    }
+
+    public void Step(long n = 1) => Interlocked.Add(ref _done, n);
+}
+
+/// <summary>
+/// "이 경로가 이미 있나?"를 폴더 목록 한 번으로 답한다 (파일마다 디스크에 묻지 않는다).
+/// 정리 결과 폴더는 몇 개뿐이라 그 폴더들만 한 번씩 읽는다. 계획을 만드는 동안만 쓴다.
+/// </summary>
+public sealed class PathExistsCache
+{
+    private readonly Dictionary<string, HashSet<string>?> _dirs = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _gate = new();
+
+    public bool Exists(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        var dir = Path.GetDirectoryName(path);
+        if (dir is null)
+        {
+            return Directory.Exists(path);
+        }
+
+        HashSet<string>? names;
+        lock (_gate)
+        {
+            if (!_dirs.TryGetValue(dir, out names))
+            {
+                names = Load(dir);
+                _dirs[dir] = names;
+            }
+        }
+
+        return names?.Contains(Path.GetFileName(path)) ?? false;
+    }
+
+    private static HashSet<string>? Load(string dir)
+    {
+        try
+        {
+            if (!Directory.Exists(dir))
+            {
+                return null;
+            }
+
+            var opts = new EnumerationOptions { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = 0, ReturnSpecialDirectories = false };
+            return new HashSet<string>(new System.IO.Enumeration.FileSystemEnumerable<string>(dir, (ref System.IO.Enumeration.FileSystemEntry e) => e.FileName.ToString(), opts), StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+}
+
 /// <summary>사진·영상 촬영 시각(EXIF) 훅. Foldy.Platform이 WIC/셸 속성으로 구현한다.</summary>
 public interface IMediaDateProvider
 {
@@ -156,9 +283,41 @@ public interface IContentHasher
     string? Hash(string path);
 }
 
-public sealed class Sha256ContentHasher : IContentHasher
+/// <summary>빠른 걸러 내기용: 파일 앞·뒤 조각만 읽은 해시. 다르면 내용도 다르다 (같으면 끝까지 해시해 확인).</summary>
+public interface IPartialContentHasher
+{
+    string? HashEnds(string path);
+}
+
+public sealed class Sha256ContentHasher : IContentHasher, IPartialContentHasher
 {
     public static readonly Sha256ContentHasher Instance = new();
+
+    /// <summary>앞·뒤에서 읽는 조각 크기.</summary>
+    public const int EndChunk = 64 * 1024;
+
+    public string? HashEnds(string path)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.RandomAccess);
+            var len = fs.Length;
+            if (len <= EndChunk * 2)
+            {
+                return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(fs)); // 작은 파일은 통째로
+            }
+
+            var buf = new byte[EndChunk * 2];
+            fs.ReadExactly(buf, 0, EndChunk);
+            fs.Seek(-EndChunk, SeekOrigin.End);
+            fs.ReadExactly(buf, EndChunk, EndChunk);
+            return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(buf));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
 
     public string? Hash(string path)
     {

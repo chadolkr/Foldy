@@ -131,3 +131,9 @@ from cs_strings_rc2 import RC2  # noqa: E402
 CS = CS + RC2
 from cs_strings_secure import SECURE  # noqa: E402
 CS = CS + SECURE
+from cs_strings_bigorg import BIGORG  # noqa: E402
+CS = CS + BIGORG
+from cs_strings_dupkeep import DUPKEEP  # noqa: E402
+CS = CS + DUPKEEP
+from cs_strings_resume import RESUME  # noqa: E402
+CS = CS + RESUME

@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'Nuevo en la 1.3: el Panel de control',
-    eyebrow: 'Foldy 1.3',
+    badge: 'Nuevo en la 1.5: ve cuántos resultados hay',
+    eyebrow: 'Foldy 1.5',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
+      { icon: 'search', title: 'Ve cuántos resultados hay', text: 'En Ctrl+Espacio, cada grupo muestra cuántos hay, como "Archivos · 220". Pulsa [Ver los 220] al final de la lista o, si ves un solo grupo, sigue bajando para ver más.' },
+      { icon: 'disk', title: 'Ordena rápido incluso carpetas enormes', text: 'Foldy prepara rápido el plan de orden de carpetas con cientos de miles de archivos y muestra el número de archivos, carpetas y el tamaño mientras cuenta. Si va a tardar, pulsa [Cerrar y continuar] y haz otra cosa. Te avisa cuando esté listo.' },
       { icon: 'search', title: 'También el Panel de control', text: 'Escribe "Agregar o quitar programas", "Administrador de dispositivos" o "variables de entorno" en Ctrl+Space para abrir el Panel de control clásico y las herramientas administrativas. Los resultados se agrupan en aplicaciones, ajustes, carpetas y archivos, como en la búsqueda de Windows.' },
       { icon: 'info', title: 'Fácil desde el primer día', text: 'Los grupos del menú muestran una marca ›, y Foldy te avisa de una función una sola vez, justo cuando sirve. La presentación corta recuerda lo que ya viste y solo enseña lo nuevo.' },
-      { icon: 'lock', title: 'Cajas fuertes y notas bloqueadas más sencillas', text: 'Cada opción del menú dice para qué sirve, y Foldy te indica dónde se guardó todo. Ahora puedes añadir más archivos a una caja fuerte que ya creaste.' },
-      { icon: 'update', title: 'Se instala en cualquier PC', text: 'Desde la 1.3.1, Foldy se instala en PCs nuevos que no tienen el runtime de Visual C++. Las actualizaciones ya no esperan a un Foldy que una app de IA abrió en segundo plano.' },
     ],
     link: 'Ver todos los cambios',
   },

@@ -103,20 +103,17 @@ public sealed partial class MascotPainter
         return (seg, s, g, dir, (dist / 20) + (_t * 1.6), xa, xb);
     }
 
-    /// <summary>플레이 장면 바닥: 3점 라인과 골대 / 사이드라인과 휴지통 / 사이드라인.</summary>
+    /// <summary>플레이 장면 바닥: 골대 / 휴지통 / 아무것도 없음. 바닥 선(3점 라인·사이드라인·깃발)은 그리지 않는다 (사용자 2026-11-23).</summary>
     private void PlanCourt(MascotFinish fin)
     {
         switch (fin)
         {
             case MascotFinish.BinToss:
-                Sideline();
                 Bin(MascotCourt.BinX(_w), 0, null);
                 break;
             case MascotFinish.Punt:
-                Sideline();
                 break;
             default:
-                Arc3();
                 HoopBack();
                 HoopFront(0);
                 break;
@@ -569,16 +566,11 @@ public sealed partial class MascotPainter
         // 코트
         if (basket)
         {
-            Arc3();
             HoopBack();
         }
-        else
+        else if (bin)
         {
-            Sideline();
-            if (bin)
-            {
-                Bin(binX, wiggle, inside);
-            }
+            Bin(binX, wiggle, inside);
         }
 
         _dc.PushOpacity(fade);
@@ -781,7 +773,6 @@ public sealed partial class MascotPainter
         }
 
         var wiggle = !layup && T > 0.6 ? Math.Sin(T * 100) * 7 * (1 - Seg(T, 0.6, 0.95)) : 0; // 레이업은 림을 잡지 않는다
-        Arc3();
         HoopBack();
         if (ball is { } b)
         {
