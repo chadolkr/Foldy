@@ -24,6 +24,7 @@ public sealed class IndexerClient : IAsyncDisposable
     private ActiveSearch? _search;
     private uint _lastSearchId;
     private Exception? _fault;
+    private readonly TaskCompletionSource _lost = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private IndexerClient(NamedPipeClientStream pipe, HelloReply hello)
     {
@@ -44,6 +45,12 @@ public sealed class IndexerClient : IAsyncDisposable
             }
         }
     }
+
+    /// <summary>
+    /// 연결이 끊기면(서비스가 다시 시작되거나 멈춤, 프로토콜 오류, 닫기) 끝나는 작업.
+    /// <see cref="IndexerConnection"/>이 이것을 기다렸다가 다시 연결한다.
+    /// </summary>
+    public Task Disconnected => _lost.Task;
 
     /// <summary>연결하고 Hello로 버전을 맞춘다. 서비스가 없거나 버전이 다르면 null.</summary>
     public static async Task<IndexerClient?> TryConnectAsync(
@@ -311,8 +318,10 @@ public sealed class IndexerClient : IAsyncDisposable
                 Dispatch(type, body);
             }
         }
-        catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException)
+        catch (Exception ex)
         {
+            // 끊김(IOException·EndOfStream)뿐 아니라 깨진 프레임(ProtocolException)도 끊긴 것으로 본다:
+            // 읽기 루프가 조용히 멈추면 아무도 다시 연결하지 않는다 (1.9.1).
             Fault(ex);
         }
     }
@@ -369,6 +378,7 @@ public sealed class IndexerClient : IAsyncDisposable
             _search = null;
         }
 
+        _lost.TrySetResult();
         var lost = new IOException("indexer connection lost", ex);
         foreach (var p in pending)
         {

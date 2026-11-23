@@ -42,7 +42,11 @@ public partial class ShellWindow : Window, IPaneHost
     private readonly string _sessionPath = Path.Combine(App.DataDir, "session.json");
     private readonly string _settingsPath = Path.Combine(App.DataDir, "settings.json");
     private readonly List<PaletteCommand> _commands = [];
-    private IndexerClient? _indexer;
+    /// <summary>색인 서비스 연결. 끊기면 스스로 다시 연결한다 (1.9.1).</summary>
+    private IndexerConnection? _link;
+
+    /// <summary>지금 쓸 수 있는 색인 서비스 연결 (없거나 끊겼으면 null).</summary>
+    private IndexerClient? _indexer => _link?.Current;
     private readonly SftpSessions _sftp;
     private readonly Foldy.Git.GitService _git = new();
     private Foldy.Core.Templates.TemplateLibrary? _templates;
@@ -607,49 +611,73 @@ public partial class ShellWindow : Window, IPaneHost
         await ConnectIndexerAsync();
     }
 
-    private DispatcherTimer? _indexerRetry;
+    private bool _indexerEverConnected;
+    private DispatcherTimer? _indexerNoticeClear;
+    private string? _indexerNotice;
 
     /// <summary>
     /// 색인 서비스에 연결한다. 시작 직후에는 서비스가 색인을 불러오거나 업데이트 확인과 겹쳐 바쁠 수 있어,
     /// 짧게 한 번만 시도하면 "서비스 없음"으로 잘못 보인다 (0.3.x 회귀). 넉넉히 몇 번 시도하고, 그래도 안 되면 30초마다 다시 시도한다.
+    /// 연결된 뒤 서비스가 다시 시작되면(업데이트·서비스 재시작) 끊긴 것을 알아채고 곧바로 다시 연결한다 (1.9.1, 벤치마크 중 발견:
+    /// 예전에는 앱을 다시 켤 때까지 C: 결과가 빠졌다).
     /// </summary>
     private async Task ConnectIndexerAsync()
     {
-        if (_indexer is { IsFaulted: false })
+        if (_link is not null)
         {
+            return; // 이미 연결돼 있거나 뒤에서 다시 연결하는 중 (설치·제거 뒤에는 ResetAsync)
+        }
+
+        _link = new IndexerConnection(ct => IndexerClient.TryConnectAsync(timeout: TimeSpan.FromSeconds(3), ct: ct));
+        _link.StateChanged += s => Dispatcher.InvokeAsync(() => OnIndexerStateAsync(s));
+        if (!await _link.StartAsync())
+        {
+            await OnIndexerStateAsync(IndexerLinkState.NotConnected);
+        }
+    }
+
+    /// <summary>연결 상태가 바뀔 때 (UI 스레드).</summary>
+    private async Task OnIndexerStateAsync(IndexerLinkState state)
+    {
+        if (_link is null || state != _link.State)
+        {
+            return; // 그사이 또 바뀌었다
+        }
+
+        switch (state)
+        {
+            case IndexerLinkState.NotConnected:
+                var svc = DescribeIndexerService();
+                Log.Information("색인 서비스에 연결하지 못함 ({Service}). 30초마다 다시 시도", svc);
+                IndexerText.Text = Foldy.Core.Localization.Loc.T("sw.idx.crawlOnly");
+                IndexerText.ToolTip = Foldy.Core.Localization.Loc.F("sw.idx.noServiceTip", svc);
+                await _search.RefreshStateAsync();
+                return;
+
+            case IndexerLinkState.Reconnecting:
+                // 잠깐 끊긴 것: 쉬운 말로 알리고, 다시 연결되면 스스로 사라진다. 그동안 검색은 모아 둔 목록·폴더 훑기로.
+                Log.Information("색인 서비스 연결이 끊김. 다시 연결하는 중");
+                IndexerText.Text = Foldy.Core.Localization.Loc.T("sw.idx.reconnecting");
+                IndexerText.ToolTip = Foldy.Core.Localization.Loc.T("sw.idx.reconnectingTip");
+                ShowIndexerNotice(Foldy.Core.Localization.Loc.T("sw.idx.reconnectingNotice"), replaceOthers: true);
+                await _search.RefreshStateAsync();
+                return;
+        }
+
+        var again = _indexerEverConnected;
+        _indexerEverConnected = true;
+        Log.Information(again ? "색인 서비스에 다시 연결됨" : "색인 서비스 연결됨");
+        await _search.RefreshStateAsync();
+        _ = Shell.Left.ActiveFolder?.RefreshFolderSizesAsync();
+        _ = Shell.Right.ActiveFolder?.RefreshFolderSizesAsync();
+        UpdateIndexText();
+        if (again)
+        {
+            ShowIndexerNotice(Foldy.Core.Localization.Loc.T("sw.idx.reconnected"), replaceOthers: false);
             return;
         }
 
-        for (var i = 0; i < 3 && _indexer is null; i++)
-        {
-            if (i > 0)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(2));
-            }
-
-            _indexer = await IndexerClient.TryConnectAsync(timeout: TimeSpan.FromSeconds(3));
-        }
-
-        if (_indexer is null)
-        {
-            var svc = DescribeIndexerService();
-            Log.Information("색인 서비스에 연결하지 못함 ({Service}). 30초마다 다시 시도", svc);
-            _indexerRetry ??= new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Background, async (_, _) =>
-            {
-                if (_indexer is null)
-                {
-                    await ConnectIndexerAsync();
-                }
-            }, Dispatcher);
-            _indexerRetry.Start();
-            IndexerText.Text = Foldy.Core.Localization.Loc.T("sw.idx.crawlOnly");
-            IndexerText.ToolTip = Foldy.Core.Localization.Loc.F("sw.idx.noServiceTip", svc);
-            await _search.RefreshStateAsync();
-            return;
-        }
-
-        _indexerRetry?.Stop();
-        Log.Information("색인 서비스 연결됨");
+        // 처음 연결될 때만
         StartCleanupChecks();
         // AI 연결 제안: 켠 뒤 잠시 있다가 한 번 (화면이 자리 잡은 뒤)
         var aiOnce = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
@@ -662,14 +690,6 @@ public partial class ShellWindow : Window, IPaneHost
             }
         };
         aiOnce.Start();
-        await _search.RefreshStateAsync();
-        if (_indexer is not null)
-        {
-            _ = Shell.Left.ActiveFolder?.RefreshFolderSizesAsync();
-            _ = Shell.Right.ActiveFolder?.RefreshFolderSizesAsync();
-        }
-
-        UpdateIndexText();
         _indexStatusTimer ??= new DispatcherTimer(TimeSpan.FromSeconds(5), DispatcherPriority.Background, async (_, _) =>
         {
             await _search.RefreshStateAsync();
@@ -677,6 +697,33 @@ public partial class ShellWindow : Window, IPaneHost
         }, Dispatcher);
         _indexStatusTimer.Start();
         StartSlowCrawl();
+    }
+
+    /// <summary>
+    /// 상태 줄에 연결 안내를 잠깐 띄우고 스스로 지운다 (확인 버튼 없음). 오래 끊겨 있어도 상태 줄 오른쪽 색인 표시는 그대로 남는다.
+    /// </summary>
+    /// <param name="replaceOthers">false면 그사이 다른 안내(사용자가 한 일)가 올라와 있을 때 덮지 않는다.</param>
+    private void ShowIndexerNotice(string text, bool replaceOthers)
+    {
+        if (!replaceOthers && !string.IsNullOrEmpty(Shell.Status) && Shell.Status != _indexerNotice)
+        {
+            return;
+        }
+
+        Shell.Status = text;
+        _indexerNotice = text;
+        _indexerNoticeClear?.Stop();
+        _indexerNoticeClear = new DispatcherTimer(TimeSpan.FromSeconds(6), DispatcherPriority.Background, (t, _) =>
+        {
+            ((DispatcherTimer)t!).Stop();
+            if (Shell.Status == _indexerNotice)
+            {
+                Shell.Status = "";
+            }
+
+            _indexerNotice = null;
+        }, Dispatcher);
+        _indexerNoticeClear.Start();
     }
 
     private Foldy.Core.Search.SlowCrawler? _crawler;
@@ -940,10 +987,7 @@ public partial class ShellWindow : Window, IPaneHost
 
         _updater.Dispose();
         _queues.DisposeAsync().AsTask().Wait(500);
-        if (_indexer is not null)
-        {
-            _indexer.DisposeAsync().AsTask().Wait(200);
-        }
+        _link?.DisposeAsync().AsTask().Wait(200);
     }
 
     private void SaveSession(SessionState s)
@@ -1954,10 +1998,9 @@ public partial class ShellWindow : Window, IPaneHost
 
             Shell.Status = install ? Foldy.Core.Localization.Loc.T("sw.idx.installed") : Foldy.Core.Localization.Loc.T("sw.idx.removed");
             await Task.Delay(install ? 3000 : 500);
-            if (_indexer is not null)
+            if (_link is not null)
             {
-                await _indexer.DisposeAsync();
-                _indexer = null;
+                await _link.ResetAsync(); // 설치·제거한 서비스로 다시 연결 (없으면 뒤에서 계속 시도)
             }
 
             await ProbeEnginesAsync();

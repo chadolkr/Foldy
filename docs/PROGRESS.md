@@ -1,7 +1,8 @@
-# Foldy 진행 현황 (2026-11-23 기준, 1.9.0 준비)
+# Foldy 진행 현황 (2026-11-24 기준, 1.9.1 준비)
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
+- 2026-11-24 (1.9.1 준비): 색인 서비스가 다시 시작되면 앱이 스스로 다시 연결(IndexerConnection: Disconnected 감지, 0.5초~30초 간격, 상태 줄 안내 6초 뒤 사라짐). 벤치마크 중 발견(readme 8,076개 대신 576개). Interop 시험 IndexerReconnectTests. DECISIONS.md 같은 날짜 항목.
 - 2026-11-23 (1.9.0 준비): SlowCrawler 이어서 모으기(.marks·.resume, 10초마다 남김, 7일 안), 다시 모을 때 끝 폴더는 위 폴더 목록의 시각으로 건너뜀(맨 위는 늘 읽음), 폴더 시각 믿을 수 있는지 스스로 시험(TimesTrusted), 정기 색인 전 남은 공간·맨 위 폴더 시각 신호(최대 6시간까지 건너뜀), 자주 바뀌는 폴더 먼저. K: 0개 고침: 숨김 폴더·클라우드 파일 폴더도 모음, 0개인데 드라이브에 파일이 있으면 "색인 못 함", 분석은 목록이 비었거나 사용량의 4분의 1 미만이면 직접 읽음(FallbackScanner도 클라우드 파일 폴더 들어감). 사이드바·분석 날짜 짧게. DECISIONS.md 같은 날짜 항목.
 - 2026-11-23 (1.8.0 준비): 색인 없는 드라이브 [지금 색인하기](오른쪽 클릭·찾기 메뉴·Ctrl+Space, SlowCrawler.RequestNow, 모든 폴더 다시 읽기)와 정기 색인 주기 설정(1h·6h·24h·manual, RescanEvery), 다 모은 때 표시. 아직 안 한 것: 처음 모으기가 끊기면 처음부터 다시 하는 것(이어 하기).
 - 2026-11-23 (1.7.3 준비): 색인 없는 드라이브(K: 보안 드라이브·네트워크·FAT/exFAT) 분석이 SlowCrawler가 다 모은 목록을 씀(CrawledListSnapshot, CrawlStore.ReadAll, 드라이브 다시 안 읽음, 결과에 "모아 둔 목록"). 직접 읽을 때 폴더·파일 수·지난 시간·지난번 대비 진행률, 실제 클러스터 크기. DECISIONS.md 같은 날짜 항목.
