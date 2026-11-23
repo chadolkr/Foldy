@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'Nuevo en la 1.6: ve dónde están los duplicados y elige cuál conservar',
-    eyebrow: 'Foldy 1.6',
+    badge: 'Nuevo en la 1.7: retoma donde lo dejaste al ordenar carpetas grandes',
+    eyebrow: 'Foldy 1.7',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
+      { icon: 'undo', title: 'Retoma donde lo dejaste', text: 'Foldy guarda tu plan para ordenar y tus marcas. Aunque cierres la ventana o apagues el PC, [Continuar] lo abre al instante. Al pulsar [Ordenar], los archivos que cambiaron o desaparecieron desde entonces no se mueven y Foldy te lo indica.' },
       { icon: 'eye', title: 'Ve dónde están los duplicados y elige cuál conservar', text: 'Al ordenar una carpeta, Foldy muestra la ruta completa de cada archivo idéntico y con [Conservar] eliges cuál se queda. Solo los demás van a "_Posibles duplicados", y no se borra nada. [Mostrar solo este panel] deja que un panel use toda la ventana.' },
       { icon: 'search', title: 'Ve cuántos resultados hay', text: 'En Ctrl+Espacio, cada grupo muestra cuántos hay, como "Archivos · 220". Pulsa [Ver los 220] al final de la lista o, si ves un solo grupo, sigue bajando para ver más.' },
       { icon: 'disk', title: 'Ordena rápido incluso carpetas enormes', text: 'Foldy prepara rápido el plan de orden de carpetas con cientos de miles de archivos y muestra el número de archivos, carpetas y el tamaño mientras cuenta. Si va a tardar, pulsa [Cerrar y continuar] y haz otra cosa. Te avisa cuando esté listo.' },
-      { icon: 'search', title: 'También el Panel de control', text: 'Escribe "Agregar o quitar programas", "Administrador de dispositivos" o "variables de entorno" en Ctrl+Space para abrir el Panel de control clásico y las herramientas administrativas. Los resultados se agrupan en aplicaciones, ajustes, carpetas y archivos, como en la búsqueda de Windows.' },
     ],
     link: 'Ver todos los cambios',
   },
