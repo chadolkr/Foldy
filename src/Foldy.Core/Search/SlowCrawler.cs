@@ -728,8 +728,9 @@ public sealed class SlowCrawler : IDisposable
     /// <list type="bullet">
     /// <item>폴더 목록은 한 번에 크게(64KB) 받아 오고 파일을 하나씩 열지 않는다. 요청은 한 번에 하나만.</item>
     /// <item>속도 조절(TCP처럼): 폴더를 읽은 시간을 평소와 비교해, 평소처럼 빠르면 쉬는 비율을 조금씩 줄이고(빨리), 느려지면 바로 두 배로(살살).</item>
-    /// <item>다시 모을 때, 하위 폴더가 있는 폴더는 목록을 새로 읽는다. 그러면 하위 폴더들의 수정 시각이 목록에 딸려 온다.
-    /// 하위 폴더가 없는 끝 폴더는 그 시각이 지난번과 같으면 드라이브에 아무것도 묻지 않고 지난 목록을 쓴다
+    /// <item>다시 모을 때, 하위 폴더가 있는 폴더는 목록을 새로 읽는다.
+    /// 하위 폴더가 없는 끝 폴더는 그 폴더의 수정 시각만 묻고(목록보다 훨씬 가볍다), 지난번과 같으면 지난 목록을 쓴다.
+    /// 위 폴더 목록에 딸려 오는 시각은 쓰지 않는다: NTFS(네트워크 드라이브 뒤의 서버 포함)는 위 폴더에 적힌 하위 폴더 시각을 늦게 고쳐서 바뀐 것을 놓친다(CI 실측)
     /// (폴더 시각은 바로 안의 것이 생기거나 지워지거나 이름이 바뀔 때만 바뀌므로, 하위 폴더 통째 건너뛰기는 하지 않는다).
     /// 노트북 SD카드 실측: 폴더 21,130개 중 하위 폴더가 있는 9,947개만 읽으면 된다.</item>
     /// <item>폴더 시각을 믿을 수 없는 드라이브(<see cref="TimesTrusted"/>, <see cref="AlwaysReadAll"/>)는 늘 모든 폴더를 읽는다.</item>
@@ -847,13 +848,10 @@ public sealed class SlowCrawler : IDisposable
 
                         var (dir, mtime) = stack.Pop();
                         current = (dir, mtime);
-                        if (mtime == 0)
-                        {
-                            // 맨 위 폴더(또는 시각을 모르는 폴더)만 따로 묻는다. 나머지는 위 폴더 목록에 딸려 온다
-                            var sw0 = Stopwatch.StartNew();
-                            mtime = DirTime(dir);
-                            Breathe(sw0.Elapsed);
-                        }
+                        // 폴더마다 그 폴더 자신의 시각을 묻는다 (위 폴더 목록에 적힌 시각은 NTFS에서 늦게 고쳐진다)
+                        var sw0 = Stopwatch.StartNew();
+                        mtime = DirTime(dir);
+                        Breathe(sw0.Elapsed);
 
                         var before = old.TryGetValue(dir, out var o) ? o : null;
                         var oldBlock = before is not null && oldData is not null ? ReadBlock(oldData, before) : null;
