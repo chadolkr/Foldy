@@ -17,7 +17,15 @@ public static class OrganizeScanner
         ".claude", "CLAUDE.md", "AGENTS.md", "SKILL.md",
     ];
 
-    private static readonly string[] ProjectMarkerExtensions = [".sln", ".slnx", ".csproj", ".vcxproj", ".xcodeproj", ".psd", ".prproj", ".aep", ".blend", ".uproject"];
+    /// <summary>
+    /// 확장자로 아는 프로젝트 파일. 델파이·C++Builder(.dproj, .groupproj, .dpr, .dpk, .cbproj, .bdsproj), VB(.vbp, .vbproj), F#(.fsproj),
+    /// 예전 Visual C++(.vcproj, .dsp, .dsw)도 넣는다 (사용자 2026-11-23: 델파이 소스 폴더가 파일 단위로 흩어질 뻔했다).
+    /// </summary>
+    private static readonly string[] ProjectMarkerExtensions =
+    [
+        ".sln", ".slnx", ".csproj", ".vcxproj", ".xcodeproj", ".psd", ".prproj", ".aep", ".blend", ".uproject",
+        ".dproj", ".groupproj", ".dpr", ".dpk", ".cbproj", ".bdsproj", ".vbp", ".vbproj", ".fsproj", ".vcproj", ".dsp", ".dsw",
+    ];
 
     private static readonly HashSet<string> NeverMove = new(StringComparer.OrdinalIgnoreCase)
     {

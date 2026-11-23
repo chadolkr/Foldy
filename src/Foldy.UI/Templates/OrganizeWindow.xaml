@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="clr-namespace:Foldy.UI.Localization"
         xmlns:t="clr-namespace:Foldy.UI.Templates"
-        Title="{loc:T org.title}" Width="1120" Height="720" MinWidth="860" MinHeight="540"
+        Title="{loc:T org.title}" Width="1240" Height="760" MinWidth="900" MinHeight="540"
         ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
         Style="{DynamicResource Foldy.Window}"
         Background="{DynamicResource Brush.Surface}" Foreground="{DynamicResource Brush.Text}"
@@ -117,68 +117,245 @@
 
     <!-- 3) 미리보기: 지금 ↔ 정리 후, 아래에 이동 목록 -->
     <Grid Grid.Row="2" Margin="0,12,0,0">
+      <!-- 넓이·높이는 경계를 끌어 바꾸고, 한쪽 트리는 [숨기기]로 접는다 (사용자 2026-11-23: 양쪽 창 넓이가 고정되어 불편) -->
       <Grid.RowDefinitions>
-        <RowDefinition Height="2*" />
-        <RowDefinition Height="3*" />
+        <RowDefinition Height="2*" MinHeight="60" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="3*" MinHeight="140" />
+        <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
       <Grid>
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="36" />
-          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" MinWidth="0" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" MinWidth="0" />
         </Grid.ColumnDefinitions>
-        <Border Style="{StaticResource Tpl.Card}" Padding="10">
+        <Border Padding="10" Visibility="{Binding ShowBeforeTree, Converter={StaticResource BoolVis}}">
+          <Border.Style>
+            <Style TargetType="Border" BasedOn="{StaticResource Tpl.Card}">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding ShowAfterTree}" Value="False">
+                  <Setter Property="Grid.ColumnSpan" Value="3" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="{loc:T org.now}" Style="{StaticResource Tpl.Section}" Margin="2,0,0,6" />
+            <DockPanel DockPanel.Dock="Top" Margin="2,0,0,6">
+              <Button DockPanel.Dock="Right" Style="{StaticResource Tpl.LinkButton}" Command="{Binding HideBeforeTreeCommand}"
+                      Visibility="{Binding ShowAfterTree, Converter={StaticResource BoolVis}}" AutomationProperties.AutomationId="OrganizeHideBefore">
+                <TextBlock Text="{loc:T org.tree.hide}" />
+              </Button>
+              <Button DockPanel.Dock="Right" Style="{StaticResource Tpl.LinkButton}" Command="{Binding ShowTreesAgainCommand}" Margin="0,0,8,0"
+                      Visibility="{Binding ShowAfterTree, Converter={StaticResource InverseBoolVis}}" AutomationProperties.AutomationId="OrganizeShowAfter">
+                <TextBlock Text="{loc:T org.tree.showAfter}" />
+              </Button>
+              <TextBlock Text="{loc:T org.now}" Style="{StaticResource Tpl.Section}" VerticalAlignment="Center" />
+            </DockPanel>
             <TreeView ItemsSource="{Binding BeforeTree}" ItemTemplate="{StaticResource Tpl.OrganizeNode}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
           </DockPanel>
         </Border>
-        <TextBlock Grid.Column="1" Style="{StaticResource Tpl.Icon}" Text="&#xE72A;" FontSize="18" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" />
-        <Border Grid.Column="2" Style="{StaticResource Tpl.Card}" Padding="10">
+        <!-- 가운데: 끌어서 양쪽 넓이를 바꾸는 경계 (화살표는 그 위에) -->
+        <Grid Grid.Column="1" Width="24" Visibility="{Binding ShowBothTrees, Converter={StaticResource BoolVis}}">
+          <GridSplitter Width="24" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" Background="Transparent"
+                        Cursor="SizeWE" Focusable="False" AutomationProperties.AutomationId="OrganizeTreeSplitter" />
+          <TextBlock Style="{StaticResource Tpl.Icon}" Text="&#xE72A;" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     Foreground="{DynamicResource Brush.TextSecondary}" IsHitTestVisible="False" />
+        </Grid>
+        <Border Padding="10" Visibility="{Binding ShowAfterTree, Converter={StaticResource BoolVis}}">
+          <Border.Style>
+            <Style TargetType="Border" BasedOn="{StaticResource Tpl.Card}">
+              <Setter Property="Grid.Column" Value="2" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding ShowBeforeTree}" Value="False">
+                  <Setter Property="Grid.Column" Value="0" />
+                  <Setter Property="Grid.ColumnSpan" Value="3" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="{loc:T org.after}" Style="{StaticResource Tpl.Section}" Margin="2,0,0,6" />
+            <DockPanel DockPanel.Dock="Top" Margin="2,0,0,6">
+              <Button DockPanel.Dock="Right" Style="{StaticResource Tpl.LinkButton}" Command="{Binding HideAfterTreeCommand}"
+                      Visibility="{Binding ShowBeforeTree, Converter={StaticResource BoolVis}}" AutomationProperties.AutomationId="OrganizeHideAfter">
+                <TextBlock Text="{loc:T org.tree.hide}" />
+              </Button>
+              <Button DockPanel.Dock="Right" Style="{StaticResource Tpl.LinkButton}" Command="{Binding ShowTreesAgainCommand}" Margin="0,0,8,0"
+                      Visibility="{Binding ShowBeforeTree, Converter={StaticResource InverseBoolVis}}" AutomationProperties.AutomationId="OrganizeShowBefore">
+                <TextBlock Text="{loc:T org.tree.showBefore}" />
+              </Button>
+              <TextBlock Text="{loc:T org.after}" Style="{StaticResource Tpl.Section}" VerticalAlignment="Center" />
+            </DockPanel>
             <TreeView ItemsSource="{Binding AfterTree}" ItemTemplate="{StaticResource Tpl.OrganizeNode}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
           </DockPanel>
         </Border>
       </Grid>
 
-      <TabControl Grid.Row="1" Style="{StaticResource Tpl.Tabs}" Margin="0,10,0,0" SelectedIndex="{Binding SelectedListTab}">
+      <!-- 위(트리)와 아래(목록) 사이: 끌어서 높이를 바꾼다 -->
+      <GridSplitter Grid.Row="1" Height="10" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext" ResizeDirection="Rows" Background="Transparent"
+                    Cursor="SizeNS" Focusable="False" AutomationProperties.AutomationId="OrganizeRowSplitter" />
+
+      <TabControl Grid.Row="2" Style="{StaticResource Tpl.Tabs}" Margin="0,0,0,0" SelectedIndex="{Binding SelectedListTab}">
         <TabItem Header="{loc:T org.moves}">
-          <ListView ItemsSource="{Binding Moves}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True">
-            <ListView.View>
-              <GridView>
-                <GridViewColumn Width="36">
-                  <GridViewColumn.CellTemplate>
-                    <DataTemplate>
-                      <CheckBox IsChecked="{Binding IsIncluded}" Margin="0" />
-                    </DataTemplate>
-                  </GridViewColumn.CellTemplate>
-                </GridViewColumn>
-                <GridViewColumn Header="{loc:T org.col.from}" Width="260" DisplayMemberBinding="{Binding SourceRelative}" />
-                <GridViewColumn Header="{loc:T org.col.to}" Width="180">
-                  <GridViewColumn.CellTemplate>
-                    <DataTemplate>
-                      <TextBox Style="{StaticResource Tpl.Input}" MinHeight="24" Padding="4,1" Text="{Binding TargetFolder, UpdateSourceTrigger=LostFocus}" Width="164" />
-                    </DataTemplate>
-                  </GridViewColumn.CellTemplate>
-                </GridViewColumn>
-                <GridViewColumn Header="{loc:T org.col.newName}" Width="200" DisplayMemberBinding="{Binding DestinationName}" />
-                <GridViewColumn Header="{loc:T org.col.reason}" Width="300" DisplayMemberBinding="{Binding Reason}" />
-              </GridView>
-            </ListView.View>
-          </ListView>
+          <!-- 왼쪽: 이유별 묶음 막대 (많은 것부터, 누르면 그것만 보기). 오른쪽: 보이는 것 모두 체크·해제 + 목록 (사용자 2026-11-23) -->
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="240" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <DockPanel Margin="0,0,10,0">
+              <TextBlock DockPanel.Dock="Top" Text="{loc:T org.cat.title}" Style="{StaticResource Tpl.Secondary}" TextWrapping="Wrap" Margin="4,4,4,6" />
+              <ListBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" AutomationProperties.AutomationId="OrganizeCategories"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderThickness="0" Background="Transparent">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="2,3" AutomationProperties.Name="{Binding Name}">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                      <Rectangle Height="6" RadiusX="3" RadiusY="3" Width="{Binding BarWidth}" HorizontalAlignment="Left" Margin="0,3,0,2"
+                                 Fill="{DynamicResource Brush.Accent}" />
+                      <TextBlock Text="{Binding Detail}" Style="{StaticResource Tpl.Secondary}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Detail}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </DockPanel>
+            <DockPanel Grid.Column="1">
+              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,2,0,6">
+                <Button Content="{loc:T org.checkAll}" Command="{Binding CheckAllVisibleCommand}" MinHeight="30" MinWidth="120" Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="OrganizeCheckAll" />
+                <Button Content="{loc:T org.uncheckAll}" Command="{Binding UncheckAllVisibleCommand}" MinHeight="30" MinWidth="120" Margin="0,0,12,0"
+                        AutomationProperties.AutomationId="OrganizeUncheckAll" />
+                <TextBlock Text="{Binding VisibleInfo}" Style="{StaticResource Tpl.Secondary}" VerticalAlignment="Center" AutomationProperties.AutomationId="OrganizeVisibleInfo" />
+              </StackPanel>
+              <ListView ItemsSource="{Binding VisibleMoves}" SelectedItem="{Binding SelectedMove}" AutomationProperties.AutomationId="OrganizeMoves"
+                        VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True">
+                <ListView.View>
+                  <GridView>
+                    <GridViewColumn Width="36">
+                      <GridViewColumn.CellTemplate>
+                        <DataTemplate>
+                          <CheckBox IsChecked="{Binding IsIncluded}" Margin="0" />
+                        </DataTemplate>
+                      </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="{loc:T org.col.from}" Width="320">
+                      <GridViewColumn.CellTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding SourceShort}" ToolTip="{Binding SourceFull}" TextTrimming="CharacterEllipsis" />
+                        </DataTemplate>
+                      </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="{loc:T org.col.to}" Width="180">
+                      <GridViewColumn.CellTemplate>
+                        <DataTemplate>
+                          <TextBox Style="{StaticResource Tpl.Input}" MinHeight="24" Padding="4,1" Text="{Binding TargetFolder, UpdateSourceTrigger=LostFocus}" Width="164" />
+                        </DataTemplate>
+                      </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="{loc:T org.col.newName}" Width="200" DisplayMemberBinding="{Binding DestinationName}" />
+                    <GridViewColumn Header="{loc:T org.col.reason}" Width="300">
+                      <GridViewColumn.CellTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Reason}" ToolTip="{Binding Reason}" TextTrimming="CharacterEllipsis" />
+                        </DataTemplate>
+                      </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                  </GridView>
+                </ListView.View>
+              </ListView>
+            </DockPanel>
+          </Grid>
         </TabItem>
         <TabItem Header="{loc:T org.skipped}">
           <ListView ItemsSource="{Binding Skipped}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True">
             <ListView.View>
               <GridView>
-                <GridViewColumn Header="{loc:T org.col.path}" Width="520" DisplayMemberBinding="{Binding FullPath}" />
-                <GridViewColumn Header="{loc:T org.col.reason}" Width="380" DisplayMemberBinding="{Binding Reason}" />
+                <GridViewColumn Header="{loc:T org.col.path}" Width="520">
+                  <GridViewColumn.CellTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding ShortPath}" ToolTip="{Binding FullPath}" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                  </GridViewColumn.CellTemplate>
+                </GridViewColumn>
+                <GridViewColumn Header="{loc:T org.col.reason}" Width="380">
+                  <GridViewColumn.CellTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Reason}" ToolTip="{Binding Reason}" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                  </GridViewColumn.CellTemplate>
+                </GridViewColumn>
               </GridView>
             </ListView.View>
           </ListView>
         </TabItem>
+        <!-- 같은 파일 묶음: 한 줄에 한 묶음 (사용자 2026-11-23: 어느 파일과 같은지 경로를 보고 남길 파일을 고르기) -->
+        <TabItem Header="{Binding DuplicatesTabHeader}" Visibility="{Binding HasDuplicateSets, Converter={StaticResource BoolVis}}"
+                 AutomationProperties.AutomationId="OrganizeDuplicatesTab">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="{loc:T org.dup.pick}" Style="{StaticResource Tpl.Secondary}" TextWrapping="Wrap" Margin="4,4,4,6" />
+            <ListView ItemsSource="{Binding DuplicateSets}" SelectedItem="{Binding SelectedDuplicateSet}" AutomationProperties.AutomationId="OrganizeDuplicateSets"
+                      VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True">
+              <ListView.View>
+                <GridView>
+                  <GridViewColumn Header="{loc:T org.dup.col.name}" Width="220" DisplayMemberBinding="{Binding Name}" />
+                  <GridViewColumn Header="{loc:T org.dup.col.count}" Width="70" DisplayMemberBinding="{Binding Count}" />
+                  <GridViewColumn Header="{loc:T org.dup.col.size}" Width="90" DisplayMemberBinding="{Binding SizeText}" />
+                  <GridViewColumn Header="{loc:T org.dup.col.keeper}" Width="560">
+                    <GridViewColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding KeeperRelative}" ToolTip="{Binding KeeperRelative}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </GridViewColumn.CellTemplate>
+                  </GridViewColumn>
+                </GridView>
+              </ListView.View>
+            </ListView>
+          </DockPanel>
+        </TabItem>
       </TabControl>
+
+      <!-- 고른 줄이 같은 파일 묶음이면: 같은 파일들의 전체 경로와 [남기기] (하나만). 나머지는 _중복 후보로, 지우지 않는다 -->
+      <Border Grid.Row="3" Style="{StaticResource Tpl.Card}" Margin="0,8,0,0" Padding="12,8"
+              Visibility="{Binding HasDuplicateSelection, Converter={StaticResource BoolVis}}" AutomationProperties.AutomationId="OrganizeDuplicatePanel">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Text="{Binding DuplicateTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+          <TextBlock DockPanel.Dock="Top" Text="{Binding DuplicateTip}" Style="{StaticResource Tpl.Secondary}" TextWrapping="Wrap" Margin="0,2,0,6" />
+          <ScrollViewer MaxHeight="132" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding DuplicateMembers}" Focusable="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid Margin="0,2">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="220" />
+                    </Grid.ColumnDefinitions>
+                    <RadioButton GroupName="OrganizeKeep" Content="{loc:T org.dup.keep}" IsChecked="{Binding IsKeeper, Mode=TwoWay}"
+                                 VerticalAlignment="Center" MinWidth="80" Margin="0,0,10,0" AutomationProperties.Name="{Binding FullPath}" />
+                    <!-- 전체 경로: 고르고 복사할 수 있게 읽기 전용 글상자 -->
+                    <TextBox Grid.Column="1" Text="{Binding FullPath, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                             Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" ToolTip="{Binding FullPath}" />
+                    <TextBlock Grid.Column="2" Text="{Binding Modified}" Style="{StaticResource Tpl.Secondary}" VerticalAlignment="Center" Margin="10,0" />
+                    <TextBlock Grid.Column="3" Text="{Binding Outcome}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Outcome}">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Tpl.Secondary}">
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsKeeper}" Value="True">
+                              <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                              <Setter Property="FontWeight" Value="SemiBold" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
     </Grid>
 
     <!-- 4) 상태 + 버튼 -->
