@@ -22,6 +22,7 @@
   "an.downloads.tip": "在下载文件夹中查找已安装程序的安装包、重复文件、已解压的压缩包和旧文件",
   "an.findingLast": "正在查找上次的分析结果…",
   "an.folderRow": "{0} · {1} · 文件 {2:N0} 个",
+  "an.fromList": "已收集的列表（不重新读取驱动器）",
   "an.fromScan": "直接扫描",
   "an.fromService": "索引服务",
   "an.growth": "与上次分析相比",

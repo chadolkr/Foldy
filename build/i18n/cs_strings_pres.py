@@ -15,6 +15,7 @@ PRES = [
     ("an.noExt", "(확장자 없음)", "(no extension)", "(sin extensión)", "(拡張子なし)", "（无扩展名）"),
     ("an.fromService", "색인 서비스", "index service", "servicio de índice", "インデックス サービス", "索引服务"),
     ("an.fromScan", "직접 열거", "direct scan", "recorrido directo", "直接走査", "直接扫描"),
+    ("an.fromList", "모아 둔 목록 (드라이브를 다시 읽지 않음)", "saved file list (drive not re-read)", "lista guardada (sin volver a leer la unidad)", "集めておいた一覧 (ドライブを読み直さない)", "已收集的列表（不重新读取驱动器）"),
     ("an.noPrev", "비교할 지난 분석이 없습니다. 다음에 분석하면 이번 결과와 비교합니다.", "No previous analysis to compare. Next time, the results will be compared with this one.", "No hay un análisis anterior para comparar. La próxima vez se comparará con este.", "比較する前回の分析がありません。次に分析すると今回の結果と比較します。", "没有可比较的上次分析。下次分析时会与这次结果比较。"),
     ("an.other", "기타 (작은 파일·시스템)", "Other (small files, system)", "Otros (archivos pequeños, sistema)", "その他 (小さいファイル・システム)", "其他（小文件、系统）"),
     ("an.nothing", "정리할 만한 항목을 찾지 못했습니다.", "Nothing worth cleaning up was found.", "No se encontró nada que valga la pena limpiar.", "整理するとよい項目は見つかりませんでした。", "没有找到值得清理的项目。"),

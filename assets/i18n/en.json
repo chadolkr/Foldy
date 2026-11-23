@@ -22,6 +22,7 @@
   "an.downloads.tip": "Find installers you already used, duplicates, archives you already extracted and old files in Downloads",
   "an.findingLast": "Looking for the previous analysis…",
   "an.folderRow": "{0} · {1} · {2:N0} files",
+  "an.fromList": "saved file list (drive not re-read)",
   "an.fromScan": "direct scan",
   "an.fromService": "index service",
   "an.growth": "Since last analysis",

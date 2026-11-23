@@ -755,6 +755,20 @@ public partial class ShellWindow : Window, IPaneHost
         return list;
     }
 
+    /// <summary>디스크 분석용: 이 드라이브를 다 모아 둔 목록 (아직 다 모으지 못했거나 모으기가 꺼져 있으면 null).</summary>
+    private Foldy.Analysis.CrawledList? CrawledListFor(string drive)
+    {
+        if (_crawler is not { } crawler)
+        {
+            return null;
+        }
+
+        var store = crawler.StoreFor(drive);
+        return store.CompletedUtc is { } done
+            ? new Foldy.Analysis.CrawledList(done, ct => store.ReadAll(ct).Select(e => new Foldy.Analysis.CrawledItem(e.Path, e.IsFolder, e.Size, e.ModifiedUtc)))
+            : null;
+    }
+
     private DispatcherTimer? _indexStatusTimer;
 
     /// <summary>
@@ -2500,7 +2514,9 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        _analysis ??= new Foldy.Analysis.AnalysisCoordinator(new IndexerAnalysisService());
+        // 색인 서비스가 다루지 않는 드라이브(K: 같은 회사 보안 드라이브, 네트워크, FAT/exFAT)는 살살 모아 둔 목록이 있으면 그것으로 분석한다.
+        // 드라이브를 다시 읽지 않는다 (사용자 2026-11-23: "K 드라이브 분석을 시켰더니 폴더 읽는 중으로 나온다. 색인은 완료되었다는데…")
+        _analysis ??= new Foldy.Analysis.AnalysisCoordinator(new IndexerAnalysisService()) { CrawledLists = CrawledListFor };
         var tab = new Foldy.Presentation.Analysis.AnalysisTabViewModel(_analysis, path);
         tab.RecycleRequested += async (_, e) =>
         {

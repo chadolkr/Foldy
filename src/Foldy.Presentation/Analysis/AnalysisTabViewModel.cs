@@ -318,7 +318,7 @@ public sealed partial class AnalysisTabViewModel : TabBase
 
         HasSnapshot = true;
         var s = loaded.Scan;
-        var source = set.FromService ? Foldy.Core.Localization.Loc.T("an.fromService") : Foldy.Core.Localization.Loc.T("an.fromScan");
+        var source = Foldy.Core.Localization.Loc.T(set.FromService ? "an.fromService" : set.FromList ? "an.fromList" : "an.fromScan");
         ScanText = Foldy.Core.Localization.Loc.F("an.summary", s.StartedUtc.ToLocalTime(), s.TotalFiles, s.TotalDirs, AnalysisText.FormatSize(s.TotalAlloc), source);
         TopFolders = loaded.TopFolders;
         TopFiles = loaded.TopFiles;

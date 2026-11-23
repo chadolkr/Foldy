@@ -129,6 +129,23 @@ public static partial class AnalysisPaths
         return del;
     }
 
+    /// <summary>모아 둔 목록으로 만든 스냅샷 옆에 두는 표시 파일 (스냅샷 DB 형식은 그대로 둔다).</summary>
+    public static string ListMarkerOf(string dbPath) => dbPath + ".list";
+
+    public static bool IsFromList(string dbPath) => File.Exists(ListMarkerOf(dbPath));
+
+    internal static void MarkFromList(string dbPath)
+    {
+        try
+        {
+            File.WriteAllText(ListMarkerOf(dbPath), "");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // 표시만 못 할 뿐 분석 결과는 그대로 쓴다 ("직접 열거"로 보인다)
+        }
+    }
+
     private static string? VolumeGuid(string root)
     {
         if (!OperatingSystem.IsWindows())
