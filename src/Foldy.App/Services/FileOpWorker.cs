@@ -9,7 +9,7 @@ using Serilog;
 namespace Foldy.App.Services;
 
 /// <summary>
-/// 휴지통·삭제를 도우미 프로세스(Foldy.exe --file-op)에서 한다 (1.6.1, 사용자 제보 2026-11-23).
+/// 휴지통·삭제를 도우미 프로세스(Foldy.exe --file-op)에서 한다 (1.7.1, 사용자 제보 2026-11-23).
 /// 큰 node_modules 여러 개를 한꺼번에 휴지통으로 보내다 Windows 파일 작업 안의 남의 코드(탐색기 확장·보안 프로그램)가
 /// "Abnormal program termination"으로 프로세스를 끝내 Foldy 창이 같이 꺼졌다. 이제는 도우미만 끝나고
 /// Foldy는 작업 패널에 쉬운 말로 알린다. 약속은 <see cref="FileOpWorkerProtocol"/>.

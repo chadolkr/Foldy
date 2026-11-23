@@ -47,7 +47,7 @@ public sealed class ShellFileOperationService(Func<IntPtr> owner) : IFileOperati
 
     /// <summary>
     /// 폴더가 섞인 휴지통·삭제는 도우미 프로세스에서 한다: Windows 파일 작업 안의 남의 코드가 프로세스를 끝내도
-    /// Foldy 창은 남고 실패만 알린다 (1.6.1, <see cref="FileOpWorker"/>). 파일 몇 개는 그 자리에서 바로.
+    /// Foldy 창은 남고 실패만 알린다 (1.7.1, <see cref="FileOpWorker"/>). 파일 몇 개는 그 자리에서 바로.
     /// </summary>
     public async Task<FileOpResult> DeleteAsync(IReadOnlyList<string> paths, bool recycle, IProgress<FileOpProgress>? progress, CancellationToken ct)
     {

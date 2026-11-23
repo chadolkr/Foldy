@@ -16,7 +16,7 @@ public sealed record FileOpWorkerProgress(long Done, long Total, string? Current
 public sealed record FileOpWorkerResult(bool Succeeded, bool Aborted, string? Error);
 
 /// <summary>
-/// 휴지통·삭제 작업을 Foldy 창과 다른 프로세스에서 돌리기 위한 약속 (1.6.1, 사용자 제보 2026-11-23).
+/// 휴지통·삭제 작업을 Foldy 창과 다른 프로세스에서 돌리기 위한 약속 (1.7.1, 사용자 제보 2026-11-23).
 /// Windows 휴지통 작업(IFileOperation)은 탐색기 확장·보안 프로그램 같은 남의 코드를 Foldy 안에서 부른다.
 /// 그 코드가 큰 폴더 여러 개를 한꺼번에 지우다 "Abnormal program termination"으로 프로세스를 끝내면
 /// Foldy 창까지 같이 꺼졌다. 도우미 프로세스가 대신 하면 도우미만 끝나고, Foldy는 쉬운 말로 알린다.

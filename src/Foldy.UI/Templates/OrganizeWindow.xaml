@@ -97,6 +97,22 @@
           </Button>
         </StackPanel>
       </Border>
+      <!-- 저장해 둔 계획: 큰 폴더는 다시 만들기 힘들어 체크한 것까지 이어서 하기 (사용자 2026-11-23) -->
+      <Border x:Name="SavedPlanOffer" Style="{StaticResource Tpl.Card}" Margin="0,10,0,0" Padding="12,10"
+              Visibility="{Binding HasSavedPlan, Converter={StaticResource BoolVis}}" AutomationProperties.AutomationId="OrganizeSavedPlan">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="{loc:T org.saved.resume}" Style="{StaticResource Tpl.Primary}" Command="{Binding ResumeSavedPlanCommand}"
+                    MinWidth="110" Margin="12,0,8,0" AutomationProperties.AutomationId="OrganizeResumePlan" />
+            <Button Content="{loc:T org.saved.fresh}" Command="{Binding StartFreshCommand}" MinWidth="110" AutomationProperties.AutomationId="OrganizeStartFresh" />
+          </StackPanel>
+          <TextBlock Style="{StaticResource Tpl.Icon}" Text="&#xE81C;" FontSize="18" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" Margin="0,0,10,0" />
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding SavedPlanText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:T org.saved.tip}" Style="{StaticResource Tpl.Secondary}" TextWrapping="Wrap" Margin="0,2,0,0" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
       <!-- 큰 폴더: 오래 걸리면 뒤에서 만들고 끝나면 알려 주기 (사용자 2026-11-23) -->
       <Border x:Name="BackgroundOffer" Style="{StaticResource Tpl.Card}" Margin="0,10,0,0" Padding="12,10"
               Visibility="{Binding ShowBackgroundOffer, Converter={StaticResource BoolVis}}">
