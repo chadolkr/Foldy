@@ -578,7 +578,7 @@ public sealed class OrganizePlanStore
             DROP TABLE IF EXISTS move; DROP TABLE IF EXISTS reason; DROP TABLE IF EXISTS skipped;
             DROP TABLE IF EXISTS dupmember; DROP TABLE IF EXISTS dupset; DROP TABLE IF EXISTS plan;
             CREATE TABLE plan (
-              id INTEGER PRIMARY KEY,
+              id INTEGER PRIMARY KEY AUTOINCREMENT, -- 지운 계획의 번호를 다시 쓰지 않는다 (예전 손잡이가 새 계획에 쓰지 않게)
               root_key TEXT NOT NULL UNIQUE,
               root TEXT NOT NULL,
               created INTEGER NOT NULL,
