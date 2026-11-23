@@ -433,8 +433,12 @@ public sealed partial class MainWindowTests
             tab.Should().NotBeNull("같은 파일이 있으면 '같은 파일' 탭이 보여야 한다");
             tab!.AsTabItem().Select();
             var sets = Retry.WhileNull(() => win.FindFirstDescendant(app.By.ByAutomationId("OrganizeDuplicateSets")), TimeSpan.FromSeconds(10), ignoreException: true).Result!;
-            Retry.WhileNull(() => sets.FindFirstDescendant(app.By.ByControlType(ControlType.ListItem)), TimeSpan.FromSeconds(10), ignoreException: true).Result!
-                .AsListBoxItem().Select();
+            // GridView 목록의 줄은 UI 자동화에서 DataItem으로 보인다
+            var row = Retry.WhileNull(
+                () => sets.FindFirstDescendant(app.By.ByControlType(ControlType.DataItem).Or(app.By.ByControlType(ControlType.ListItem))),
+                TimeSpan.FromSeconds(10), ignoreException: true).Result;
+            row.Should().NotBeNull("같은 파일 묶음이 한 줄 있어야 한다");
+            row!.AsListBoxItem().Select();
 
             RadioButton Keep(string path) => Retry.WhileNull(
                 () => win.FindFirstDescendant(app.By.ByName(path).And(app.By.ByControlType(ControlType.RadioButton))), TimeSpan.FromSeconds(10), ignoreException: true).Result!.AsRadioButton();
