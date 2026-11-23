@@ -923,7 +923,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
             // 옮길 것이 없으면 지금 구조(건너뛴 항목)를 양쪽에 그대로 보여 준다 — "지금 = 정리 후"
             var rel = plan.Skipped.Select(x => Path.GetRelativePath(plan.Root, x.FullPath)).ToList();
             var folders = new HashSet<string>(plan.Skipped.Where(x => Directory.Exists(x.FullPath)).Select(x => Path.GetRelativePath(plan.Root, x.FullPath)), StringComparer.OrdinalIgnoreCase);
-            unchanged = new(OrganizeTreeNode.Build(rel, folders), OrganizeTreeNode.Build(rel, folders), "");
+            unchanged = new(OrganizeTreeNode.Build(rel, folders), OrganizeTreeNode.Build(rel, folders), "", [], 0, 0);
         }
 
         return new(plan, moves, skipped, ComputeView(plan), unchanged, bySource, sets);
