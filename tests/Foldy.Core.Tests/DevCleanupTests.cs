@@ -96,6 +96,74 @@ public sealed class RebuildableFoldersTests : IDisposable
         Make(@"rs\target", "x");
         RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now, _ => 123_456).Single().Size.Should().Be(123_456);
     }
+
+    [Fact]
+    public void Progress_counts_folders_and_reports_each_found_folder_as_it_goes()
+    {
+        Make(@"web", "package.json");
+        Make(@"web\node_modules\a", "a.js", 300);
+        Make(@"web\src\deep\deeper", "app.js");
+        Make(@"py\__pycache__", "m.pyc", 200);
+
+        var counter = new RebuildableScanCounter();
+        var seen = new System.Collections.Concurrent.ConcurrentBag<string>();
+        var found = RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now, counter: counter, onFound: f => seen.Add(f.Path));
+
+        found.Should().HaveCount(2);
+        seen.Should().BeEquivalentTo(found.Select(f => f.Path), "찾는 대로 하나씩 알린다");
+        counter.Found.Should().Be(2);
+        counter.FoundBytes.Should().Be(500);
+        counter.Folders.Should().BeGreaterThanOrEqualTo(6, "살펴본 폴더 수(뿌리·web·src·deep·deeper·py, 찾은 폴더)를 센다");
+        counter.Current.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Reading_several_folders_at_once_finds_the_same_folders()
+    {
+        for (var i = 0; i < 30; i++)
+        {
+            Make($@"p{i}", "package.json");
+            Make($@"p{i}\node_modules\x", "x.js", i + 1);
+            Make($@"p{i}\obj", "o.txt"); // csproj가 없으니 아니다
+            Make($@"p{i}\docs\a\b", "readme.md");
+        }
+
+        var one = RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now, parallelism: 1);
+        var four = RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now, parallelism: 4);
+        one.Should().HaveCount(30);
+        four.Select(f => f.Path).Should().Equal(one.Select(f => f.Path), "여러 개를 동시에 읽어도 결과와 순서는 같다");
+    }
+
+    [Fact]
+    public void Stopping_ends_the_search_and_keeps_what_was_found()
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            Make($@"p{i}", "package.json");
+            Make($@"p{i}\node_modules", "x.js");
+        }
+
+        using var cts = new CancellationTokenSource();
+        var seen = new List<RebuildableFolder>();
+        var act = () => RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now, onFound: f =>
+        {
+            seen.Add(f);
+            cts.Cancel(); // 하나 찾자마자 [그만 찾기]
+        }, parallelism: 1, ct: cts.Token);
+
+        act.Should().Throw<OperationCanceledException>();
+        seen.Should().HaveCount(1, "멈추기 전에 찾은 것은 이미 받았다");
+    }
+
+    [Fact]
+    public void Hidden_folders_are_not_entered()
+    {
+        var hidden = Make(@"숨김");
+        File.SetAttributes(hidden, FileAttributes.Directory | FileAttributes.Hidden);
+        Make(@"숨김\web", "package.json");
+        Make(@"숨김\web\node_modules", "x.js");
+        RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now).Should().BeEmpty("숨김 폴더 안은 들어가지 않는다");
+    }
 }
 
 public sealed class DevCachesTests : IDisposable
