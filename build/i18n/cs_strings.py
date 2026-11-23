@@ -140,3 +140,5 @@ from cs_strings_dupkeep import DUPKEEP  # noqa: E402
 CS = CS + DUPKEEP
 from cs_strings_resume import RESUME  # noqa: E402
 CS = CS + RESUME
+from cs_strings_index import INDEX  # noqa: E402
+CS = CS + INDEX

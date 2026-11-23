@@ -89,6 +89,9 @@ public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null
 
     public bool HasIndexText => !string.IsNullOrEmpty(IndexText);
 
+    /// <summary>[지금 색인하기]를 쓸 수 있는 드라이브 (색인 서비스가 다루지 않아 Foldy가 모으는 드라이브).</summary>
+    public bool CanIndexNow { get; init; }
+
     /// <summary>화면 낭독기가 읽는 이름 (사이드바 드라이브 항목): 레코드 기본 ToString은 속성을 모두 읽어 버린다.</summary>
     public override string ToString() => string.Join(" · ", new[] { Display, SpaceText, IndexText }.Where(s => !string.IsNullOrEmpty(s)));
 }

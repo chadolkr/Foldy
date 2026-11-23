@@ -698,11 +698,14 @@ public partial class ShellWindow : Window, IPaneHost
 
         if (_crawler is not null)
         {
+            _crawler.RescanEvery = Foldy.Presentation.Persistence.AppSettings.CrawlInterval(_settings.CrawlEvery); // 설정에서 주기를 바꿨을 때
             return;
         }
 
         _crawler = new Foldy.Core.Search.SlowCrawler(Path.Combine(App.DataDir, "crawl"), CrawlDrives)
         {
+            RescanEvery = Foldy.Presentation.Persistence.AppSettings.CrawlInterval(_settings.CrawlEvery),
+            AlwaysReadAll = Foldy.Platform.SystemInfo.CloudVolumes.IsCloudPath, // Google Drive는 폴더 시각을 믿을 수 없다
             ShouldPause = () =>
             {
                 try
@@ -769,6 +772,30 @@ public partial class ShellWindow : Window, IPaneHost
             : null;
     }
 
+    /// <summary>[지금 색인하기] (사용자 2026-11-23): 색인 서비스가 다루지 않는 드라이브를 지금 다시 모은다.</summary>
+    private void IndexNow(IReadOnlyList<string> roots)
+    {
+        if (_crawler is not { } crawler)
+        {
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idxnow.off");
+            return;
+        }
+
+        if (roots.Count == 0)
+        {
+            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idxnow.nothing");
+            return;
+        }
+
+        var busy = crawler.Current();
+        var names = string.Join(", ", roots.Select(r => r.TrimEnd('\\')));
+        var started = roots.Count(crawler.RequestNow);
+        Shell.Status = started == 0 ? Foldy.Core.Localization.Loc.F("sw.idxnow.already", names)
+            : busy is not null ? Foldy.Core.Localization.Loc.F("sw.idxnow.queued", names, busy.Drive.TrimEnd('\\'))
+            : Foldy.Core.Localization.Loc.F("sw.idxnow.started", names);
+        UpdateIndexText();
+    }
+
     private DispatcherTimer? _indexStatusTimer;
 
     /// <summary>
@@ -776,6 +803,7 @@ public partial class ShellWindow : Window, IPaneHost
     /// </summary>
     private void UpdateIndexText()
     {
+        MarkIndexNowDrives();
         if (_search.LastStatus is not { } st)
         {
             return;
@@ -821,6 +849,23 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
+    /// <summary>[지금 색인하기]가 보일 드라이브를 표시한다 (색인 서비스가 없어도). 드라이브를 건드리지 않고 모으는 쪽이 아는 목록만 쓴다.</summary>
+    private void MarkIndexNowDrives()
+    {
+        var known = _crawler?.KnownDrives ?? [];
+        foreach (var pane in new[] { Shell.Left, Shell.Right })
+        {
+            foreach (var d in pane.Drives.ToList())
+            {
+                var can = known.Contains(d.Root, StringComparer.OrdinalIgnoreCase);
+                if (can != d.CanIndexNow)
+                {
+                    pane.UpdateDrive(d with { CanIndexNow = can });
+                }
+            }
+        }
+    }
+
     /// <summary>드라이브 옆 한 줄 (사용자 2026-11-21: "색인 중이라고 표시해 줘").</summary>
     private string DriveIndexText(Foldy.Indexer.Client.StatusReply st, DriveItem d)
     {
@@ -835,11 +880,13 @@ public partial class ShellWindow : Window, IPaneHost
             };
         }
 
-        if (_crawler?.StatusOf(d.Root) is { } c)
+        if (_crawler?.StatusOf(d.Root) is { } c && (c.Running || !_crawler.IsRequested(d.Root))) // 누르고 차례를 기다리면 아래의 "차례 기다리는 중"
         {
             return c.Running
                 ? Foldy.Core.Localization.Loc.F("sw.drv.crawling", Math.Max(0, c.Found))
-                : c.Complete ? Foldy.Core.Localization.Loc.F("sw.drv.crawled", Math.Max(0, c.Found)) : Foldy.Core.Localization.Loc.T("sw.drv.idle");
+                : !c.Complete ? Foldy.Core.Localization.Loc.T("sw.drv.idle")
+                : c.CompletedUtc is { } at ? Foldy.Core.Localization.Loc.F("sw.drv.crawledAt", Math.Max(0, c.Found), at.ToLocalTime())
+                : Foldy.Core.Localization.Loc.F("sw.drv.crawled", Math.Max(0, c.Found));
         }
 
         if (_crawler is null || d.Kind == DriveKind.CdRom)
@@ -1168,6 +1215,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("terminal.cmdAdmin", Foldy.Core.Localization.Loc.T("cmd.cmdAdmin"), () => Shell.OpenTerminal(TerminalKind.Cmd, true));
         Add("view.hidden", Foldy.Core.Localization.Loc.T("cmd.hidden"), ToggleHidden, Key.H, ModifierKeys.Control);
         Add("analysis.open", Foldy.Core.Localization.Loc.T("sw.c.analysis"), () => _ = AskAnalysisTargetAsync());
+        Add("index.now", Foldy.Core.Localization.Loc.T("sw.c.indexNow"), () => IndexNow(_crawler?.KnownDrives ?? []));
         Add("ai.connect", Foldy.Core.Localization.Loc.T("sw.c.ai"), OpenMcp);
         Add("compare.panes", Foldy.Core.Localization.Loc.T("sw.c.compare"), () =>
         {
@@ -3336,6 +3384,14 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         OpenAnalysis();
+    }
+
+    private void OnSideDriveIndexNow(object sender, RoutedEventArgs e)
+    {
+        if (TagOf<DriveItem>(sender) is { } d)
+        {
+            IndexNow([d.Root]);
+        }
     }
 
     private void OnSideSearch(object sender, RoutedEventArgs e) => ActiveView.FocusSearch();

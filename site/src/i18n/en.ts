@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'New in 1.7: pick up big tidy-ups where you left off',
-    eyebrow: 'Foldy 1.7',
+    badge: 'New in 1.8: start indexing yourself',
+    eyebrow: 'Foldy 1.8',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
+      { icon: 'update', title: 'Index when you want', text: 'Right-click a network, USB or Google Drive drive → [Index now] to gather its file list right away. You can also choose how often it is gathered again: every hour, every 6 hours or once a day.' },
       { icon: 'undo', title: 'Pick up big tidy-ups where you left off', text: 'Foldy saves your tidy-up plan and your checks. Even after closing the window or turning off the PC, [Continue] opens it right away. When you press [Tidy up], files that changed or disappeared since then are left alone, and Foldy tells you.' },
       { icon: 'eye', title: 'See where duplicates are, pick one to keep', text: 'When tidying a folder, Foldy shows the full path of every identical file, and [Keep] lets you choose which one stays. Only the rest move to "_Possible duplicates", and nothing is deleted. [Show only this pane] lets one pane use the whole window.' },
       { icon: 'search', title: 'See how many results you got', text: 'In Ctrl+Space, each group shows its count, like "Files · 220". Press [See all 220] at the end of the list, or when you view one group, just keep scrolling down for more.' },
-      { icon: 'disk', title: 'Tidy even huge folders fast', text: 'Foldy now plans a tidy-up of folders with hundreds of thousands of files quickly, and shows the file and folder counts and size as it goes. If it will take a while, press [Close and keep going] and do something else. Foldy lets you know when it is ready.' },
     ],
     link: 'See everything that changed',
   },

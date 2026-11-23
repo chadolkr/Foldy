@@ -275,7 +275,7 @@ public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Co
 /// 색인 없는 드라이브를 "살살" 모은다 (사용자 2026-11-21: "회사 드라이브도 부하 주지 않게 살살 수집해 줘").
 /// 폴더를 하나 열 때마다, 여는 데 걸린 시간의 몇 배(최소 <see cref="MinPause"/>)를 쉰다 → 느린 드라이브일수록 저절로 천천히.
 /// <see cref="ShouldPause"/>가 참이면(복사 같은 작업 중) 기다린다. 숨김·시스템 폴더, 링크(정션·심볼릭 링크) 안은 들어가지 않는다.
-/// 다 모으면 <see cref="RescanAfter"/> 뒤에 다시 모은다.
+/// 다 모으면 <see cref="RescanEvery"/> 뒤에 다시 모으고, <see cref="RequestNow"/>로 지금 모으게 할 수도 있다.
 /// </summary>
 public sealed class SlowCrawler : IDisposable
 {
@@ -306,6 +306,12 @@ public sealed class SlowCrawler : IDisposable
     /// <summary>참이면 잠시 쉰다 (복사·이동 같은 작업 중).</summary>
     public Func<bool>? ShouldPause { get; set; }
 
+    /// <summary>
+    /// 참이면 그 드라이브는 다시 모을 때도 늘 모든 폴더를 읽는다. 안에 파일이 생겨도 폴더 수정 시각이 안 바뀌는 드라이브(Google Drive)는
+    /// 시각만 보면 변화를 놓친다 (2026-11-23 노트북에서 재 봄: 나중에 뭔가 생긴 폴더 19개 중 11개가 안 바뀜).
+    /// </summary>
+    public Func<string, bool>? AlwaysReadAll { get; set; }
+
     public event Action<CrawlStatus>? Changed;
 
     private readonly Dictionary<string, CrawlStore> _stores = new(StringComparer.OrdinalIgnoreCase);
@@ -314,6 +320,84 @@ public sealed class SlowCrawler : IDisposable
     // 변경 알림이 넘치거나 끊긴 드라이브: 1시간을 기다리지 않고 곧 다시 모은다 (바뀐 폴더만 읽어서 가볍다)
     private readonly HashSet<string> _dirty = new(StringComparer.OrdinalIgnoreCase);
     private readonly AutoResetEvent _kick = new(false);
+
+    // 사용자가 [지금 색인하기]를 누른 드라이브 (누른 순서대로)
+    private readonly List<string> _requested = [];
+    private HashSet<string> _known = new(StringComparer.OrdinalIgnoreCase);
+    private TimeSpan? _rescanEvery = RescanAfter;
+
+    /// <summary>
+    /// 정기 색인 주기: 마지막으로 다 모은 뒤 이만큼 지나면 다시 모은다. null이면 저절로 모으지 않고 <see cref="RequestNow"/>로만 모은다.
+    /// 다 모은 시각은 파일에 남으므로 Foldy를 껐다 켜도 이어서 센다.
+    /// </summary>
+    public TimeSpan? RescanEvery
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _rescanEvery;
+            }
+        }
+
+        set
+        {
+            lock (_gate)
+            {
+                if (_rescanEvery == value)
+                {
+                    return;
+                }
+
+                _rescanEvery = value;
+            }
+
+            _kick.Set(); // 바꾼 주기로 바로 다시 본다
+        }
+    }
+
+    /// <summary>
+    /// 지금 모은다 (사용자 2026-11-23: "수동으로 색인 시작하는 기능"). 다른 드라이브를 모으는 중이면 끊지 않고 그다음 차례다.
+    /// 이때는 지난 목록을 믿지 않고 모든 폴더를 다시 읽는다 (폴더 시각으로 알 수 없는 크기 변화까지 맞춘다).
+    /// 이미 그 드라이브를 모으는 중이거나 차례를 기다리면 false.
+    /// </summary>
+    public bool RequestNow(string drive)
+    {
+        var root = Root(drive);
+        lock (_gate)
+        {
+            if (_requested.Contains(root, StringComparer.OrdinalIgnoreCase) || (_status.TryGetValue(root, out var s) && s.Running))
+            {
+                return false;
+            }
+
+            _requested.Add(root);
+        }
+
+        _kick.Set();
+        return true;
+    }
+
+    /// <summary>[지금 색인하기]를 눌러 차례를 기다리는 드라이브인가.</summary>
+    public bool IsRequested(string drive)
+    {
+        lock (_gate)
+        {
+            return _requested.Contains(Root(drive), StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>모으는 대상인 드라이브 (마지막으로 살펴본 때). 화면 스레드에서 물어도 드라이브를 건드리지 않는다.</summary>
+    public IReadOnlyList<string> KnownDrives
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _known];
+            }
+        }
+    }
 
     /// <summary>변경 알림이 넘쳤을 때처럼, 이 드라이브를 곧 다시 모으라고 표시한다 (시험에서도 쓴다).</summary>
     public void MarkDirty(string drive)
@@ -431,7 +515,9 @@ public sealed class SlowCrawler : IDisposable
         while (!_cts.IsCancellationRequested)
         {
             var did = false;
-            foreach (var d in _drives())
+            var drives = RefreshDrives();
+            did |= CrawlRequested(drives);
+            foreach (var d in drives)
             {
                 if (_cts.IsCancellationRequested)
                 {
@@ -440,17 +526,19 @@ public sealed class SlowCrawler : IDisposable
 
                 var store = StoreFor(d);
                 Watch(Root(d));
-                bool dirty;
+                bool due;
+                var done = store.CompletedUtc;
                 lock (_gate)
                 {
-                    dirty = _dirty.Remove(Root(d));
+                    // 저절로 모으지 않는 설정이면 알림이 넘친 것도 표시만 해 둔다 (주기를 다시 켜면 그때 모은다)
+                    due = _rescanEvery is { } every && (_dirty.Remove(Root(d)) || done is null || DateTime.UtcNow - done.Value >= every);
                 }
 
-                if (!dirty && store.CompletedUtc is { } done && DateTime.UtcNow - done < RescanAfter)
+                if (!due)
                 {
                     if (StatusOf(d) is null)
                     {
-                        Report(new CrawlStatus(Root(d), false, store.Count >= 0 ? store.Count : store.CountLines(), true, done));
+                        Report(new CrawlStatus(Root(d), false, done is null ? 0 : store.Count >= 0 ? store.Count : store.CountLines(), done is not null, done));
                     }
 
                     continue;
@@ -458,6 +546,7 @@ public sealed class SlowCrawler : IDisposable
 
                 CrawlOnce(d, _cts.Token);
                 did = true;
+                CrawlRequested(drives); // 여러 드라이브가 밀려 있어도 사용자가 누른 것이 먼저
             }
 
             if (WaitHandle.WaitAny([_cts.Token.WaitHandle, _kick], did ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1)) == 0)
@@ -465,6 +554,62 @@ public sealed class SlowCrawler : IDisposable
                 return;
             }
         }
+    }
+
+    private IReadOnlyList<string> RefreshDrives()
+    {
+        var drives = _drives();
+        var now = new HashSet<string>(drives.Select(Root), StringComparer.OrdinalIgnoreCase);
+        lock (_gate)
+        {
+            if (!now.SetEquals(_known))
+            {
+                _known = now;
+            }
+        }
+
+        return drives;
+    }
+
+    /// <summary>[지금 색인하기]를 누른 드라이브를 누른 순서대로 모은다. 그사이 뽑힌 드라이브는 넘어간다.</summary>
+    private bool CrawlRequested(IReadOnlyList<string> drives)
+    {
+        var did = false;
+        while (!_cts.IsCancellationRequested)
+        {
+            string? next;
+            lock (_gate)
+            {
+                next = _requested.FirstOrDefault();
+            }
+
+            if (next is null)
+            {
+                return did;
+            }
+
+            var ready = drives.Any(d => string.Equals(Root(d), next, StringComparison.OrdinalIgnoreCase));
+            if (ready)
+            {
+                Watch(next);
+                // 차례 기다림 → 모으는 중: 사이에 빈틈이 없게 상태를 먼저 바꾼 뒤 목록에서 뺀다
+                Report(new CrawlStatus(next, true, 0, false, StoreFor(next).CompletedUtc));
+            }
+
+            lock (_gate)
+            {
+                _requested.Remove(next);
+                _dirty.Remove(next);
+            }
+
+            if (ready)
+            {
+                CrawlOnce(next, _cts.Token, full: true);
+                did = true;
+            }
+        }
+
+        return did;
     }
 
     /// <summary>폴더 하나의 기록: 그때의 수정 시각, 목록 파일 안 위치, 연속으로 안 바뀐 횟수.</summary>
@@ -486,7 +631,8 @@ public sealed class SlowCrawler : IDisposable
     /// <item>오래 안 바뀐 폴더는 확인 간격을 늘린다(1·2·4·8·16번에 한 번).</item>
     /// </list>
     /// </summary>
-    public long CrawlOnce(string drive, CancellationToken ct)
+    /// <param name="full">지난 목록을 쓰지 않고 모든 폴더를 다시 읽는다.</param>
+    public long CrawlOnce(string drive, CancellationToken ct, bool full = false)
     {
         var root = Root(drive);
         var store = StoreFor(root);
@@ -497,6 +643,11 @@ public sealed class SlowCrawler : IDisposable
         int listed = 0, reused = 0, skipped = 0;
         var (pass, old) = LoadIndex(idxPath);
         pass++;
+        if (full || AlwaysReadAll?.Invoke(root) == true)
+        {
+            old.Clear();
+        }
+
         Report(new CrawlStatus(root, true, 0, false, store.CompletedUtc));
         double factor = PauseFactor, baseline = -1;
 
