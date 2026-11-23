@@ -449,7 +449,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
                         return Prepare(new OrganizePlan { Root = root, Blocked = blocked });
                     }
 
-                    var scan = _scan is { } custom ? custom(root, deep, ct) : OrganizeScanner.Scan(root, deep, ct, counter);
+                    var scan = _scan is { } custom ? custom(root, deep, ct) : OrganizeScanner.Scan(root, deep, counter, ct: ct);
                     var cache = new PathExistsCache();
                     var plan = OrganizePlanner.Plan(scan, opts, cache.Exists, _media, _hasher, stages, ct);
                     return Prepare(plan);

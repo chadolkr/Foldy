@@ -90,7 +90,7 @@ public static class OrganizeScanner
     /// 하위 폴더는 여러 개를 동시에 읽는다 (이 PC 드라이브 4개, 네트워크 드라이브 1개).
     /// <paramref name="counter"/>가 있으면 지금까지 센 파일·폴더·용량을 채운다 (화면은 그것을 가끔 읽어 보여 준다).
     /// </summary>
-    public static OrganizeScan Scan(string root, bool includeSubfolders, CancellationToken ct = default, OrganizeScanCounter? counter = null, int? parallelism = null)
+    public static OrganizeScan Scan(string root, bool includeSubfolders, OrganizeScanCounter? counter = null, int? parallelism = null, CancellationToken ct = default)
     {
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         var scan = new OrganizeScan { Root = full };

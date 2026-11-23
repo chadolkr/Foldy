@@ -130,7 +130,7 @@ internal sealed class TrayNotice : IDisposable
         try
         {
             var data = NewData();
-            ShellNotifyIcon(NimDelete, ref data);
+            _ = ShellNotifyIcon(NimDelete, ref data);
         }
         finally
         {

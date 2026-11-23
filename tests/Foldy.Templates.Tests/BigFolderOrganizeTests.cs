@@ -53,7 +53,7 @@ public class BigFolderOrganizeTests
         MakeTree(tmp, folders: 10, filesPerFolder: 2);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
-        var act = () => OrganizeScanner.Scan(tmp.Path, includeSubfolders: true, cts.Token, parallelism: 4);
+        var act = () => OrganizeScanner.Scan(tmp.Path, includeSubfolders: true, parallelism: 4, ct: cts.Token);
         act.Should().Throw<OperationCanceledException>();
     }
 
@@ -142,7 +142,7 @@ public class BigFolderOrganizeTests
                 scanner: (root, deep, ct) =>
                 {
                     _ = gate.Wait(TimeSpan.FromSeconds(20), ct); // 큰 폴더처럼 오래 걸리게
-                    return OrganizeScanner.Scan(root, deep, ct);
+                    return OrganizeScanner.Scan(root, deep, ct: ct);
                 })
             {
                 SizeHint = (_, _) => Task.FromResult<long?>(93L * 1024 * 1024 * 1024),
@@ -195,7 +195,7 @@ public class BigFolderOrganizeTests
                 scanner: (root, deep, ct) =>
                 {
                     _ = gate.Wait(TimeSpan.FromSeconds(20), ct);
-                    return OrganizeScanner.Scan(root, deep, ct);
+                    return OrganizeScanner.Scan(root, deep, ct: ct);
                 });
             vm.IncludeSubfolders = true;
             var run = vm.PlanCommand.ExecuteAsync(null);
