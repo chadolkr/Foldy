@@ -937,6 +937,7 @@
   "ops.selectFirst": "请先选择文件",
   "ops.sftpDeleteWarn": "请稍等！服务器上没有回收站。🙂\n删除后无法恢复，请再确认一次。\n\n",
   "ops.toRecycle": "移到回收站",
+  "ops.workerCrashed": "Windows 在删除过程中停止了。Foldy 没有问题。部分项目可能已移到回收站，请对剩下的再试一次。",
   "org.after": "整理后",
   "org.alreadyUndone": "此次整理已撤销。",
   "org.bg.failed": "未能生成“{0}”的整理计划",

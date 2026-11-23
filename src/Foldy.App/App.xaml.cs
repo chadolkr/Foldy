@@ -11,6 +11,7 @@ public partial class App : Application
 {
     private UiStallDetector? _stallDetector;
     private Foldy.Platform.SystemInfo.SingleInstance? _instance;
+    private Foldy.Core.Diagnostics.RunMarker? _runMarker;
 
     /// <summary>화면 크기 배율 (설정 UiScale). 대화 창·메모 창도 같은 배율로 그린다.</summary>
     public static double UiScale { get; set; } = 1.0;
@@ -78,6 +79,14 @@ public partial class App : Application
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             var code = Services.McpRunner.Run();
             Shutdown(code);
+            return;
+        }
+
+        if (e.Args.Contains(Foldy.Core.FileSystem.FileOpWorkerProtocol.Argument, StringComparer.OrdinalIgnoreCase))
+        {
+            // Foldy가 띄운 휴지통·삭제 도우미: 창 없이 작업 하나만 하고 끝난다 (Services/FileOpWorker.cs)
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            Shutdown(Services.FileOpWorker.Serve());
             return;
         }
 
@@ -176,6 +185,16 @@ public partial class App : Application
             root.StartsWith(@"\\", StringComparison.Ordinal)
             || (root.Length >= 2 && root[1] == ':' && Foldy.Platform.SystemInfo.Drives.TypeOf(root[..2] + "\\") == Foldy.Platform.SystemInfo.NativeDriveType.Remote);
 
+        if (normalRun)
+        {
+            // 지난번에 "Foldy 종료" 없이 꺼졌으면 로그에 남긴다 (네이티브 코드가 프로세스를 끝내면 예외 처리기도 못 부른다)
+            _runMarker = Foldy.Core.Diagnostics.RunMarker.Start(DataDir, out var previous);
+            if (previous is not null)
+            {
+                Log.Warning("지난 실행이 정상 종료 없이 끝났습니다. 마지막 기록: {Last}", previous);
+            }
+        }
+
         _stallDetector = new UiStallDetector(Dispatcher, TimeSpan.FromMilliseconds(200));
         var settings = Foldy.Presentation.Persistence.AppSettings.Migrate(Foldy.Presentation.Persistence.JsonFileStore.Load(Path.Combine(DataDir, "settings.json"), () => new Foldy.Presentation.Persistence.AppSettings()));
         var theme = Options.ThemeGiven ? Options.Theme : Enum.TryParse<Foldy.UI.Theming.FoldyTheme>(settings.Theme, ignoreCase: true, out var t) ? t : Foldy.UI.Theming.FoldyTheme.System;
@@ -244,6 +263,7 @@ public partial class App : Application
     {
         _stallDetector?.Dispose();
         _instance?.Dispose();
+        _runMarker?.Stop();
         Log.Information("Foldy 종료 ({Code})", e.ApplicationExitCode);
         Log.CloseAndFlush();
         base.OnExit(e);

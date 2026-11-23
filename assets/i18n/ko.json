@@ -937,6 +937,7 @@
   "ops.selectFirst": "먼저 파일을 선택하세요",
   "ops.sftpDeleteWarn": "잠깐만요! 서버에는 휴지통이 없어요. 🙂\n지우면 되살릴 수 없으니 한 번만 더 확인해 주세요.\n\n",
   "ops.toRecycle": "휴지통으로",
+  "ops.workerCrashed": "Windows가 지우는 도중에 멈췄어요. Foldy는 괜찮아요. 일부는 이미 휴지통에 갔을 수 있으니 남은 것만 다시 해 보세요.",
   "org.after": "정리 후",
   "org.alreadyUndone": "이미 되돌린 정리입니다.",
   "org.bg.failed": "'{0}' 정리 계획을 만들지 못했어요",

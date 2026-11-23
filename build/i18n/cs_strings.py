@@ -86,6 +86,7 @@ CS = [
     ("ops.cantOpen", "열 수 없습니다: {0}", "Can't open: {0}", "No se puede abrir: {0}", "開けません: {0}", "无法打开：{0}"),
     ("ops.cantOpenTerminal", "터미널을 열 수 없습니다: {0}", "Can't open the terminal: {0}", "No se puede abrir la terminal: {0}", "ターミナルを開けません: {0}", "无法打开终端：{0}"),
     ("ops.job.recycle", "{0} 휴지통으로", "{0} to Recycle Bin", "{0} a la papelera", "{0} をごみ箱へ", "{0} 移到回收站"),
+    ("ops.workerCrashed", "Windows가 지우는 도중에 멈췄어요. Foldy는 괜찮아요. 일부는 이미 휴지통에 갔을 수 있으니 남은 것만 다시 해 보세요.", "Windows stopped partway through deleting. Foldy is fine. Some items may already be in the Recycle Bin, so try again for what's left.", "Windows se detuvo a mitad del borrado. Foldy sigue bien. Puede que algunos elementos ya estén en la papelera; vuelve a intentarlo con lo que quede.", "Windows が削除の途中で止まりました。Foldy は大丈夫です。一部はすでにごみ箱に入っているかもしれないので、残ったものだけもう一度お試しください。", "Windows 在删除过程中停止了。Foldy 没有问题。部分项目可能已移到回收站，请对剩下的再试一次。"),
     ("ops.job.deletePermanent", "{0} 영구 삭제", "Delete {0} permanently", "Eliminar {0} definitivamente", "{0} を完全に削除", "永久删除 {0}"),
     ("ops.job.fastDelete", "{0} 빨리 지우기", "Fast delete {0}", "Borrado rápido de {0}", "{0} を高速削除", "快速删除 {0}"),
     ("ops.more", "\n  … 외 {0:N0}개", "\n  … and {0:N0} more", "\n  … y {0:N0} más", "\n  … ほか {0:N0} 個", "\n  … 另外 {0:N0} 个"),

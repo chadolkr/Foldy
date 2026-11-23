@@ -44,8 +44,10 @@ public static class FileOperations
             {
                 tcs.TrySetResult(new FileOpOutcome(false, true, null, null));
             }
-            catch (Exception ex) when (ex is COMException or IOException or UnauthorizedAccessException or ArgumentException or InvalidCastException)
+            catch (Exception ex)
             {
+                // 이 스레드에서 새는 예외는 Foldy 전체를 끝낸다 (전역 처리기는 화면 스레드만 살린다).
+                // 어떤 예외든 실패 결과로 돌려 작업 패널에 알린다 (사용자 제보 2026-11-23)
                 tcs.TrySetResult(new FileOpOutcome(false, false, ex.Message, null));
             }
         })
