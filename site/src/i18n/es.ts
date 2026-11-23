@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'Nuevo en la 1.3: el Panel de control',
-    eyebrow: 'Foldy 1.3',
+    badge: 'Nuevo en la 1.5: ve cuántos se encontraron',
+    eyebrow: 'Foldy 1.5',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
-      { icon: 'search', title: 'También el Panel de control', text: 'Escribe "Agregar o quitar programas", "Administrador de dispositivos" o "variables de entorno" en Ctrl+Space para abrir el Panel de control clásico y las herramientas administrativas. Los resultados se agrupan en aplicaciones, ajustes, carpetas y archivos, como en la búsqueda de Windows.' },
-      { icon: 'info', title: 'Fácil desde el primer día', text: 'Los grupos del menú muestran una marca ›, y Foldy te avisa de una función una sola vez, justo cuando sirve. La presentación corta recuerda lo que ya viste y solo enseña lo nuevo.' },
-      { icon: 'lock', title: 'Cajas fuertes y notas bloqueadas más sencillas', text: 'Cada opción del menú dice para qué sirve, y Foldy te indica dónde se guardó todo. Ahora puedes añadir más archivos a una caja fuerte que ya creaste.' },
-      { icon: 'update', title: 'Actualizaciones que no se atascan', text: 'Las actualizaciones ya no esperan a un Foldy que una app de IA abrió en segundo plano. Los archivos protegidos con DRM de empresa lo indican en la vista previa.' },
+      { icon: 'search', title: 'Ve cuántos se encontraron', text: 'Ctrl+Space muestra el número junto a cada grupo, como "Archivos · 220". Al ver solo archivos, al bajar se cargan más, y la última línea dice cuántos has visto.' },
+      { icon: 'disk', title: 'Carpetas enormes, ordenadas rápido', text: 'Foldy prepara rápido el orden de carpetas con cientos de miles de archivos y muestra el número y el tamaño mientras avanza. Si tarda, puede seguir en segundo plano y avisarte al terminar.' },
+      { icon: 'check', title: 'También el Panel de control', text: 'Escribe "Agregar o quitar programas", "Administrador de dispositivos" o "variables de entorno" para abrir el Panel de control clásico y las herramientas administrativas. Los resultados se agrupan como en la búsqueda de Windows.' },
+      { icon: 'update', title: 'Actualizaciones que no se atascan', text: 'Las actualizaciones ya no esperan a un Foldy abierto por una app de IA, y pulsar [Buscar actualizaciones] mientras Foldy ya descarga en una red de empresa ya no falla.' },
     ],
     link: 'Ver todos los cambios',
   },

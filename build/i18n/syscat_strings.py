@@ -13,6 +13,13 @@ SYSCAT = [
     ("qs.filter.files", "파일", "Files", "Archivos", "ファイル", "文件"),
     ("qs.filter.name", "보기: {0}", "Show: {0}", "Mostrar: {0}", "表示: {0}", "显示：{0}"),
     ("qs.more", "더 보기", "More", "Ver más", "もっと見る", "更多"),
+    # 결과 수와 끝없이 내려 보기 (2026-11-23 사용자: "더 보기는 아래까지 내리면 안 보여 직관적이지 않다. 전체가 몇 건인지 알 수 있게")
+    ("qs.count", "{0} · {1:N0}개", "{0} · {1:N0}", "{0} · {1:N0}", "{0} · {1:N0} 件", "{0} · {1:N0} 个"),
+    ("qs.showAll", "{0:N0}개 모두 보기", "Show all {0:N0}", "Ver los {0:N0}", "{0:N0} 件すべて表示", "查看全部 {0:N0} 个"),
+    ("qs.showAllRow", "{0} {1:N0}개 모두 보기", "Show all {1:N0} in {0}", "Ver los {1:N0} de {0}", "{0}をすべて表示 ({1:N0} 件)", "查看全部{0}（{1:N0} 个）"),
+    ("qs.progress", "{0:N0}개 중 {1:N0}개 · 아래로 내리면 더 나와요", "{1:N0} of {0:N0} · scroll down for more", "{1:N0} de {0:N0} · baja para ver más", "{0:N0} 件中 {1:N0} 件 · 下へスクロールすると続きが出ます", "共 {0:N0} 个，已显示 {1:N0} 个 · 向下滚动查看更多"),
+    ("qs.allShown", "{0:N0}개 모두 보였어요", "All {0:N0} shown", "Se muestran los {0:N0}", "{0:N0} 件すべて表示しました", "已显示全部 {0:N0} 个"),
+    ("qs.counting", "{0:N0}개 찾는 중…", "Finding… {0:N0} so far", "Buscando… {0:N0} hasta ahora", "検索中… {0:N0} 件", "正在查找… 已找到 {0:N0} 个"),
     ("qs.open", "열기", "Open", "Abrir", "開く", "打开"),
     ("qs.openFolder", "들어 있는 폴더 열기", "Open containing folder", "Abrir la carpeta contenedora", "保存先のフォルダーを開く", "打开所在文件夹"),
     ("qs.ctrlPanel", "제어판", "Control Panel", "Panel de control", "コントロール パネル", "控制面板"),

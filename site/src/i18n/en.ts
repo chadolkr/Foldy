@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'New in 1.3: find Control Panel too',
-    eyebrow: 'Foldy 1.3',
+    badge: 'New in 1.5: see how many were found',
+    eyebrow: 'Foldy 1.5',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
-      { icon: 'search', title: 'Control Panel, too', text: 'Type "Add or remove programs", "Device Manager" or "environment variables" in Ctrl+Space to open classic Control Panel and admin tools. Results are grouped into apps, settings, folders and files, like Windows Search.' },
-      { icon: 'info', title: 'Easy from day one', text: 'Menu groups now show a › mark, and Foldy points out a feature once, right when it helps. The short intro remembers what you have seen and shows only new features.' },
-      { icon: 'lock', title: 'Simpler vaults and locked notes', text: 'Each menu item says what it is for, and Foldy tells you where things were saved. You can now add more files to a vault you already made.' },
-      { icon: 'update', title: 'Updates that don’t get stuck', text: 'Updates no longer wait for a Foldy that an AI app started in the background. Files protected by company DRM now say so in the preview.' },
+      { icon: 'search', title: 'See how many were found', text: 'Ctrl+Space shows the count next to each group, like "Files · 220". When you look at files only, scrolling down keeps loading more, and the last line tells you how many you have seen.' },
+      { icon: 'disk', title: 'Huge folders, organized fast', text: 'Foldy now plans a tidy-up of folders with hundreds of thousands of files quickly and shows the count and size as it goes. If it takes long, it can keep working in the background and tell you when it is done.' },
+      { icon: 'check', title: 'Control Panel, too', text: 'Type "Add or remove programs", "Device Manager" or "environment variables" to open classic Control Panel and admin tools. Results are grouped into apps, settings, folders and files, like Windows Search.' },
+      { icon: 'update', title: 'Updates that don’t get stuck', text: 'Updates no longer wait for a Foldy that an AI app started, and pressing [Check for updates] while Foldy is already downloading on a company network no longer fails.' },
     ],
     link: 'See everything that changed',
   },
