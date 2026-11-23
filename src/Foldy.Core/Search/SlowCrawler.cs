@@ -1286,8 +1286,10 @@ public sealed class SlowCrawler : IDisposable
             // (2026-11-23 회사 PC: 클라우드 드라이브 K:가 "색인 완료 · 0개"로 나왔다. 맨 위 폴더가 모두 이런 폴더라 다 건너뛴 것으로 본다).
             // 숨김 폴더도 들어간다: 회사 클라우드 드라이브(K:)는 맨 위 폴더가 숨김이다 (사용자 2026-11-23 "K 드라이브는 폴더가 히든 이라서 그럴까?").
             // 빼는 것은 Windows가 쓰는 폴더(휴지통·시스템 볼륨 정보)와 숨김+시스템 파일(desktop.ini·thumbs.db)뿐이다
-            return e.IsDirectory ? (IsWindowsFolder(e.FileName) || ((e.Attributes & FileAttributes.ReparsePoint) != 0 && IsLink(path)))
-                    : (e.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == (FileAttributes.Hidden | FileAttributes.System)
+            var skip = e.IsDirectory
+                ? IsWindowsFolder(e.FileName) || ((e.Attributes & FileAttributes.ReparsePoint) != 0 && IsLink(path))
+                : (e.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == (FileAttributes.Hidden | FileAttributes.System);
+            return skip
                 ? null
                 : new CrawlEntry(path, e.IsDirectory, e.IsDirectory ? 0 : e.Length, e.LastWriteTimeUtc.UtcDateTime);
         }, Flat)

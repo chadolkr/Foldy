@@ -11,19 +11,6 @@ public static class AnalysisSqlite
 {
     private static int _init;
 
-    /// <summary>정션·심볼릭 링크인가. 알 수 없으면 링크로 보고 들어가지 않는다.</summary>
-    private static bool IsLink(DirectoryInfo d)
-    {
-        try
-        {
-            return d.LinkTarget is not null;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            return true;
-        }
-    }
-
     public static void EnsureInitialized()
     {
         if (Interlocked.Exchange(ref _init, 1) == 0)
@@ -211,6 +198,19 @@ public static partial class FallbackScanner
         }
 
         return DefaultCluster;
+    }
+
+    /// <summary>정션·심볼릭 링크인가. 알 수 없으면 링크로 보고 들어가지 않는다.</summary>
+    private static bool IsLink(DirectoryInfo d)
+    {
+        try
+        {
+            return d.LinkTarget is not null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return true;
+        }
     }
 
     [LibraryImport("kernel32.dll", EntryPoint = "GetDiskFreeSpaceW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
