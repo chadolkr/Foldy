@@ -9,7 +9,8 @@ public enum FileOpKind { Copy, Move, Delete, Recycle, Rename, NewFolder }
 /// <param name="NoConfirm">확인 창 없이 실행 (테스트·자동화 전용, 화면에서는 쓰지 않는다).</param>
 public sealed record FileOpRequest(FileOpKind Kind, IReadOnlyList<string> Sources, string? Destination = null, string? NewName = null, bool NoConfirm = false);
 
-public sealed record FileOpOutcome(bool Succeeded, bool Aborted, string? Error, string? CreatedPath);
+/// <param name="ErrorCode">실패했을 때 Windows 오류 코드(HRESULT, 없으면 0). 쉬운 말을 고르는 데 쓴다 (FileOpErrors).</param>
+public sealed record FileOpOutcome(bool Succeeded, bool Aborted, string? Error, string? CreatedPath, int ErrorCode = 0);
 
 /// <summary>진행 보고 (작업 단위 총량/완료량, 현재 항목 이름).</summary>
 public delegate void FileOpProgressCallback(long done, long total, string? current);
@@ -25,11 +26,15 @@ public static class FileOperations
     private const uint FOF_RENAMEONCOLLISION = 0x0008;
     private const uint FOF_NOCONFIRMATION = 0x0010;
     private const uint FOF_ALLOWUNDO = 0x0040;
+    private const uint FOF_NOERRORUI = 0x0400;
     private const uint FOF_NOCONFIRMMKDIR = 0x0200;
     private const uint FOFX_SHOWELEVATIONPROMPT = 0x00040000;
     private const uint FOFX_RECYCLEONDELETE = 0x00080000;
     private const uint FOFX_ADDUNDORECORD = 0x20000000;
     private const int HrCancelled = unchecked((int)0x800704C7);
+
+    // 사용자가 멈춘 것: ERROR_CANCELLED, COPYENGINE_E_USER_CANCELLED, COPYENGINE_E_CANCELLED
+    private static bool IsCancel(int hr) => hr is HrCancelled or unchecked((int)0x80270000) or unchecked((int)0x80270001);
 
     public static Task<FileOpOutcome> RunAsync(FileOpRequest req, IntPtr owner, FileOpProgressCallback? progress, CancellationToken ct)
     {
@@ -40,9 +45,13 @@ public static class FileOperations
             {
                 tcs.TrySetResult(Run(req, owner, progress, ct));
             }
-            catch (COMException ex) when (ex.HResult == HrCancelled)
+            catch (COMException ex) when (IsCancel(ex.HResult))
             {
                 tcs.TrySetResult(new FileOpOutcome(false, true, null, null));
+            }
+            catch (COMException ex)
+            {
+                tcs.TrySetResult(new FileOpOutcome(false, false, ex.Message, null, ex.HResult));
             }
             catch (Exception ex)
             {
@@ -68,8 +77,9 @@ public static class FileOperations
             var flags = FOF_SILENT | FOF_NOCONFIRMMKDIR | FOFX_SHOWELEVATIONPROMPT | FOFX_ADDUNDORECORD;
             flags |= req.Kind switch
             {
-                FileOpKind.Recycle => FOF_ALLOWUNDO | FOFX_RECYCLEONDELETE,
-                FileOpKind.Delete => 0,
+                // 지우기는 Windows 오류 창("폴더 액세스가 거부됨" 등) 대신 Foldy가 쉬운 말로 알린다. UAC 창은 FOFX_SHOWELEVATIONPROMPT로 그대로 뜬다
+                FileOpKind.Recycle => FOF_ALLOWUNDO | FOFX_RECYCLEONDELETE | FOF_NOERRORUI,
+                FileOpKind.Delete => FOF_NOERRORUI,
                 FileOpKind.NewFolder => FOF_RENAMEONCOLLISION | FOF_ALLOWUNDO,
                 _ => FOF_ALLOWUNDO,
             };
@@ -128,11 +138,22 @@ public static class FileOperations
                         break;
                 }
 
-                op.PerformOperations();
-                var aborted = op.GetAnyOperationsAborted();
-                if (sink.FirstError is { } hr && hr != HrCancelled)
+                try
                 {
-                    return new FileOpOutcome(false, aborted, Marshal.GetExceptionForHR(hr)?.Message ?? $"0x{hr:X8}", sink.CreatedPath);
+                    op.PerformOperations();
+                }
+                catch (COMException ex) when (!IsCancel(ex.HResult))
+                {
+                    // 항목 하나가 실패하면 전체가 실패 코드로 끝나기도 한다: 그 항목의 코드가 더 알맞다
+                    var code = sink.FirstError is { } first && !IsCancel(first) ? first : ex.HResult;
+                    return new FileOpOutcome(false, false, Marshal.GetExceptionForHR(code)?.Message ?? ex.Message, sink.CreatedPath, code);
+                }
+
+                var aborted = op.GetAnyOperationsAborted();
+                if (sink.FirstError is { } hr && !IsCancel(hr))
+                {
+                    // 오류 창 없이 실패한 것은 취소가 아니라 실패로 알린다 (GetAnyOperationsAborted가 참이어도)
+                    return new FileOpOutcome(false, false, Marshal.GetExceptionForHR(hr)?.Message ?? $"0x{hr:X8}", sink.CreatedPath, hr);
                 }
 
                 return new FileOpOutcome(!aborted, aborted, null, sink.CreatedPath);

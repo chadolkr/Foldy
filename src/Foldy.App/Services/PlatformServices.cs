@@ -34,7 +34,15 @@ public sealed class WpfDispatcher(Dispatcher dispatcher) : IUiDispatcher
 public sealed class ShellFileOperationService(Func<IntPtr> owner) : IFileOperationService
 {
     private static FileOpResult Map(FileOpOutcome o) =>
-        o.Succeeded ? FileOpResult.Ok(o.CreatedPath) : o.Aborted ? FileOpResult.Canceled : FileOpResult.Fail(o.Error ?? "실패");
+        o.Succeeded ? FileOpResult.Ok(o.CreatedPath) : o.Aborted ? FileOpResult.Canceled : FileOpResult.Fail(FriendlyError(o));
+
+    /// <summary>권한·사용 중·긴 경로는 Windows 글 대신 쉬운 말로 (Windows 오류 창은 띄우지 않는다, FileOpErrors).</summary>
+    private static string FriendlyError(FileOpOutcome o) => FileOpErrors.Classify(o.ErrorCode) switch
+    {
+        FileOpErrorKind.AccessDenied or FileOpErrorKind.InUse => Foldy.Core.Localization.Loc.T("ops.err.locked"),
+        FileOpErrorKind.PathTooLong => Foldy.Core.Localization.Loc.T("ops.err.pathTooLong"),
+        _ => o.Error ?? "실패",
+    };
 
     private static FileOpProgressCallback? Cb(IProgress<FileOpProgress>? p) =>
         p is null ? null : (done, total, cur) => p.Report(new FileOpProgress(done, total, cur));

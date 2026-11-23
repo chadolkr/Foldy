@@ -13,7 +13,8 @@ public sealed record FileOpWorkerRequest(string Kind, IReadOnlyList<string> Sour
 public sealed record FileOpWorkerProgress(long Done, long Total, string? Current);
 
 /// <summary>도우미가 마지막에 보내는 결과 한 줄.</summary>
-public sealed record FileOpWorkerResult(bool Succeeded, bool Aborted, string? Error);
+/// <param name="Code">실패했을 때 Windows 오류 코드 (없으면 0).</param>
+public sealed record FileOpWorkerResult(bool Succeeded, bool Aborted, string? Error, int Code = 0);
 
 /// <summary>
 /// 휴지통·삭제 작업을 Foldy 창과 다른 프로세스에서 돌리기 위한 약속 (1.7.1, 사용자 제보 2026-11-23).
