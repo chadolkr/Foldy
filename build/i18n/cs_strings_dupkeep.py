@@ -16,4 +16,15 @@ DUPKEEP = [
     ("org.dup.col.size", "크기", "Size", "Tamaño", "サイズ", "大小"),
     ("org.dup.col.keeper", "남길 파일 (정리할 폴더 기준 위치)", "File to keep (location in this folder)", "Archivo que se conserva (ubicación en esta carpeta)", "残すファイル (このフォルダー内の場所)", "保留的文件（在此文件夹中的位置）"),
     ("org.dup.pick", "줄을 누르면 같은 파일들이 어디에 있는지 보고 남길 파일을 고를 수 있어요.", "Click a row to see where each identical file is and pick the one to keep.", "Haz clic en una fila para ver dónde está cada archivo idéntico y elegir cuál conservar.", "行を押すと、同じファイルがそれぞれどこにあるかを見て、残すファイルを選べます。", "点击一行即可查看每个相同文件的位置，并选择要保留的文件。"),
+    # 이유별 묶음 막대·보이는 것만 체크 (사용자 2026-11-23: 중복만·기타만 골라 보고, 전체 체크·해제, 많은 것부터)
+    ("org.cat.title", "어디로 가나요 (많은 순) · 누르면 그것만 보여요", "Where files go (most first) · click to show only those", "Adónde van (de más a menos) · haz clic para ver solo esos", "移し先 (多い順) · 押すとそれだけ表示", "去向（按数量）· 点击只看这一类"),
+    ("org.cat.all", "모두", "All", "Todos", "すべて", "全部"),
+    ("org.cat.detail", "{0:N0}개 · 체크 {1:N0} · {2}", "{0:N0} · {1:N0} checked · {2}", "{0:N0} · {1:N0} marcados · {2}", "{0:N0} 個 · チェック {1:N0} · {2}", "{0:N0} 个 · 已勾选 {1:N0} · {2}"),
+    ("org.checkAll", "보이는 것 모두 체크", "Check all shown", "Marcar todo lo visible", "表示中をすべてチェック", "勾选显示的全部"),
+    ("org.uncheckAll", "보이는 것 모두 해제", "Uncheck all shown", "Desmarcar todo lo visible", "表示中をすべて外す", "取消勾选显示的全部"),
+    ("org.visible", "{0:N0}개 보는 중", "Showing {0:N0}", "Mostrando {0:N0}", "{0:N0} 個を表示中", "正在显示 {0:N0} 个"),
+    # 위 트리 한쪽 숨기기·다시 보기 (사용자 2026-11-23: 한쪽을 줄이거나 닫았다가 다시 열기)
+    ("org.tree.hide", "숨기기", "Hide", "Ocultar", "隠す", "隐藏"),
+    ("org.tree.showAfter", "정리 후 다시 보기", "Show 'After' again", "Volver a mostrar 'Después'", "整理後をもう一度表示", "重新显示“整理后”"),
+    ("org.tree.showBefore", "지금 다시 보기", "Show 'Now' again", "Volver a mostrar 'Ahora'", "今をもう一度表示", "重新显示“现在”"),
 ]

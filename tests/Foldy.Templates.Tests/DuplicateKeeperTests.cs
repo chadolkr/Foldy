@@ -152,4 +152,61 @@ public class DuplicateKeeperTests
         FileTypeGroups.GroupOf("Util.pas").Should().Be(FileTypeGroups.Code);
         FileTypeGroups.GroupOf("Main.dfm").Should().Be(FileTypeGroups.Code);
     }
+
+    [Fact]
+    public void Reasons_are_counted_most_first_and_check_all_applies_to_what_is_shown()
+    {
+        using var tmp = new TempDir();
+        tmp.File("a.pdf", "A");
+        tmp.File("b.pdf", "BB");
+        tmp.File("c.jpg", "CCC");
+        var vm = new OrganizeViewModel(tmp.Path, new InlineDispatcher(), journalFolder: tmp["jobs"]);
+        vm.ApplyPlan(OrganizePlanner.Plan(OrganizeScanner.Scan(tmp.Path, false), new OrganizeOptions { Mode = OrganizeMode.ByType }, Exists));
+
+        vm.Categories.Select(c => c.Name).Should().Equal("모두", "문서", "이미지");
+        vm.Categories.Select(c => c.Count).Should().Equal(3, 2, 1);
+        vm.Categories[1].BarWidth.Should().BeGreaterThan(vm.Categories[2].BarWidth, "많은 것이 더 긴 막대");
+        vm.VisibleMoves.Should().HaveCount(3);
+
+        vm.SelectedCategory = vm.Categories.Single(c => c.Name == "이미지");
+        vm.VisibleMoves.Should().ContainSingle().Which.SourceName.Should().Be("c.jpg");
+        vm.UncheckAllVisibleCommand.Execute(null);
+        vm.Moves.Single(m => m.SourceName == "c.jpg").IsIncluded.Should().BeFalse();
+        vm.Moves.Where(m => m.SourceName != "c.jpg").Should().OnlyContain(m => m.IsIncluded, "보이는 것만 바뀐다");
+        vm.Categories.Single(c => c.Name == "이미지").Checked.Should().Be(0);
+        vm.Categories.Single(c => c.IsAll).Checked.Should().Be(2);
+        vm.SelectedCategory!.Name.Should().Be("이미지", "수를 고쳐도 고른 묶음은 그대로");
+
+        vm.SelectedCategory = vm.Categories.Single(c => c.IsAll);
+        vm.VisibleMoves.Should().HaveCount(3);
+        vm.UncheckAllVisibleCommand.Execute(null);
+        vm.ExecuteCommand.CanExecute(null).Should().BeFalse("모두 해제하면 옮길 것이 없다");
+        vm.CheckAllVisibleCommand.Execute(null);
+        vm.Moves.Should().OnlyContain(m => m.IsIncluded);
+        vm.Categories.Single(c => c.IsAll).Checked.Should().Be(3);
+    }
+
+    [Fact]
+    public void One_tree_can_be_hidden_and_shown_again()
+    {
+        using var tmp = new TempDir();
+        var vm = new OrganizeViewModel(tmp.Path, new InlineDispatcher(), journalFolder: tmp["jobs"]);
+        vm.ShowBothTrees.Should().BeTrue();
+        vm.HideBeforeTreeCommand.Execute(null);
+        vm.ShowBeforeTree.Should().BeFalse();
+        vm.ShowAfterTree.Should().BeTrue("둘 다 숨기지는 않는다");
+        vm.HideAfterTreeCommand.Execute(null);
+        vm.ShowBeforeTree.Should().BeTrue();
+        vm.ShowAfterTree.Should().BeFalse();
+        vm.ShowTreesAgainCommand.Execute(null);
+        vm.ShowBothTrees.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Long_paths_keep_the_first_folder_and_the_end()
+    {
+        OrganizeViewModel.ShortPath("a\\b.txt").Should().Be("a\\b.txt", "짧으면 그대로");
+        var longPath = @"00.CodeReview\SRC_CLIENT\03.BIZ\BIZ_MCOMVAR\Source\Forms\Common\frMDA600U1.pas";
+        OrganizeViewModel.ShortPath(longPath).Should().Be(@"00.CodeReview\…\Common\frMDA600U1.pas");
+    }
 }

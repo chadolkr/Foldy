@@ -8,6 +8,7 @@
   -->
   <t:EnumVisibilityConverter x:Key="EnumVis" />
   <t:BoolVisibilityConverter x:Key="BoolVis" />
+  <t:BoolVisibilityConverter x:Key="InverseBoolVis" Invert="True" />
   <t:BoolVisibilityConverter x:Key="NotBoolVis" Invert="True" />
 
   <Style x:Key="Tpl.Title" TargetType="TextBlock">
@@ -360,9 +361,19 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="GridViewColumnHeader">
-          <Border Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,1,1" Padding="8,5">
-            <ContentPresenter HorizontalAlignment="Left" />
-          </Border>
+          <!-- PART_HeaderGripper: 칸 사이 경계를 끌어 넓이를 바꾼다 (사용자 2026-11-23: 경로 칸 넓이를 못 바꿨다) -->
+          <Grid>
+            <Border Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,1,1" Padding="8,5">
+              <ContentPresenter HorizontalAlignment="Left" />
+            </Border>
+            <Thumb x:Name="PART_HeaderGripper" HorizontalAlignment="Right" Width="9" Margin="0,0,-4,0" Cursor="SizeWE">
+              <Thumb.Template>
+                <ControlTemplate TargetType="Thumb">
+                  <Border Background="Transparent" />
+                </ControlTemplate>
+              </Thumb.Template>
+            </Thumb>
+          </Grid>
         </ControlTemplate>
       </Setter.Value>
     </Setter>
