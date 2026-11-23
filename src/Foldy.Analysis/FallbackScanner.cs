@@ -120,7 +120,8 @@ public static partial class FallbackScanner
                     {
                         var child = input.Dirs.Count;
                         input.Dirs.Add(new InputDir(nextId++, idx, fsi.Name, SafeTime(fsi), (int)attrs));
-                        if ((attrs & FileAttributes.ReparsePoint) == 0)
+                        // 클라우드 파일 폴더(회사 클라우드 드라이브·OneDrive)도 재분석 지점이지만 링크가 아니라 진짜 폴더라 들어간다 (2026-11-23 K: 분석이 0개였다)
+                        if ((attrs & FileAttributes.ReparsePoint) == 0 || !IsLink((DirectoryInfo)fsi))
                         {
                             stack.Push(((DirectoryInfo)fsi, child));
                         }
@@ -197,6 +198,19 @@ public static partial class FallbackScanner
         }
 
         return DefaultCluster;
+    }
+
+    /// <summary>정션·심볼릭 링크인가. 알 수 없으면 링크로 보고 들어가지 않는다.</summary>
+    private static bool IsLink(DirectoryInfo d)
+    {
+        try
+        {
+            return d.LinkTarget is not null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return true;
+        }
     }
 
     [LibraryImport("kernel32.dll", EntryPoint = "GetDiskFreeSpaceW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]

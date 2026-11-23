@@ -93,6 +93,38 @@ public class CrawledListTests
     }
 
     [Fact]
+    public void List_is_not_trusted_when_empty_or_far_below_used_space()
+    {
+        const long Gb = 1024L * 1024 * 1024;
+        static CrawledList Of(params CrawledItem[] items) => new(DateTime.UtcNow, _ => items);
+        var oneGb = new CrawledItem(@"K:\a\big.bin", false, Gb, Old);
+        AnalysisCoordinator.ListLooksRight(@"K:\", Of(), 0, Ct).Should().BeFalse("빈 목록 (2026-11-23 K: '파일 0개')");
+        AnalysisCoordinator.ListLooksRight(@"K:\", Of(), 29 * Gb, Ct).Should().BeFalse();
+        AnalysisCoordinator.ListLooksRight(@"K:\", Of(oneGb), 29 * Gb, Ct).Should().BeFalse("29GB를 쓴 드라이브에 1GB만 있으면 빠진 것이 많다");
+        AnalysisCoordinator.ListLooksRight(@"K:\", Of(oneGb), 3 * Gb, Ct).Should().BeTrue("휴지통·압축 때문에 조금 다른 것은 괜찮다");
+        AnalysisCoordinator.ListLooksRight(@"K:\", Of(new CrawledItem(@"K:\a", true, 0, Old)), 0, Ct).Should().BeTrue("사용량을 모르면 비어 있지만 않으면 쓴다");
+        AnalysisCoordinator.ListLooksRight(@"K:\web", Of(oneGb), 0, Ct).Should().BeFalse("고른 폴더 아래에 아무것도 없다");
+    }
+
+    [Fact]
+    public async Task Empty_list_falls_back_to_reading_folders()
+    {
+        using var tree = new TempDir();
+        using var outDir = new TempDir();
+        tree.File(@"a\one.bin", 10);
+        var coordinator = new AnalysisCoordinator(null, CleanupRules.Default, outDir.Path)
+        {
+            CrawledLists = _ => new CrawledList(DateTime.UtcNow, _ => []),
+        };
+        var progress = new List<AnalysisProgress>();
+        var set = await coordinator.AnalyzeAsync(tree.Path, new SyncProgress(progress), Ct);
+        set.FromList.Should().BeFalse("빈 목록으로 '파일 0개'라고 하지 않는다");
+        progress.Should().Contain(p => p.Message.Contains("많이 달라", StringComparison.Ordinal));
+        using var db = AnalysisDb.Open(set.Latest.DbPath);
+        db.Scan().TotalFiles.Should().Be(1);
+    }
+
+    [Fact]
     public void Reading_progress_says_counts_and_time_and_uses_last_total()
     {
         var p = FallbackScanner.ReadingProgress(12, 3400, 0, TimeSpan.FromSeconds(75));

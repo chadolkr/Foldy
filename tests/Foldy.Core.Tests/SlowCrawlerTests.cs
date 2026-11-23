@@ -120,16 +120,23 @@ public sealed class SlowCrawlerTests : IDisposable
     }
 
     [Fact]
-    public void Hidden_folders_and_links_are_skipped()
+    public void Hidden_folders_are_gathered_but_windows_folders_are_not()
     {
+        // 회사 클라우드 드라이브(K:)는 맨 위 폴더가 숨김이다: 숨김 폴더도 모은다 (사용자 2026-11-23 "K 드라이브는 폴더가 히든 이라서 그럴까?")
         Make(@"보통\a.txt");
         Make(@"숨김\b.txt");
+        Make(@"$RECYCLE.BIN\c.txt");
+        Make(@"보통\desktop.ini");
         File.SetAttributes(Path.Combine(_root, "숨김"), FileAttributes.Hidden | FileAttributes.Directory);
+        File.SetAttributes(Path.Combine(_root, "보통", "desktop.ini"), FileAttributes.Hidden | FileAttributes.System);
         using var c = new SlowCrawler(_store, () => [_root]);
         c.CrawlOnce(_root, TestContext.Current.CancellationToken);
         var store = c.StoreFor(_root);
         Assert.Single(store.Search("a.txt", 10));
-        Assert.Empty(store.Search("b.txt", 10));
+        Assert.Single(store.Search("b.txt", 10));
+        Assert.Empty(store.Search("c.txt", 10)); // 휴지통은 Windows 것
+        Assert.Empty(store.Search("desktop.ini", 10)); // 숨김+시스템 파일
+        File.SetAttributes(Path.Combine(_root, "보통", "desktop.ini"), FileAttributes.Normal);
     }
 
     [Fact]
@@ -145,7 +152,116 @@ public sealed class SlowCrawlerTests : IDisposable
         var store = c.StoreFor(_root);
         Assert.Single(store.Search("old", 10));
         Assert.Empty(store.Search("new", 10)); // 다 모으기 전에는 예전 목록 그대로
-        Assert.False(File.Exists(store.FilePath + ".part"));
+        Assert.True(c.HasUnfinished(_root)); // 끊긴 곳을 남겨 다음에 이어서 한다
+    }
+
+    [Fact]
+    public void Interrupted_first_gathering_continues_where_it_stopped()
+    {
+        // 크고 느린 드라이브를 처음 모으다 Foldy를 끄거나 업데이트해도 처음부터 다시 하지 않는다 (사용자 2026-11-23)
+        for (var i = 0; i < 20; i++)
+        {
+            Make($@"d{i:00}\f{i:00}.txt");
+        }
+
+        using (var cts = new CancellationTokenSource())
+        using (var first = new SlowCrawler(_store, () => [_root]))
+        {
+            var n = 0;
+            first.ShouldPause = () =>
+            {
+                if (++n > 6)
+                {
+                    cts.Cancel();
+                }
+
+                return false;
+            };
+            first.CrawlOnce(_root, cts.Token);
+            Assert.True(first.HasUnfinished(_root));
+            Assert.False(first.StoreFor(_root).Exists, "다 모으기 전에는 완료로 보이지 않는다");
+        }
+
+        using var c = new SlowCrawler(_store, () => [_root]);
+        var asked = 0;
+        c.ShouldPause = () => { asked++; return false; };
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        var p = c.LastPass!;
+        Assert.True(p.Resumed);
+        Assert.True(asked < 21, $"이어서 했으면 남은 폴더만 읽는다 (이번에 본 폴더 {asked})");
+        Assert.Equal(21, p.Listed); // 앞에서 읽은 것까지 합쳐 뿌리 + 폴더 20개
+        Assert.Equal(20, c.StoreFor(_root).Search(".txt", 100).Count());
+        Assert.Equal(40, c.StoreFor(_root).ReadAll().Count());
+        Assert.False(c.HasUnfinished(_root));
+        Assert.False(File.Exists(c.StoreFor(_root).FilePath + ".part"));
+        Assert.False(File.Exists(c.StoreFor(_root).FilePath + ".marks"));
+    }
+
+    [Fact]
+    public void Drive_that_keeps_folder_times_while_contents_change_is_found_out_and_read_whole()
+    {
+        // 하위 폴더가 있는 폴더는 늘 다시 읽으므로 "시각은 그대로인데 안이 바뀐" 폴더를 스스로 센다
+        for (var i = 0; i < 4; i++)
+        {
+            Make($@"p{i}\s\f.txt");
+        }
+
+        using var c = new SlowCrawler(_store, () => [_root]);
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.True(c.LastPass!.TrustTimes);
+        for (var i = 0; i < 4; i++)
+        {
+            var p = Path.Combine(_root, $"p{i}");
+            var before = Directory.GetLastWriteTimeUtc(p);
+            Make($@"p{i}\새{i}.txt");
+            Directory.SetLastWriteTimeUtc(p, before);
+        }
+
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.False(c.LastPass!.TrustTimes);
+        Assert.Equal(4, c.StoreFor(_root).Search("새", 10).Count());
+
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.Equal(9, c.LastPass!.Listed); // 믿지 않으니 뿌리 + 폴더 8개 모두
+    }
+
+    [Fact]
+    public void Regular_gathering_is_skipped_while_free_space_and_top_folder_stay_the_same()
+    {
+        Make(@"a\처음.txt");
+        using (var first = new SlowCrawler(_store, () => [_root]) { FreeSpaceOf = _ => 123 })
+        {
+            first.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        }
+
+        Make(@"a\나중.txt"); // 맨 위 폴더 시각은 그대로
+        using (var quiet = new SlowCrawler(_store, () => [_root]) { RescanEvery = TimeSpan.FromHours(1), FreeSpaceOf = _ => 123 })
+        {
+            File.SetLastWriteTimeUtc(quiet.StoreFor(_root).FilePath, DateTime.UtcNow.AddHours(-2));
+            quiet.Start();
+            WaitFor(() => quiet.StatusOf(_root) is { Running: false, Complete: true });
+            Thread.Sleep(500);
+            Assert.Null(quiet.LastPass);
+        }
+
+        // 남은 공간이 바뀌었다: 이번에는 모은다
+        using var c = new SlowCrawler(_store, () => [_root]) { RescanEvery = TimeSpan.FromHours(1), FreeSpaceOf = _ => 456 };
+        c.Start();
+        WaitFor(() => c.LastPass is not null && c.StoreFor(_root).Search("나중", 10).Any());
+    }
+
+    [Fact]
+    public void Drive_with_files_that_reads_as_empty_is_a_problem_not_done()
+    {
+        // 2026-11-23 회사 PC: 29GB를 쓴 K:가 "색인 완료 · 0개"로 나왔다
+        Make(@"a\예전.txt");
+        using var c = new SlowCrawler(_store, () => [_root]) { IsWholeDrive = _ => true, UsedSpaceOf = _ => 29L * 1024 * 1024 * 1024 };
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Directory.Delete(Path.Combine(_root, "a"), recursive: true);
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.Equal(SlowCrawler.NothingReadable, c.StatusOf(_root)!.Error);
+        Assert.Single(c.StoreFor(_root).Search("예전", 10)); // 예전 목록은 그대로
+        Assert.False(c.HasUnfinished(_root));
     }
 
     [Fact]
@@ -188,7 +304,7 @@ public sealed class SlowCrawlerTests : IDisposable
         // 이름은 그대로, 크기만 바뀐 파일: 폴더 수정 시각이 안 바뀌어 보통 다시 모으기로는 알 수 없다
         File.WriteAllText(Path.Combine(_root, "d3", "f.txt"), new string('x', 5000));
         c.CrawlOnce(_root, TestContext.Current.CancellationToken);
-        Assert.Equal(0, c.LastPass!.Listed);
+        Assert.Equal(1, c.LastPass!.Listed); // 맨 위 폴더만 읽는다
 
         Assert.True(c.RequestNow(_root));
         c.Start();

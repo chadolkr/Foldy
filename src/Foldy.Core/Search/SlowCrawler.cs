@@ -274,7 +274,7 @@ public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Co
 /// <summary>
 /// 색인 없는 드라이브를 "살살" 모은다 (사용자 2026-11-21: "회사 드라이브도 부하 주지 않게 살살 수집해 줘").
 /// 폴더를 하나 열 때마다, 여는 데 걸린 시간의 몇 배(최소 <see cref="MinPause"/>)를 쉰다 → 느린 드라이브일수록 저절로 천천히.
-/// <see cref="ShouldPause"/>가 참이면(복사 같은 작업 중) 기다린다. 숨김·시스템 폴더, 링크(정션·심볼릭 링크) 안은 들어가지 않는다.
+/// <see cref="ShouldPause"/>가 참이면(복사 같은 작업 중) 기다린다. Windows 폴더(휴지통·시스템 볼륨 정보)와 숨김+시스템 파일, 링크(정션·심볼릭 링크) 안은 들어가지 않는다.
 /// 다 모으면 <see cref="RescanEvery"/> 뒤에 다시 모으고, <see cref="RequestNow"/>로 지금 모으게 할 수도 있다.
 /// </summary>
 public sealed class SlowCrawler : IDisposable
@@ -319,6 +319,9 @@ public sealed class SlowCrawler : IDisposable
 
     // 변경 알림이 넘치거나 끊긴 드라이브: 1시간을 기다리지 않고 곧 다시 모은다 (바뀐 폴더만 읽어서 가볍다)
     private readonly HashSet<string> _dirty = new(StringComparer.OrdinalIgnoreCase);
+
+    // 싼 신호로 "바뀐 것 없음"을 마지막으로 확인한 때 (정기 색인 주기를 여기서부터 센다)
+    private readonly Dictionary<string, DateTime> _quiet = new(StringComparer.OrdinalIgnoreCase);
     private readonly AutoResetEvent _kick = new(false);
 
     // 사용자가 [지금 색인하기]를 누른 드라이브 (누른 순서대로)
@@ -525,13 +528,50 @@ public sealed class SlowCrawler : IDisposable
                 }
 
                 var store = StoreFor(d);
-                Watch(Root(d));
-                bool due;
+                var root = Root(d);
+                Watch(root);
+                bool due, onSchedule = false;
                 var done = store.CompletedUtc;
+                var unfinished = HasUnfinished(root); // 모으다 끊긴 것은 주기를 기다리지 않고 이어서 한다 (직접 누를 때만 설정이어도: 사용자가 시작한 것)
+                var retryEmpty = false;
                 lock (_gate)
                 {
+                    retryEmpty = !_retriedEmpty.Contains(root);
+                }
+
+                retryEmpty = retryEmpty && LooksWronglyEmpty(root, store);
+                lock (_gate)
+                {
+                    if (retryEmpty)
+                    {
+                        _retriedEmpty.Add(root);
+                    }
+
+                    due = unfinished || retryEmpty;
                     // 저절로 모으지 않는 설정이면 알림이 넘친 것도 표시만 해 둔다 (주기를 다시 켜면 그때 모은다)
-                    due = _rescanEvery is { } every && (_dirty.Remove(Root(d)) || done is null || DateTime.UtcNow - done.Value >= every);
+                    if (!due && _rescanEvery is { } every)
+                    {
+                        var last = done is { } dd && _quiet.TryGetValue(root, out var q) && q > dd ? q : done;
+                        if (_dirty.Remove(root) || done is null)
+                        {
+                            due = true;
+                        }
+                        else if (DateTime.UtcNow - last!.Value >= every)
+                        {
+                            due = onSchedule = true;
+                        }
+                    }
+                }
+
+                if (onSchedule && LooksQuiet(root, done!.Value))
+                {
+                    // 남은 공간·맨 위 폴더 시각이 그대로: 이번 정기 색인은 건너뛴다
+                    lock (_gate)
+                    {
+                        _quiet[root] = DateTime.UtcNow;
+                    }
+
+                    due = false;
                 }
 
                 if (!due)
@@ -615,20 +655,86 @@ public sealed class SlowCrawler : IDisposable
     /// <summary>폴더 하나의 기록: 그때의 수정 시각, 목록 파일 안 위치, 연속으로 안 바뀐 횟수.</summary>
     private sealed record DirMark(long MTime, long Offset, int Length, int Unchanged);
 
-    /// <summary>지난번 모은 것과 비교한 이번 결과 (시험·진단용).</summary>
-    public sealed record PassStats(long Found, int Listed, int Reused, int Skipped);
+    /// <summary>
+    /// 지난번 모은 것과 비교한 이번 결과 (시험·진단용).
+    /// Listed: 목록을 새로 읽은 폴더, Reused: 지난 목록을 그대로 쓴 폴더, Skipped: 그중 드라이브에 아무것도 묻지 않은 폴더(위 폴더 목록에 딸려 온 시각으로 판단),
+    /// Resumed: 끊긴 곳부터 이어서 했나, TrustTimes: 이 드라이브의 폴더 시각을 믿었나.
+    /// </summary>
+    public sealed record PassStats(long Found, int Listed, int Reused, int Skipped, bool Resumed = false, bool TrustTimes = true);
 
     /// <summary>마지막으로 모은 결과 (시험·진단용).</summary>
     public PassStats? LastPass { get; private set; }
 
+    /// <summary>모으던 중 끊긴 곳을 이만큼 지나기 전이면 이어서 한다. 더 오래되면 처음부터.</summary>
+    public static TimeSpan ResumeWithin { get; set; } = TimeSpan.FromDays(7);
+
+    /// <summary>모으는 동안 끊긴 곳을 이 간격마다 남긴다 (Foldy가 갑자기 꺼져도 여기서부터).</summary>
+    public static TimeSpan CheckpointEvery { get; set; } = TimeSpan.FromSeconds(10);
+
     /// <summary>
-    /// 드라이브 하나를 끝까지 모은다 (시험에서도 쓴다). 취소되면 모으던 것은 버리고 예전 목록을 둔다.
-    /// <para>부하는 적게, 그래도 빨리 (사용자 2026-11-21):</para>
+    /// 남은 공간·맨 위 폴더 시각이 그대로면 정기 색인을 건너뛰지만, 마지막으로 다 모은 뒤 이만큼 지나면 그래도 모은다
+    /// (이름만 바뀐 것은 이 신호로 알 수 없어서).
+    /// </summary>
+    public static TimeSpan QuietAtMost { get; set; } = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// 다 읽었는데 하나도 없을 때 알리는 오류 (<see cref="CrawlStatus.Error"/>). 화면은 이것을 보고 "읽지 못했어요"라고 쉬운 말로 알린다.
+    /// </summary>
+    public const string NothingReadable = "nothing-readable";
+
+    /// <summary>드라이브에서 쓰고 있는 공간이 이보다 많은데 하나도 못 읽으면 문제로 본다.</summary>
+    internal const long NothingFoundBytes = 64L * 1024 * 1024;
+
+    /// <summary>드라이브에서 쓰고 있는 공간 (시험에서 바꾼다). 알 수 없으면 0.</summary>
+    internal Func<string, long> UsedSpaceOf { get; set; } = DefaultUsedSpace;
+
+    private static long DefaultUsedSpace(string root)
+    {
+        try
+        {
+            var d = new DriveInfo(root);
+            return d.TotalSize - d.TotalFreeSpace;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>드라이브 전체(예: "K:\\")인가 (시험에서 바꾼다: 시험은 임시 폴더를 드라이브처럼 쓴다).</summary>
+    internal Func<string, bool> IsWholeDrive { get; set; } = root => string.Equals(Path.GetPathRoot(root), root, StringComparison.OrdinalIgnoreCase);
+
+    // 목록이 비어 있는데 드라이브에는 파일이 있는 경우 한 번만 곧바로 다시 모아 본다 (계속 실패해도 드라이브를 두드리지 않게)
+    private readonly HashSet<string> _retriedEmpty = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>다 모은 목록이 0개인데 드라이브에는 파일이 있다 (1.8.0까지 회사 클라우드 드라이브 같은 클라우드 드라이브에서 생겼다).</summary>
+    private bool LooksWronglyEmpty(string root, CrawlStore store) =>
+        store.Exists && (store.Count >= 0 ? store.Count : store.CountLines()) == 0 && IsWholeDrive(root) && UsedSpaceOf(root) > NothingFoundBytes;
+
+    /// <summary>드라이브의 남은 공간 (시험에서 바꾼다). null이면 알 수 없음 → 건너뛰지 않는다.</summary>
+    internal Func<string, long?> FreeSpaceOf { get; set; } = DefaultFreeSpace;
+
+    /// <summary>
+    /// 이 드라이브의 폴더 시각을 믿을 수 있나 (스스로 시험한 결과).
+    /// 다시 모을 때 하위 폴더가 있는 폴더는 늘 목록을 새로 읽으므로, 그때 "시각은 그대로인데 안 목록이 바뀐" 폴더를 센다.
+    /// 그런 폴더가 3개 넘고 10%를 넘으면 믿지 않고 전부 읽는다 (FAT의 2초 시각 단위 같은 우연은 넘어가게).
+    /// </summary>
+    internal static bool TimesTrusted(long checks, long misses) => misses < 3 || misses * 10 <= checks;
+
+    /// <summary>
+    /// 드라이브 하나를 끝까지 모은다 (시험에서도 쓴다). 취소되거나 드라이브가 끊기면 모은 데까지 남겨 두고, 다음에 거기서부터 이어서 한다
+    /// (사용자 2026-11-23: K:처럼 크고 느린 드라이브는 Foldy를 끄거나 업데이트하면 처음부터 다시 해서 끝을 못 봤다). 그동안 찾기는 예전 목록 + 모은 데까지로.
+    /// <para>부하는 적게, 그래도 빨리 (사용자 2026-11-21, 2026-11-23):</para>
     /// <list type="bullet">
     /// <item>폴더 목록은 한 번에 크게(64KB) 받아 오고 파일을 하나씩 열지 않는다. 요청은 한 번에 하나만.</item>
     /// <item>속도 조절(TCP처럼): 폴더를 읽은 시간을 평소와 비교해, 평소처럼 빠르면 쉬는 비율을 조금씩 줄이고(빨리), 느려지면 바로 두 배로(살살).</item>
-    /// <item>다시 모을 때는 폴더의 수정 시각만 먼저 묻고, 같으면 지난 목록을 그대로 쓴다(파일이 생기거나 지워지거나 이름이 바뀌면 그 폴더의 시각이 바뀐다).</item>
-    /// <item>오래 안 바뀐 폴더는 확인 간격을 늘린다(1·2·4·8·16번에 한 번).</item>
+    /// <item>다시 모을 때, 하위 폴더가 있는 폴더는 목록을 새로 읽는다.
+    /// 하위 폴더가 없는 끝 폴더는 그 폴더의 수정 시각만 묻고(목록보다 훨씬 가볍다), 지난번과 같으면 지난 목록을 쓴다.
+    /// 위 폴더 목록에 딸려 오는 시각은 쓰지 않는다: NTFS(네트워크 드라이브 뒤의 서버 포함)는 위 폴더에 적힌 하위 폴더 시각을 늦게 고쳐서 바뀐 것을 놓친다(CI 실측)
+    /// (폴더 시각은 바로 안의 것이 생기거나 지워지거나 이름이 바뀔 때만 바뀌므로, 하위 폴더 통째 건너뛰기는 하지 않는다).
+    /// 노트북 SD카드 실측: 폴더 21,130개 중 하위 폴더가 있는 9,947개만 읽으면 된다.</item>
+    /// <item>폴더 시각을 믿을 수 없는 드라이브(<see cref="TimesTrusted"/>, <see cref="AlwaysReadAll"/>)는 늘 모든 폴더를 읽는다.</item>
+    /// <item>최근에 바뀐 폴더부터 읽어, 바뀐 것이 찾기에 먼저 나온다.</item>
     /// </list>
     /// </summary>
     /// <param name="full">지난 목록을 쓰지 않고 모든 폴더를 다시 읽는다.</param>
@@ -639,16 +745,28 @@ public sealed class SlowCrawler : IDisposable
         var temp = store.FilePath + ".part";
         var idxPath = store.FilePath + ".idx";
         var idxTemp = idxPath + ".part";
-        long found = 0;
-        int listed = 0, reused = 0, skipped = 0;
-        var (pass, old) = LoadIndex(idxPath);
-        pass++;
-        if (full || AlwaysReadAll?.Invoke(root) == true)
+        var marksPath = store.FilePath + ".marks";
+        var resumePath = store.FilePath + ".resume";
+        var ix = LoadIndex(idxPath);
+        var old = ix.Marks;
+        var trusted = TimesTrusted(ix.Checks, ix.Misses);
+        var readAll = full || old.Count == 0 || !trusted || AlwaysReadAll?.Invoke(root) == true;
+        var ck = LoadCheckpoint(resumePath);
+        if (ck is not null && !CanResume(ck, readAll, temp, marksPath))
         {
-            old.Clear();
+            ck = null;
         }
 
-        Report(new CrawlStatus(root, true, 0, false, store.CompletedUtc));
+        if (ck is not null)
+        {
+            readAll = ck.ReadAll;
+        }
+
+        var pass = ck?.Pass ?? ix.Pass + 1;
+        long found = ck?.Found ?? 0, checks = ck?.Checks ?? 0, misses = ck?.Misses ?? 0;
+        int listed = ck?.Listed ?? 0, reused = ck?.Reused ?? 0, skipped = ck?.Skipped ?? 0;
+
+        Report(new CrawlStatus(root, true, found, false, store.CompletedUtc));
         double factor = PauseFactor, baseline = -1;
 
         void Breathe(TimeSpan took)
@@ -670,11 +788,53 @@ public sealed class SlowCrawler : IDisposable
             try
             {
                 var marks = new Dictionary<string, DirMark>(StringComparer.OrdinalIgnoreCase);
-                using (var data = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.Read))
+                var stack = new Stack<(string Dir, long Time)>();
+                FileStream data;
+                StreamWriter marksOut;
+                if (ck is not null)
                 {
-                    var stack = new Stack<string>();
-                    stack.Push(root);
+                    // 이어서: 마지막으로 남긴 곳 뒤에 반쯤 쓴 것은 잘라 낸다
+                    data = new FileStream(temp, FileMode.Open, FileAccess.Write, FileShare.Read);
+                    data.SetLength(ck.DataLength);
+                    data.Seek(0, SeekOrigin.End);
+                    using (var mf = new FileStream(marksPath, FileMode.Open, FileAccess.Write, FileShare.Read))
+                    {
+                        mf.SetLength(ck.MarksLength);
+                    }
+
+                    foreach (var line in File.ReadLines(marksPath, Encoding.UTF8))
+                    {
+                        if (ParseMark(line) is { } pm)
+                        {
+                            marks[pm.Dir] = pm.Mark;
+                        }
+                    }
+
+                    marksOut = new StreamWriter(new FileStream(marksPath, FileMode.Append, FileAccess.Write, FileShare.Read), new UTF8Encoding(false));
+                    for (var i = ck.Stack.Count - 1; i >= 0; i--)
+                    {
+                        stack.Push(ck.Stack[i]);
+                    }
+                }
+                else
+                {
+                    data = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.Read);
+                    marksOut = new StreamWriter(new FileStream(marksPath, FileMode.Create, FileAccess.Write, FileShare.Read), new UTF8Encoding(false));
+                    stack.Push((root, 0));
+                }
+
+                void SaveProgress()
+                {
+                    data.Flush(flushToDisk: true);
+                    marksOut.Flush();
+                    SaveCheckpoint(resumePath, new Checkpoint(pass, readAll, found, data.Length, marksOut.BaseStream.Length, checks, misses, listed, reused, skipped, DateTime.UtcNow, [.. stack]));
+                }
+
+                (string Dir, long Time)? current = null;
+                try
+                {
                     var lastReport = Stopwatch.StartNew();
+                    var lastSave = Stopwatch.StartNew();
                     while (stack.Count > 0)
                     {
                         ct.ThrowIfCancellationRequested();
@@ -686,67 +846,47 @@ public sealed class SlowCrawler : IDisposable
                             }
                         }
 
-                        var dir = stack.Pop();
-                        var before = old.TryGetValue(dir, out var o) ? o : null;
-                        byte[]? block = null;
-                        var unchanged = 0;
-                        long mtime = 0;
-                        if (before is not null && oldData is not null)
-                        {
-                            // 오래 안 바뀐 폴더는 가끔만 확인한다 (unchanged 2 → 2번에 한 번, 3 → 4번에 한 번 … 최대 16번에 한 번)
-                            var every = 1 << Math.Clamp(before.Unchanged - 1, 0, 4);
-                            if (before.Unchanged >= 2 && pass % every != 0)
-                            {
-                                block = ReadBlock(oldData, before);
-                                unchanged = before.Unchanged;
-                                mtime = before.MTime;
-                                skipped++;
-                            }
-                            else
-                            {
-                                var sw = Stopwatch.StartNew();
-                                mtime = DirTime(dir);
-                                Breathe(sw.Elapsed);
-                                if (mtime != 0 && mtime == before.MTime)
-                                {
-                                    block = ReadBlock(oldData, before);
-                                    unchanged = before.Unchanged + 1;
-                                    reused++;
-                                }
-                            }
-                        }
+                        var (dir, mtime) = stack.Pop();
+                        current = (dir, mtime);
+                        // 폴더마다 그 폴더 자신의 시각을 묻는다 (위 폴더 목록에 적힌 시각은 NTFS에서 늦게 고쳐진다)
+                        var sw0 = Stopwatch.StartNew();
+                        mtime = DirTime(dir);
+                        Breathe(sw0.Elapsed);
 
-                        var offset = data.Position;
-                        if (block is not null)
+                        var before = old.TryGetValue(dir, out var o) ? o : null;
+                        var oldBlock = before is not null && oldData is not null ? ReadBlock(oldData, before) : null;
+                        var sameTime = before is not null && mtime != 0 && mtime == before.MTime;
+                        byte[] block;
+                        var unchanged = 0;
+                        var took = TimeSpan.Zero;
+                        var asked = false;
+                        var children = new List<(string Dir, long Time)>();
+                        if (!readAll && dir != root && sameTime && oldBlock is not null && !HasFolder(oldBlock))
                         {
-                            data.Write(block);
-                            foreach (var line in Encoding.UTF8.GetString(block).Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                            {
-                                found++;
-                                if (CrawlStore.Parse(line.TrimEnd('\r')) is { IsFolder: true } e)
-                                {
-                                    stack.Push(e.Path);
-                                }
-                            }
+                            // 끝 폴더, 시각 그대로: 드라이브에 묻지 않고 지난 목록을 쓴다
+                            block = oldBlock;
+                            unchanged = before!.Unchanged + 1;
+                            reused++;
+                            skipped++;
+                            found += CountLines(block);
                         }
                         else
                         {
                             var sw = Stopwatch.StartNew();
                             List<CrawlEntry> entries;
+                            var ok = true;
                             try
                             {
-                                if (mtime == 0)
-                                {
-                                    mtime = DirTime(dir);
-                                }
-
                                 entries = [.. List(dir)];
                             }
-                            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                            catch (Exception ex) when ((ex is IOException or UnauthorizedAccessException) && dir != root)
                             {
                                 entries = [];
+                                ok = false;
                             }
 
+                            took = sw.Elapsed;
+                            asked = true;
                             listed++;
                             var sb = new StringBuilder();
                             foreach (var e in entries)
@@ -755,53 +895,182 @@ public sealed class SlowCrawler : IDisposable
                                 found++;
                                 if (e.IsFolder)
                                 {
-                                    stack.Push(e.Path);
+                                    children.Add((e.Path, e.ModifiedUtc.Ticks));
                                 }
                             }
 
-                            data.Write(Encoding.UTF8.GetBytes(sb.ToString()));
-                            Breathe(sw.Elapsed);
+                            block = Encoding.UTF8.GetBytes(sb.ToString());
+                            if (ok && sameTime && oldBlock is not null)
+                            {
+                                // 스스로 시험: 시각은 그대로인데 안 목록이 바뀌었나
+                                var same = SameNames(oldBlock, entries);
+                                checks++;
+                                if (!same)
+                                {
+                                    misses++;
+                                }
+
+                                unchanged = same ? before!.Unchanged + 1 : 0;
+                            }
                         }
 
-                        marks[dir] = new DirMark(mtime, offset, (int)(data.Position - offset), unchanged);
+                        // 여기서부터 끝까지는 끊기지 않는다 (남기는 기록이 늘 맞게)
+                        var offset = data.Position;
+                        data.Write(block);
+                        var mark = new DirMark(mtime, offset, block.Length, unchanged);
+                        marks[dir] = mark;
+                        marksOut.WriteLine(FormatMark(dir, mark));
+
+                        // 최근에 바뀐 폴더가 먼저 나오게: 오래 안 바뀐 것부터 쌓는다(나중에 쌓은 것이 먼저 나온다)
+                        foreach (var c in children.OrderByDescending(c => old.TryGetValue(c.Dir, out var m) ? m.Unchanged : -1))
+                        {
+                            stack.Push(c);
+                        }
+
+                        current = null;
                         if (lastReport.Elapsed > TimeSpan.FromSeconds(1))
                         {
                             data.Flush(); // 모으는 중에도 찾을 수 있게
                             Report(new CrawlStatus(root, true, found, false, store.CompletedUtc));
                             lastReport.Restart();
                         }
+
+                        if (lastSave.Elapsed > CheckpointEvery)
+                        {
+                            SaveProgress();
+                            lastSave.Restart();
+                        }
+
+                        if (asked)
+                        {
+                            Breathe(took);
+                        }
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    if (current is { } cur)
+                    {
+                        stack.Push(cur);
+                    }
+
+                    SaveProgress();
+                    throw;
+                }
+                finally
+                {
+                    marksOut.Dispose();
+                    data.Dispose();
                 }
 
                 oldData?.Dispose();
                 oldData = null;
-                SaveIndex(idxTemp, pass, marks);
+                if (found == 0 && IsWholeDrive(root) && UsedSpaceOf(root) > NothingFoundBytes)
+                {
+                    // 드라이브에 파일이 있는데 하나도 못 읽었다: "완료 · 0개" 대신 문제로 알리고, 예전 목록은 그대로 둔다
+                    TryDelete(temp);
+                    TryDelete(marksPath);
+                    TryDelete(resumePath);
+                    throw new IOException(NothingReadable);
+                }
+
+                var (tc, tm) = (ix.Checks + checks, ix.Misses + misses);
+                if (tc > 2000)
+                {
+                    // 오래된 시험 결과는 반씩 잊는다 (드라이브가 바뀌면 다시 믿을 수도 있게)
+                    (tc, tm) = (tc / 2, tm / 2);
+                }
+
+                SaveIndex(idxTemp, new IndexFile(pass, marks, tc, tm, Signal(root)));
                 store.Replace(temp, found);
                 File.Move(idxTemp, idxPath, overwrite: true);
+                TryDelete(marksPath);
+                TryDelete(resumePath);
+                trusted = TimesTrusted(tc, tm);
             }
             finally
             {
                 oldData?.Dispose();
             }
 
-            LastPass = new PassStats(found, listed, reused, skipped);
+            LastPass = new PassStats(found, listed, reused, skipped, ck is not null, trusted);
             Report(new CrawlStatus(root, false, found, true, DateTime.UtcNow));
             return found;
         }
         catch (OperationCanceledException)
         {
-            TryDelete(temp);
+            // 모은 데까지(.part)와 끊긴 곳(.resume)은 남긴다: 다음에 이어서 한다
             TryDelete(idxTemp);
             Report(new CrawlStatus(root, false, store.Count, store.Exists, store.CompletedUtc));
             return found;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            TryDelete(temp);
+            // 드라이브가 끊긴 경우 등: 마지막으로 남긴 곳부터 다음에 이어서 한다
             TryDelete(idxTemp);
             Report(new CrawlStatus(root, false, store.Count, store.Exists, store.CompletedUtc, ex.Message));
             return found;
         }
+    }
+
+    /// <summary>끊긴 곳에서 이어서 해도 되나: 너무 오래되지 않았고, 남긴 파일이 기록한 길이만큼 있고, 전부 다시 읽기를 바랄 때는 그때도 전부 읽던 중이어야.</summary>
+    private static bool CanResume(Checkpoint ck, bool readAll, string temp, string marksPath)
+    {
+        try
+        {
+            return DateTime.UtcNow - ck.SavedUtc <= ResumeWithin
+                && (!readAll || ck.ReadAll)
+                && File.Exists(temp) && new FileInfo(temp).Length >= ck.DataLength
+                && File.Exists(marksPath) && new FileInfo(marksPath).Length >= ck.MarksLength;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>이 드라이브를 모으다 끊긴 곳이 남아 있나 (Foldy를 켜면 주기를 기다리지 않고 이어서 한다).</summary>
+    public bool HasUnfinished(string drive) => File.Exists(StoreFor(drive).FilePath + ".resume");
+
+    private static bool HasFolder(byte[] block)
+    {
+        foreach (var line in Encoding.UTF8.GetString(block).Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (CrawlStore.Parse(line.TrimEnd('\r')) is { IsFolder: true })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int CountLines(byte[] block)
+    {
+        var n = 0;
+        foreach (var b in block)
+        {
+            if (b == (byte)'\n')
+            {
+                n++;
+            }
+        }
+
+        return n;
+    }
+
+    private static bool SameNames(byte[] oldBlock, List<CrawlEntry> now)
+    {
+        var before = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var line in Encoding.UTF8.GetString(oldBlock).Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (CrawlStore.Parse(line.TrimEnd('\r')) is { } e)
+            {
+                before.Add(e.Path);
+            }
+        }
+
+        return before.Count == now.Count && now.All(e => before.Contains(e.Path));
     }
 
     private static long DirTime(string dir)
@@ -824,29 +1093,81 @@ public sealed class SlowCrawler : IDisposable
         return buf;
     }
 
-    private static (int Pass, Dictionary<string, DirMark> Marks) LoadIndex(string path)
+    private static long? DefaultFreeSpace(string root)
+    {
+        try
+        {
+            return new DriveInfo(root).TotalFreeSpace;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>싼 변경 신호: 남은 공간과 맨 위 폴더 시각. 알 수 없으면 null.</summary>
+    private long[]? Signal(string root)
+    {
+        var free = FreeSpaceOf(root);
+        var t = DirTime(root);
+        return free is { } f && t != 0 ? [f, t] : null;
+    }
+
+    /// <summary>
+    /// 정기 색인 때가 됐어도 남은 공간과 맨 위 폴더 시각이 다 모은 때와 같으면 이번은 건너뛴다 (드라이브를 거의 읽지 않는다).
+    /// 이 신호로는 이름만 바뀐 것을 알 수 없으므로 <see cref="QuietAtMost"/>가 지나면 그래도 모은다.
+    /// </summary>
+    private bool LooksQuiet(string root, DateTime done)
+    {
+        if (DateTime.UtcNow - done >= QuietAtMost)
+        {
+            return false;
+        }
+
+        var saved = LoadIndex(StoreFor(root).FilePath + ".idx").Signal;
+        return saved is not null && Signal(root) is { } now && saved.AsSpan().SequenceEqual(now);
+    }
+
+    private sealed record IndexFile(int Pass, Dictionary<string, DirMark> Marks, long Checks, long Misses, long[]? Signal);
+
+    private static IndexFile LoadIndex(string path)
     {
         var marks = new Dictionary<string, DirMark>(StringComparer.OrdinalIgnoreCase);
         var pass = 0;
+        long checks = 0, misses = 0;
+        long[]? signal = null;
         try
         {
             if (!File.Exists(path))
             {
-                return (0, marks);
+                return new IndexFile(0, marks, 0, 0, null);
             }
 
             foreach (var line in File.ReadLines(path, Encoding.UTF8))
             {
-                if (line.StartsWith("#pass ", StringComparison.Ordinal))
+                if (line.StartsWith('#'))
                 {
-                    _ = int.TryParse(line.AsSpan(6), out pass);
+                    var p = line.Split(' ');
+                    switch (p[0])
+                    {
+                        case "#pass" when p.Length == 2:
+                            _ = int.TryParse(p[1], out pass);
+                            break;
+                        case "#trust" when p.Length == 3:
+                            _ = long.TryParse(p[1], out checks);
+                            _ = long.TryParse(p[2], out misses);
+                            break;
+                        case "#sig" when p.Length == 3 && long.TryParse(p[1], out var a) && long.TryParse(p[2], out var b):
+                            signal = [a, b];
+                            break;
+                    }
+
                     continue;
                 }
 
-                var p = line.Split('\t');
-                if (p.Length == 5 && long.TryParse(p[1], out var mt) && long.TryParse(p[2], out var off) && int.TryParse(p[3], out var len) && int.TryParse(p[4], out var un))
+                if (ParseMark(line) is { } pm)
                 {
-                    marks[p[0]] = new DirMark(mt, off, len, un);
+                    marks[pm.Dir] = pm.Mark;
                 }
             }
         }
@@ -855,30 +1176,140 @@ public sealed class SlowCrawler : IDisposable
             marks.Clear();
         }
 
-        return (pass, marks);
+        return new IndexFile(pass, marks, checks, misses, signal);
     }
 
-    private static void SaveIndex(string path, int pass, Dictionary<string, DirMark> marks)
+    private static string FormatMark(string dir, DirMark m) =>
+        string.Join('\t', dir, m.MTime.ToString(System.Globalization.CultureInfo.InvariantCulture), m.Offset.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            m.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), m.Unchanged.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+    private static (string Dir, DirMark Mark)? ParseMark(string line)
     {
+        var p = line.Split('\t');
+        return p.Length == 5 && long.TryParse(p[1], out var mt) && long.TryParse(p[2], out var off) && int.TryParse(p[3], out var len) && int.TryParse(p[4], out var un)
+            ? (p[0], new DirMark(mt, off, len, un))
+            : null;
+    }
+
+    private static void SaveIndex(string path, IndexFile ix)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
         using var w = new StreamWriter(path, append: false, new UTF8Encoding(false));
-        w.Write("#pass ");
-        w.WriteLine(pass.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        foreach (var (dir, m) in marks)
+        w.WriteLine("#pass " + ix.Pass.ToString(inv));
+        w.WriteLine("#trust " + ix.Checks.ToString(inv) + " " + ix.Misses.ToString(inv));
+        if (ix.Signal is [var a, var b])
         {
-            w.WriteLine(string.Join('\t', dir, m.MTime.ToString(System.Globalization.CultureInfo.InvariantCulture), m.Offset.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                m.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), m.Unchanged.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            w.WriteLine("#sig " + a.ToString(inv) + " " + b.ToString(inv));
+        }
+
+        foreach (var (dir, m) in ix.Marks)
+        {
+            w.WriteLine(FormatMark(dir, m));
+        }
+    }
+
+    /// <summary>모으다 끊긴 곳. 목록(.part)과 폴더 기록(.marks)은 적어 둔 길이까지만 믿는다.</summary>
+    private sealed record Checkpoint(int Pass, bool ReadAll, long Found, long DataLength, long MarksLength, long Checks, long Misses, int Listed, int Reused, int Skipped, DateTime SavedUtc, List<(string Dir, long Time)> Stack);
+
+    private static void SaveCheckpoint(string path, Checkpoint c)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var tmp = path + ".tmp";
+        using (var w = new StreamWriter(tmp, append: false, new UTF8Encoding(false)))
+        {
+            w.WriteLine("#resume 1");
+            w.WriteLine(string.Join(' ', c.Pass.ToString(inv), c.ReadAll ? "1" : "0", c.Found.ToString(inv), c.DataLength.ToString(inv), c.MarksLength.ToString(inv),
+                c.Checks.ToString(inv), c.Misses.ToString(inv), c.Listed.ToString(inv), c.Reused.ToString(inv), c.Skipped.ToString(inv), c.SavedUtc.Ticks.ToString(inv)));
+            foreach (var (dir, t) in c.Stack)
+            {
+                w.WriteLine(dir + "\t" + t.ToString(inv));
+            }
+        }
+
+        File.Move(tmp, path, overwrite: true);
+    }
+
+    private static Checkpoint? LoadCheckpoint(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            using var r = new StreamReader(path, Encoding.UTF8);
+            if (r.ReadLine() != "#resume 1" || r.ReadLine()?.Split(' ') is not { Length: 11 } h)
+            {
+                return null;
+            }
+
+            var n = new long[11];
+            for (var i = 0; i < 11; i++)
+            {
+                if (!long.TryParse(h[i], out n[i]))
+                {
+                    return null;
+                }
+            }
+
+            var stack = new List<(string, long)>();
+            string? line;
+            while ((line = r.ReadLine()) is not null)
+            {
+                var tab = line.LastIndexOf('\t');
+                if (tab > 0 && long.TryParse(line.AsSpan(tab + 1), out var t))
+                {
+                    stack.Add((line[..tab], t));
+                }
+            }
+
+            return new Checkpoint((int)n[0], n[1] == 1, n[2], n[3], n[4], n[5], n[6], (int)n[7], (int)n[8], (int)n[9], new DateTime(n[10], DateTimeKind.Utc), stack);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentOutOfRangeException)
+        {
+            return null;
         }
     }
 
     // 목록은 한 번에 크게 받는다 (네트워크 왕복을 줄인다)
-    private static readonly EnumerationOptions Flat = new() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.Hidden | FileAttributes.System, ReturnSpecialDirectories = false, BufferSize = 64 * 1024 };
+    private static readonly EnumerationOptions Flat = new() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = 0, ReturnSpecialDirectories = false, BufferSize = 64 * 1024 };
 
     private static IEnumerable<CrawlEntry> List(string dir) =>
         new FileSystemEnumerable<CrawlEntry?>(dir, (ref FileSystemEntry e) =>
-            (e.Attributes & FileAttributes.ReparsePoint) != 0 && e.IsDirectory
-                ? null // 링크 안은 들어가지 않는다 (다른 곳을 두 번 세거나 끝없이 돌지 않게)
-                : new CrawlEntry(e.ToFullPath(), e.IsDirectory, e.IsDirectory ? 0 : e.Length, e.LastWriteTimeUtc.UtcDateTime), Flat)
+        {
+            var path = e.ToFullPath();
+            // 링크(정션·심볼릭 링크) 안은 들어가지 않는다 (다른 곳을 두 번 세거나 끝없이 돌지 않게).
+            // 클라우드 드라이브(OneDrive 같은 Windows 클라우드 파일)의 폴더도 "재분석 지점"이지만 링크가 아니라 진짜 폴더라 들어간다
+            // (2026-11-23 회사 PC: 클라우드 드라이브 K:가 "색인 완료 · 0개"로 나왔다. 맨 위 폴더가 모두 이런 폴더라 다 건너뛴 것으로 본다).
+            // 숨김 폴더도 들어간다: 회사 클라우드 드라이브(K:)는 맨 위 폴더가 숨김이다 (사용자 2026-11-23 "K 드라이브는 폴더가 히든 이라서 그럴까?").
+            // 빼는 것은 Windows가 쓰는 폴더(휴지통·시스템 볼륨 정보)와 숨김+시스템 파일(desktop.ini·thumbs.db)뿐이다
+            var skip = e.IsDirectory
+                ? IsWindowsFolder(e.FileName) || ((e.Attributes & FileAttributes.ReparsePoint) != 0 && IsLink(path))
+                : (e.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == (FileAttributes.Hidden | FileAttributes.System);
+            return skip
+                ? null
+                : new CrawlEntry(path, e.IsDirectory, e.IsDirectory ? 0 : e.Length, e.LastWriteTimeUtc.UtcDateTime);
+        }, Flat)
             .OfType<CrawlEntry>();
+
+    /// <summary>Windows가 드라이브마다 두는 폴더 (사용자 파일이 아니다)</summary>
+    internal static bool IsWindowsFolder(ReadOnlySpan<char> name) =>
+        name.Equals("$RECYCLE.BIN", StringComparison.OrdinalIgnoreCase) || name.Equals("System Volume Information", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("RECYCLER", StringComparison.OrdinalIgnoreCase) || name.Equals("$WinREAgent", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>정션·심볼릭 링크인가. 클라우드 파일 같은 다른 재분석 지점은 링크가 아니다. 알 수 없으면 링크로 보고 들어가지 않는다.</summary>
+    private static bool IsLink(string path)
+    {
+        try
+        {
+            return new DirectoryInfo(path).LinkTarget is not null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return true;
+        }
+    }
 
     private void Report(CrawlStatus s)
     {
