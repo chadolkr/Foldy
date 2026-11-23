@@ -434,10 +434,24 @@ public sealed partial class MainWindowTests
                 () => win.FindFirstDescendant(app.By.ByName("같은 파일 (1묶음)").And(app.By.ByControlType(ControlType.TabItem))),
                 TimeSpan.FromSeconds(30), ignoreException: true).Result;
             tab.Should().NotBeNull("같은 파일이 있으면 '같은 파일' 탭이 보여야 한다");
-            tab!.AsTabItem().Select();
-            var sets = Retry.WhileNull(() => win.FindFirstDescendant(app.By.ByAutomationId("OrganizeDuplicateSets")), TimeSpan.FromSeconds(10), ignoreException: true).Result!;
+            // 탭을 누르고 목록이 보일 때까지 다시 누른다 (계획 끝에 첫 탭으로 돌아가는 순간과 겹쳐도 괜찮게)
+            var sets = Retry.WhileNull(
+                () =>
+                {
+                    var t = win.FindFirstDescendant(app.By.ByAutomationId("OrganizeDuplicatesTab"))?.AsTabItem();
+                    if (t is not null && !t.IsSelected)
+                    {
+                        t.Click();
+                    }
+
+                    return win.FindFirstDescendant(app.By.ByAutomationId("OrganizeDuplicateSets"));
+                },
+                TimeSpan.FromSeconds(20), TimeSpan.FromMilliseconds(500), ignoreException: true).Result;
+            sets.Should().NotBeNull(
+                "'같은 파일' 탭을 누르면 묶음 목록이 보여야 한다 (탭: {0})",
+                string.Join(", ", win.FindAllDescendants(app.By.ByControlType(ControlType.TabItem)).Select(e => e.Name + "=" + e.AsTabItem().IsSelected)));
             // 묶음 목록에 초점을 두고 ↓로 첫 줄을 고른다 (사람이 키보드로 하는 것과 같다)
-            sets.Focus();
+            sets!.Focus();
             FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.HOME);
             FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.DOWN);
             AutomationElement? Radio(string path) => Retry.WhileNull(
@@ -445,7 +459,7 @@ public sealed partial class MainWindowTests
             var firstRadio = Radio(first);
             firstRadio.Should().NotBeNull(
                 "묶음을 고르면 아래에 같은 파일들이 [남기기]와 함께 보여야 한다 (목록 안: {0})",
-                string.Join(", ", sets.FindAllDescendants().Select(e => e.ControlType + ":" + e.Name).Take(20)));
+                string.Join(", ", sets!.FindAllDescendants().Select(e => e.ControlType + ":" + e.Name).Take(20)));
             var keepFirst = firstRadio!.AsRadioButton();
             var keepSecond = Radio(second)!.AsRadioButton();
             keepFirst.IsChecked.Should().BeTrue("처음에는 가장 오래된 파일을 남긴다");
