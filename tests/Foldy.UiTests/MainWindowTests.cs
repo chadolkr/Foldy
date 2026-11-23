@@ -429,7 +429,10 @@ public sealed partial class MainWindowTests
             app.Find("하위 폴더 안까지 정리", win).AsCheckBox().IsChecked = true;
             app.Find("계획 만들기", win).AsButton().Invoke();
 
-            var tab = Retry.WhileNull(() => win.FindFirstDescendant(app.By.ByAutomationId("OrganizeDuplicatesTab")), TimeSpan.FromSeconds(30), ignoreException: true).Result;
+            // 계획이 다 되어야 탭 이름에 묶음 수가 붙는다 (그 전에 탭을 고르면 계획이 끝날 때 첫 탭으로 돌아간다)
+            var tab = Retry.WhileNull(
+                () => win.FindFirstDescendant(app.By.ByName("같은 파일 (1묶음)").And(app.By.ByControlType(ControlType.TabItem))),
+                TimeSpan.FromSeconds(30), ignoreException: true).Result;
             tab.Should().NotBeNull("같은 파일이 있으면 '같은 파일' 탭이 보여야 한다");
             tab!.AsTabItem().Select();
             var sets = Retry.WhileNull(() => win.FindFirstDescendant(app.By.ByAutomationId("OrganizeDuplicateSets")), TimeSpan.FromSeconds(10), ignoreException: true).Result!;
