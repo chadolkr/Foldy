@@ -159,7 +159,7 @@ PRES = [
     ("org.alreadyUndone", "이미 되돌린 정리입니다.", "This tidy was already undone.", "Este orden ya se deshizo.", "すでに元に戻した整理です。", "此次整理已撤销。"),
     ("org.changed", "설정이 바뀌었습니다. [계획 만들기]를 다시 누르세요.", "Settings changed. Press [Make plan] again.", "La configuración cambió. Vuelve a pulsar [Crear plan].", "設定が変わりました。[計画を作る] をもう一度押してください。", "设置已更改，请再按一次 [生成计划]。"),
     ("org.noMoves", "옮길 파일이 없습니다. 아래 \"건너뛸 파일\"에서 {0}개를 건너뛴 이유를 볼 수 있어요.", "No files to move. See \"Skipped files\" below for why {0} were skipped.", "No hay archivos que mover. En \"Archivos omitidos\" abajo verás por qué se omitieron {0}.", "移すファイルがありません。下の「スキップするファイル」で {0} 個をスキップした理由を見られます。", "没有要移动的文件。可在下方“跳过的文件”中查看跳过 {0} 个的原因。"),
-    ("org.summary", "옮김 {0}개 · 폴더 {1}곳 · 건너뜀 {2}개", "Move {0} · {1} folders · skip {2}", "Mover {0} · {1} carpetas · omitir {2}", "移動 {0} 個 · フォルダー {1} か所 · スキップ {2} 個", "移动 {0} 个 · 文件夹 {1} 个 · 跳过 {2} 个"),
+    ("org.summary", "옮김 {0:N0}개 · 폴더 {1}곳 · 건너뜀 {2:N0}개", "Move {0:N0} · {1} folders · skip {2:N0}", "Mover {0:N0} · {1} carpetas · omitir {2:N0}", "移動 {0:N0} 個 · フォルダー {1} か所 · スキップ {2:N0} 個", "移动 {0:N0} 个 · 文件夹 {1} 个 · 跳过 {2:N0} 个"),
     ("org.excluded", " · 제외 {0}개", " · {0} excluded", " · {0} excluidos", " · 除外 {0} 個", " · 排除 {0} 个"),
     ("org.moved", "{0}개를 옮겼습니다.", "Moved {0}.", "Se movieron {0}.", "{0} 個を移しました。", "已移动 {0} 个。"),
     ("org.failed", " 사용 중이거나 옮길 수 없는 {0}개는 건너뛰었습니다.", " Skipped {0} that were in use or couldn't be moved.", " Se omitieron {0} en uso o que no se podían mover.", " 使用中か移せない {0} 個はスキップしました。", " 跳过了 {0} 个正在使用或无法移动的。"),

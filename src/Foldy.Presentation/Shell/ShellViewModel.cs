@@ -491,6 +491,12 @@ public sealed partial class ShellViewModel : ObservableObject
         return created;
     }
 
+    /// <summary>앱 쪽 작업(뒤에서 만드는 정리 계획 등)을 작업 창에 올린다. 끝내는 것은 부른 쪽이 <see cref="JobViewModel.Finish"/>로.</summary>
+    public JobViewModel AddJob(string title, Mascot.JobKind kind) => StartJob(title, kind);
+
+    /// <summary>끝난 작업을 잠깐 뒤 작업 창에서 내린다.</summary>
+    public void RemoveJobLater(JobViewModel job) => _ = RemoveLaterAsync(job);
+
     private JobViewModel StartJob(string title, Mascot.JobKind kind = Mascot.JobKind.Copy)
     {
         var job = new JobViewModel(title, _env.Ui) { State = JobState.Running, MascotKind = kind, MascotEnabled = Settings.Animations };

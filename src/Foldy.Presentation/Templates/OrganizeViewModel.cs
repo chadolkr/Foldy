@@ -76,6 +76,9 @@ public sealed partial class MoveItemViewModel : ObservableObject
 /// <summary>지금/정리 후 트리의 한 칸.</summary>
 public sealed class OrganizeTreeNode(string name, bool isFolder)
 {
+    /// <summary>폴더 하나에 보여 줄 파일 수. 나머지는 "… 외 N개" 한 줄로 (트리가 수십만 줄이 되지 않게).</summary>
+    public const int MaxFilesPerFolder = 200;
+
     public string Name { get; } = name;
 
     public bool IsFolder { get; } = isFolder;
@@ -85,37 +88,89 @@ public sealed class OrganizeTreeNode(string name, bool isFolder)
     /// <summary>폴더 안 파일 수 (하위 포함).</summary>
     public int Count { get; set; }
 
-    public string Display => IsFolder ? $"{Name}  ({Count})" : Name;
+    /// <summary>"… 외 N개" 줄.</summary>
+    public bool IsMore { get; private init; }
+
+    public string Display => IsFolder ? $"{Name}  ({Count:N0})" : Name;
 
     public static ObservableCollection<OrganizeTreeNode> Build(IEnumerable<string> relativePaths, ISet<string>? folderPaths = null)
     {
         ArgumentNullException.ThrowIfNull(relativePaths);
-        var roots = new ObservableCollection<OrganizeTreeNode>();
-        foreach (var rel in relativePaths.Order(StringComparer.CurrentCultureIgnoreCase))
+        var root = new Draft(new OrganizeTreeNode("", true));
+        foreach (var rel in relativePaths)
         {
             var parts = rel.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
-            var level = roots;
+            var level = root;
             for (var i = 0; i < parts.Length; i++)
             {
                 var isLeaf = i == parts.Length - 1;
-                var isFolder = !isLeaf || (folderPaths?.Contains(rel) ?? false);
-                var node = isLeaf ? null : level.FirstOrDefault(n => n.IsFolder && string.Equals(n.Name, parts[i], StringComparison.OrdinalIgnoreCase));
-                if (node is null)
+                if (isLeaf && !(folderPaths?.Contains(rel) ?? false))
                 {
-                    node = new OrganizeTreeNode(parts[i], isFolder);
-                    level.Add(node);
+                    level.AddFile(parts[i]);
+                    break;
                 }
 
+                level = level.Folder(parts[i]);
                 if (!isLeaf)
                 {
-                    node.Count++;
+                    level.Node.Count++;
                 }
-
-                level = node.Children;
             }
         }
 
-        return roots;
+        root.Finish();
+        return root.Node.Children;
+    }
+
+    /// <summary>만드는 동안만 쓰는 이름표 (폴더 이름 → 칸, 보여 줄 파일, 숨긴 파일 수).</summary>
+    private sealed class Draft(OrganizeTreeNode node)
+    {
+        private readonly Dictionary<string, Draft> _folders = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<string> _files = [];
+        private int _hidden;
+
+        public OrganizeTreeNode Node { get; } = node;
+
+        public Draft Folder(string name)
+        {
+            if (!_folders.TryGetValue(name, out var d))
+            {
+                d = new Draft(new OrganizeTreeNode(name, true));
+                _folders[name] = d;
+            }
+
+            return d;
+        }
+
+        public void AddFile(string name)
+        {
+            if (_files.Count < MaxFilesPerFolder)
+            {
+                _files.Add(name);
+            }
+            else
+            {
+                _hidden++;
+            }
+        }
+
+        public void Finish()
+        {
+            var items = _folders.Values.Select(f =>
+            {
+                f.Finish();
+                return f.Node;
+            }).Concat(_files.Select(f => new OrganizeTreeNode(f, false)));
+            foreach (var n in items.OrderBy(n => n.Name, StringComparer.CurrentCultureIgnoreCase))
+            {
+                Node.Children.Add(n);
+            }
+
+            if (_hidden > 0)
+            {
+                Node.Children.Add(new OrganizeTreeNode(Foldy.Core.Localization.Loc.F("org.moreFiles", _hidden), false) { IsMore = true });
+            }
+        }
     }
 }
 
@@ -155,8 +210,21 @@ public sealed partial class OrganizeViewModel : ObservableObject
     private readonly IMediaDateProvider? _media;
     private readonly IContentHasher? _hasher;
     private readonly string _journalFolder;
-    private readonly Func<string, bool, CancellationToken, OrganizeScan> _scan;
+    private readonly Func<string, bool, CancellationToken, OrganizeScan>? _scan;
     private CancellationTokenSource? _cts;
+    private int _viewGeneration;
+    private bool _offerDismissed;
+
+    /// <summary>파일+폴더가 이만큼 넘거나 <see cref="LargeAfter"/>보다 오래 걸리면 [뒤에서 하기]를 권한다.</summary>
+    public static long LargeItemCount { get; set; } = 100_000;
+
+    public static TimeSpan LargeAfter { get; set; } = TimeSpan.FromSeconds(8);
+
+    /// <summary>훑는 동안 화면 숫자를 고치는 간격.</summary>
+    public static TimeSpan TickInterval { get; set; } = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>이보다 큰 계획은 체크를 바꿀 때 트리를 뒤에서 다시 그린다 (화면이 멈추지 않게).</summary>
+    public static int SyncEditLimit { get; set; } = 20_000;
 
     public OrganizeViewModel(
         string rootPath, IUiDispatcher ui, IMoveOperations? ops = null, IEnumerable<FolderTemplate>? templates = null,
@@ -170,7 +238,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
         _media = media;
         _hasher = hasher;
         _journalFolder = journalFolder ?? OrganizeExecutor.DefaultJournalFolder;
-        _scan = scanner ?? OrganizeScanner.Scan;
+        _scan = scanner;
         foreach (var t in templates ?? [])
         {
             if (t.Organize.Count > 0)
@@ -195,9 +263,12 @@ public sealed partial class OrganizeViewModel : ObservableObject
 
     public ObservableCollection<CustomRuleViewModel> CustomRules { get; } = [];
 
-    public ObservableCollection<MoveItemViewModel> Moves { get; } = [];
+    /// <summary>옮길 목록. 계획이 바뀌면 통째로 바꿔 끼운다 (수십만 줄을 한 줄씩 넣으면 화면이 멈춘다).</summary>
+    [ObservableProperty]
+    private ObservableCollection<MoveItemViewModel> _moves = [];
 
-    public ObservableCollection<SkippedEntry> Skipped { get; } = [];
+    [ObservableProperty]
+    private ObservableCollection<SkippedEntry> _skipped = [];
 
     [ObservableProperty]
     private ObservableCollection<OrganizeTreeNode> _beforeTree = [];
@@ -245,6 +316,31 @@ public sealed partial class OrganizeViewModel : ObservableObject
 
     [ObservableProperty]
     private bool? _dialogResult;
+
+    /// <summary>정리할 폴더 전체 크기 (색인에서 바로 아는 경우). 모르면 null.</summary>
+    [ObservableProperty]
+    private long? _totalBytes;
+
+    /// <summary>지금까지 센 파일·폴더·용량 ("파일 312,450개 · 폴더 41,200개 · 38 GB / 전체 93 GB").</summary>
+    [ObservableProperty]
+    private string _scanInfo = "";
+
+    /// <summary>큰 폴더라 오래 걸릴 때 [뒤에서 하기]·[여기서 기다리기] 안내를 보인다.</summary>
+    [ObservableProperty]
+    private bool _showBackgroundOffer;
+
+    /// <summary>창을 닫고 뒤에서 계획을 만드는 중 (끝나면 알린다).</summary>
+    [ObservableProperty]
+    private bool _isInBackground;
+
+    /// <summary>색인에서 폴더 전체 크기를 알려 주는 곳 (앱이 채운다). 없거나 모르면 null.</summary>
+    public Func<string, CancellationToken, Task<long?>>? SizeHint { get; init; }
+
+    /// <summary>계획 만들기가 끝났다 (준비됨·취소·오류 모두, UI 스레드). 뒤에서 만들 때 알림에 쓴다.</summary>
+    public event EventHandler? PlanFinished;
+
+    /// <summary>[뒤에서 하기]를 눌렀다 (창은 닫히고 계획은 계속 만든다).</summary>
+    public event EventHandler? BackgroundRequested;
 
     public OrganizePlan? Plan { get; private set; }
 
@@ -329,62 +425,230 @@ public sealed partial class OrganizeViewModel : ObservableObject
         var opts = BuildOptions();
         var allowProject = OrganizeProjectAnyway;
         var deep = IncludeSubfolders && !(allowProject && RootIsProject); // 프로젝트 폴더는 맨 위 파일만
+        var counter = new OrganizeScanCounter();
+        var stages = new OrganizePlanProgress();
         State = OrganizeState.Planning;
         Status = Foldy.Core.Localization.Loc.T("org.scanning");
+        ScanInfo = "";
+        Progress = 0;
+        ShowBackgroundOffer = false;
+        _offerDismissed = false;
+        TotalBytes = null;
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        using var ticking = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var ticker = TickAsync(counter, stages, deep, started, ticking.Token);
+        _ = LoadSizeHintAsync(root, deep, ct);
         try
         {
-            var plan = await Task.Run(
+            var prepared = await Task.Run(
                 () =>
                 {
                     var blocked = OrganizeScanner.CheckRoot(root, allowProject);
                     if (blocked is not null)
                     {
-                        return new OrganizePlan { Root = root, Blocked = blocked };
+                        return Prepare(new OrganizePlan { Root = root, Blocked = blocked });
                     }
 
-                    var scan = _scan(root, deep, ct);
-                    return OrganizePlanner.Plan(scan, opts, p => File.Exists(p) || Directory.Exists(p), _media, _hasher);
+                    var scan = _scan is { } custom ? custom(root, deep, ct) : OrganizeScanner.Scan(root, deep, ct, counter);
+                    var cache = new PathExistsCache();
+                    var plan = OrganizePlanner.Plan(scan, opts, cache.Exists, _media, _hasher, stages, ct);
+                    return Prepare(plan);
                 },
                 ct);
-            _ui.Post(() => ApplyPlan(plan));
+            await StopTicker(ticking, ticker);
+            var (files, folders, bytes) = (counter.Files, counter.Folders, counter.Bytes);
+            _ui.Post(() =>
+            {
+                ScanInfo = files + folders > 0 ? DescribeCounts(files, folders, bytes, TotalBytes) : "";
+                Show(prepared);
+                ShowBackgroundOffer = false;
+                PlanFinished?.Invoke(this, EventArgs.Empty);
+            });
         }
         catch (OperationCanceledException)
         {
+            await StopTicker(ticking, ticker);
             _ui.Post(() =>
             {
                 State = OrganizeState.Idle;
                 Status = Foldy.Core.Localization.Loc.T("org.cancelled");
+                ShowBackgroundOffer = false;
+                PlanFinished?.Invoke(this, EventArgs.Empty);
             });
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or OutOfMemoryException)
         {
+            await StopTicker(ticking, ticker);
             _ui.Post(() =>
             {
                 State = OrganizeState.Error;
-                Status = ex.Message;
+                Status = ex is OutOfMemoryException ? Foldy.Core.Localization.Loc.T("org.tooBig") : ex.Message;
+                ShowBackgroundOffer = false;
+                PlanFinished?.Invoke(this, EventArgs.Empty);
             });
         }
     }
 
+    private static async Task StopTicker(CancellationTokenSource ticking, Task ticker)
+    {
+        await ticking.CancelAsync();
+        try
+        {
+            await ticker;
+        }
+        catch (OperationCanceledException)
+        {
+            // 멈춘 것
+        }
+    }
+
+    /// <summary>색인이 폴더 전체 크기를 알면 바로 보여 준다 (훑는 진행률의 기준도 된다).</summary>
+    private async Task LoadSizeHintAsync(string root, bool deep, CancellationToken ct)
+    {
+        if (SizeHint is not { } hint || !deep)
+        {
+            return;
+        }
+
+        try
+        {
+            var total = await hint(root, ct);
+            if (total is > 0)
+            {
+                _ui.Post(() =>
+                {
+                    if (State == OrganizeState.Planning)
+                    {
+                        TotalBytes = total;
+                    }
+                });
+            }
+        }
+        catch (Exception ex) when (ex is IOException or OperationCanceledException or InvalidOperationException or TimeoutException)
+        {
+            // 색인이 없으면 크기 없이 센 숫자만 보여 준다
+        }
+    }
+
+    /// <summary>훑는 동안 가끔(0.25초마다) 센 숫자·단계·진행률을 화면에 옮긴다. 크고 오래 걸리면 [뒤에서 하기]를 권한다.</summary>
+    private async Task TickAsync(OrganizeScanCounter counter, OrganizePlanProgress stages, bool deep, System.Diagnostics.Stopwatch started, CancellationToken ct)
+    {
+        while (true)
+        {
+            await Task.Delay(TickInterval, ct);
+            var files = counter.Files;
+            var folders = counter.Folders;
+            var bytes = counter.Bytes;
+            var stage = stages.Stage;
+            var done = stages.Done;
+            var total = stages.Total;
+            var elapsed = started.Elapsed;
+            _ui.Post(() =>
+            {
+                if (State != OrganizeState.Planning)
+                {
+                    return;
+                }
+
+                ScanInfo = DescribeCounts(files, folders, bytes, TotalBytes);
+                switch (stage)
+                {
+                    case OrganizePlanStage.Duplicates when total > 0:
+                        Status = Foldy.Core.Localization.Loc.F("org.stage.dups", done, total);
+                        Progress = Math.Max(Progress, Math.Clamp((double)done / total, 0, 1));
+                        break;
+                    case OrganizePlanStage.Planning when total > 0:
+                        Status = Foldy.Core.Localization.Loc.F("org.stage.plan", done, total);
+                        Progress = Math.Max(Progress, Math.Clamp((double)done / total, 0, 1));
+                        break;
+                    default:
+                        Status = Foldy.Core.Localization.Loc.T("org.scanning");
+                        Progress = TotalBytes is long t && t > 0 ? Math.Max(Progress, Math.Clamp((double)bytes / t, 0, 0.99)) : 0;
+                        break;
+                }
+
+                if (deep && !IsInBackground && !_offerDismissed && !ShowBackgroundOffer
+                    && (files + folders >= LargeItemCount || elapsed >= LargeAfter))
+                {
+                    ShowBackgroundOffer = true;
+                }
+            });
+        }
+    }
+
+    /// <summary>"파일 312,450개 · 폴더 41,200개 · 38 GB" (+ " / 전체 93 GB").</summary>
+    public static string DescribeCounts(long files, long folders, long bytes, long? totalBytes)
+    {
+        var text = Foldy.Core.Localization.Loc.F("org.counts", files, folders, Foldy.Presentation.Files.FileItem.FormatBytes(bytes));
+        return totalBytes is long t && t > 0 ? text + Foldy.Core.Localization.Loc.F("org.countsTotal", Foldy.Presentation.Files.FileItem.FormatBytes(t)) : text;
+    }
+
+    /// <summary>[뒤에서 하기]: 창을 닫고 계속 만든다. 끝나면 앱이 알려 준다 (작업 창의 [계획 보기]와 Windows 알림).</summary>
+    [RelayCommand]
+    private void RunInBackground()
+    {
+        if (State != OrganizeState.Planning)
+        {
+            return;
+        }
+
+        IsInBackground = true;
+        ShowBackgroundOffer = false;
+        BackgroundRequested?.Invoke(this, EventArgs.Empty);
+        DialogResult = false;
+    }
+
+    /// <summary>[여기서 기다리기]: 안내만 닫는다.</summary>
+    [RelayCommand]
+    private void KeepWaiting()
+    {
+        _offerDismissed = true;
+        ShowBackgroundOffer = false;
+    }
+
+    /// <summary>뒤에서 만든 계획을 다시 창에 띄우기 전에 부른다 (창이 바로 닫히지 않게).</summary>
+    public void PrepareToShowAgain()
+    {
+        IsInBackground = false;
+        DialogResult = null;
+    }
+
     private bool CanPlan() => !IsBusy && !string.IsNullOrWhiteSpace(RootPath);
 
-    /// <summary>계획을 화면 목록으로 (테스트에서 직접 넣을 수도 있다).</summary>
-    public void ApplyPlan(OrganizePlan plan)
+    /// <summary>계획을 화면에 보일 모양으로 (무거운 일이라 백그라운드에서 한다).</summary>
+    private sealed record PreparedPlan(OrganizePlan Plan, ObservableCollection<MoveItemViewModel> Moves, ObservableCollection<SkippedEntry> Skipped, PlanView? View, PlanView? Unchanged);
+
+    /// <summary>트리 두 개와 요약 한 줄.</summary>
+    private sealed record PlanView(ObservableCollection<OrganizeTreeNode> Before, ObservableCollection<OrganizeTreeNode> After, string Summary);
+
+    private PreparedPlan Prepare(OrganizePlan plan)
     {
-        ArgumentNullException.ThrowIfNull(plan);
+        var moves = new ObservableCollection<MoveItemViewModel>(plan.Moves.Select(m => new MoveItemViewModel(m, plan.Root, this)));
+        var skipped = new ObservableCollection<SkippedEntry>(plan.Skipped);
+        if (plan.Blocked is not null)
+        {
+            return new(plan, moves, skipped, null, null);
+        }
+
+        PlanView? unchanged = null;
+        if (plan.Moves.Count == 0 && plan.Skipped.Count > 0)
+        {
+            // 옮길 것이 없으면 지금 구조(건너뛴 항목)를 양쪽에 그대로 보여 준다 — "지금 = 정리 후"
+            var rel = plan.Skipped.Select(x => Path.GetRelativePath(plan.Root, x.FullPath)).ToList();
+            var folders = new HashSet<string>(plan.Skipped.Where(x => Directory.Exists(x.FullPath)).Select(x => Path.GetRelativePath(plan.Root, x.FullPath)), StringComparer.OrdinalIgnoreCase);
+            unchanged = new(OrganizeTreeNode.Build(rel, folders), OrganizeTreeNode.Build(rel, folders), "");
+        }
+
+        return new(plan, moves, skipped, ComputeView(plan), unchanged);
+    }
+
+    private void Show(PreparedPlan p)
+    {
+        var plan = p.Plan;
         Plan = plan;
-        Moves.Clear();
-        Skipped.Clear();
-        foreach (var m in plan.Moves)
-        {
-            Moves.Add(new MoveItemViewModel(m, plan.Root, this));
-        }
-
-        foreach (var s in plan.Skipped)
-        {
-            Skipped.Add(s);
-        }
-
+        _viewGeneration++;
+        Moves = p.Moves;
+        Skipped = p.Skipped;
         if (plan.Blocked is not null)
         {
             State = OrganizeState.Error;
@@ -396,39 +660,82 @@ public sealed partial class OrganizeViewModel : ObservableObject
         }
 
         State = OrganizeState.Ready;
+        Progress = 1;
         Status = plan.Moves.Count == 0
             ? (plan.Skipped.Count == 0 || plan.Skipped.All(x => Directory.Exists(x.FullPath))
                 ? Foldy.Core.Localization.Loc.T("org.noFiles")
                 : Foldy.Core.Localization.Loc.F("org.noMoves", plan.Skipped.Count))
             : Foldy.Core.Localization.Loc.T("org.checkPlan");
         SelectedListTab = plan.Moves.Count == 0 && plan.Skipped.Count > 0 ? 1 : 0;
-        OnPlanEdited();
-        if (plan.Moves.Count == 0 && plan.Skipped.Count > 0)
+        ApplyView(p.View!);
+        if (p.Unchanged is { } u)
         {
-            // 옮길 것이 없으면 지금 구조(건너뛴 항목)를 양쪽에 그대로 보여 준다 — "지금 = 정리 후"
-            var rel = plan.Skipped.Select(x => Path.GetRelativePath(plan.Root, x.FullPath)).ToList();
-            var folders = new HashSet<string>(plan.Skipped.Where(x => Directory.Exists(x.FullPath)).Select(x => Path.GetRelativePath(plan.Root, x.FullPath)), StringComparer.OrdinalIgnoreCase);
-            BeforeTree = OrganizeTreeNode.Build(rel, folders);
-            AfterTree = OrganizeTreeNode.Build(rel, folders);
+            BeforeTree = u.Before;
+            AfterTree = u.After;
         }
+    }
+
+    /// <summary>계획을 화면 목록으로 (테스트에서 직접 넣을 수도 있다).</summary>
+    public void ApplyPlan(OrganizePlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        Show(Prepare(plan));
+    }
+
+    private static PlanView ComputeView(OrganizePlan plan)
+    {
+        var included = plan.IncludedMoves.ToList();
+        var folderSources = new HashSet<string>(included.Where(m => m.IsFolder).Select(m => Path.GetRelativePath(plan.Root, m.Source)), StringComparer.OrdinalIgnoreCase);
+        var folderDests = new HashSet<string>(included.Where(m => m.IsFolder).Select(m => Path.GetRelativePath(plan.Root, m.Destination)), StringComparer.OrdinalIgnoreCase);
+        var before = OrganizeTreeNode.Build(included.Select(m => Path.GetRelativePath(plan.Root, m.Source)), folderSources);
+        var after = OrganizeTreeNode.Build(included.Select(m => Path.GetRelativePath(plan.Root, m.Destination)), folderDests);
+        var byFolder = plan.CountsByFolder();
+        var summary = Foldy.Core.Localization.Loc.F("org.summary", included.Count, byFolder.Count, plan.Skipped.Count)
+            + (plan.Moves.Count - included.Count > 0 ? Foldy.Core.Localization.Loc.F("org.excluded", plan.Moves.Count - included.Count) : "");
+        return new(before, after, summary);
+    }
+
+    private void ApplyView(PlanView v)
+    {
+        BeforeTree = v.Before;
+        AfterTree = v.After;
+        Summary = v.Summary;
+        ExecuteCommand.NotifyCanExecuteChanged();
     }
 
     internal void OnPlanEdited()
     {
-        if (Plan is null)
+        if (Plan is not { } plan)
         {
             return;
         }
 
-        var included = Plan.IncludedMoves.ToList();
-        var folderSources = new HashSet<string>(included.Where(m => m.IsFolder).Select(m => Path.GetRelativePath(Plan.Root, m.Source)), StringComparer.OrdinalIgnoreCase);
-        var folderDests = new HashSet<string>(included.Where(m => m.IsFolder).Select(m => Path.GetRelativePath(Plan.Root, m.Destination)), StringComparer.OrdinalIgnoreCase);
-        BeforeTree = OrganizeTreeNode.Build(included.Select(m => Path.GetRelativePath(Plan.Root, m.Source)), folderSources);
-        AfterTree = OrganizeTreeNode.Build(included.Select(m => Path.GetRelativePath(Plan.Root, m.Destination)), folderDests);
-        var byFolder = Plan.CountsByFolder();
-        Summary = Foldy.Core.Localization.Loc.F("org.summary", included.Count, byFolder.Count, Plan.Skipped.Count)
-            + (Plan.Moves.Count - included.Count > 0 ? Foldy.Core.Localization.Loc.F("org.excluded", Plan.Moves.Count - included.Count) : "");
+        var gen = ++_viewGeneration;
+        if (plan.Moves.Count <= SyncEditLimit)
+        {
+            ApplyView(ComputeView(plan));
+            return;
+        }
+
+        // 큰 계획: 체크를 여러 개 바꾸는 동안 기다렸다가 한 번만 뒤에서 다시 그린다
         ExecuteCommand.NotifyCanExecuteChanged();
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(300);
+            if (gen != Volatile.Read(ref _viewGeneration))
+            {
+                return;
+            }
+
+            var v = ComputeView(plan);
+            _ui.Post(() =>
+            {
+                if (gen == _viewGeneration)
+                {
+                    ApplyView(v);
+                }
+            });
+        });
     }
 
     internal void Retarget(MoveItemViewModel item, string folder)
@@ -450,7 +757,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
         var journal = OrganizeExecutor.NewJournalPath(_journalFolder);
         State = OrganizeState.Executing;
         Status = Foldy.Core.Localization.Loc.T("org.running");
-        var progress = new Progress<OrganizeProgress>(p => _ui.Post(() => Progress = p.Total == 0 ? 1 : (double)p.Done / p.Total));
+        var progress = new ThrottledProgress(p => _ui.Post(() => Progress = p.Total == 0 ? 1 : (double)p.Done / p.Total));
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
         try
@@ -475,6 +782,24 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 State = OrganizeState.Error;
                 Status = ex.Message;
             });
+        }
+    }
+
+    /// <summary>파일 수십만 개를 옮길 때 화면에 진행률을 초당 10번까지만 보낸다 (한 개마다 보내면 화면이 멈춘다).</summary>
+    private sealed class ThrottledProgress(Action<OrganizeProgress> report) : IProgress<OrganizeProgress>
+    {
+        private long _last;
+
+        public void Report(OrganizeProgress value)
+        {
+            var now = Environment.TickCount64;
+            if (value.Done + 1 < value.Total && now - Interlocked.Read(ref _last) < 100)
+            {
+                return;
+            }
+
+            Interlocked.Exchange(ref _last, now);
+            report(value);
         }
     }
 

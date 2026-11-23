@@ -1506,7 +1506,7 @@ public partial class ShellWindow : Window, IPaneHost
         w.Say(Foldy.Core.Localization.Loc.T("sw.tidy.preview"));
         await Task.Delay(400);
         w.Close();
-        var org = new Foldy.Presentation.Templates.OrganizeViewModel(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates);
+        var org = NewOrganize(folder);
         org.SelectedMode = org.Modes.First(m => m.Mode == how switch
         {
             "date" => Foldy.Core.Organize.OrganizeMode.ByDate,
@@ -1519,8 +1519,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         _ = org.PlanCommand.ExecuteAsync(null); // 창이 열리면 바로 정리 후 모습이 보이게
-        Foldy.UI.Templates.TemplateDialogs.ShowOrganize(this, org);
-        _ = Shell.RefreshFoldersAsync([folder]);
+        ShowOrganizeDialog(org, folder);
     }
 
     private void OpenOrganize(string? folder)
@@ -1530,9 +1529,131 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        var org = new Foldy.Presentation.Templates.OrganizeViewModel(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates);
+        ShowOrganizeDialog(NewOrganize(folder), folder);
+    }
+
+    private Foldy.Presentation.Templates.OrganizeViewModel NewOrganize(string folder) =>
+        new(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates) { SizeHint = IndexedFolderSizeAsync };
+
+    /// <summary>색인이 아는 폴더 전체 크기 (정리 계획을 만들 때 바로 보여 주는 용량). 색인 밖이면 null.</summary>
+    private async Task<long?> IndexedFolderSizeAsync(string folder, CancellationToken ct)
+    {
+        if (_indexer is not { IsFaulted: false } client || folder.Length < 3 || folder[1] != ':')
+        {
+            return null;
+        }
+
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(3));
+            var r = await client.FolderSizesAsync(folder, timeout.Token);
+            return r.Status == Foldy.Indexer.Client.FolderSizesStatus.Ok ? (long)r.TotalSize : null;
+        }
+        catch (Exception ex) when (ex is IOException or Foldy.Indexer.Client.ProtocolException or OperationCanceledException or TimeoutException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 정리 창을 띄운다. 큰 폴더에서 [뒤에서 하기]를 누르면 창이 닫히고 작업 창에 "정리 계획 만드는 중"이 올라간다.
+    /// 다 되면 작업 창의 [계획 보기]와 Windows 알림으로 알려 주고, 누르면 같은 계획을 다시 띄운다 (사용자 2026-11-23).
+    /// </summary>
+    private void ShowOrganizeDialog(Foldy.Presentation.Templates.OrganizeViewModel org, string folder)
+    {
         Foldy.UI.Templates.TemplateDialogs.ShowOrganize(this, org);
+        if (org.IsInBackground && org.State == Foldy.Presentation.Templates.OrganizeState.Planning)
+        {
+            TrackOrganizeInBackground(org, folder);
+            return;
+        }
+
+        // 계획을 만드는 중에 창을 닫았으면(뒤에서 하기가 아니면) 그만 만든다
+        if (org.State == Foldy.Presentation.Templates.OrganizeState.Planning)
+        {
+            org.CancelCommand.Execute(null);
+        }
+
         _ = Shell.RefreshFoldersAsync([folder]);
+    }
+
+    private void TrackOrganizeInBackground(Foldy.Presentation.Templates.OrganizeViewModel org, string folder)
+    {
+        var name = Foldy.Presentation.Navigation.PathUtil.DisplayName(folder);
+        var job = Shell.AddJob(Foldy.Core.Localization.Loc.F("org.bg.job", name), Foldy.Presentation.Mascot.JobKind.Analyze);
+        job.OpenLabel = Foldy.Core.Localization.Loc.T("org.bg.open");
+        void Sync()
+        {
+            job.Detail = string.IsNullOrEmpty(org.ScanInfo) ? org.Status : org.ScanInfo;
+            job.Progress = Math.Max(job.Progress, Math.Clamp(org.Progress, 0, 1));
+        }
+
+        System.ComponentModel.PropertyChangedEventHandler changed = (_, e) =>
+        {
+            if (e.PropertyName is nameof(org.Status) or nameof(org.ScanInfo) or nameof(org.Progress) && !job.IsFinished)
+            {
+                Sync();
+            }
+        };
+        org.PropertyChanged += changed;
+        Sync();
+        job.Token.Register(() => Dispatcher.BeginInvoke(() =>
+        {
+            if (org.IsBusy)
+            {
+                org.CancelCommand.Execute(null);
+            }
+        }));
+
+        void Open()
+        {
+            Shell.Jobs.Remove(job);
+            org.PrepareToShowAgain();
+            Activate();
+            ShowOrganizeDialog(org, folder);
+        }
+
+        EventHandler? finished = null;
+        finished = (_, _) =>
+        {
+            org.PlanFinished -= finished;
+            org.PropertyChanged -= changed;
+            switch (org.State)
+            {
+                case Foldy.Presentation.Templates.OrganizeState.Ready:
+                    job.Open = Open;
+                    job.Finish(Foldy.Presentation.Jobs.JobState.Done, org.Summary);
+                    Shell.Status = Foldy.Core.Localization.Loc.F("org.bg.ready", name);
+                    if (!IsActive)
+                    {
+                        TrayNotice.Show(Foldy.Core.Localization.Loc.F("org.bg.ready", name), org.Summary, () => Dispatcher.BeginInvoke(() => Open()));
+                    }
+
+                    break;
+                case Foldy.Presentation.Templates.OrganizeState.Idle:
+                    job.Finish(Foldy.Presentation.Jobs.JobState.Canceled, Foldy.Core.Localization.Loc.T("ops.cancelled"));
+                    Shell.RemoveJobLater(job);
+                    break;
+                default:
+                    job.Finish(Foldy.Presentation.Jobs.JobState.Failed, org.Status);
+                    if (!IsActive)
+                    {
+                        TrayNotice.Show(Foldy.Core.Localization.Loc.F("org.bg.failed", name), org.Status, () => Dispatcher.BeginInvoke(() => Activate()));
+                    }
+
+                    break;
+            }
+        };
+        org.PlanFinished += finished;
+    }
+
+    private void OnJobOpen(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: JobViewModel { CanOpen: true, Open: { } open } })
+        {
+            open();
+        }
     }
 
     private void EditDescription()
