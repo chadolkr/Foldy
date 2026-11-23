@@ -160,6 +160,72 @@ public sealed class CrawlStore(string file)
         }
     }
 
+    /// <summary>
+    /// 다 모은 목록 전부 + Windows가 알려 준 변화(새로 생긴 것은 더하고, 지워진 것과 그 안은 뺀다).
+    /// 디스크 분석이 드라이브를 다시 읽지 않고 쓴다 (사용자 2026-11-23: "K 드라이브 분석이 폴더 읽는 중으로 나온다").
+    /// 모으는 중인 목록(.part)은 쓰지 않는다 (아직 반쪽이라 크기가 작게 보인다).
+    /// </summary>
+    public IEnumerable<CrawlEntry> ReadAll(CancellationToken ct = default)
+    {
+        List<CrawlEntry> added;
+        string[] removed;
+        lock (_delta)
+        {
+            added = [.. _added.Values];
+            removed = [.. _removed];
+        }
+
+        bool Gone(string path)
+        {
+            foreach (var r in removed)
+            {
+                if (path.StartsWith(r, StringComparison.OrdinalIgnoreCase) && (path.Length == r.Length || path[r.Length] == '\\'))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        var addedPaths = new HashSet<string>(added.Select(a => a.Path), StringComparer.OrdinalIgnoreCase);
+        FileStream fs;
+        try
+        {
+            fs = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            yield break;
+        }
+
+        using (var reader = new StreamReader(fs, Encoding.UTF8))
+        {
+            string? line;
+            var n = 0;
+            while ((line = reader.ReadLine()) is not null)
+            {
+                if ((++n & 4095) == 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (Parse(line) is { } e && !addedPaths.Contains(e.Path) && (removed.Length == 0 || !Gone(e.Path)))
+                {
+                    yield return e;
+                }
+            }
+        }
+
+        foreach (var a in added)
+        {
+            if (removed.Length == 0 || !Gone(a.Path))
+            {
+                yield return a;
+            }
+        }
+    }
+
     public long CountLines()
     {
         if (!Exists)

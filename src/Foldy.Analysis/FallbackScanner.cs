@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.Data.Sqlite;
 
 namespace Foldy.Analysis;
@@ -34,13 +35,14 @@ public static class AnalysisSqlite
 /// 같은 스키마의 DB를 %LOCALAPPDATA%\Foldy\Analysis\에 만든다 (설계서 7.3).
 /// 전용 스레드 하나를 낮은 우선순위(Lowest)로 돌려 사용자 작업을 방해하지 않는다. 심볼릭 링크·정션은 따라가지 않는다.
 /// </summary>
-public static class FallbackScanner
+public static partial class FallbackScanner
 {
     /// <summary>할당 단위를 모를 때 쓰는 클러스터 크기.</summary>
     public const long DefaultCluster = 4096;
 
+    /// <param name="expectedFiles">지난번 분석의 파일 수 (모르면 0). 알면 "지난번 기준 약 40%"처럼 진행률을 보인다.</param>
     public static Task<(string Path, SnapshotStats Stats)> ScanAsync(
-        string root, string outDirectory, CleanupRules rules, IProgress<AnalysisProgress>? progress, CancellationToken ct)
+        string root, string outDirectory, CleanupRules rules, IProgress<AnalysisProgress>? progress, CancellationToken ct, long expectedFiles = 0)
     {
         ArgumentNullException.ThrowIfNull(root);
         var tcs = new TaskCompletionSource<(string, SnapshotStats)>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -48,7 +50,7 @@ public static class FallbackScanner
         {
             try
             {
-                var input = Enumerate(root, progress, ct);
+                var input = Enumerate(root, progress, ct, expectedFiles);
                 tcs.TrySetResult(SnapshotBuilder.BuildIntoDirectory(input, outDirectory, AnalysisPaths.VolumeKey(root), rules, progress, ct));
             }
             catch (OperationCanceledException oce)
@@ -70,7 +72,7 @@ public static class FallbackScanner
     }
 
     /// <summary>폴더를 깊이 우선으로 열거한다. 권한 없는 폴더는 건너뛴다.</summary>
-    public static SnapshotInput Enumerate(string root, IProgress<AnalysisProgress>? progress, CancellationToken ct)
+    public static SnapshotInput Enumerate(string root, IProgress<AnalysisProgress>? progress, CancellationToken ct, long expectedFiles = 0)
     {
         ArgumentNullException.ThrowIfNull(root);
         var info = new DirectoryInfo(root);
@@ -90,6 +92,8 @@ public static class FallbackScanner
             ReturnSpecialDirectories = false,
         };
         long nextId = 2;
+        var cluster = ClusterSizeOf(rootPath); // FAT/exFAT는 32KB~128KB 단위가 흔하다: 4KB로 셈하면 차지하는 공간이 작게 보인다
+        var started = Environment.TickCount64;
         var stack = new Stack<(DirectoryInfo Dir, int Index)>();
         stack.Push((info, 0));
         var lastReport = Environment.TickCount64;
@@ -124,7 +128,7 @@ public static class FallbackScanner
                     else
                     {
                         var size = ((FileInfo)fsi).Length;
-                        var alloc = (size + DefaultCluster - 1) / DefaultCluster * DefaultCluster;
+                        var alloc = (size + cluster - 1) / cluster * cluster;
                         input.Files.Add(new InputFile(nextId++, idx, fsi.Name, size, alloc, SafeTime(fsi), (int)attrs));
                     }
                 }
@@ -137,13 +141,67 @@ public static class FallbackScanner
             if (Environment.TickCount64 - lastReport > 250)
             {
                 lastReport = Environment.TickCount64;
-                progress?.Report(new AnalysisProgress(0.05, $"폴더 읽는 중… 파일 {input.Files.Count:N0}개"));
+                progress?.Report(ReadingProgress(input.Dirs.Count, input.Files.Count, expectedFiles, TimeSpan.FromMilliseconds(lastReport - started)));
             }
         }
 
         progress?.Report(new AnalysisProgress(0.5, $"파일 {input.Files.Count:N0}개를 읽었습니다"));
         return input;
     }
+
+    /// <summary>
+    /// 폴더를 직접 읽는 동안의 안내. 지난번 파일 수를 알면 그 기준으로 진행률(5~50%)을, 모르면 읽은 수와 지난 시간만 보인다
+    /// (느린 드라이브에서 "폴더 읽는 중"만 오래 떠 있으면 멈춘 것처럼 보인다).
+    /// </summary>
+    internal static AnalysisProgress ReadingProgress(int dirs, int files, long expectedFiles, TimeSpan elapsed)
+    {
+        var took = elapsed < TimeSpan.FromMinutes(1) ? $"{Math.Max(0, (int)elapsed.TotalSeconds)}초" : $"{(int)elapsed.TotalMinutes}분";
+        if (expectedFiles > 0)
+        {
+            var part = Math.Clamp((double)files / expectedFiles, 0, 0.99);
+            return new AnalysisProgress(0.05 + (0.45 * part), $"폴더 읽는 중… 파일 {files:N0}개 (지난번 기준 약 {(int)(part * 100)}%, {took} 지남)");
+        }
+
+        return new AnalysisProgress(0.05, $"폴더 읽는 중… 폴더 {dirs:N0}개, 파일 {files:N0}개 ({took} 지남)");
+    }
+
+    /// <summary>드라이브의 할당 단위(클러스터) 크기. 모르면 <see cref="DefaultCluster"/>. 네트워크 드라이브는 서버가 알려 준 값.</summary>
+    public static long ClusterSizeOf(string path)
+    {
+        if (!OperatingSystem.IsWindows() || string.IsNullOrEmpty(path))
+        {
+            return DefaultCluster;
+        }
+
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetFullPath(path));
+            if (string.IsNullOrEmpty(root))
+            {
+                return DefaultCluster;
+            }
+
+            if (!root.EndsWith('\\'))
+            {
+                root += "\\";
+            }
+
+            if (GetDiskFreeSpaceW(root, out var spc, out var bps, out _, out _) && spc > 0 && bps > 0)
+            {
+                var c = (long)spc * bps;
+                return c is >= 512 and <= 64L * 1024 * 1024 ? c : DefaultCluster;
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or System.Security.SecurityException)
+        {
+        }
+
+        return DefaultCluster;
+    }
+
+    [LibraryImport("kernel32.dll", EntryPoint = "GetDiskFreeSpaceW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetDiskFreeSpaceW(string rootPathName, out uint sectorsPerCluster, out uint bytesPerSector, out uint numberOfFreeClusters, out uint totalNumberOfClusters);
 
     private static long SafeTime(FileSystemInfo f)
     {

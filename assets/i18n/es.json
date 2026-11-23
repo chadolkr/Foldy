@@ -21,6 +21,7 @@
   "an.downloads.tip": "Busca en Descargas instaladores ya usados, duplicados, archivos comprimidos ya extraídos y archivos antiguos",
   "an.findingLast": "Buscando el análisis anterior…",
   "an.folderRow": "{0} · {1} · {2:N0} archivos",
+  "an.fromList": "lista guardada (sin volver a leer la unidad)",
   "an.fromScan": "recorrido directo",
   "an.fromService": "servicio de índice",
   "an.growth": "Desde el último análisis",
