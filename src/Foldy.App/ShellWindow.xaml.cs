@@ -459,7 +459,23 @@ public partial class ShellWindow : Window, IPaneHost
     /// 서비스가 네트워크 오류로 확인하지 못하면 사용자 권한(사용자의 PAC·프록시·로그온 자격 증명)으로 직접 확인·다운로드한다.
     /// 찾으면 이번 실행 동안 기존 방식(설치할 때 관리자 확인 한 번)으로 바꾼다. 서명·해시 확인은 같다.
     /// </summary>
-    private async Task<bool> TryUserProxyFallbackAsync()
+    private Task<bool> TryUserProxyFallbackAsync()
+    {
+        // 이미 직접 확인·다운로드 중이면(자동 확인 뒤 [업데이트]를 누른 경우 등) 새로 시작하지 않고 그 결과를 기다린다.
+        // 둘이 같은 MSI를 동시에 받다가 "다른 프로세스가 파일을 사용 중"으로 실패했다 (사용자 2026-11-23, 회사 PC 1.4.0)
+        if (_userProxyCheck is { IsCompleted: false } running)
+        {
+            return running;
+        }
+
+        var t = UserProxyFallbackCoreAsync();
+        _userProxyCheck = t;
+        return t;
+    }
+
+    private Task<bool>? _userProxyCheck;
+
+    private async Task<bool> UserProxyFallbackCoreAsync()
     {
         if (_triedUserProxyFallback || _updater is not ServiceUpdater { LastError: { } err } || !IsNetworkError(err))
         {
