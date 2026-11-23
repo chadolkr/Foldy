@@ -3,6 +3,7 @@
 
 PRES = [
     # 분석
+    ("an.browserBusy", "브라우저({0})가 켜져 있으면 캐시 파일을 쓰고 있어 다 옮길 수 없어요. {0} 창을 모두 닫은 뒤 [휴지통으로]를 다시 눌러 주세요.", "{0} uses its cache files while it is open, so not everything could be moved. Close all {0} windows, then press [To Recycle Bin] again.", "{0} usa sus archivos de caché mientras está abierto, así que no se pudo mover todo. Cierra todas las ventanas de {0} y vuelve a pulsar [A la papelera].", "{0} が開いている間はキャッシュ ファイルを使っているため、すべては移せませんでした。{0} のウィンドウをすべて閉じてから、もう一度 [ごみ箱へ] を押してください。", "{0} 打开时会使用缓存文件，因此未能全部移动。请关闭所有 {0} 窗口，然后再次点击 [移到回收站]。"),
     ("an.clickToOpen", "\n클릭하면 들어갑니다", "\nClick to open", "\nHaz clic para entrar", "\nクリックで開きます", "\n点击进入"),
     ("an.nFiles", "{0:N0}개", "{0:N0}", "{0:N0}", "{0:N0} 個", "{0:N0} 个"),
     ("an.title", "분석: {0}", "Analysis: {0}", "Análisis: {0}", "分析: {0}", "分析：{0}"),
