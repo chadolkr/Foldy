@@ -330,4 +330,22 @@ public class SettingsViewModelTests
         got!.KeyMap.GetGesture("file.copy").Should().Be("Ctrl+Shift+C");
         got.KeyMap.Overrides.Should().ContainKey("file.copy");
     }
+
+    [Fact]
+    public void Crawl_interval_setting_is_kept_and_unknown_values_fall_back_to_one_hour()
+    {
+        var vm = new SettingsViewModel(new AppSettings { CrawlEvery = "24h" });
+        Assert.Equal("24h", vm.CrawlEvery);
+        Assert.False(vm.IsDirty);
+        vm.CrawlEvery = "manual";
+        Assert.True(vm.IsDirty);
+        Assert.Equal("manual", vm.Build().CrawlEvery);
+
+        Assert.Equal("1h", new SettingsViewModel(new AppSettings { CrawlEvery = "이상한 값" }).CrawlEvery);
+        Assert.Equal(TimeSpan.FromHours(1), AppSettings.CrawlInterval(new AppSettings().CrawlEvery));
+        Assert.Equal(TimeSpan.FromHours(6), AppSettings.CrawlInterval("6h"));
+        Assert.Equal(TimeSpan.FromHours(24), AppSettings.CrawlInterval("24h"));
+        Assert.Null(AppSettings.CrawlInterval("manual"));
+        Assert.Equal(TimeSpan.FromHours(1), AppSettings.CrawlInterval(null));
+    }
 }

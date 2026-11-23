@@ -164,6 +164,96 @@ public sealed class SlowCrawlerTests : IDisposable
         Assert.True(sw.Elapsed >= TimeSpan.FromMilliseconds(31 * 10), "폴더마다 최소 10ms는 쉬어야 한다");
     }
 
+    private static void WaitFor(Func<bool> ok)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (!ok() && sw.Elapsed < TimeSpan.FromSeconds(20))
+        {
+            Thread.Sleep(50);
+        }
+
+        Assert.True(ok(), "20초 안에 되어야 한다");
+    }
+
+    [Fact]
+    public void Request_gathers_now_even_right_after_a_crawl_and_rereads_every_folder()
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            Make($@"d{i}\f.txt");
+        }
+
+        using var c = new SlowCrawler(_store, () => [_root]) { RescanEvery = null };
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        // 이름은 그대로, 크기만 바뀐 파일: 폴더 수정 시각이 안 바뀌어 보통 다시 모으기로는 알 수 없다
+        File.WriteAllText(Path.Combine(_root, "d3", "f.txt"), new string('x', 5000));
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.Equal(0, c.LastPass!.Listed);
+
+        Assert.True(c.RequestNow(_root));
+        c.Start();
+        WaitFor(() => c.LastPass!.Listed == 11);
+        Assert.Contains(c.StoreFor(_root).Search("f.txt", 100), e => e.Size == 5000);
+        Assert.False(c.IsRequested(_root));
+    }
+
+    [Fact]
+    public void Requesting_twice_queues_once()
+    {
+        using var c = new SlowCrawler(_store, () => [_root]);
+        Assert.True(c.RequestNow(_root));
+        Assert.False(c.RequestNow(_root));
+        Assert.True(c.IsRequested(_root));
+    }
+
+    [Fact]
+    public void Request_for_a_drive_that_is_gone_is_dropped()
+    {
+        Make(@"a\f.txt");
+        using var c = new SlowCrawler(_store, () => [_root]);
+        c.RequestNow(Path.Combine(_root, "없는드라이브"));
+        c.Start();
+        WaitFor(() => !c.IsRequested(Path.Combine(_root, "없는드라이브")) && c.StoreFor(_root).Exists);
+    }
+
+    [Fact]
+    public void Manual_only_never_gathers_by_itself_but_keeps_the_list()
+    {
+        Make(@"a\처음.txt");
+        using var c = new SlowCrawler(_store, () => [_root]) { RescanEvery = null };
+        c.Start();
+        WaitFor(() => c.StatusOf(_root) is { Running: false, Complete: false }); // 살펴봤지만 모으지 않았다
+        Assert.False(c.StoreFor(_root).Exists);
+        c.MarkDirty(_root);
+        Thread.Sleep(500);
+        Assert.False(c.StoreFor(_root).Exists);
+
+        c.RequestNow(_root);
+        WaitFor(() => c.StoreFor(_root).Search("처음", 10).Any());
+    }
+
+    [Fact]
+    public void Regular_interval_counts_from_the_last_finished_time_across_restarts()
+    {
+        Make(@"a\처음.txt");
+        using (var first = new SlowCrawler(_store, () => [_root]))
+        {
+            first.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        }
+
+        Make(@"a\나중.txt");
+        // 7시간 전에 다 모은 목록: 하루 주기면 그대로, 6시간 주기면 다시 모은다
+        using var c = new SlowCrawler(_store, () => [_root]) { RescanEvery = TimeSpan.FromHours(24) };
+        File.SetLastWriteTimeUtc(c.StoreFor(_root).FilePath, DateTime.UtcNow.AddHours(-7));
+        c.Start();
+        WaitFor(() => c.StatusOf(_root) is { Running: false, Complete: true });
+        Assert.Null(c.LastPass);
+
+        c.RescanEvery = TimeSpan.FromHours(6); // 주기를 바꾸면 기다리지 않고 바로 본다
+        WaitFor(() => c.LastPass is not null && c.StoreFor(_root).Search("나중", 10).Any());
+        Assert.Contains(_root, c.KnownDrives);
+    }
+
     [Fact]
     public void Overflowed_drive_is_rescanned_soon_even_right_after_a_crawl()
     {

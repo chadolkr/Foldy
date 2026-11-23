@@ -137,6 +137,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         new("preferAssociated", Foldy.Core.Localization.Loc.T("set.md.app")),
     ];
 
+    /// <summary>색인 없는 드라이브의 정기 색인 주기.</summary>
+    public static IReadOnlyList<SettingChoice> CrawlEveryChoices { get; } =
+    [
+        new("1h", Foldy.Core.Localization.Loc.T("set.crawl.1h")),
+        new("6h", Foldy.Core.Localization.Loc.T("set.crawl.6h")),
+        new("24h", Foldy.Core.Localization.Loc.T("set.crawl.24h")),
+        new("manual", Foldy.Core.Localization.Loc.T("set.crawl.manual")),
+    ];
+
     public static IReadOnlyList<SettingChoice> TerminalHostChoices { get; } =
     [
         new("auto", Foldy.Core.Localization.Loc.T("set.term.auto")),
@@ -250,6 +259,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private string _crawlEvery = "1h";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
     private bool _aiSuggest = true;
 
     [ObservableProperty]
@@ -302,6 +315,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         CleanupNotices = CleanupNotices,
         KeepPreviousVersions = KeepPreviousVersions,
         SlowCrawl = SlowCrawl,
+        CrawlEvery = CrawlEvery,
         AiSuggest = AiSuggest,
         Language = Language,
         DesktopSuggest = DesktopSuggest,
@@ -375,6 +389,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         CleanupNotices = s.CleanupNotices;
         KeepPreviousVersions = s.KeepPreviousVersions;
         SlowCrawl = s.SlowCrawl;
+        CrawlEvery = Pick(CrawlEveryChoices, s.CrawlEvery, "1h");
         AiSuggest = s.AiSuggest;
         Language = s.Language;
         DesktopSuggest = s.DesktopSuggest;

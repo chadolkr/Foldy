@@ -236,6 +236,9 @@
                         <MenuItem Header="{loc:T shell.openNewTab}" Click="OnSideDriveNewTab" Tag="{Binding}" />
                         <MenuItem Header="{loc:T shell.openOtherPane}" Click="OnSideDriveOther" Tag="{Binding}" />
                         <MenuItem Header="{loc:T shell.analyze}" Click="OnSideDriveAnalyze" Tag="{Binding}" />
+                        <!-- 색인 서비스가 다루지 않는 드라이브에만 (사용자 2026-11-23: 수동으로 색인 시작) -->
+                        <MenuItem Header="{loc:T shell.indexNow}" Click="OnSideDriveIndexNow" Tag="{Binding}"
+                                  Visibility="{Binding CanIndexNow, Converter={StaticResource BoolToVis}}" />
                       </ContextMenu>
                     </Button.ContextMenu>
                     <Grid>
@@ -283,6 +286,7 @@
                   <MenuItem Header="{loc:T shell.find.name}" Tag="search.focus" Click="OnGroupMenuItem" InputGestureText="Ctrl+F" />
                   <MenuItem Header="{loc:T shell.find.analysis}" Tag="analysis.open" Click="OnGroupMenuItem" />
                   <MenuItem Header="{loc:T shell.find.compare}" Tag="compare.panes" Click="OnGroupMenuItem" />
+                  <MenuItem Header="{loc:T sw.c.indexNow}" Tag="index.now" Click="OnGroupMenuItem" />
                   <MenuItem Header="{loc:T shell.find.images}" Tag="view.images" Click="OnGroupMenuItem" InputGestureText="Ctrl+Shift+I" IsCheckable="False" />
                 </ContextMenu>
               </Button.ContextMenu>

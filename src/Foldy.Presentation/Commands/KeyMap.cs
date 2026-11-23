@@ -257,6 +257,7 @@ public sealed class KeyMap
         new("terminal.cmdAdmin", Foldy.Core.Localization.Loc.T("cmd.cmdAdmin"), null),
         new("view.hidden", Foldy.Core.Localization.Loc.T("cmd.hidden"), "Ctrl+H"),
         new("analysis.open", Foldy.Core.Localization.Loc.T("cmd.analysis"), null),
+        new("index.now", Foldy.Core.Localization.Loc.T("sw.c.indexNow"), null),
         new("ai.connect", Foldy.Core.Localization.Loc.T("cmd.ai"), null),
         new("view.preview", Foldy.Core.Localization.Loc.T("cmd.preview"), "F3"),
         new("view.tree", Foldy.Core.Localization.Loc.T("cmd.tree"), "Ctrl+B"),

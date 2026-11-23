@@ -78,6 +78,18 @@ public sealed record AppSettings
     /// <summary>색인이 없는 드라이브(네트워크·회사 드라이브·Google Drive 등)도 천천히 모아 빠른 찾기에 넣는다 (기본 켬).</summary>
     public bool SlowCrawl { get; init; } = true;
 
+    /// <summary>색인 없는 드라이브를 정기적으로 다시 모으는 주기: 1h(기본)·6h·24h·manual([지금 색인하기]를 누를 때만).</summary>
+    public string CrawlEvery { get; init; } = "1h";
+
+    /// <summary><see cref="CrawlEvery"/>를 시간으로. null = 저절로 모으지 않음. 모르는 값은 기본(1시간).</summary>
+    public static TimeSpan? CrawlInterval(string? value) => value switch
+    {
+        "manual" => null,
+        "24h" => TimeSpan.FromHours(24),
+        "6h" => TimeSpan.FromHours(6),
+        _ => TimeSpan.FromHours(1),
+    };
+
     /// <summary>
     /// 화면 전체 크기 (글씨·버튼). 0 = Windows 설정 따르기(기본: 설정 → 접근성 → 텍스트 크기),
     /// 그 밖에는 직접 고른 배율 (1.0, 1.15, 1.3, 1.5). 디스플레이 배율(DPI)은 이와 따로 늘 따라간다.

@@ -256,6 +256,10 @@
           <TextBlock Text="{loc:T set.quickFind}" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.slowCrawl}" IsChecked="{Binding SlowCrawl, Mode=TwoWay}" />
           <TextBlock Text="{loc:T set.slowCrawl.hint}" Style="{StaticResource Settings.Hint}" />
+          <TextBlock Text="{loc:T set.crawl.every}" Style="{StaticResource Settings.Label}" />
+          <ListBox Style="{StaticResource Settings.Chips}" ItemsSource="{x:Static vm:SettingsViewModel.CrawlEveryChoices}"
+                   SelectedValue="{Binding CrawlEvery, Mode=TwoWay}" IsEnabled="{Binding SlowCrawl}" AutomationProperties.Name="{loc:T set.crawl.every}" />
+          <TextBlock Text="{loc:T set.crawl.hint}" Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="{loc:T set.ai}" Style="{StaticResource Settings.Section}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.ai.suggest}" IsChecked="{Binding AiSuggest, Mode=TwoWay}" />
           <TextBlock Text="{loc:T set.ai.hint}" Style="{StaticResource Settings.Hint}" />

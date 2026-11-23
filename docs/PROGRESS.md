@@ -1,7 +1,8 @@
-# Foldy 진행 현황 (2026-11-23 기준, 1.7.0 준비)
+# Foldy 진행 현황 (2026-11-23 기준, 1.8.0 준비)
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
+- 2026-11-23 (1.8.0 준비): 색인 없는 드라이브 [지금 색인하기](오른쪽 클릭·찾기 메뉴·Ctrl+Space, SlowCrawler.RequestNow, 모든 폴더 다시 읽기)와 정기 색인 주기 설정(1h·6h·24h·manual, RescanEvery), 다 모은 때 표시. 아직 안 한 것: 처음 모으기가 끊기면 처음부터 다시 하는 것(이어 하기).
 - 2026-11-23 (1.7.3 준비): 색인 없는 드라이브(K: 보안 드라이브·네트워크·FAT/exFAT) 분석이 SlowCrawler가 다 모은 목록을 씀(CrawledListSnapshot, CrawlStore.ReadAll, 드라이브 다시 안 읽음, 결과에 "모아 둔 목록"). 직접 읽을 때 폴더·파일 수·지난 시간·지난번 대비 진행률, 실제 클러스터 크기. DECISIONS.md 같은 날짜 항목.
 - 2026-11-23 (1.7.0 준비): 폴더 정리 계획 저장·이어서 하기(OrganizePlanStore, %LOCALAPPDATA%\Foldy\organize-plans.db, 바뀐 줄만 저장, 7일 지나면 지움, [이어서 하기]·[새로 만들기]), [정리하기] 직전 원본 크기·수정한 날 다시 확인(OrganizeExecutor.CheckSource, 바뀐 것·없어진 것은 건너뛰고 알림). DECISIONS.md 같은 날짜 항목.
 - 2026-11-23 (1.6.0 준비): 폴더 정리 같은 파일 묶음 보기(이유에 남길 파일 경로, "같은 파일" 탭, 아래 칸에 전체 경로·[남기기]로 남길 파일 바꾸기, ChooseKeeper), 델파이·VB 등 코드 프로젝트 폴더 표시 추가. DECISIONS.md 같은 날짜 항목.
