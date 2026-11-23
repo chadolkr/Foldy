@@ -54,6 +54,23 @@ public sealed class SlowCrawlerTests : IDisposable
         Assert.True(CrawlStatus_Complete(c));
     }
 
+    [Fact]
+    public void ReadAll_gives_whole_list_with_live_changes_for_disk_analysis()
+    {
+        Make(@"영업\견적\a.docx");
+        Make(@"인사\b.hwp");
+        using var c = new SlowCrawler(_store, () => [_root]);
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        var store = c.StoreFor(_root);
+        Assert.Equal(5, store.ReadAll().Count()); // 폴더 3 + 파일 2
+
+        // Windows가 알려 준 변화: 영업 폴더째 지움 → 그 안도 빠진다. 새 파일은 더한다
+        store.NoteRemoved(Path.Combine(_root, "영업"));
+        store.NoteAdded(new CrawlEntry(Path.Combine(_root, "인사", "c.xlsx"), false, 1234, DateTime.UtcNow));
+        var names = store.ReadAll().Select(e => Path.GetFileName(e.Path)).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        Assert.Equal(["b.hwp", "c.xlsx", "인사"], names);
+    }
+
     private bool CrawlStatus_Complete(SlowCrawler c) => c.StatusOf(_root)?.Complete == true;
 
     [Fact]

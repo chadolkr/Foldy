@@ -162,6 +162,7 @@ public partial class ShellWindow : Window, IPaneHost
         RestorePlacement(session);
         LeftPane.Attach(this, Shell.Left);
         RightPane.Attach(this, Shell.Right);
+        InitSinglePane();
         // 두 패널 모두 왼쪽에 폴더 트리, 오른쪽에 파일 목록 (Ctrl+B로 숨기기, 가운데 선을 끌어 너비 조절)
         LeftPane.TreeWidth = session.LeftTreeWidth;
         RightPane.TreeWidth = session.RightTreeWidth;
@@ -754,6 +755,20 @@ public partial class ShellWindow : Window, IPaneHost
         return list;
     }
 
+    /// <summary>디스크 분석용: 이 드라이브를 다 모아 둔 목록 (아직 다 모으지 못했거나 모으기가 꺼져 있으면 null).</summary>
+    private Foldy.Analysis.CrawledList? CrawledListFor(string drive)
+    {
+        if (_crawler is not { } crawler)
+        {
+            return null;
+        }
+
+        var store = crawler.StoreFor(drive);
+        return store.CompletedUtc is { } done
+            ? new Foldy.Analysis.CrawledList(done, ct => store.ReadAll(ct).Select(e => new Foldy.Analysis.CrawledItem(e.Path, e.IsFolder, e.Size, e.ModifiedUtc)))
+            : null;
+    }
+
     private DispatcherTimer? _indexStatusTimer;
 
     /// <summary>
@@ -885,7 +900,7 @@ public partial class ShellWindow : Window, IPaneHost
                 ? new WindowPlacement(Left, Top, Width, Height, WindowState == WindowState.Maximized)
                 : new WindowPlacement(RestoreBounds.Left, RestoreBounds.Top, RestoreBounds.Width, RestoreBounds.Height, WindowState == WindowState.Maximized);
             var total = LeftColumn.ActualWidth + RightColumn.ActualWidth;
-            var split = total > 0 ? LeftColumn.ActualWidth / total : 0.5;
+            var split = _singlePane is not null ? _splitBeforeSingle : total > 0 ? LeftColumn.ActualWidth / total : 0.5;
             JsonFileStore.Save(_sessionPath, s with
             {
                 Window = placement,
@@ -1113,6 +1128,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("folder.wizard", Foldy.Core.Localization.Loc.T("sw.c.wizard"), OpenWizard);
         Add("folder.organize", Foldy.Core.Localization.Loc.T("sw.c.organize"), () => OpenOrganize(Shell.ActivePane.ActiveFolder?.Path));
         Add("folder.description", Foldy.Core.Localization.Loc.T("sw.c.editDescription"), EditDescription);
+        Add("pane.single", Foldy.Core.Localization.Loc.T("cmd.singlePane"), () => ToggleSinglePane(ActiveView));
         Add("view.images", Foldy.Core.Localization.Loc.T("cmd.images"), () => ActiveView.ToggleImages(), Key.I, ModifierKeys.Control | ModifierKeys.Shift);
         Add("git.open", Foldy.Core.Localization.Loc.T("cmd.git"), () =>
         {
@@ -1534,7 +1550,12 @@ public partial class ShellWindow : Window, IPaneHost
             org.SelectedTemplate = org.Templates.FirstOrDefault(t => t.Id == "para") ?? org.SelectedTemplate;
         }
 
-        _ = org.PlanCommand.ExecuteAsync(null); // 창이 열리면 바로 정리 후 모습이 보이게
+        // 창이 열리면 바로 정리 후 모습이 보이게. 저장해 둔 계획이 있으면 [이어서 하기]·[새로 만들기]를 먼저 보인다
+        if (!await org.CheckSavedPlanAsync())
+        {
+            _ = org.PlanCommand.ExecuteAsync(null);
+        }
+
         ShowOrganizeDialog(org, folder);
     }
 
@@ -1545,11 +1566,16 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        ShowOrganizeDialog(NewOrganize(folder), folder);
+        var org = NewOrganize(folder);
+        _ = org.CheckSavedPlanAsync(); // 저장해 둔 계획이 있으면 창 위에 [이어서 하기]가 뜬다
+        ShowOrganizeDialog(org, folder);
     }
 
+    /// <summary>큰 폴더의 정리 계획을 저장해 두는 곳 (%LOCALAPPDATA%\Foldy\organize-plans.db, 7일 지나면 지운다).</summary>
+    private static readonly Foldy.Presentation.Templates.OrganizePlanStore OrganizePlans = new(Foldy.Presentation.Templates.OrganizePlanStore.DefaultPath);
+
     private Foldy.Presentation.Templates.OrganizeViewModel NewOrganize(string folder) =>
-        new(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates) { SizeHint = IndexedFolderSizeAsync };
+        new(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates) { SizeHint = IndexedFolderSizeAsync, PlanStore = OrganizePlans };
 
     /// <summary>색인이 아는 폴더 전체 크기 (정리 계획을 만들 때 바로 보여 주는 용량). 색인 밖이면 null.</summary>
     private async Task<long?> IndexedFolderSizeAsync(string folder, CancellationToken ct)
@@ -1579,6 +1605,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void ShowOrganizeDialog(Foldy.Presentation.Templates.OrganizeViewModel org, string folder)
     {
         Foldy.UI.Templates.TemplateDialogs.ShowOrganize(this, org);
+        _ = org.FlushSavesAsync(); // 막 바꾼 체크도 저장해 둔다 (뒤에서)
         if (org.IsInBackground && org.State == Foldy.Presentation.Templates.OrganizeState.Planning)
         {
             TrackOrganizeInBackground(org, folder);
@@ -2451,6 +2478,32 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
+    /// <summary>경로 중 브라우저 캐시가 있고 그 브라우저가 켜져 있으면 브라우저 이름 (Chrome·Edge).</summary>
+    private static string? BusyBrowser(IReadOnlyList<string> paths)
+    {
+        foreach (var name in paths.Select(Foldy.Core.FileSystem.BrowserCache.BrowserName).OfType<string>().Distinct())
+        {
+            var process = name == "Chrome" ? "chrome" : "msedge";
+            var running = System.Diagnostics.Process.GetProcessesByName(process);
+            try
+            {
+                if (running.Length > 0)
+                {
+                    return name;
+                }
+            }
+            finally
+            {
+                foreach (var p in running)
+                {
+                    p.Dispose();
+                }
+            }
+        }
+
+        return null;
+    }
+
     private void OpenAnalysis(string? target = null)
     {
         var pane = Shell.ActivePane;
@@ -2461,7 +2514,9 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        _analysis ??= new Foldy.Analysis.AnalysisCoordinator(new IndexerAnalysisService());
+        // 색인 서비스가 다루지 않는 드라이브(K: 같은 회사 보안 드라이브, 네트워크, FAT/exFAT)는 살살 모아 둔 목록이 있으면 그것으로 분석한다.
+        // 드라이브를 다시 읽지 않는다 (사용자 2026-11-23: "K 드라이브 분석을 시켰더니 폴더 읽는 중으로 나온다. 색인은 완료되었다는데…")
+        _analysis ??= new Foldy.Analysis.AnalysisCoordinator(new IndexerAnalysisService()) { CrawledLists = CrawledListFor };
         var tab = new Foldy.Presentation.Analysis.AnalysisTabViewModel(_analysis, path);
         tab.RecycleRequested += async (_, e) =>
         {
@@ -2470,6 +2525,11 @@ public partial class ShellWindow : Window, IPaneHost
             if (ok)
             {
                 Shell.Status = Foldy.Core.Localization.Loc.F("sw.recycled", e.Paths.Count, Foldy.Presentation.Files.FileItem.FormatBytes(e.TotalBytes));
+            }
+            else if (BusyBrowser(e.Paths) is { } browser)
+            {
+                // 브라우저 캐시는 브라우저가 켜져 있으면 파일을 쓰고 있어 못 옮긴다: 닫고 다시 하라고 알린다 (사용자 제보 2026-11-23)
+                Shell.Status = Foldy.Core.Localization.Loc.F("an.browserBusy", browser);
             }
             foreach (var item in e.Items)
             {

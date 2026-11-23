@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'New in 1.5: see how many were found',
-    eyebrow: 'Foldy 1.5',
+    badge: 'New in 1.7: pick up big tidy-ups where you left off',
+    eyebrow: 'Foldy 1.7',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
-      { icon: 'search', title: 'See how many were found', text: 'Ctrl+Space shows the count next to each group, like "Files · 220". When you look at files only, scrolling down keeps loading more, and the last line tells you how many you have seen.' },
-      { icon: 'disk', title: 'Huge folders, organized fast', text: 'Foldy now plans a tidy-up of folders with hundreds of thousands of files quickly and shows the count and size as it goes. If it takes long, it can keep working in the background and tell you when it is done.' },
-      { icon: 'check', title: 'Control Panel, too', text: 'Type "Add or remove programs", "Device Manager" or "environment variables" to open classic Control Panel and admin tools. Results are grouped into apps, settings, folders and files, like Windows Search.' },
-      { icon: 'update', title: 'Updates that don’t get stuck', text: 'Updates no longer wait for a Foldy that an AI app started, and pressing [Check for updates] while Foldy is already downloading on a company network no longer fails.' },
+      { icon: 'undo', title: 'Pick up big tidy-ups where you left off', text: 'Foldy saves your tidy-up plan and your checks. Even after closing the window or turning off the PC, [Continue] opens it right away. When you press [Tidy up], files that changed or disappeared since then are left alone, and Foldy tells you.' },
+      { icon: 'eye', title: 'See where duplicates are, pick one to keep', text: 'When tidying a folder, Foldy shows the full path of every identical file, and [Keep] lets you choose which one stays. Only the rest move to "_Possible duplicates", and nothing is deleted. [Show only this pane] lets one pane use the whole window.' },
+      { icon: 'search', title: 'See how many results you got', text: 'In Ctrl+Space, each group shows its count, like "Files · 220". Press [See all 220] at the end of the list, or when you view one group, just keep scrolling down for more.' },
+      { icon: 'disk', title: 'Tidy even huge folders fast', text: 'Foldy now plans a tidy-up of folders with hundreds of thousands of files quickly, and shows the file and folder counts and size as it goes. If it will take a while, press [Close and keep going] and do something else. Foldy lets you know when it is ready.' },
     ],
     link: 'See everything that changed',
   },

@@ -34,7 +34,15 @@ public sealed class WpfDispatcher(Dispatcher dispatcher) : IUiDispatcher
 public sealed class ShellFileOperationService(Func<IntPtr> owner) : IFileOperationService
 {
     private static FileOpResult Map(FileOpOutcome o) =>
-        o.Succeeded ? FileOpResult.Ok(o.CreatedPath) : o.Aborted ? FileOpResult.Canceled : FileOpResult.Fail(o.Error ?? "실패");
+        o.Succeeded ? FileOpResult.Ok(o.CreatedPath) : o.Aborted ? FileOpResult.Canceled : FileOpResult.Fail(FriendlyError(o));
+
+    /// <summary>권한·사용 중·긴 경로는 Windows 글 대신 쉬운 말로 (Windows 오류 창은 띄우지 않는다, FileOpErrors).</summary>
+    private static string FriendlyError(FileOpOutcome o) => FileOpErrors.Classify(o.ErrorCode) switch
+    {
+        FileOpErrorKind.AccessDenied or FileOpErrorKind.InUse => Foldy.Core.Localization.Loc.T("ops.err.locked"),
+        FileOpErrorKind.PathTooLong => Foldy.Core.Localization.Loc.T("ops.err.pathTooLong"),
+        _ => o.Error ?? "실패",
+    };
 
     private static FileOpProgressCallback? Cb(IProgress<FileOpProgress>? p) =>
         p is null ? null : (done, total, cur) => p.Report(new FileOpProgress(done, total, cur));
@@ -45,8 +53,28 @@ public sealed class ShellFileOperationService(Func<IntPtr> owner) : IFileOperati
     public async Task<FileOpResult> MoveAsync(IReadOnlyList<string> sources, string destinationFolder, IProgress<FileOpProgress>? progress, CancellationToken ct) =>
         Map(await FileOperations.RunAsync(new FileOpRequest(FileOpKind.Move, sources, destinationFolder), owner(), Cb(progress), ct));
 
-    public async Task<FileOpResult> DeleteAsync(IReadOnlyList<string> paths, bool recycle, IProgress<FileOpProgress>? progress, CancellationToken ct) =>
-        Map(await FileOperations.RunAsync(new FileOpRequest(recycle ? FileOpKind.Recycle : FileOpKind.Delete, paths), owner(), Cb(progress), ct));
+    /// <summary>
+    /// 폴더가 섞인 휴지통·삭제는 도우미 프로세스에서 한다: Windows 파일 작업 안의 남의 코드가 프로세스를 끝내도
+    /// Foldy 창은 남고 실패만 알린다 (1.7.1, <see cref="FileOpWorker"/>). 파일 몇 개는 그 자리에서 바로.
+    /// </summary>
+    public async Task<FileOpResult> DeleteAsync(IReadOnlyList<string> paths, bool recycle, IProgress<FileOpProgress>? progress, CancellationToken ct)
+    {
+        var req = new FileOpRequest(recycle ? FileOpKind.Recycle : FileOpKind.Delete, paths);
+        if (!await Task.Run(() => FileOpWorkerProtocol.ShouldIsolate(true, paths, Directory.Exists), CancellationToken.None))
+        {
+            return Map(await FileOperations.RunAsync(req, owner(), Cb(progress), ct));
+        }
+
+        Foldy.Core.Diagnostics.RunMarker.Note($"{req.Kind} {paths.Count}: {paths[0]}");
+        try
+        {
+            return Map(await FileOpWorker.RunAsync(req, owner(), Cb(progress), ct));
+        }
+        finally
+        {
+            Foldy.Core.Diagnostics.RunMarker.Note(null);
+        }
+    }
 
     public async Task<FileOpResult> RenameAsync(string path, string newName, CancellationToken ct) =>
         Map(await FileOperations.RunAsync(new FileOpRequest(FileOpKind.Rename, [path], NewName: newName), owner(), null, ct));

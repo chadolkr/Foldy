@@ -10,4 +10,8 @@
   <ItemGroup>
     <PackageReference Include="FlaUI.UIA3" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- 휴지통·삭제 도우미 약속 (FileOpWorkerTests) -->
+    <ProjectReference Include="..\..\src\Foldy.Core\Foldy.Core.csproj" />
+  </ItemGroup>
 </Project>

@@ -221,6 +221,9 @@ public sealed partial class MainWindowTests
         qs.FindFirstDescendant(app.By.ByName("보기: 설정"))!.AsButton().Invoke();
         Retry.WhileNull(() => qs.FindFirstDescendant(app.By.ByName("프로그램 추가/제거")), TimeSpan.FromSeconds(5), ignoreException: true)
             .Result.Should().NotBeNull("설정만 보면 다시 나온다");
+        // 2026-11-23 사용자: "전체가 몇 건인지 알 수 있게" — 묶음 이름에 찾은 수가 붙는다 ("설정 · 3개")
+        qs.FindAllDescendants().Any(e => { try { return e.Name.StartsWith("설정 · ", StringComparison.Ordinal) && e.Name.EndsWith('개'); } catch (FlaUI.Core.Exceptions.PropertyNotSupportedException) { return false; } catch (System.Runtime.InteropServices.COMException) { return false; } })
+            .Should().BeTrue("묶음 이름 옆에 찾은 수가 보여야 한다");
         qs.FindFirstDescendant(app.By.ByName("열기")).Should().NotBeNull("오른쪽에 [열기] 단추가 있어야 한다");
         qs.Close();
     }
@@ -377,6 +380,102 @@ public sealed partial class MainWindowTests
             try
             {
                 Directory.Delete(photos, true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    /// <summary>사용자 2026-11-23: 주 창의 한쪽 창만 크게 보고, 같은 단추로 다시 두 창으로.</summary>
+    [Fact]
+    public void One_pane_can_fill_the_window_and_come_back()
+    {
+        using var app = FoldyApp.Start();
+        AutomationElement[] Buttons() => app.Main.FindAllDescendants(app.By.ByAutomationId("PaneSingleButton"));
+        Retry.WhileFalse(() => Buttons().Length == 2, TimeSpan.FromSeconds(15), ignoreException: true);
+        Buttons().Should().HaveCount(2, "두 창 모두에 [이 창만 크게]가 있다");
+        Buttons()[0].AsButton().Invoke();
+        Retry.WhileFalse(() => Buttons().Length == 1, TimeSpan.FromSeconds(5), ignoreException: true);
+        var only = Buttons().Should().ContainSingle("다른 창은 접힌다").Subject;
+        only.Name.Should().Be("두 창으로 보기", "켜고 끄기는 같은 자리");
+        only.AsButton().Invoke();
+        Retry.WhileFalse(() => Buttons().Length == 2, TimeSpan.FromSeconds(5), ignoreException: true);
+        Buttons().Should().HaveCount(2, "같은 단추로 다시 두 창");
+    }
+
+    /// <summary>
+    /// 사용자 2026-11-23: 폴더 정리의 같은 파일은 어느 폴더의 파일과 같은지 전체 경로로 보이고, 남길 파일을 고를 수 있다.
+    /// </summary>
+    [Fact]
+    public void Organize_shows_where_identical_files_are_and_lets_you_pick_the_one_to_keep()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "foldy-dups-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(root, "a"));
+        Directory.CreateDirectory(Path.Combine(root, "b"));
+        var first = Path.Combine(root, "a", "보고서.txt");
+        var second = Path.Combine(root, "b", "보고서.txt");
+        File.WriteAllText(first, "같은 내용");
+        File.WriteAllText(second, "같은 내용");
+        File.SetLastWriteTimeUtc(first, new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        try
+        {
+            using var app = FoldyApp.Start(openPath: root);
+            app.Find("정리하기").AsButton().Invoke();
+            Retry.WhileNull(
+                () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName("이 폴더 정리하기…").And(app.By.ByControlType(ControlType.MenuItem))),
+                TimeSpan.FromSeconds(10), ignoreException: true).Result!.AsMenuItem().Invoke();
+            var win = app.FindWindow("폴더 정리", 15);
+            app.Find("하위 폴더 안까지 정리", win).AsCheckBox().IsChecked = true;
+            app.Find("계획 만들기", win).AsButton().Invoke();
+
+            // 계획이 다 되어야 탭 이름에 묶음 수가 붙는다 (그 전에 탭을 고르면 계획이 끝날 때 첫 탭으로 돌아간다)
+            var tab = Retry.WhileNull(
+                () => win.FindFirstDescendant(app.By.ByName("같은 파일 (1묶음)").And(app.By.ByControlType(ControlType.TabItem))),
+                TimeSpan.FromSeconds(30), ignoreException: true).Result;
+            tab.Should().NotBeNull("같은 파일이 있으면 '같은 파일' 탭이 보여야 한다");
+            // 탭을 누르고 목록이 보일 때까지 다시 누른다 (계획 끝에 첫 탭으로 돌아가는 순간과 겹쳐도 괜찮게)
+            var sets = Retry.WhileNull(
+                () =>
+                {
+                    var t = win.FindFirstDescendant(app.By.ByAutomationId("OrganizeDuplicatesTab"))?.AsTabItem();
+                    if (t is not null && !t.IsSelected)
+                    {
+                        t.Click();
+                    }
+
+                    return win.FindFirstDescendant(app.By.ByAutomationId("OrganizeDuplicateSets"));
+                },
+                TimeSpan.FromSeconds(20), TimeSpan.FromMilliseconds(500), ignoreException: true).Result;
+            sets.Should().NotBeNull(
+                "'같은 파일' 탭을 누르면 묶음 목록이 보여야 한다 (탭: {0})",
+                string.Join(", ", win.FindAllDescendants(app.By.ByControlType(ControlType.TabItem)).Select(e => e.Name + "=" + e.AsTabItem().IsSelected)));
+            // 묶음 목록에 초점을 두고 ↓로 첫 줄을 고른다 (사람이 키보드로 하는 것과 같다)
+            sets!.Focus();
+            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.HOME);
+            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.DOWN);
+            AutomationElement? Radio(string path) => Retry.WhileNull(
+                () => win.FindFirstDescendant(app.By.ByName(path).And(app.By.ByControlType(ControlType.RadioButton))), TimeSpan.FromSeconds(10), ignoreException: true).Result;
+            var firstRadio = Radio(first);
+            firstRadio.Should().NotBeNull(
+                "묶음을 고르면 아래에 같은 파일들이 [남기기]와 함께 보여야 한다 (목록 안: {0})",
+                string.Join(", ", sets!.FindAllDescendants().Select(e => e.ControlType + ":" + e.Name).Take(20)));
+            var keepFirst = firstRadio!.AsRadioButton();
+            var keepSecond = Radio(second)!.AsRadioButton();
+            keepFirst.IsChecked.Should().BeTrue("처음에는 가장 오래된 파일을 남긴다");
+            keepSecond.IsChecked.Should().BeFalse();
+            keepSecond.IsChecked = true;
+            Retry.WhileFalse(() => keepFirst.IsChecked == false, TimeSpan.FromSeconds(5), ignoreException: true);
+            keepSecond.IsChecked.Should().BeTrue("고른 파일을 남긴다");
+            keepFirst.IsChecked.Should().BeFalse("남길 파일은 하나만");
+            File.Exists(first).Should().BeTrue("미리보기에서는 아무것도 옮기거나 지우지 않는다");
+            win.Close();
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, true);
             }
             catch (IOException)
             {

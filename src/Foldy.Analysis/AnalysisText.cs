@@ -41,6 +41,13 @@ public static class AnalysisText
     public static DateTime FromFileTime(long ft) => ft > 0 ? DateTime.FromFileTimeUtc(ft) : DateTime.MinValue;
 
     public static long ToFileTime(DateTime utc) => utc.ToUniversalTime().ToFileTimeUtc();
+
+    /// <summary>"방금", "12분 전", "3시간 전", "2일 전" (진행 글은 한국어, 다른 언어에서는 진행률만 보인다).</summary>
+    public static string Ago(TimeSpan age) =>
+        age < TimeSpan.FromMinutes(1) ? "방금"
+        : age < TimeSpan.FromHours(1) ? $"{(int)age.TotalMinutes}분 전"
+        : age < TimeSpan.FromDays(1) ? $"{(int)age.TotalHours}시간 전"
+        : $"{(int)age.TotalDays}일 전";
 }
 
 /// <summary>확장자 → 종류 묶음 (설계서 7.3 "동영상, 압축, 설치 파일 등 그룹은 앱에서 매핑").</summary>

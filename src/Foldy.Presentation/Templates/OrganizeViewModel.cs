@@ -34,6 +34,9 @@ public sealed partial class MoveItemViewModel : ObservableObject
 
     public string SourceRelative => Path.GetRelativePath(Root, Move.Source);
 
+    /// <summary>긴 경로는 가운데를 줄여 맨 위 폴더와 끝 폴더·파일 이름이 보이게 ("00.CodeReview\…\BIZ_MC\a.pas").</summary>
+    public string SourceShort => OrganizeViewModel.ShortPath(SourceRelative);
+
     public string DestinationRelative => Path.GetRelativePath(Root, Move.Destination);
 
     public string DestinationName => Move.Name;
@@ -44,6 +47,15 @@ public sealed partial class MoveItemViewModel : ObservableObject
 
     public bool IsFolder => Move.IsFolder;
 
+    /// <summary>지금 위치 전체 경로 (목록 칸에 다 안 보일 때 풍선 도움말로).</summary>
+    public string SourceFull => Move.Source;
+
+    /// <summary>같은 파일 묶음에 든 파일 (누르면 아래에 같은 파일들이 어디 있는지 보인다).</summary>
+    public bool IsDuplicate => Move.DuplicateSet is not null;
+
+    /// <summary>계획 쪽에서 바뀐 값을 화면에 옮기는 중 (그 사이 바뀐 알림으로 계획을 다시 고치지 않게).</summary>
+    private bool _syncing;
+
     [ObservableProperty]
     private bool _isIncluded;
 
@@ -52,24 +64,177 @@ public sealed partial class MoveItemViewModel : ObservableObject
 
     partial void OnIsIncludedChanged(bool value)
     {
+        if (_syncing)
+        {
+            return;
+        }
+
         Move.Included = value;
         _owner.OnPlanEdited();
     }
 
     partial void OnTargetFolderChanged(string value)
     {
-        if (!string.Equals(value, Move.TargetFolder, StringComparison.Ordinal))
+        if (!_syncing && !string.Equals(value, Move.TargetFolder, StringComparison.Ordinal))
         {
             _owner.Retarget(this, value);
         }
     }
 
+    /// <summary>[모두 체크]·[모두 해제]: 한 줄씩 계획을 다시 그리지 않고 값만 바꾼다 (끝나고 한 번 그린다).</summary>
+    internal void SetIncludedQuietly(bool value)
+    {
+        Move.Included = value;
+        _syncing = true;
+        try
+        {
+            IsIncluded = value;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+
+    /// <summary>이유별 묶음 이름 (옮길 폴더의 맨 위 단계, 예: _중복 후보, 코드, 2025).</summary>
+    public string Category => OrganizeViewModel.CategoryOf(Move.TargetFolder);
+
     internal void RefreshFromMove()
     {
+        _syncing = true;
+        try
+        {
+            IsIncluded = Move.Included;
+            TargetFolder = Move.TargetFolder;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+
         OnPropertyChanged(nameof(DestinationRelative));
         OnPropertyChanged(nameof(DestinationName));
         OnPropertyChanged(nameof(IsRenamed));
         OnPropertyChanged(nameof(Reason));
+    }
+}
+
+/// <summary>건너뛸 파일 한 줄: 전체 경로(풍선 도움말), 줄인 경로, 이유.</summary>
+public sealed record SkippedRow(string FullPath, string ShortPath, string Reason);
+
+/// <summary>이유별 묶음 하나의 수 (계획을 그릴 때 뒤에서 센다).</summary>
+public sealed record CategoryStat(string Key, int Count, int Checked, long Bytes);
+
+/// <summary>
+/// 이유별 묶음 막대 한 줄 ("_중복 후보 252,411개 · 체크 252,411"): 많은 것부터, 누르면 그 묶음만 목록에 보인다.
+/// <see cref="Key"/>가 null이면 "모두".
+/// </summary>
+public sealed partial class OrganizeCategoryViewModel(string? key, string name) : ObservableObject
+{
+    /// <summary>막대가 가장 길 때 넓이.</summary>
+    public const double MaxBar = 150;
+
+    public string? Key { get; } = key;
+
+    public string Name { get; } = name;
+
+    public bool IsAll => Key is null;
+
+    [ObservableProperty]
+    private int _count;
+
+    [ObservableProperty]
+    private int _checked;
+
+    [ObservableProperty]
+    private string _detail = "";
+
+    /// <summary>가장 많은 묶음에 견준 막대 넓이.</summary>
+    [ObservableProperty]
+    private double _barWidth;
+
+    internal void Set(int count, int @checked, long bytes, int max)
+    {
+        Count = count;
+        Checked = @checked;
+        Detail = Foldy.Core.Localization.Loc.F("org.cat.detail", count, @checked, Foldy.Presentation.Files.FileItem.FormatBytes(bytes));
+        BarWidth = IsAll || max <= 0 ? 0 : Math.Max(2, MaxBar * count / max);
+    }
+}
+
+/// <summary>같은 파일 묶음 목록의 한 줄 (이름·개수·크기·남길 파일 위치).</summary>
+public sealed class DuplicateSetViewModel(DuplicateSet set, string root) : ObservableObject
+{
+    public DuplicateSet Set { get; } = set;
+
+    public string Name => Set.Name;
+
+    public int Count => Set.Members.Count;
+
+    public string SizeText => Foldy.Presentation.Files.FileItem.FormatBytes(Set.Size);
+
+    /// <summary>남길 파일의 위치 (정리할 폴더 기준).</summary>
+    public string KeeperRelative => Path.GetRelativePath(root, Set.Keeper.FullPath);
+
+    internal void Refresh()
+    {
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(KeeperRelative));
+    }
+}
+
+/// <summary>같은 파일 묶음 안의 파일 하나: 전체 경로와 [남기기] 단추, 정리하면 어떻게 되는지.</summary>
+public sealed partial class DuplicateMemberViewModel : ObservableObject
+{
+    private readonly OrganizeViewModel _owner;
+    private bool _syncing;
+
+    public DuplicateMemberViewModel(DuplicateSet set, DuplicateMember member, OrganizeViewModel owner)
+    {
+        Set = set;
+        Member = member;
+        _owner = owner;
+        _isKeeper = set.Keeper == member;
+    }
+
+    public DuplicateSet Set { get; }
+
+    public DuplicateMember Member { get; }
+
+    /// <summary>전체 경로 (드라이브부터).</summary>
+    public string FullPath => Member.FullPath;
+
+    public string Modified => Foldy.Core.Localization.Loc.F("org.dup.modified", Member.LastWriteUtc.ToLocalTime());
+
+    /// <summary>이 파일을 남긴다 (묶음에서 하나만).</summary>
+    [ObservableProperty]
+    private bool _isKeeper;
+
+    /// <summary>"남겨요 → 코드", "'_중복 후보' 폴더로 옮겨요" 같은 결과 한 줄.</summary>
+    [ObservableProperty]
+    private string _outcome = "";
+
+    partial void OnIsKeeperChanged(bool value)
+    {
+        if (!_syncing && value)
+        {
+            _owner.ChooseKeeper(this);
+        }
+    }
+
+    internal void Sync(string outcome)
+    {
+        _syncing = true;
+        try
+        {
+            IsKeeper = Set.Keeper == Member;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+
+        Outcome = outcome;
     }
 }
 
@@ -268,7 +433,120 @@ public sealed partial class OrganizeViewModel : ObservableObject
     private ObservableCollection<MoveItemViewModel> _moves = [];
 
     [ObservableProperty]
-    private ObservableCollection<SkippedEntry> _skipped = [];
+    private ObservableCollection<SkippedRow> _skipped = [];
+
+    /// <summary>같은 파일 묶음 목록 (탭 "같은 파일").</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDuplicateSets))]
+    [NotifyPropertyChangedFor(nameof(DuplicatesTabHeader))]
+    private ObservableCollection<DuplicateSetViewModel> _duplicateSets = [];
+
+    public bool HasDuplicateSets => DuplicateSets.Count > 0;
+
+    public string DuplicatesTabHeader => Foldy.Core.Localization.Loc.F("org.dupsTab", DuplicateSets.Count);
+
+    /// <summary>옮길 파일 목록에서 고른 줄. 같은 파일 묶음이면 아래에 묶음을 보여 준다.</summary>
+    [ObservableProperty]
+    private MoveItemViewModel? _selectedMove;
+
+    /// <summary>같은 파일 탭에서 고른 묶음.</summary>
+    [ObservableProperty]
+    private DuplicateSetViewModel? _selectedDuplicateSet;
+
+    /// <summary>지금 보여 주는 같은 파일 묶음의 파일들 (전체 경로와 [남기기]).</summary>
+    [ObservableProperty]
+    private ObservableCollection<DuplicateMemberViewModel> _duplicateMembers = [];
+
+    [ObservableProperty]
+    private bool _hasDuplicateSelection;
+
+    [ObservableProperty]
+    private string _duplicateTitle = "";
+
+    [ObservableProperty]
+    private string _duplicateTip = "";
+
+    private DuplicateSet? _shownSet;
+    private Dictionary<string, MoveItemViewModel> _bySource = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<DuplicateSet, DuplicateSetViewModel> _setViews = new();
+
+    /// <summary>이유별 묶음 (맨 앞은 "모두", 나머지는 많은 것부터). 누르면 그 묶음만 보인다.</summary>
+    [ObservableProperty]
+    private ObservableCollection<OrganizeCategoryViewModel> _categories = [];
+
+    [ObservableProperty]
+    private OrganizeCategoryViewModel? _selectedCategory;
+
+    /// <summary>목록에 보이는 줄 (고른 묶음만, "모두"면 <see cref="Moves"/> 그대로).</summary>
+    [ObservableProperty]
+    private ObservableCollection<MoveItemViewModel> _visibleMoves = [];
+
+    /// <summary>위의 "지금" 트리를 보인다 ([숨기기]로 접고 [지금 다시 보기]로 연다. 둘 다 숨기지는 않는다).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowBothTrees))]
+    private bool _showBeforeTree = true;
+
+    /// <summary>위의 "정리 후" 트리를 보인다.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowBothTrees))]
+    private bool _showAfterTree = true;
+
+    public bool ShowBothTrees => ShowBeforeTree && ShowAfterTree;
+
+    [RelayCommand]
+    private void HideBeforeTree()
+    {
+        ShowAfterTree = true;
+        ShowBeforeTree = false;
+    }
+
+    [RelayCommand]
+    private void HideAfterTree()
+    {
+        ShowBeforeTree = true;
+        ShowAfterTree = false;
+    }
+
+    [RelayCommand]
+    private void ShowTreesAgain()
+    {
+        ShowBeforeTree = true;
+        ShowAfterTree = true;
+    }
+
+    /// <summary>"252,411개 보는 중".</summary>
+    [ObservableProperty]
+    private string _visibleInfo = "";
+
+    /// <summary>
+    /// 긴 경로를 가운데만 줄인다: 맨 앞 폴더 + "…" + 끝의 두 단계(폴더와 파일 이름). 짧으면 그대로.
+    /// 사용자 2026-11-23: 경로가 길어 보기 힘들다 → 어디서 왔는지(앞)와 무엇인지(끝)가 늘 보이게. 전체는 풍선 도움말로.
+    /// </summary>
+    public static string ShortPath(string path, int max = 60)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (path.Length <= max)
+        {
+            return path;
+        }
+
+        var parts = path.Split('\\');
+        if (parts.Length <= 3)
+        {
+            return path;
+        }
+
+        var tail = parts[^2] + "\\" + parts[^1];
+        return parts[0] + "\\…\\" + tail;
+    }
+
+    /// <summary>이유별 묶음 이름: 옮길 폴더의 맨 위 단계 (정리할 폴더 바로 아래면 빈 글).</summary>
+    public static string CategoryOf(string targetFolder)
+    {
+        ArgumentNullException.ThrowIfNull(targetFolder);
+        var i = targetFolder.IndexOfAny(['\\', '/']);
+        return i < 0 ? targetFolder : targetFolder[..i];
+    }
 
     [ObservableProperty]
     private ObservableCollection<OrganizeTreeNode> _beforeTree = [];
@@ -336,6 +614,28 @@ public sealed partial class OrganizeViewModel : ObservableObject
     /// <summary>색인에서 폴더 전체 크기를 알려 주는 곳 (앱이 채운다). 없거나 모르면 null.</summary>
     public Func<string, CancellationToken, Task<long?>>? SizeHint { get; init; }
 
+    /// <summary>
+    /// 계획을 저장해 두는 곳 (사용자 2026-11-23: 큰 폴더는 계획을 다시 만들기 힘들다). 없으면 저장하지 않는다.
+    /// 앱은 %LOCALAPPDATA%\Foldy\organize-plans.db를 넘긴다.
+    /// </summary>
+    public OrganizePlanStore? PlanStore { get; init; }
+
+    /// <summary>옮길 것+건너뛸 것이 이만큼 넘거나 <see cref="SaveAfter"/>보다 오래 걸린 계획만 저장한다 (작은 폴더는 다시 만들면 금방이다).</summary>
+    public int SaveMinItems { get; init; } = 1_000;
+
+    public TimeSpan SaveAfter { get; init; } = TimeSpan.FromSeconds(3);
+
+    /// <summary>체크를 바꾸고 이만큼 조용하면 바뀐 줄만 저장한다.</summary>
+    public TimeSpan EditSaveDelay { get; init; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>이 폴더에 저장해 둔 계획이 있다 ([이어서 하기]·[새로 만들기] 안내).</summary>
+    [ObservableProperty]
+    private bool _hasSavedPlan;
+
+    /// <summary>"어제 오후 3:10에 만든 계획이 있어요. 옮길 파일 252,411개 중 1,200개를 체크해 두었어요."</summary>
+    [ObservableProperty]
+    private string _savedPlanText = "";
+
     /// <summary>계획 만들기가 끝났다 (준비됨·취소·오류 모두, UI 스레드). 뒤에서 만들 때 알림에 쓴다.</summary>
     public event EventHandler? PlanFinished;
 
@@ -391,6 +691,8 @@ public sealed partial class OrganizeViewModel : ObservableObject
         PlanCommand.NotifyCanExecuteChanged();
         ExecuteCommand.NotifyCanExecuteChanged();
         UndoCommand.NotifyCanExecuteChanged();
+        ResumeSavedPlanCommand.NotifyCanExecuteChanged();
+        StartFreshCommand.NotifyCanExecuteChanged();
     }
 
     public OrganizeOptions BuildOptions() => new()
@@ -427,6 +729,8 @@ public sealed partial class OrganizeViewModel : ObservableObject
         var deep = IncludeSubfolders && !(allowProject && RootIsProject); // 프로젝트 폴더는 맨 위 파일만
         var counter = new OrganizeScanCounter();
         var stages = new OrganizePlanProgress();
+        var settings = CaptureSettings();
+        HasSavedPlan = false; // 새로 만든다: 저장해 둔 것은 새 계획으로 바꿔 끼운다
         State = OrganizeState.Planning;
         Status = Foldy.Core.Localization.Loc.T("org.scanning");
         ScanInfo = "";
@@ -457,10 +761,12 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 ct);
             await StopTicker(ticking, ticker);
             var (files, folders, bytes) = (counter.Files, counter.Folders, counter.Bytes);
+            var elapsed = started.Elapsed;
             _ui.Post(() =>
             {
                 ScanInfo = files + folders > 0 ? DescribeCounts(files, folders, bytes, TotalBytes) : "";
                 Show(prepared);
+                SaveNewPlan(prepared.Plan, settings, elapsed);
                 ShowBackgroundOffer = false;
                 PlanFinished?.Invoke(this, EventArgs.Empty);
             });
@@ -616,18 +922,27 @@ public sealed partial class OrganizeViewModel : ObservableObject
     private bool CanPlan() => !IsBusy && !string.IsNullOrWhiteSpace(RootPath);
 
     /// <summary>계획을 화면에 보일 모양으로 (무거운 일이라 백그라운드에서 한다).</summary>
-    private sealed record PreparedPlan(OrganizePlan Plan, ObservableCollection<MoveItemViewModel> Moves, ObservableCollection<SkippedEntry> Skipped, PlanView? View, PlanView? Unchanged);
+    private sealed record PreparedPlan(
+        OrganizePlan Plan, ObservableCollection<MoveItemViewModel> Moves, ObservableCollection<SkippedRow> Skipped, PlanView? View, PlanView? Unchanged,
+        Dictionary<string, MoveItemViewModel> BySource, ObservableCollection<DuplicateSetViewModel> DuplicateSets);
 
     /// <summary>트리 두 개와 요약 한 줄.</summary>
-    private sealed record PlanView(ObservableCollection<OrganizeTreeNode> Before, ObservableCollection<OrganizeTreeNode> After, string Summary);
+    private sealed record PlanView(ObservableCollection<OrganizeTreeNode> Before, ObservableCollection<OrganizeTreeNode> After, string Summary, IReadOnlyList<CategoryStat> Categories, int Total, int Included);
 
     private PreparedPlan Prepare(OrganizePlan plan)
     {
         var moves = new ObservableCollection<MoveItemViewModel>(plan.Moves.Select(m => new MoveItemViewModel(m, plan.Root, this)));
-        var skipped = new ObservableCollection<SkippedEntry>(plan.Skipped);
+        var skipped = new ObservableCollection<SkippedRow>(plan.Skipped.Select(x => new SkippedRow(x.FullPath, ShortPath(Path.GetRelativePath(plan.Root, x.FullPath)), x.Reason)));
+        var bySource = new Dictionary<string, MoveItemViewModel>(moves.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var m in moves)
+        {
+            bySource[m.Move.Source] = m;
+        }
+
+        var sets = new ObservableCollection<DuplicateSetViewModel>(plan.DuplicateSets.Select(d => new DuplicateSetViewModel(d, plan.Root)));
         if (plan.Blocked is not null)
         {
-            return new(plan, moves, skipped, null, null);
+            return new(plan, moves, skipped, null, null, bySource, sets);
         }
 
         PlanView? unchanged = null;
@@ -636,10 +951,10 @@ public sealed partial class OrganizeViewModel : ObservableObject
             // 옮길 것이 없으면 지금 구조(건너뛴 항목)를 양쪽에 그대로 보여 준다 — "지금 = 정리 후"
             var rel = plan.Skipped.Select(x => Path.GetRelativePath(plan.Root, x.FullPath)).ToList();
             var folders = new HashSet<string>(plan.Skipped.Where(x => Directory.Exists(x.FullPath)).Select(x => Path.GetRelativePath(plan.Root, x.FullPath)), StringComparer.OrdinalIgnoreCase);
-            unchanged = new(OrganizeTreeNode.Build(rel, folders), OrganizeTreeNode.Build(rel, folders), "");
+            unchanged = new(OrganizeTreeNode.Build(rel, folders), OrganizeTreeNode.Build(rel, folders), "", [], 0, 0);
         }
 
-        return new(plan, moves, skipped, ComputeView(plan), unchanged);
+        return new(plan, moves, skipped, ComputeView(plan), unchanged, bySource, sets);
     }
 
     private void Show(PreparedPlan p)
@@ -649,6 +964,17 @@ public sealed partial class OrganizeViewModel : ObservableObject
         _viewGeneration++;
         Moves = p.Moves;
         Skipped = p.Skipped;
+        _bySource = p.BySource;
+        Categories = [];
+        _suppressFilter = true;
+        SelectedCategory = null;
+        _suppressFilter = false;
+        ApplyFilter();
+        DuplicateSets = p.DuplicateSets;
+        _setViews = p.DuplicateSets.ToDictionary(v => v.Set);
+        SelectedMove = null;
+        SelectedDuplicateSet = null;
+        ShowDuplicateSet(null);
         if (plan.Blocked is not null)
         {
             State = OrganizeState.Error;
@@ -682,17 +1008,24 @@ public sealed partial class OrganizeViewModel : ObservableObject
         Show(Prepare(plan));
     }
 
-    private static PlanView ComputeView(OrganizePlan plan)
+    private static PlanView ComputeView(OrganizePlan plan) => ComputeView(plan, plan.Moves.ToArray());
+
+    /// <param name="moves">계획의 이동을 UI 스레드에서 떠 둔 것 (뒤에서 세는 동안 남길 파일을 바꿔 목록이 바뀌어도 안전하게).</param>
+    private static PlanView ComputeView(OrganizePlan plan, PlannedMove[] moves)
     {
-        var included = plan.IncludedMoves.ToList();
+        var included = moves.Where(m => m.Included).ToList();
         var folderSources = new HashSet<string>(included.Where(m => m.IsFolder).Select(m => Path.GetRelativePath(plan.Root, m.Source)), StringComparer.OrdinalIgnoreCase);
         var folderDests = new HashSet<string>(included.Where(m => m.IsFolder).Select(m => Path.GetRelativePath(plan.Root, m.Destination)), StringComparer.OrdinalIgnoreCase);
         var before = OrganizeTreeNode.Build(included.Select(m => Path.GetRelativePath(plan.Root, m.Source)), folderSources);
         var after = OrganizeTreeNode.Build(included.Select(m => Path.GetRelativePath(plan.Root, m.Destination)), folderDests);
-        var byFolder = plan.CountsByFolder();
-        var summary = Foldy.Core.Localization.Loc.F("org.summary", included.Count, byFolder.Count, plan.Skipped.Count)
-            + (plan.Moves.Count - included.Count > 0 ? Foldy.Core.Localization.Loc.F("org.excluded", plan.Moves.Count - included.Count) : "");
-        return new(before, after, summary);
+        var folders = included.Select(m => m.TargetFolder).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        var summary = Foldy.Core.Localization.Loc.F("org.summary", included.Count, folders, plan.Skipped.Count)
+            + (moves.Length - included.Count > 0 ? Foldy.Core.Localization.Loc.F("org.excluded", moves.Length - included.Count) : "");
+        var categories = moves.GroupBy(m => CategoryOf(m.TargetFolder), StringComparer.OrdinalIgnoreCase)
+            .Select(g => new CategoryStat(g.Key, g.Count(), g.Count(m => m.Included), g.Sum(m => m.Size)))
+            .OrderByDescending(c => c.Count).ThenBy(c => c.Key, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        return new(before, after, summary, categories, moves.Length, included.Count);
     }
 
     private void ApplyView(PlanView v)
@@ -700,7 +1033,94 @@ public sealed partial class OrganizeViewModel : ObservableObject
         BeforeTree = v.Before;
         AfterTree = v.After;
         Summary = v.Summary;
+        ApplyCategories(v);
         ExecuteCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// 이유별 막대를 맞춘다. 묶음이 같으면 수만 고쳐 순서·고른 것을 그대로 두고(체크를 바꿀 때 줄이 뛰지 않게),
+    /// 묶음이 바뀌면 많은 것부터 다시 늘어놓고 고르던 묶음을 다시 고른다.
+    /// </summary>
+    private void ApplyCategories(PlanView v)
+    {
+        var max = v.Categories.Count == 0 ? 0 : v.Categories.Max(c => c.Count);
+        var stats = v.Categories.ToDictionary(c => c.Key, StringComparer.OrdinalIgnoreCase);
+        var same = Categories.Count == v.Categories.Count + 1
+            && Categories.Where(c => !c.IsAll).All(c => stats.ContainsKey(c.Key!));
+        if (!same)
+        {
+            var keep = SelectedCategory?.Key;
+            var list = new ObservableCollection<OrganizeCategoryViewModel> { new(null, Foldy.Core.Localization.Loc.T("org.cat.all")) };
+            foreach (var c in v.Categories)
+            {
+                list.Add(new(c.Key, c.Key.Length == 0 ? Path.GetFileName(Plan?.Root ?? "") : c.Key));
+            }
+
+            Categories = list;
+            var pick = list.FirstOrDefault(c => c.Key is not null && string.Equals(c.Key, keep, StringComparison.OrdinalIgnoreCase)) ?? list[0];
+            _suppressFilter = true;
+            SelectedCategory = pick;
+            _suppressFilter = false;
+            if (keep is not null && pick.IsAll)
+            {
+                ApplyFilter(); // 고르던 묶음이 없어졌다
+            }
+        }
+
+        foreach (var c in Categories)
+        {
+            if (c.IsAll)
+            {
+                c.Set(v.Total, v.Included, v.Categories.Sum(x => x.Bytes), max);
+            }
+            else if (stats.TryGetValue(c.Key!, out var st))
+            {
+                c.Set(st.Count, st.Checked, st.Bytes, max);
+            }
+        }
+    }
+
+    private bool _suppressFilter;
+
+    partial void OnSelectedCategoryChanged(OrganizeCategoryViewModel? value)
+    {
+        if (!_suppressFilter)
+        {
+            ApplyFilter();
+        }
+    }
+
+    /// <summary>고른 묶음만 목록에 (모두면 전체 목록 그대로, 남길 파일을 바꿔 생긴 줄도 바로 보인다).</summary>
+    private void ApplyFilter()
+    {
+        var key = SelectedCategory?.Key;
+        VisibleMoves = key is null
+            ? Moves
+            : new ObservableCollection<MoveItemViewModel>(Moves.Where(m => string.Equals(m.Category, key, StringComparison.OrdinalIgnoreCase)));
+        VisibleInfo = Foldy.Core.Localization.Loc.F("org.visible", VisibleMoves.Count);
+    }
+
+    /// <summary>보이는 줄 모두 체크 (고른 묶음만).</summary>
+    [RelayCommand]
+    private void CheckAllVisible() => SetVisible(true);
+
+    /// <summary>보이는 줄 모두 해제 (고른 묶음만).</summary>
+    [RelayCommand]
+    private void UncheckAllVisible() => SetVisible(false);
+
+    private void SetVisible(bool value)
+    {
+        if (State != OrganizeState.Ready)
+        {
+            return;
+        }
+
+        foreach (var m in VisibleMoves)
+        {
+            m.SetIncludedQuietly(value);
+        }
+
+        OnPlanEdited();
     }
 
     internal void OnPlanEdited()
@@ -709,6 +1129,9 @@ public sealed partial class OrganizeViewModel : ObservableObject
         {
             return;
         }
+
+        RefreshDuplicatePanel();
+        ScheduleSave();
 
         var gen = ++_viewGeneration;
         if (plan.Moves.Count <= SyncEditLimit)
@@ -719,6 +1142,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
 
         // 큰 계획: 체크를 여러 개 바꾸는 동안 기다렸다가 한 번만 뒤에서 다시 그린다
         ExecuteCommand.NotifyCanExecuteChanged();
+        var snapshot = plan.Moves.ToArray();
         _ = Task.Run(async () =>
         {
             await Task.Delay(300);
@@ -727,7 +1151,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 return;
             }
 
-            var v = ComputeView(plan);
+            var v = ComputeView(plan, snapshot);
             _ui.Post(() =>
             {
                 if (gen == _viewGeneration)
@@ -736,6 +1160,121 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 }
             });
         });
+    }
+
+    partial void OnSelectedMoveChanged(MoveItemViewModel? value)
+    {
+        // 남길 파일을 바꾸다 고른 줄이 목록에서 빠지면(null) 보던 묶음을 그대로 둔다
+        if (value is not null)
+        {
+            ShowDuplicateSet(value.Move.DuplicateSet);
+        }
+    }
+
+    partial void OnSelectedDuplicateSetChanged(DuplicateSetViewModel? value)
+    {
+        if (value is not null)
+        {
+            ShowDuplicateSet(value.Set);
+        }
+    }
+
+    /// <summary>같은 파일 묶음을 아래 칸에 보여 준다 (null이면 숨긴다).</summary>
+    private void ShowDuplicateSet(DuplicateSet? set)
+    {
+        _shownSet = set;
+        if (set is null || Plan is null)
+        {
+            HasDuplicateSelection = false;
+            DuplicateMembers = [];
+            DuplicateTitle = "";
+            DuplicateTip = "";
+            return;
+        }
+
+        DuplicateMembers = new ObservableCollection<DuplicateMemberViewModel>(set.Members.Select(m => new DuplicateMemberViewModel(set, m, this)));
+        DuplicateTip = Foldy.Core.Localization.Loc.F("org.dup.tip", set.TargetFolder);
+        RefreshDuplicatePanel();
+        HasDuplicateSelection = true;
+    }
+
+    private void RefreshDuplicatePanel()
+    {
+        if (_shownSet is not { } set || Plan is not { } plan)
+        {
+            return;
+        }
+
+        DuplicateTitle = Foldy.Core.Localization.Loc.F("org.dup.title", set.Members.Count, set.Name, Foldy.Presentation.Files.FileItem.FormatBytes(set.Size));
+        foreach (var m in DuplicateMembers)
+        {
+            _bySource.TryGetValue(m.FullPath, out var move);
+            string outcome;
+            if (set.Keeper == m.Member)
+            {
+                outcome = move is { IsIncluded: true }
+                    ? Foldy.Core.Localization.Loc.F("org.dup.keepTo", move.Move.TargetFolder.Length == 0 ? Path.GetFileName(plan.Root) : move.Move.TargetFolder)
+                    : Foldy.Core.Localization.Loc.T("org.dup.keepHere");
+            }
+            else
+            {
+                outcome = move is { IsIncluded: true }
+                    ? Foldy.Core.Localization.Loc.F("org.dup.toDups", move.Move.TargetFolder)
+                    : Foldy.Core.Localization.Loc.T("org.dup.stays");
+            }
+
+            m.Sync(outcome);
+        }
+    }
+
+    /// <summary>같은 파일 묶음에서 남길 파일을 바꿨다: 계획을 고치고 목록·트리를 맞춘다.</summary>
+    internal void ChooseKeeper(DuplicateMemberViewModel member)
+    {
+        if (Plan is not { } plan || State != OrganizeState.Ready)
+        {
+            RefreshDuplicatePanel(); // 지금은 바꿀 수 없다: 단추를 원래대로
+            return;
+        }
+
+        var change = OrganizePlanner.ChooseKeeper(plan, member.Set, member.Member, p => File.Exists(p) || Directory.Exists(p));
+        foreach (var r in change.Removed)
+        {
+            if (_bySource.Remove(r.Source, out var vm))
+            {
+                Moves.Remove(vm);
+            }
+        }
+
+        foreach (var a in change.Added)
+        {
+            var vm = new MoveItemViewModel(a, plan.Root, this);
+            _bySource[a.Source] = vm;
+            Moves.Add(vm);
+        }
+
+        foreach (var c in change.Changed)
+        {
+            if (_bySource.TryGetValue(c.Source, out var vm))
+            {
+                vm.RefreshFromMove();
+            }
+        }
+
+        if (_setViews.TryGetValue(member.Set, out var setView))
+        {
+            setView.Refresh();
+        }
+
+        if (SelectedCategory is { IsAll: false })
+        {
+            ApplyFilter(); // 묶음이 바뀐 줄을 맞춘다 (모두 보기면 목록이 그대로 바뀐다)
+        }
+        else
+        {
+            VisibleInfo = Foldy.Core.Localization.Loc.F("org.visible", VisibleMoves.Count);
+        }
+
+        OnPlanEdited(); // 트리·요약과 아래 칸을 다시 맞춘다
     }
 
     internal void Retarget(MoveItemViewModel item, string folder)
@@ -769,7 +1308,10 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 LastJournalPath = result.JournalPath;
                 State = OrganizeState.Done;
                 Progress = 1;
+                ForgetSavedPlan(plan, result);
+                var changed = result.Changed.Count + result.Missing.Count;
                 Status = Foldy.Core.Localization.Loc.F("org.moved", result.Moved)
+                    + (changed > 0 ? Foldy.Core.Localization.Loc.F("org.changedSkipped", changed) : "")
                     + (result.Failed.Count > 0 ? Foldy.Core.Localization.Loc.F("org.failed", result.Failed.Count) : "")
                     + (result.Canceled ? Foldy.Core.Localization.Loc.T("org.midCancel") : "")
                     + Foldy.Core.Localization.Loc.T("org.undoHint");
@@ -854,6 +1396,315 @@ public sealed partial class OrganizeViewModel : ObservableObject
         }
 
         DialogResult = LastResult is not null;
+    }
+
+    // ── 계획 저장·이어서 하기 (사용자 2026-11-23) ─────────────────────────────
+
+    /// <summary>저장한 계획 하나 (뒤의 저장 줄에서 손잡이를 채운다).</summary>
+    private sealed class SaveSession(OrganizePlan plan)
+    {
+        public OrganizePlan Plan { get; } = plan;
+
+        public SavedPlanHandle? Handle { get; set; }
+    }
+
+    private readonly object _saveGate = new();
+    private Task _saveChain = Task.CompletedTask;
+    private SaveSession? _session;
+    private int _saveGeneration;
+
+    /// <summary>
+    /// 창을 열 때 부른다: 이 폴더에 저장해 둔 계획이 있으면 [이어서 하기]·[새로 만들기]를 보인다.
+    /// 있으면 true (그때는 계획을 바로 새로 만들지 않는다).
+    /// </summary>
+    public async Task<bool> CheckSavedPlanAsync()
+    {
+        if (PlanStore is not { } store || string.IsNullOrWhiteSpace(RootPath))
+        {
+            return false;
+        }
+
+        var root = RootPath;
+        SavedPlanInfo? info;
+        try
+        {
+            info = await Task.Run(() => store.Find(root));
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return false; // 저장소를 못 열면 예전처럼 새로 만든다
+        }
+
+        if (info is null)
+        {
+            return false;
+        }
+
+        var text = Foldy.Core.Localization.Loc.F("org.saved.offer", WhenText(info.CreatedUtc, DateTime.UtcNow), info.Moves, info.Checked);
+        _ui.Post(() =>
+        {
+            if (State is OrganizeState.Idle && string.Equals(RootPath, root, StringComparison.OrdinalIgnoreCase))
+            {
+                SavedPlanText = text;
+                HasSavedPlan = true;
+            }
+        });
+        return true;
+    }
+
+    /// <summary>"오늘 오후 3:10", "어제 오후 3:10", "11월 20일 오후 3:10" (만든 때를 쉬운 말로).</summary>
+    public static string WhenText(DateTime createdUtc, DateTime nowUtc)
+    {
+        var local = createdUtc.ToLocalTime();
+        var days = (nowUtc.ToLocalTime().Date - local.Date).Days;
+        return days switch
+        {
+            0 => Foldy.Core.Localization.Loc.F("org.saved.today", local),
+            1 => Foldy.Core.Localization.Loc.F("org.saved.yesterday", local),
+            _ => Foldy.Core.Localization.Loc.F("org.saved.day", local),
+        };
+    }
+
+    private bool CanResume() => !IsBusy && PlanStore is not null;
+
+    /// <summary>[이어서 하기]: 저장해 둔 계획을 체크한 것까지 그대로 불러온다 (훑지 않으니 금방이다).</summary>
+    [RelayCommand(CanExecute = nameof(CanResume))]
+    private async Task ResumeSavedPlanAsync()
+    {
+        if (PlanStore is not { } store)
+        {
+            return;
+        }
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+        var root = RootPath;
+        HasSavedPlan = false;
+        State = OrganizeState.Planning;
+        Status = Foldy.Core.Localization.Loc.T("org.saved.loading");
+        Progress = 0;
+        try
+        {
+            var loaded = await Task.Run<(LoadedPlan Loaded, PreparedPlan Prepared)?>(
+                () =>
+                {
+                    var l = store.Load(root, ct);
+                    return l is null ? null : (l, Prepare(l.Plan));
+                },
+                ct);
+            _ui.Post(() =>
+            {
+                if (loaded is not { } x)
+                {
+                    State = OrganizeState.Idle;
+                    Status = Foldy.Core.Localization.Loc.T("org.saved.gone");
+                    PlanFinished?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+
+                ApplySettings(x.Loaded.Settings);
+                Show(x.Prepared);
+                _session = new SaveSession(x.Prepared.Plan) { Handle = x.Loaded.Handle };
+                if (State == OrganizeState.Ready)
+                {
+                    Status = Foldy.Core.Localization.Loc.F("org.saved.resumed", WhenText(x.Loaded.Info.CreatedUtc, DateTime.UtcNow));
+                }
+
+                PlanFinished?.Invoke(this, EventArgs.Empty);
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            _ui.Post(() =>
+            {
+                State = OrganizeState.Idle;
+                Status = Foldy.Core.Localization.Loc.T("org.cancelled");
+                PlanFinished?.Invoke(this, EventArgs.Empty);
+            });
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException or InvalidOperationException or OutOfMemoryException)
+        {
+            _ui.Post(() =>
+            {
+                State = OrganizeState.Idle;
+                Status = Foldy.Core.Localization.Loc.T("org.saved.gone");
+                PlanFinished?.Invoke(this, EventArgs.Empty);
+            });
+        }
+    }
+
+    /// <summary>[새로 만들기]: 저장해 둔 계획을 지우고 지금 폴더로 새 계획을 만든다.</summary>
+    [RelayCommand(CanExecute = nameof(CanResume))]
+    private async Task StartFreshAsync()
+    {
+        HasSavedPlan = false;
+        if (PlanStore is { } store)
+        {
+            var root = RootPath;
+            _ = EnqueueSave(() => store.Delete(root));
+        }
+
+        await PlanCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>저장을 기다린다 (창을 닫을 때·테스트). 아직 안 쓴 체크 변경도 바로 쓴다.</summary>
+    public Task FlushSavesAsync()
+    {
+        if (_session is { } s && PlanStore is { } store && State == OrganizeState.Ready)
+        {
+            Interlocked.Increment(ref _saveGeneration); // 기다리던 저장은 이것으로 갈음한다
+            var snap = PlanSnapshot.Of(s.Plan);
+            return EnqueueSave(() => Update(store, s, snap));
+        }
+
+        lock (_saveGate)
+        {
+            return _saveChain;
+        }
+    }
+
+    private SavedPlanSettings CaptureSettings() => new()
+    {
+        Mode = SelectedMode.Mode,
+        DateFormat = DateFormat,
+        TemplateId = SelectedTemplate?.Id,
+        Rules = CustomRules.Select(r => r.ToRule()).ToList(),
+        DetectDuplicates = DetectDuplicates,
+        PrefixDate = PrefixDate,
+        IncludeSubfolders = IncludeSubfolders,
+        OrganizeProjectAnyway = OrganizeProjectAnyway,
+    };
+
+    /// <summary>저장한 계획을 만들 때 고른 것을 화면에 돌려놓는다 (계획을 불러오는 중이라 "바뀌었어요"가 뜨지 않는다).</summary>
+    private void ApplySettings(SavedPlanSettings s)
+    {
+        SelectedMode = Modes.FirstOrDefault(m => m.Mode == s.Mode) ?? SelectedMode;
+        DateFormat = s.DateFormat;
+        if (s.TemplateId is { } id)
+        {
+            SelectedTemplate = Templates.FirstOrDefault(t => t.Id == id) ?? SelectedTemplate;
+        }
+
+        CustomRules.Clear();
+        foreach (var r in s.Rules)
+        {
+            CustomRules.Add(new CustomRuleViewModel
+            {
+                Pattern = r.Pattern ?? "", Keywords = string.Join(", ", r.Keywords), Target = r.Target, ApplyToFolders = r.ApplyToFolders,
+            });
+        }
+
+        DetectDuplicates = s.DetectDuplicates;
+        PrefixDate = s.PrefixDate;
+        IncludeSubfolders = s.IncludeSubfolders;
+        OrganizeProjectAnyway = s.OrganizeProjectAnyway;
+    }
+
+    /// <summary>새 계획: 크거나 오래 걸렸으면 저장하고, 작으면 예전에 저장한 것만 지운다.</summary>
+    private void SaveNewPlan(OrganizePlan plan, SavedPlanSettings settings, TimeSpan elapsed)
+    {
+        _session = null;
+        if (PlanStore is not { } store)
+        {
+            return;
+        }
+
+        var root = plan.Root;
+        if (plan.Blocked is not null || plan.Moves.Count == 0
+            || (plan.Moves.Count + plan.Skipped.Count < SaveMinItems && elapsed < SaveAfter))
+        {
+            _ = EnqueueSave(() => store.Delete(root));
+            return;
+        }
+
+        var session = new SaveSession(plan);
+        _session = session;
+        var snap = PlanSnapshot.Of(plan);
+        _ = EnqueueSave(() => session.Handle = store.Save(snap, settings));
+    }
+
+    /// <summary>체크·남길 파일·옮길 곳을 바꾸면 조금 기다렸다가 바뀐 줄만 저장한다 (여러 번 바꾸면 한 번만).</summary>
+    private void ScheduleSave()
+    {
+        if (_session is not { } s || PlanStore is not { } store || State != OrganizeState.Ready)
+        {
+            return;
+        }
+
+        var gen = Interlocked.Increment(ref _saveGeneration);
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(EditSaveDelay);
+            if (gen != Volatile.Read(ref _saveGeneration))
+            {
+                return;
+            }
+
+            _ui.Post(() =>
+            {
+                if (gen == Volatile.Read(ref _saveGeneration) && _session == s && State == OrganizeState.Ready)
+                {
+                    var snap = PlanSnapshot.Of(s.Plan);
+                    _ = EnqueueSave(() => Update(store, s, snap));
+                }
+            });
+        });
+    }
+
+    private static void Update(OrganizePlanStore store, SaveSession s, PlanSnapshot snap)
+    {
+        if (s.Handle is { } h)
+        {
+            store.Update(h, snap);
+        }
+    }
+
+    /// <summary>정리를 마쳤다: 다 했으면 저장한 계획을 지우고, 중간에 멈췄으면 남은 것만 남긴다.</summary>
+    private void ForgetSavedPlan(OrganizePlan plan, OrganizeResult result)
+    {
+        if (PlanStore is not { } store)
+        {
+            return;
+        }
+
+        var s = _session;
+        _session = null;
+        Interlocked.Increment(ref _saveGeneration);
+        var root = plan.Root;
+        if (result.Canceled && s is not null && s.Plan == plan)
+        {
+            var done = new HashSet<string>(result.MovedSources.Concat(result.Missing), StringComparer.OrdinalIgnoreCase);
+            var snap = PlanSnapshot.Of(plan, done);
+            _ = EnqueueSave(() => Update(store, s, snap));
+            return;
+        }
+
+        _ = EnqueueSave(() => store.Delete(root));
+    }
+
+    /// <summary>저장은 하나씩 차례로 뒤에서 한다 (화면을 멈추지 않는다). 실패해도 정리에는 지장이 없어 조용히 넘어간다.</summary>
+    private Task EnqueueSave(Action op)
+    {
+        lock (_saveGate)
+        {
+            _saveChain = _saveChain.ContinueWith(
+                _ =>
+                {
+                    try
+                    {
+                        op();
+                    }
+                    catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException or InvalidOperationException)
+                    {
+                        // 저장은 편의 기능: 못 해도 계획과 정리는 그대로 된다
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+            return _saveChain;
+        }
     }
 
     private void Invalidate()

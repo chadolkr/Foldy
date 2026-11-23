@@ -36,7 +36,8 @@ public static class FileTypeGroups
         Add(Archives, "zip", "7z", "rar", "tar", "gz", "tgz", "bz2", "xz", "zst", "cab", "iso", "alz", "egg");
         Add(Installers, "exe", "msi", "msix", "msixbundle", "appx", "appxbundle", "dmg", "pkg", "deb", "rpm", "apk");
         Add(Code, "cs", "csproj", "sln", "slnx", "rs", "toml", "py", "js", "mjs", "ts", "tsx", "jsx", "java", "kt", "go", "c", "h", "cpp", "hpp",
-            "json", "xml", "yaml", "yml", "html", "htm", "css", "scss", "sql", "sh", "ps1", "bat", "cmd", "rb", "php", "swift", "lua", "ipynb");
+            "json", "xml", "yaml", "yml", "html", "htm", "css", "scss", "sql", "sh", "ps1", "bat", "cmd", "rb", "php", "swift", "lua", "ipynb",
+            "pas", "dfm", "dpr", "dpk", "dproj", "groupproj", "vb", "fs", "fsproj", "vbproj");
         return m;
     }
 

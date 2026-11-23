@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Foldy.Core.FileSystem;
+using Foldy.Core.QuickSearch;
 
 namespace Foldy.App;
 
@@ -40,11 +41,8 @@ internal sealed class QuickSearchWindow : Window
         (Foldy.Core.Localization.Loc.T("qs.grp.feature"), Foldy.Core.Localization.Loc.T("qs.grp.feature")),
     ];
 
-    /// <summary>한 묶음만 볼 때 한 번에 보여 줄 파일 수. 아래로 내리면 이만큼씩 더 나온다 (끝없이 내려 보기).</summary>
+    /// <summary>한 묶음만 볼 때 처음 보여 줄 파일 수 (아래로 내리면 더). 앱·설정·기능은 한 묶음만 보면 모두.</summary>
     public const int MaxFiltered = 50;
-
-    /// <summary>아직 안 보여 준 파일을 기억해 두는 최대 수 (센 수는 이보다 많아도 전부 센다).</summary>
-    public const int MaxQueued = 20_000;
 
     private readonly Func<string, IEnumerable<Hit>> _instant;
     private readonly Func<string, CancellationToken, IAsyncEnumerable<IReadOnlyList<FsEntry>>> _files;
@@ -59,16 +57,11 @@ internal sealed class QuickSearchWindow : Window
     private readonly List<(Button Chip, string? Group)> _chips = [];
     private string? _filter;
 
-    // 파일 묶음: 이름 옆 수, "모두 보기", 맨 아래 줄 (2026-11-23 사용자: 아래까지 내리면 "더 보기"가 안 보이고 몇 건인지 모른다)
-    private TextBlock? _fileTitle;
-    private TextBlock? _fileLink;
-    private string _fileGroupName = "";
-    private readonly List<FsEntry> _queue = [];
-    private long _fileTotal;
-    private int _fileShown;
-    private bool _fileSearching;
-    private readonly TextBlock _status = new() { FontSize = 14, Margin = new Thickness(10, 10, 10, 8), HorizontalAlignment = HorizontalAlignment.Center };
-    private Border? _showAllRow;
+    // 파일 결과: 모두 세고, 아래로 내리면 한 묶음씩 더 그린다 (2026-11-23 사용자: "더 보기는 스크롤하면 안 보인다")
+    private ResultPager<FsEntry>? _pager;
+    private TextBlock? _fileHeader;
+    private string _fileHeaderText = "";
+    private readonly TextBlock _fileStatus = new() { FontSize = 14, Margin = new Thickness(10, 8, 10, 8), TextWrapping = TextWrapping.Wrap };
 
     /// <summary>맨 위 결과 줄 (문서 캡처가 짧은 소개의 초점으로 쓴다).</summary>
     internal FrameworkElement? TopResult => _hits.Count > 0 ? _hits[0].Row : null;
@@ -135,16 +128,14 @@ internal sealed class QuickSearchWindow : Window
         }
 
         _scroll = new ScrollViewer { Content = _rows, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(6, 0, 6, 0) };
-        _scroll.ScrollChanged += (_, _) =>
+        _scroll.ScrollChanged += (_, e) =>
         {
-            // 끝없이 내려 보기: 한 묶음만 볼 때 끝에 가까워지면 다음 것들을 붙인다
-            if (_queue.Count > 0 && _scroll.VerticalOffset + _scroll.ViewportHeight >= _scroll.ExtentHeight - 120)
+            if (e.VerticalChange > 0 && ResultPaging.NearEnd(_scroll.VerticalOffset, _scroll.ViewportHeight, _scroll.ExtentHeight))
             {
-                ShowNextPage();
+                ShowMoreFiles(); // 아래 끝에 닿으면 더 (페이지 단추 없이)
             }
         };
-        _status.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
-        System.Windows.Automation.AutomationProperties.SetAutomationId(_status, "QuickSearchCount");
+        _fileStatus.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
         _preview = new Border { Width = 300, Padding = new Thickness(16, 12, 16, 12), BorderThickness = new Thickness(1, 0, 0, 0), Visibility = Visibility.Collapsed };
         _preview.SetResourceReference(Border.BorderBrushProperty, "Brush.Border");
         var middle = new DockPanel();
@@ -268,9 +259,9 @@ internal sealed class QuickSearchWindow : Window
                 e.Handled = true;
                 break;
             case Key.Down:
-                if (_selected >= _hits.Count - 1 && _queue.Count > 0)
+                if (_selected >= _hits.Count - 1)
                 {
-                    ShowNextPage(); // 맨 아래에서 ↓를 누르면 다음 것들을 붙인다
+                    ShowMoreFiles(); // 맨 아래에서 ↓를 누르면 더
                 }
 
                 Select(Math.Min(_hits.Count - 1, _selected + 1));
@@ -301,7 +292,7 @@ internal sealed class QuickSearchWindow : Window
 
     /// <summary>
     /// 바로 찾는 것(계산·앱·설정·폴더·기능)을 묶음으로 나누고, 점수가 가장 높은 하나를 맨 위로.
-    /// <paramref name="filter"/>가 있으면 그 묶음만 (전부). <c>Total</c>은 그 묶음에서 찾은 수 (보여 준 것보다 많으면 "모두 보기").
+    /// <paramref name="filter"/>가 있으면 그 묶음만 (모두). <c>Total</c>은 그 묶음에서 찾은 수 (보여 준 것보다 많으면 묶음 끝에 "N개 모두 보기").
     /// </summary>
     public static (Hit? Top, IReadOnlyList<(string Group, IReadOnlyList<Hit> Hits, int Total)> Groups) Arrange(IEnumerable<Hit> hits, string? filter = null)
     {
@@ -325,13 +316,8 @@ internal sealed class QuickSearchWindow : Window
         _dog.Reset();
         _hits.Clear();
         _selected = -1;
-        _queue.Clear();
-        _fileTitle = null;
-        _fileLink = null;
-        _showAllRow = null;
-        _fileTotal = 0;
-        _fileShown = 0;
-        _fileSearching = false;
+        _pager = null;
+        _fileHeader = null;
         var query = q.Trim();
 
         var filter = _filter;
@@ -346,10 +332,15 @@ internal sealed class QuickSearchWindow : Window
 
         foreach (var (group, hits, total) in groups)
         {
-            AddHeader(Foldy.Core.Localization.Loc.F("qs.count", group, total), filter is null && total > hits.Count ? group : null, total);
+            AddHeader(Counted(group, total));
             foreach (var h in hits)
             {
                 AddRow(h);
+            }
+
+            if (filter is null && total > hits.Count)
+            {
+                AddSeeAll(group, total); // 묶음 끝에 (아래로 내려도 보이게)
             }
         }
 
@@ -359,15 +350,14 @@ internal sealed class QuickSearchWindow : Window
             return; // 파일은 두 글자부터 (한 글자는 너무 많이 나온다). 앱·설정·기능만 볼 때는 파일을 찾지 않는다
         }
 
-        var maxFiles = filter is null ? MaxFiles : MaxFiltered;
-        _fileGroupName = filter == folderGroup ? folderGroup : fileGroup;
+        var pager = new ResultPager<FsEntry>(filter is null ? MaxFiles : MaxFiltered);
+        _fileHeaderText = filter == folderGroup ? folderGroup : fileGroup;
 
         try
         {
             await Task.Delay(180, cts.Token); // 빨리 치는 동안은 기다린다
-            var total = 0L;
+            _pager = pager;
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            _fileSearching = true;
             await foreach (var batch in _files(query, cts.Token))
             {
                 if (cts.IsCancellationRequested)
@@ -379,30 +369,22 @@ internal sealed class QuickSearchWindow : Window
                 IReadOnlyList<FsEntry> wanted = filter == folderGroup ? batch.Where(f => f.Kind == FsKind.Folder).ToList()
                     : filter == fileGroup ? batch.Where(f => f.Kind != FsKind.Folder).ToList()
                     : batch;
-                total += wanted.Count; // 보여 주는 건 일부, 센 것은 전부
-                _fileTotal = total;
-                foreach (var f in wanted)
-                {
-                    if (_fileShown < maxFiles && _queue.Count == 0)
-                    {
-                        AddFile(f);
-                    }
-                    else if (filter is not null && _queue.Count < MaxQueued)
-                    {
-                        _queue.Add(f); // 한 묶음만 볼 때: 아래로 내리면 이어서 보여 준다
-                    }
-                }
-
+                pager.Add(wanted); // 모두 센다. 그리는 건 처음 몇 개, 아래로 내리면 더
+                ShowMoreFiles(wantMore: false);
                 if (_selected < 0 && _hits.Count > 0)
                 {
                     Select(0);
                 }
-
-                UpdateFileCount();
             }
 
-            _fileSearching = false;
-            UpdateFileCount();
+            if (cts.IsCancellationRequested)
+            {
+                return;
+            }
+
+            pager.Finish();
+            UpdateFileStatus();
+            var total = pager.Total;
             if (total > 0 && !cts.IsCancellationRequested)
             {
                 _dog.PlayFound(total, sw.Elapsed, _animations); // 냄새 잘 맡는 개: 킁킁 → 쌩 → 물어 옴
@@ -422,132 +404,89 @@ internal sealed class QuickSearchWindow : Window
         }
     }
 
-    /// <summary>찾은 파일 하나를 목록에 붙인다. 바로 찾은 것이 없으면 첫 파일이 "가장 알맞은 것".</summary>
-    private void AddFile(FsEntry f)
+    /// <summary>묶음 이름에 찾은 수를 붙인다 ("파일 · 220개"). 계산·단위 변환은 답 하나라 붙이지 않는다.</summary>
+    private static string Counted(string group, long total) =>
+        group == Foldy.Core.Localization.Loc.T("qs.calc") || group == Foldy.Core.Localization.Loc.T("qs.units")
+            ? group
+            : Foldy.Core.Localization.Loc.F("qs.groupCount", group, total.ToString("N0", System.Globalization.CultureInfo.CurrentCulture));
+
+    /// <summary>묶음 이름 줄.</summary>
+    private TextBlock AddHeader(string text)
     {
-        if (_fileShown == 0 && _hits.Count == 0)
+        var t = new TextBlock { Text = text, FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 10, 10, 4) };
+        t.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
+        _rows.Children.Add(t);
+        return t;
+    }
+
+    /// <summary>
+    /// 묶음 끝의 "12개 모두 보기 ›" (누르면 그 묶음만 본다). 예전에는 묶음 이름 오른쪽에 "더 보기"가 있어서
+    /// 아래로 내리면 안 보였다 (2026-11-23 사용자). 이제 그 묶음을 다 본 자리, 눈이 닿는 곳에 둔다.
+    /// </summary>
+    private void AddSeeAll(string group, long total)
+    {
+        var text = Foldy.Core.Localization.Loc.F("qs.seeAll", total.ToString("N0", System.Globalization.CultureInfo.CurrentCulture));
+        var link = new TextBlock { Text = text + " ›", FontSize = 15, Cursor = Cursors.Hand, Padding = new Thickness(40, 6, 10, 8) };
+        link.SetResourceReference(ForegroundProperty, "Brush.Accent");
+        System.Windows.Automation.AutomationProperties.SetName(link, $"{group}: {text}");
+        link.MouseLeftButtonUp += (_, e) => { e.Handled = true; SetFilter(group); };
+        _rows.Children.Add(link);
+    }
+
+    /// <summary>
+    /// 들고 있는 파일 결과를 더 그린다. <paramref name="wantMore"/>면 한 묶음(50개) 더 (아래 끝에 닿음·맨 아래에서 ↓),
+    /// 아니면 새로 찾은 것 중 아직 보여 줄 몫만 (처음 30·50개).
+    /// </summary>
+    private void ShowMoreFiles(bool wantMore = true)
+    {
+        if (_pager is not { } pager)
         {
-            AddHeader(TopGroup);
-            AddRow(_fileHit(f), big: true);
+            return;
         }
-        else
+
+        if (wantMore)
         {
-            if (_fileTitle is null)
+            pager.WantMore();
+        }
+
+        foreach (var f in pager.TakeNew())
+        {
+            if (_hits.Count == 0)
             {
-                (_fileTitle, _fileLink) = AddHeader(_fileGroupName, _filter is null ? _fileGroupName : null, _fileTotal);
+                AddHeader(TopGroup); // 바로 찾은 게 없으면 첫 파일이 가장 알맞은 것
+                AddRow(_fileHit(f), big: true);
+                continue;
             }
 
+            _rows.Children.Remove(_fileStatus); // 안내 줄은 늘 맨 아래 (UpdateFileStatus가 다시 붙인다)
+            _fileHeader ??= AddHeader(_fileHeaderText);
             AddRow(_fileHit(f));
         }
 
-        _fileShown++;
+        UpdateFileStatus();
     }
 
-    /// <summary>한 묶음만 볼 때 기다리던 파일을 한 번 더 붙인다 (끝없이 내려 보기).</summary>
-    private void ShowNextPage()
+    /// <summary>파일 묶음 이름의 수와 맨 아래 안내 줄 ("220개 중 30개 · 아래로 내리면 더 보여요" / "220개 모두 보였어요").</summary>
+    private void UpdateFileStatus()
     {
-        var n = Math.Min(MaxFiltered, _queue.Count);
-        if (n == 0)
+        if (_pager is not { } pager || pager.Total == 0)
         {
             return;
         }
 
-        foreach (var f in _queue.GetRange(0, n))
+        string N(long n) => n.ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
+        if (_fileHeader is not null)
         {
-            AddFile(f);
+            _fileHeader.Text = Counted(_fileHeaderText, pager.Total);
         }
 
-        _queue.RemoveRange(0, n);
-        UpdateFileCount();
-    }
-
-    /// <summary>
-    /// 파일 묶음 이름 옆 수("파일 · 220개"), "220개 모두 보기 ›", 맨 아래 줄을 지금 수로 고친다.
-    /// 모두 보기에서는 맨 아래에도 [파일 220개 모두 보기] 줄이 있어 끝까지 내려도 찾을 수 있다.
-    /// 한 묶음만 볼 때는 맨 아래에 "220개 중 50개 · 아래로 내리면 더 나와요"처럼 보여 준다.
-    /// </summary>
-    private void UpdateFileCount()
-    {
-        if (_fileTitle is not null)
-        {
-            _fileTitle.Text = Foldy.Core.Localization.Loc.F("qs.count", _fileGroupName, _fileTotal);
-        }
-
-        var hidden = _fileTotal > _fileShown;
-        if (_fileLink is not null)
-        {
-            _fileLink.Text = Foldy.Core.Localization.Loc.F("qs.showAll", _fileTotal) + " ›";
-            _fileLink.Visibility = hidden ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        _rows.Children.Remove(_status);
-        if (_showAllRow is not null)
-        {
-            _rows.Children.Remove(_showAllRow);
-        }
-
-        if (_fileTotal == 0)
-        {
-            return;
-        }
-
-        if (_filter is null)
-        {
-            if (!hidden)
-            {
-                return;
-            }
-
-            _showAllRow ??= MakeShowAllRow();
-            ((TextBlock)_showAllRow.Child).Text = Foldy.Core.Localization.Loc.F("qs.showAllRow", _fileGroupName, _fileTotal) + " ›";
-            _rows.Children.Add(_showAllRow);
-            return;
-        }
-
-        _status.Text = _fileSearching ? Foldy.Core.Localization.Loc.F("qs.counting", _fileTotal)
-            : hidden ? Foldy.Core.Localization.Loc.F("qs.progress", _fileTotal, _fileShown)
-            : Foldy.Core.Localization.Loc.F("qs.allShown", _fileTotal);
-        _rows.Children.Add(_status);
-    }
-
-    /// <summary>모두 보기 맨 아래의 [파일 220개 모두 보기] 줄 (누르면 파일만 본다).</summary>
-    private Border MakeShowAllRow()
-    {
-        var t = new TextBlock { FontSize = 15, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
-        t.SetResourceReference(ForegroundProperty, "Brush.Accent");
-        var row = new Border { Child = t, Padding = new Thickness(10), Margin = new Thickness(0, 6, 0, 6), CornerRadius = new CornerRadius(6), BorderThickness = new Thickness(1), Cursor = Cursors.Hand, Background = Brushes.Transparent };
-        row.SetResourceReference(Border.BorderBrushProperty, "Brush.Border");
-        row.MouseEnter += (_, _) => row.SetResourceReference(Border.BackgroundProperty, "Brush.Selection");
-        row.MouseLeave += (_, _) => row.Background = Brushes.Transparent;
-        row.MouseLeftButtonUp += (_, e) => { e.Handled = true; SetFilter(_fileGroupName); };
-        System.Windows.Automation.AutomationProperties.SetAutomationId(row, "QuickSearchShowAll");
-        return row;
-    }
-
-    /// <summary>
-    /// 묶음 이름. <paramref name="more"/>가 있으면 오른쪽에 "N개 모두 보기 ›" (누르면 그 묶음만 본다).
-    /// 돌려주는 글자는 나중에 수를 고칠 때 쓴다.
-    /// </summary>
-    private (TextBlock Title, TextBlock? Link) AddHeader(string text, string? more = null, long count = 0)
-    {
-        var t = new TextBlock { Text = text, FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
-        t.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
-        if (more is null)
-        {
-            t.Margin = new Thickness(10, 10, 10, 4);
-            _rows.Children.Add(t);
-            return (t, null);
-        }
-
-        var link = new TextBlock { Text = Foldy.Core.Localization.Loc.F("qs.showAll", count) + " ›", FontSize = 14, Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center };
-        link.SetResourceReference(ForegroundProperty, "Brush.Accent");
-        link.MouseLeftButtonUp += (_, e) => { e.Handled = true; SetFilter(more); };
-        var dock = new DockPanel { Margin = new Thickness(10, 10, 10, 4), LastChildFill = false };
-        DockPanel.SetDock(link, Dock.Right);
-        dock.Children.Add(t);
-        dock.Children.Add(link);
-        _rows.Children.Add(dock);
-        return (t, link);
+        _fileStatus.Text = pager.HasMore ? Foldy.Core.Localization.Loc.F("qs.moreBelow", N(pager.Shown), N(pager.Total))
+            : !pager.Done ? Foldy.Core.Localization.Loc.F("qs.stillLooking", N(pager.Total))
+            : pager.Capped ? Foldy.Core.Localization.Loc.F("qs.capped", N(pager.Shown), N(pager.Total))
+            : Foldy.Core.Localization.Loc.F("qs.allShown", N(pager.Total));
+        System.Windows.Automation.AutomationProperties.SetName(_fileStatus, _fileStatus.Text);
+        _rows.Children.Remove(_fileStatus);
+        _rows.Children.Add(_fileStatus); // 늘 목록 맨 아래
     }
 
     private void AddRow(Hit h, bool big = false)

@@ -75,6 +75,7 @@ public static class SnapshotBuilder
         foreach (var old in AnalysisPaths.RetentionPlan(AnalysisPaths.ListSnapshots(directory, key)))
         {
             TryDelete(old.DbPath); // 열려 있는 파일은 다음 분석 때 다시 시도
+            TryDelete(AnalysisPaths.ListMarkerOf(old.DbPath));
         }
 
         progress?.Report(new AnalysisProgress(1, "완료"));
