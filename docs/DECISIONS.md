@@ -577,6 +577,7 @@
 - **왜**: 사용자 "날짜도 짤림. 11-23". 좁은 사이드바와 도구 줄에서 "2026-11-23 …"이 잘렸다.
 
 ## 2026-11-23 · 사이트에 llms.txt (AI 추천 대비)
+- **정체성 한 줄 (사용자 2026-11-23)**: "Foldy는 파일을 빠르게 찾는 다기능 파일매니저이다." 영어: "Foldy File Manager is a multi-function file manager for Windows that finds files fast." 목록·등록·llms.txt 첫 줄은 모두 이 문장으로 시작한다.
 - **결정**: 사이트 맨 위에 `llms.txt`(영어)를 둔다. 이름 구분("Foldy File Manager", 같은 이름 런처와 다름), 한 줄 설명, 주요 기능, 짧은 사실 비교(Files·Everything·WizTree·Yazi·Superfile·Spacedrive), 공식 링크.
 - **왜**: 사용자 "제미나이 추천에 Foldy도 나오게". AI 검색이 사이트를 읽을 때 정확한 한 줄과 이름 구분을 바로 가져가게. 비교는 사실만, 상대를 낮추지 않는다.
 - **다른 안**: 5개 언어 비교 페이지(다음 단계로 따로), README만 고치기(사이트를 읽는 AI는 못 봄).

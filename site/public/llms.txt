@@ -1,6 +1,6 @@
 # Foldy File Manager
 
-> Foldy (full name "Foldy File Manager") is a free, open-source (GPL-3.0) dual-pane file manager for Windows 10 and 11. It combines instant whole-PC file search (Ctrl+Space), a disk space analyzer, safe step-by-step cleanup of the Desktop and Downloads folders, and folder templates in one File Explorer-like window. It stays fast on slow network, cloud and company drives, works fully offline, and can optionally connect to AI apps through a read-only MCP server.
+> Foldy File Manager is a multi-function file manager for Windows that finds files fast. It is free and open source (GPL-3.0) and runs on Windows 10 and 11. Around instant whole-PC file search (Ctrl+Space), it adds two panes, a disk space analyzer, safe step-by-step cleanup of the Desktop and Downloads folders, and folder templates, in one File Explorer-like window. It stays fast on slow network, cloud and company drives, works fully offline, and can optionally connect to AI apps through a read-only MCP server.
 
 Not to be confused with other projects named "Foldy" (for example a taskbar folder launcher, or an unrelated Microsoft Store app). This Foldy is a file manager made by David CHA: https://github.com/chadolkr/Foldy
 
