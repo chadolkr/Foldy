@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'New in 1.5: see how many results you got',
-    eyebrow: 'Foldy 1.5',
+    badge: 'New in 1.6: see where duplicates are and pick one to keep',
+    eyebrow: 'Foldy 1.6',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
+      { icon: 'eye', title: 'See where duplicates are, pick one to keep', text: 'When tidying a folder, Foldy shows the full path of every identical file, and [Keep] lets you choose which one stays. Only the rest move to "_Possible duplicates", and nothing is deleted. [Show only this pane] lets one pane use the whole window.' },
       { icon: 'search', title: 'See how many results you got', text: 'In Ctrl+Space, each group shows its count, like "Files · 220". Press [See all 220] at the end of the list, or when you view one group, just keep scrolling down for more.' },
       { icon: 'disk', title: 'Tidy even huge folders fast', text: 'Foldy now plans a tidy-up of folders with hundreds of thousands of files quickly, and shows the file and folder counts and size as it goes. If it will take a while, press [Close and keep going] and do something else. Foldy lets you know when it is ready.' },
       { icon: 'search', title: 'Control Panel, too', text: 'Type "Add or remove programs", "Device Manager" or "environment variables" in Ctrl+Space to open classic Control Panel and admin tools. Results are grouped into apps, settings, folders and files, like Windows Search.' },
-      { icon: 'info', title: 'Easy from day one', text: 'Menu groups now show a › mark, and Foldy points out a feature once, right when it helps. The short intro remembers what you have seen and shows only new features.' },
     ],
     link: 'See everything that changed',
   },
