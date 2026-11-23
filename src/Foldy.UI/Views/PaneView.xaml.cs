@@ -746,13 +746,13 @@ public partial class PaneView : UserControl
     private void OnToggleSingle(object sender, RoutedEventArgs e) => SinglePaneToggleRequested?.Invoke(this, EventArgs.Empty);
 
     /// <summary>이 창 하나만 크게 보이는 중이면 단추를 [두 창으로 보기]로 바꾼다.</summary>
-    public void SetSinglePane(bool single)
+    public void SetSinglePane(bool onlyThis)
     {
-        SingleBtn.Content = single ? "\uE73F" : "\uE740";
-        var name = Foldy.Core.Localization.Loc.T(single ? "pane.single.off" : "pane.single.on");
-        SingleBtn.ToolTip = Foldy.Core.Localization.Loc.T(single ? "pane.single.off.tip" : "pane.single.on.tip");
+        SingleBtn.Content = onlyThis ? "\uE73F" : "\uE740";
+        var name = Foldy.Core.Localization.Loc.T(onlyThis ? "pane.single.off" : "pane.single.on");
+        SingleBtn.ToolTip = Foldy.Core.Localization.Loc.T(onlyThis ? "pane.single.off.tip" : "pane.single.on.tip");
         System.Windows.Automation.AutomationProperties.SetName(SingleBtn, name);
-        if (single)
+        if (onlyThis)
         {
             SingleBtn.SetResourceReference(BackgroundProperty, "Brush.Selection");
         }
