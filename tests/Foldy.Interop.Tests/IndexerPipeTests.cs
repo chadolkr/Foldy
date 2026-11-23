@@ -7,7 +7,7 @@ namespace Foldy.Interop.Tests;
 /// <summary>C# 클라이언트 ↔ Rust foldy-index 파이프 연결 시험 (설계서 5.6).</summary>
 public class IndexerPipeTests
 {
-    private static readonly string ServiceExe = Path.Combine(AppContext.BaseDirectory, "foldy-index.exe");
+    internal static readonly string ServiceExe = Path.Combine(AppContext.BaseDirectory, "foldy-index.exe");
     private static readonly string Golden = Path.Combine(AppContext.BaseDirectory, "golden");
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -261,9 +261,9 @@ public class IndexerPipeTests
         client.IsFaulted.Should().BeFalse();
     }
 
-    private static string NewPipeName() => "Foldy.Test." + Guid.NewGuid().ToString("N");
+    internal static string NewPipeName() => "Foldy.Test." + Guid.NewGuid().ToString("N");
 
-    private static async Task<StatusReply> WaitForAsync(IndexerClient client, Func<StatusReply, bool> done)
+    internal static async Task<StatusReply> WaitForAsync(IndexerClient client, Func<StatusReply, bool> done)
     {
         var sw = Stopwatch.StartNew();
         while (true)
@@ -278,7 +278,7 @@ public class IndexerPipeTests
         }
     }
 
-    private static async Task<ServiceProcess> StartServiceAsync(string pipe, params string[] extra)
+    internal static async Task<ServiceProcess> StartServiceAsync(string pipe, params string[] extra)
     {
         var p = Process.Start(new ProcessStartInfo(ServiceExe, ["--pipe", pipe, .. extra])
         {
@@ -294,12 +294,20 @@ public class IndexerPipeTests
         return new ServiceProcess(p);
     }
 
-    private sealed class ServiceProcess(Process p) : IDisposable
+    internal sealed class ServiceProcess(Process p) : IDisposable
     {
+        private bool _disposed;
+
         public Process Process { get; } = p;
 
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
             if (!Process.HasExited)
             {
                 Process.Kill();
@@ -310,7 +318,7 @@ public class IndexerPipeTests
         }
     }
 
-    private sealed class TempTree : IDisposable
+    internal sealed class TempTree : IDisposable
     {
         public string Root { get; } = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "foldy-idx-" + Guid.NewGuid().ToString("N"))).FullName;
 
