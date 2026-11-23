@@ -203,6 +203,7 @@ public static partial class OrganizePlanner
             IsFolder = e.IsFolder,
             Reason = reason,
             Size = e.Size,
+            SourceLastWriteUtc = e.IsFolder || e.LastWriteUtc == default ? null : e.LastWriteUtc,
         });
         return true;
     }
@@ -291,6 +292,7 @@ public static partial class OrganizePlanner
                 move = new PlannedMove
                 {
                     Source = m.FullPath, Destination = dest, TargetFolder = rel, Reason = keep ? m.KeepReason : reason, Size = m.Size, DuplicateSet = set,
+                    SourceLastWriteUtc = m.LastWriteUtc == default ? null : m.LastWriteUtc,
                 };
                 plan.Moves.Add(move);
                 added.Add(move);

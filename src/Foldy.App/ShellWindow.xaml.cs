@@ -1536,7 +1536,12 @@ public partial class ShellWindow : Window, IPaneHost
             org.SelectedTemplate = org.Templates.FirstOrDefault(t => t.Id == "para") ?? org.SelectedTemplate;
         }
 
-        _ = org.PlanCommand.ExecuteAsync(null); // 창이 열리면 바로 정리 후 모습이 보이게
+        // 창이 열리면 바로 정리 후 모습이 보이게. 저장해 둔 계획이 있으면 [이어서 하기]·[새로 만들기]를 먼저 보인다
+        if (!await org.CheckSavedPlanAsync())
+        {
+            _ = org.PlanCommand.ExecuteAsync(null);
+        }
+
         ShowOrganizeDialog(org, folder);
     }
 
@@ -1547,11 +1552,16 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        ShowOrganizeDialog(NewOrganize(folder), folder);
+        var org = NewOrganize(folder);
+        _ = org.CheckSavedPlanAsync(); // 저장해 둔 계획이 있으면 창 위에 [이어서 하기]가 뜬다
+        ShowOrganizeDialog(org, folder);
     }
 
+    /// <summary>큰 폴더의 정리 계획을 저장해 두는 곳 (%LOCALAPPDATA%\Foldy\organize-plans.db, 7일 지나면 지운다).</summary>
+    private static readonly Foldy.Presentation.Templates.OrganizePlanStore OrganizePlans = new(Foldy.Presentation.Templates.OrganizePlanStore.DefaultPath);
+
     private Foldy.Presentation.Templates.OrganizeViewModel NewOrganize(string folder) =>
-        new(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates) { SizeHint = IndexedFolderSizeAsync };
+        new(folder, new WpfDispatcher(Dispatcher), templates: Templates.Templates) { SizeHint = IndexedFolderSizeAsync, PlanStore = OrganizePlans };
 
     /// <summary>색인이 아는 폴더 전체 크기 (정리 계획을 만들 때 바로 보여 주는 용량). 색인 밖이면 null.</summary>
     private async Task<long?> IndexedFolderSizeAsync(string folder, CancellationToken ct)
@@ -1581,6 +1591,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void ShowOrganizeDialog(Foldy.Presentation.Templates.OrganizeViewModel org, string folder)
     {
         Foldy.UI.Templates.TemplateDialogs.ShowOrganize(this, org);
+        _ = org.FlushSavesAsync(); // 막 바꾼 체크도 저장해 둔다 (뒤에서)
         if (org.IsInBackground && org.State == Foldy.Presentation.Templates.OrganizeState.Planning)
         {
             TrackOrganizeInBackground(org, folder);

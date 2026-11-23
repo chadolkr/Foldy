@@ -74,7 +74,19 @@ public sealed class OrganizeResult
     public List<(string Path, string Error)> Failed { get; } = [];
 
     public bool Canceled { get; set; }
+
+    /// <summary>계획을 만든 뒤 크기나 수정한 날이 바뀌어 옮기지 않은 파일 (그대로 둔다).</summary>
+    public List<string> Changed { get; } = [];
+
+    /// <summary>계획을 만든 뒤 없어져서 옮기지 못한 파일·폴더.</summary>
+    public List<string> Missing { get; } = [];
+
+    /// <summary>옮긴 원본 경로 (중간에 멈췄을 때 남은 계획만 이어서 하려고).</summary>
+    public List<string> MovedSources { get; } = [];
 }
+
+/// <summary>[정리하기] 직전에 다시 본 원본 상태.</summary>
+public enum SourceCheck { Same, Changed, Missing }
 
 public sealed class UndoResult
 {
@@ -132,9 +144,17 @@ public static class OrganizeExecutor
             progress?.Report(new OrganizeProgress(i, moves.Count, m.Source));
             try
             {
-                if (m.IsFolder ? !ops.DirectoryExists(m.Source) : !ops.FileExists(m.Source))
+                // 계획을 만든 뒤(어제 만든 계획일 수도 있다) 바뀌거나 없어진 것은 옮기지 않고 알린다
+                var check = CheckSource(m, ops);
+                if (check != SourceCheck.Same)
                 {
-                    throw new FileNotFoundException(Foldy.Core.Localization.Loc.T("oe.noSource"), m.Source);
+                    (check == SourceCheck.Missing ? result.Missing : result.Changed).Add(m.Source);
+                    journal.Append(new JournalRecord
+                    {
+                        Type = JournalRecordType.Fail, Src = m.Source, Dst = m.Destination,
+                        Error = Foldy.Core.Localization.Loc.T(check == SourceCheck.Missing ? "oe.noSource" : "oe.changedSince"),
+                    });
+                    continue;
                 }
 
                 if (m.IsFolder && !ops.IsSameVolume(m.Source, m.Destination))
@@ -156,6 +176,7 @@ public static class OrganizeExecutor
                 }
 
                 claimed.Add(dest);
+                result.MovedSources.Add(m.Source);
                 var stamp = ops.GetStamp(dest, m.IsFolder);
                 journal.Append(new JournalRecord
                 {
@@ -172,9 +193,32 @@ public static class OrganizeExecutor
             }
         }
 
-        progress?.Report(new OrganizeProgress(result.Moved + result.Failed.Count, moves.Count, null));
+        progress?.Report(new OrganizeProgress(result.Moved + result.Failed.Count + result.Changed.Count + result.Missing.Count, moves.Count, null));
         journal.Append(new JournalRecord { Type = JournalRecordType.Done });
         return result;
+    }
+
+    /// <summary>
+    /// 원본이 계획을 만들 때 그대로인가: 파일은 크기와 수정한 날(알면)을 견주고, 폴더는 있는지만 본다.
+    /// 파일 하나에 한 번만 디스크에 묻는다.
+    /// </summary>
+    public static SourceCheck CheckSource(PlannedMove move, IMoveOperations ops)
+    {
+        ArgumentNullException.ThrowIfNull(move);
+        ArgumentNullException.ThrowIfNull(ops);
+        if (move.IsFolder)
+        {
+            return ops.DirectoryExists(move.Source) ? SourceCheck.Same : SourceCheck.Missing;
+        }
+
+        if (ops.GetStamp(move.Source, false) is not { } stamp)
+        {
+            return SourceCheck.Missing;
+        }
+
+        return stamp.Size != move.Size || (move.SourceLastWriteUtc is { } lw && stamp.LastWriteUtc != lw)
+            ? SourceCheck.Changed
+            : SourceCheck.Same;
     }
 
     private static void EnsureDirectory(string dir, string root, IMoveOperations ops, OrganizeJournalWriter journal)
