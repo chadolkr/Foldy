@@ -614,6 +614,28 @@ public sealed partial class OrganizeViewModel : ObservableObject
     /// <summary>색인에서 폴더 전체 크기를 알려 주는 곳 (앱이 채운다). 없거나 모르면 null.</summary>
     public Func<string, CancellationToken, Task<long?>>? SizeHint { get; init; }
 
+    /// <summary>
+    /// 계획을 저장해 두는 곳 (사용자 2026-11-23: 큰 폴더는 계획을 다시 만들기 힘들다). 없으면 저장하지 않는다.
+    /// 앱은 %LOCALAPPDATA%\Foldy\organize-plans.db를 넘긴다.
+    /// </summary>
+    public OrganizePlanStore? PlanStore { get; init; }
+
+    /// <summary>옮길 것+건너뛸 것이 이만큼 넘거나 <see cref="SaveAfter"/>보다 오래 걸린 계획만 저장한다 (작은 폴더는 다시 만들면 금방이다).</summary>
+    public int SaveMinItems { get; init; } = 1_000;
+
+    public TimeSpan SaveAfter { get; init; } = TimeSpan.FromSeconds(3);
+
+    /// <summary>체크를 바꾸고 이만큼 조용하면 바뀐 줄만 저장한다.</summary>
+    public TimeSpan EditSaveDelay { get; init; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>이 폴더에 저장해 둔 계획이 있다 ([이어서 하기]·[새로 만들기] 안내).</summary>
+    [ObservableProperty]
+    private bool _hasSavedPlan;
+
+    /// <summary>"어제 오후 3:10에 만든 계획이 있어요. 옮길 파일 252,411개 중 1,200개를 체크해 두었어요."</summary>
+    [ObservableProperty]
+    private string _savedPlanText = "";
+
     /// <summary>계획 만들기가 끝났다 (준비됨·취소·오류 모두, UI 스레드). 뒤에서 만들 때 알림에 쓴다.</summary>
     public event EventHandler? PlanFinished;
 
@@ -669,6 +691,8 @@ public sealed partial class OrganizeViewModel : ObservableObject
         PlanCommand.NotifyCanExecuteChanged();
         ExecuteCommand.NotifyCanExecuteChanged();
         UndoCommand.NotifyCanExecuteChanged();
+        ResumeSavedPlanCommand.NotifyCanExecuteChanged();
+        StartFreshCommand.NotifyCanExecuteChanged();
     }
 
     public OrganizeOptions BuildOptions() => new()
@@ -705,6 +729,8 @@ public sealed partial class OrganizeViewModel : ObservableObject
         var deep = IncludeSubfolders && !(allowProject && RootIsProject); // 프로젝트 폴더는 맨 위 파일만
         var counter = new OrganizeScanCounter();
         var stages = new OrganizePlanProgress();
+        var settings = CaptureSettings();
+        HasSavedPlan = false; // 새로 만든다: 저장해 둔 것은 새 계획으로 바꿔 끼운다
         State = OrganizeState.Planning;
         Status = Foldy.Core.Localization.Loc.T("org.scanning");
         ScanInfo = "";
@@ -735,10 +761,12 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 ct);
             await StopTicker(ticking, ticker);
             var (files, folders, bytes) = (counter.Files, counter.Folders, counter.Bytes);
+            var elapsed = started.Elapsed;
             _ui.Post(() =>
             {
                 ScanInfo = files + folders > 0 ? DescribeCounts(files, folders, bytes, TotalBytes) : "";
                 Show(prepared);
+                SaveNewPlan(prepared.Plan, settings, elapsed);
                 ShowBackgroundOffer = false;
                 PlanFinished?.Invoke(this, EventArgs.Empty);
             });
@@ -1103,6 +1131,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
         }
 
         RefreshDuplicatePanel();
+        ScheduleSave();
 
         var gen = ++_viewGeneration;
         if (plan.Moves.Count <= SyncEditLimit)
@@ -1279,7 +1308,10 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 LastJournalPath = result.JournalPath;
                 State = OrganizeState.Done;
                 Progress = 1;
+                ForgetSavedPlan(plan, result);
+                var changed = result.Changed.Count + result.Missing.Count;
                 Status = Foldy.Core.Localization.Loc.F("org.moved", result.Moved)
+                    + (changed > 0 ? Foldy.Core.Localization.Loc.F("org.changedSkipped", changed) : "")
                     + (result.Failed.Count > 0 ? Foldy.Core.Localization.Loc.F("org.failed", result.Failed.Count) : "")
                     + (result.Canceled ? Foldy.Core.Localization.Loc.T("org.midCancel") : "")
                     + Foldy.Core.Localization.Loc.T("org.undoHint");
@@ -1364,6 +1396,315 @@ public sealed partial class OrganizeViewModel : ObservableObject
         }
 
         DialogResult = LastResult is not null;
+    }
+
+    // ── 계획 저장·이어서 하기 (사용자 2026-11-23) ─────────────────────────────
+
+    /// <summary>저장한 계획 하나 (뒤의 저장 줄에서 손잡이를 채운다).</summary>
+    private sealed class SaveSession(OrganizePlan plan)
+    {
+        public OrganizePlan Plan { get; } = plan;
+
+        public SavedPlanHandle? Handle { get; set; }
+    }
+
+    private readonly object _saveGate = new();
+    private Task _saveChain = Task.CompletedTask;
+    private SaveSession? _session;
+    private int _saveGeneration;
+
+    /// <summary>
+    /// 창을 열 때 부른다: 이 폴더에 저장해 둔 계획이 있으면 [이어서 하기]·[새로 만들기]를 보인다.
+    /// 있으면 true (그때는 계획을 바로 새로 만들지 않는다).
+    /// </summary>
+    public async Task<bool> CheckSavedPlanAsync()
+    {
+        if (PlanStore is not { } store || string.IsNullOrWhiteSpace(RootPath))
+        {
+            return false;
+        }
+
+        var root = RootPath;
+        SavedPlanInfo? info;
+        try
+        {
+            info = await Task.Run(() => store.Find(root));
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return false; // 저장소를 못 열면 예전처럼 새로 만든다
+        }
+
+        if (info is null)
+        {
+            return false;
+        }
+
+        var text = Foldy.Core.Localization.Loc.F("org.saved.offer", WhenText(info.CreatedUtc, DateTime.UtcNow), info.Moves, info.Checked);
+        _ui.Post(() =>
+        {
+            if (State is OrganizeState.Idle && string.Equals(RootPath, root, StringComparison.OrdinalIgnoreCase))
+            {
+                SavedPlanText = text;
+                HasSavedPlan = true;
+            }
+        });
+        return true;
+    }
+
+    /// <summary>"오늘 오후 3:10", "어제 오후 3:10", "11월 20일 오후 3:10" (만든 때를 쉬운 말로).</summary>
+    public static string WhenText(DateTime createdUtc, DateTime nowUtc)
+    {
+        var local = createdUtc.ToLocalTime();
+        var days = (nowUtc.ToLocalTime().Date - local.Date).Days;
+        return days switch
+        {
+            0 => Foldy.Core.Localization.Loc.F("org.saved.today", local),
+            1 => Foldy.Core.Localization.Loc.F("org.saved.yesterday", local),
+            _ => Foldy.Core.Localization.Loc.F("org.saved.day", local),
+        };
+    }
+
+    private bool CanResume() => !IsBusy && PlanStore is not null;
+
+    /// <summary>[이어서 하기]: 저장해 둔 계획을 체크한 것까지 그대로 불러온다 (훑지 않으니 금방이다).</summary>
+    [RelayCommand(CanExecute = nameof(CanResume))]
+    private async Task ResumeSavedPlanAsync()
+    {
+        if (PlanStore is not { } store)
+        {
+            return;
+        }
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+        var root = RootPath;
+        HasSavedPlan = false;
+        State = OrganizeState.Planning;
+        Status = Foldy.Core.Localization.Loc.T("org.saved.loading");
+        Progress = 0;
+        try
+        {
+            var loaded = await Task.Run<(LoadedPlan Loaded, PreparedPlan Prepared)?>(
+                () =>
+                {
+                    var l = store.Load(root, ct);
+                    return l is null ? null : (l, Prepare(l.Plan));
+                },
+                ct);
+            _ui.Post(() =>
+            {
+                if (loaded is not { } x)
+                {
+                    State = OrganizeState.Idle;
+                    Status = Foldy.Core.Localization.Loc.T("org.saved.gone");
+                    PlanFinished?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+
+                ApplySettings(x.Loaded.Settings);
+                Show(x.Prepared);
+                _session = new SaveSession(x.Prepared.Plan) { Handle = x.Loaded.Handle };
+                if (State == OrganizeState.Ready)
+                {
+                    Status = Foldy.Core.Localization.Loc.F("org.saved.resumed", WhenText(x.Loaded.Info.CreatedUtc, DateTime.UtcNow));
+                }
+
+                PlanFinished?.Invoke(this, EventArgs.Empty);
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            _ui.Post(() =>
+            {
+                State = OrganizeState.Idle;
+                Status = Foldy.Core.Localization.Loc.T("org.cancelled");
+                PlanFinished?.Invoke(this, EventArgs.Empty);
+            });
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException or InvalidOperationException or OutOfMemoryException)
+        {
+            _ui.Post(() =>
+            {
+                State = OrganizeState.Idle;
+                Status = Foldy.Core.Localization.Loc.T("org.saved.gone");
+                PlanFinished?.Invoke(this, EventArgs.Empty);
+            });
+        }
+    }
+
+    /// <summary>[새로 만들기]: 저장해 둔 계획을 지우고 지금 폴더로 새 계획을 만든다.</summary>
+    [RelayCommand(CanExecute = nameof(CanResume))]
+    private async Task StartFreshAsync()
+    {
+        HasSavedPlan = false;
+        if (PlanStore is { } store)
+        {
+            var root = RootPath;
+            _ = EnqueueSave(() => store.Delete(root));
+        }
+
+        await PlanCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>저장을 기다린다 (창을 닫을 때·테스트). 아직 안 쓴 체크 변경도 바로 쓴다.</summary>
+    public Task FlushSavesAsync()
+    {
+        if (_session is { } s && PlanStore is { } store && State == OrganizeState.Ready)
+        {
+            Interlocked.Increment(ref _saveGeneration); // 기다리던 저장은 이것으로 갈음한다
+            var snap = PlanSnapshot.Of(s.Plan);
+            return EnqueueSave(() => Update(store, s, snap));
+        }
+
+        lock (_saveGate)
+        {
+            return _saveChain;
+        }
+    }
+
+    private SavedPlanSettings CaptureSettings() => new()
+    {
+        Mode = SelectedMode.Mode,
+        DateFormat = DateFormat,
+        TemplateId = SelectedTemplate?.Id,
+        Rules = CustomRules.Select(r => r.ToRule()).ToList(),
+        DetectDuplicates = DetectDuplicates,
+        PrefixDate = PrefixDate,
+        IncludeSubfolders = IncludeSubfolders,
+        OrganizeProjectAnyway = OrganizeProjectAnyway,
+    };
+
+    /// <summary>저장한 계획을 만들 때 고른 것을 화면에 돌려놓는다 (계획을 불러오는 중이라 "바뀌었어요"가 뜨지 않는다).</summary>
+    private void ApplySettings(SavedPlanSettings s)
+    {
+        SelectedMode = Modes.FirstOrDefault(m => m.Mode == s.Mode) ?? SelectedMode;
+        DateFormat = s.DateFormat;
+        if (s.TemplateId is { } id)
+        {
+            SelectedTemplate = Templates.FirstOrDefault(t => t.Id == id) ?? SelectedTemplate;
+        }
+
+        CustomRules.Clear();
+        foreach (var r in s.Rules)
+        {
+            CustomRules.Add(new CustomRuleViewModel
+            {
+                Pattern = r.Pattern ?? "", Keywords = string.Join(", ", r.Keywords), Target = r.Target, ApplyToFolders = r.ApplyToFolders,
+            });
+        }
+
+        DetectDuplicates = s.DetectDuplicates;
+        PrefixDate = s.PrefixDate;
+        IncludeSubfolders = s.IncludeSubfolders;
+        OrganizeProjectAnyway = s.OrganizeProjectAnyway;
+    }
+
+    /// <summary>새 계획: 크거나 오래 걸렸으면 저장하고, 작으면 예전에 저장한 것만 지운다.</summary>
+    private void SaveNewPlan(OrganizePlan plan, SavedPlanSettings settings, TimeSpan elapsed)
+    {
+        _session = null;
+        if (PlanStore is not { } store)
+        {
+            return;
+        }
+
+        var root = plan.Root;
+        if (plan.Blocked is not null || plan.Moves.Count == 0
+            || (plan.Moves.Count + plan.Skipped.Count < SaveMinItems && elapsed < SaveAfter))
+        {
+            _ = EnqueueSave(() => store.Delete(root));
+            return;
+        }
+
+        var session = new SaveSession(plan);
+        _session = session;
+        var snap = PlanSnapshot.Of(plan);
+        _ = EnqueueSave(() => session.Handle = store.Save(snap, settings));
+    }
+
+    /// <summary>체크·남길 파일·옮길 곳을 바꾸면 조금 기다렸다가 바뀐 줄만 저장한다 (여러 번 바꾸면 한 번만).</summary>
+    private void ScheduleSave()
+    {
+        if (_session is not { } s || PlanStore is not { } store || State != OrganizeState.Ready)
+        {
+            return;
+        }
+
+        var gen = Interlocked.Increment(ref _saveGeneration);
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(EditSaveDelay);
+            if (gen != Volatile.Read(ref _saveGeneration))
+            {
+                return;
+            }
+
+            _ui.Post(() =>
+            {
+                if (gen == Volatile.Read(ref _saveGeneration) && _session == s && State == OrganizeState.Ready)
+                {
+                    var snap = PlanSnapshot.Of(s.Plan);
+                    _ = EnqueueSave(() => Update(store, s, snap));
+                }
+            });
+        });
+    }
+
+    private static void Update(OrganizePlanStore store, SaveSession s, PlanSnapshot snap)
+    {
+        if (s.Handle is { } h)
+        {
+            store.Update(h, snap);
+        }
+    }
+
+    /// <summary>정리를 마쳤다: 다 했으면 저장한 계획을 지우고, 중간에 멈췄으면 남은 것만 남긴다.</summary>
+    private void ForgetSavedPlan(OrganizePlan plan, OrganizeResult result)
+    {
+        if (PlanStore is not { } store)
+        {
+            return;
+        }
+
+        var s = _session;
+        _session = null;
+        Interlocked.Increment(ref _saveGeneration);
+        var root = plan.Root;
+        if (result.Canceled && s is not null && s.Plan == plan)
+        {
+            var done = new HashSet<string>(result.MovedSources.Concat(result.Missing), StringComparer.OrdinalIgnoreCase);
+            var snap = PlanSnapshot.Of(plan, done);
+            _ = EnqueueSave(() => Update(store, s, snap));
+            return;
+        }
+
+        _ = EnqueueSave(() => store.Delete(root));
+    }
+
+    /// <summary>저장은 하나씩 차례로 뒤에서 한다 (화면을 멈추지 않는다). 실패해도 정리에는 지장이 없어 조용히 넘어간다.</summary>
+    private Task EnqueueSave(Action op)
+    {
+        lock (_saveGate)
+        {
+            _saveChain = _saveChain.ContinueWith(
+                _ =>
+                {
+                    try
+                    {
+                        op();
+                    }
+                    catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException or InvalidOperationException)
+                    {
+                        // 저장은 편의 기능: 못 해도 계획과 정리는 그대로 된다
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+            return _saveChain;
+        }
     }
 
     private void Invalidate()

@@ -120,6 +120,12 @@ public sealed class PlannedMove
 
     public long Size { get; init; }
 
+    /// <summary>
+    /// 계획을 만들 때 본 원본의 수정 시각 (파일만). [정리하기] 직전에 크기와 함께 다시 보고, 다르면 그사이 바뀐 것이라 옮기지 않는다.
+    /// 모르면 null (크기만 본다).
+    /// </summary>
+    public DateTime? SourceLastWriteUtc { get; init; }
+
     public string Name => Path.GetFileName(Destination);
 
     /// <summary>같은 파일 묶음에 든 파일이면 그 묶음 (미리보기에서 남길 파일을 바꿀 때 쓴다).</summary>
