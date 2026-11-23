@@ -717,8 +717,12 @@ public sealed class SlowCrawler : IDisposable
         }
 
         _cts.Cancel();
-        _thread?.Join(1000);
-        _cts.Dispose();
-        _kick.Dispose();
+        // 1초 안에 끝나지 않으면(느린 드라이브를 읽는 중) 돌던 스레드가 아직 _cts·_kick을 쓰므로 버리지 않는다.
+        // 먼저 버리면 그 스레드가 ObjectDisposedException으로 프로세스를 죽인다(CI Foldy.Core.Tests 2026-11-23). 남은 것은 GC가 치운다.
+        if (_thread is null || _thread.Join(1000))
+        {
+            _cts.Dispose();
+            _kick.Dispose();
+        }
     }
 }

@@ -191,13 +191,60 @@ public sealed class AppUpdater : IDisposable
     {
         using var res = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         res.EnsureSuccessStatusCode();
-        await using (var fs = File.Create(path + ".part"))
-        {
-            await res.Content.CopyToAsync(fs, ct);
-        }
 
-        File.Move(path + ".part", path, overwrite: true);
-        return path;
+        // 받는 중인 파일 이름은 받을 때마다 다르게: 자동 확인과 [업데이트] 단추, 또는 AI 연결용 Foldy가 같은 업데이트를
+        // 동시에 받아도 "다른 프로세스가 파일을 사용 중"으로 실패하지 않는다 (사용자 2026-11-23, 회사 PC 1.4.0)
+        var part = $"{path}.{Environment.ProcessId}-{Guid.NewGuid().ToString("N")[..8]}.part";
+        try
+        {
+            await using (var fs = new FileStream(part, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true))
+            {
+                await res.Content.CopyToAsync(fs, ct);
+            }
+
+            MoveIntoPlace(part, path);
+            return path;
+        }
+        finally
+        {
+            TryDelete(part);
+        }
+    }
+
+    /// <summary>다 받은 파일을 제자리로. 다른 쪽이 같은 파일을 먼저 받아 두었고 그 파일이 쓰이는 중이면 그것을 그대로 쓴다.</summary>
+    private static void MoveIntoPlace(string part, string path)
+    {
+        for (var i = 0; ; i++)
+        {
+            try
+            {
+                File.Move(part, path, overwrite: true);
+                return;
+            }
+            catch (IOException) when (i < 5)
+            {
+                Thread.Sleep(200 * (i + 1));
+            }
+            catch (IOException) when (File.Exists(path))
+            {
+                return; // 이미 받아 둔 것이 있다 (해시는 부르는 쪽이 다시 확인한다)
+            }
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // 다음 확인 때 지운다
+        }
     }
 
     /// <summary>
