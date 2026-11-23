@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'Nuevo en la 1.8: empieza a indexar cuando quieras',
-    eyebrow: 'Foldy 1.8',
+    badge: 'Nuevo en la 1.9: la indexación de unidades lentas continúa donde se quedó',
+    eyebrow: 'Foldy 1.9',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
+      { icon: 'search', title: 'La indexación continúa y lee menos', text: 'En unidades grandes y lentas, como las de trabajo, de red o USB, si cierras o actualizas Foldy durante la primera indexación, la próxima vez sigue desde donde se quedó. Al volver a reunir la lista solo lee las carpetas que cambiaron, y ahora también encuentra archivos dentro de carpetas ocultas. Las fechas se ven más cortas, como "11-23".' },
       { icon: 'update', title: 'Indexa cuando quieras', text: 'Haz clic derecho en una unidad de red, USB o Google Drive → [Indexar ahora] para recopilar su lista de archivos al momento. También puedes elegir cada cuánto se repite: cada hora, cada 6 horas o una vez al día.' },
       { icon: 'undo', title: 'Retoma donde lo dejaste', text: 'Foldy guarda tu plan para ordenar y tus marcas. Aunque cierres la ventana o apagues el PC, [Continuar] lo abre al instante. Al pulsar [Ordenar], los archivos que cambiaron o desaparecieron desde entonces no se mueven y Foldy te lo indica.' },
       { icon: 'eye', title: 'Ve dónde están los duplicados y elige cuál conservar', text: 'Al ordenar una carpeta, Foldy muestra la ruta completa de cada archivo idéntico y con [Conservar] eliges cuál se queda. Solo los demás van a "_Posibles duplicados", y no se borra nada. [Mostrar solo este panel] deja que un panel use toda la ventana.' },
-      { icon: 'search', title: 'Ve cuántos resultados hay', text: 'En Ctrl+Espacio, cada grupo muestra cuántos hay, como "Archivos · 220". Pulsa [Ver los 220] al final de la lista o, si ves un solo grupo, sigue bajando para ver más.' },
     ],
     link: 'Ver todos los cambios',
   },
