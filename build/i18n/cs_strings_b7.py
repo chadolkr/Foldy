@@ -73,7 +73,7 @@ B7 = [
     ("op.taken", "촬영 시각", "Taken", "Fecha de la toma", "撮影日時", "拍摄时间"),
     ("op.modified", "수정 날짜", "Modified", "Fecha de modificación", "更新日", "修改日期"),
     ("op.customRule", "직접 규칙: {0}", "Custom rule: {0}", "Regla propia: {0}", "自分のルール: {0}", "自定义规则：{0}"),
-    ("op.duplicate", "중복 후보: {0}와 이름·크기·내용이 같음", "Possible duplicate: same name, size and content as {0}", "Posible duplicado: mismo nombre, tamaño y contenido que {0}", "重複候補: {0} と名前・サイズ・内容が同じ", "疑似重复：与 {0} 的名称、大小、内容相同"),
+    ("op.duplicate", "중복 후보 · 같은 파일을 남김: {0}", "Possible duplicate · keeping the same file at {0}", "Posible duplicado · se conserva el mismo archivo en {0}", "重複候補 · 同じファイルを残す場所: {0}", "疑似重复 · 保留的相同文件：{0}"),
     ("op.badTarget", "대상 폴더 이름이 잘못됨: {0}", "Invalid target folder name: {0}", "Nombre de carpeta de destino no válido: {0}", "対象フォルダー名が正しくありません: {0}", "目标文件夹名称无效：{0}"),
     ("op.typeExt", "종류: {0} ({1})", "Type: {0} ({1})", "Tipo: {0} ({1})", "種類: {0} ({1})", "类型：{0}（{1}）"),
     ("op.type", "종류: {0}", "Type: {0}", "Tipo: {0}", "種類: {0}", "类型：{0}"),

@@ -121,7 +121,50 @@ public sealed class PlannedMove
     public long Size { get; init; }
 
     public string Name => Path.GetFileName(Destination);
+
+    /// <summary>같은 파일 묶음에 든 파일이면 그 묶음 (미리보기에서 남길 파일을 바꿀 때 쓴다).</summary>
+    public DuplicateSet? DuplicateSet { get; set; }
 }
+
+/// <summary>
+/// 이름·크기·내용이 같은 파일 묶음. 하나(<see cref="Keeper"/>)만 원래 규칙대로 두고 나머지는 _중복 후보로 옮긴다.
+/// 미리보기에서 어느 것을 남길지 바꿀 수 있다 (<see cref="OrganizePlanner.ChooseKeeper"/>). 아무것도 지우지 않는다.
+/// </summary>
+public sealed class DuplicateSet
+{
+    /// <summary>오래된 것부터 (처음 남길 파일이 맨 앞).</summary>
+    public List<DuplicateMember> Members { get; } = [];
+
+    public required DuplicateMember Keeper { get; set; }
+
+    /// <summary>나머지를 모으는 폴더 (정리할 폴더 기준 상대 경로, 예: _중복 후보).</summary>
+    public required string TargetFolder { get; init; }
+
+    public string Name => Path.GetFileName(Keeper.FullPath);
+
+    public long Size => Keeper.Size;
+}
+
+/// <summary>같은 파일 묶음의 파일 하나와, 이것을 남길 때 갈 곳.</summary>
+public sealed class DuplicateMember
+{
+    public required string FullPath { get; init; }
+
+    public long Size { get; init; }
+
+    public DateTime LastWriteUtc { get; init; }
+
+    /// <summary>남길 때 갈 폴더 (정리할 폴더 기준 상대 경로, 원래 규칙대로).</summary>
+    public string KeepTarget { get; set; } = "";
+
+    public string KeepReason { get; set; } = "";
+
+    /// <summary>옮긴 뒤 이름 (이름 앞 날짜 붙이기 반영).</summary>
+    public string NewName { get; set; } = "";
+}
+
+/// <summary>남길 파일을 바꾼 결과: 새로 생긴 이동, 없어진 이동(제자리에 남게 됨), 바뀐 이동.</summary>
+public sealed record KeeperChange(IReadOnlyList<PlannedMove> Added, IReadOnlyList<PlannedMove> Removed, IReadOnlyList<PlannedMove> Changed);
 
 public sealed class OrganizePlan
 {
@@ -130,6 +173,9 @@ public sealed class OrganizePlan
     public List<PlannedMove> Moves { get; } = [];
 
     public List<SkippedEntry> Skipped { get; } = [];
+
+    /// <summary>같은 파일 묶음 (중복 후보가 있을 때).</summary>
+    public List<DuplicateSet> DuplicateSets { get; } = [];
 
     /// <summary>계획 자체를 막는 이유 (시스템 폴더 등). 있으면 실행하지 않는다.</summary>
     public string? Blocked { get; set; }

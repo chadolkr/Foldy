@@ -133,3 +133,5 @@ from cs_strings_secure import SECURE  # noqa: E402
 CS = CS + SECURE
 from cs_strings_bigorg import BIGORG  # noqa: E402
 CS = CS + BIGORG
+from cs_strings_dupkeep import DUPKEEP  # noqa: E402
+CS = CS + DUPKEEP

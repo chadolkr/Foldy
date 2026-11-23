@@ -44,6 +44,15 @@ public sealed partial class MoveItemViewModel : ObservableObject
 
     public bool IsFolder => Move.IsFolder;
 
+    /// <summary>지금 위치 전체 경로 (목록 칸에 다 안 보일 때 풍선 도움말로).</summary>
+    public string SourceFull => Move.Source;
+
+    /// <summary>같은 파일 묶음에 든 파일 (누르면 아래에 같은 파일들이 어디 있는지 보인다).</summary>
+    public bool IsDuplicate => Move.DuplicateSet is not null;
+
+    /// <summary>계획 쪽에서 바뀐 값을 화면에 옮기는 중 (그 사이 바뀐 알림으로 계획을 다시 고치지 않게).</summary>
+    private bool _syncing;
+
     [ObservableProperty]
     private bool _isIncluded;
 
@@ -52,13 +61,18 @@ public sealed partial class MoveItemViewModel : ObservableObject
 
     partial void OnIsIncludedChanged(bool value)
     {
+        if (_syncing)
+        {
+            return;
+        }
+
         Move.Included = value;
         _owner.OnPlanEdited();
     }
 
     partial void OnTargetFolderChanged(string value)
     {
-        if (!string.Equals(value, Move.TargetFolder, StringComparison.Ordinal))
+        if (!_syncing && !string.Equals(value, Move.TargetFolder, StringComparison.Ordinal))
         {
             _owner.Retarget(this, value);
         }
@@ -66,10 +80,97 @@ public sealed partial class MoveItemViewModel : ObservableObject
 
     internal void RefreshFromMove()
     {
+        _syncing = true;
+        try
+        {
+            IsIncluded = Move.Included;
+            TargetFolder = Move.TargetFolder;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+
         OnPropertyChanged(nameof(DestinationRelative));
         OnPropertyChanged(nameof(DestinationName));
         OnPropertyChanged(nameof(IsRenamed));
         OnPropertyChanged(nameof(Reason));
+    }
+}
+
+/// <summary>같은 파일 묶음 목록의 한 줄 (이름·개수·크기·남길 파일 위치).</summary>
+public sealed class DuplicateSetViewModel(DuplicateSet set, string root) : ObservableObject
+{
+    public DuplicateSet Set { get; } = set;
+
+    public string Name => Set.Name;
+
+    public int Count => Set.Members.Count;
+
+    public string SizeText => Foldy.Presentation.Files.FileItem.FormatBytes(Set.Size);
+
+    /// <summary>남길 파일의 위치 (정리할 폴더 기준).</summary>
+    public string KeeperRelative => Path.GetRelativePath(root, Set.Keeper.FullPath);
+
+    internal void Refresh()
+    {
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(KeeperRelative));
+    }
+}
+
+/// <summary>같은 파일 묶음 안의 파일 하나: 전체 경로와 [남기기] 단추, 정리하면 어떻게 되는지.</summary>
+public sealed partial class DuplicateMemberViewModel : ObservableObject
+{
+    private readonly OrganizeViewModel _owner;
+    private bool _syncing;
+
+    public DuplicateMemberViewModel(DuplicateSet set, DuplicateMember member, OrganizeViewModel owner)
+    {
+        Set = set;
+        Member = member;
+        _owner = owner;
+        _isKeeper = set.Keeper == member;
+    }
+
+    public DuplicateSet Set { get; }
+
+    public DuplicateMember Member { get; }
+
+    /// <summary>전체 경로 (드라이브부터).</summary>
+    public string FullPath => Member.FullPath;
+
+    public string Modified => Foldy.Core.Localization.Loc.F("org.dup.modified", Member.LastWriteUtc.ToLocalTime());
+
+    /// <summary>이 파일을 남긴다 (묶음에서 하나만).</summary>
+    [ObservableProperty]
+    private bool _isKeeper;
+
+    /// <summary>"남겨요 → 코드", "'_중복 후보' 폴더로 옮겨요" 같은 결과 한 줄.</summary>
+    [ObservableProperty]
+    private string _outcome = "";
+
+    partial void OnIsKeeperChanged(bool value)
+    {
+        if (!_syncing && value)
+        {
+            _owner.ChooseKeeper(this);
+        }
+    }
+
+    internal void Sync(string outcome)
+    {
+        _syncing = true;
+        try
+        {
+            IsKeeper = Set.Keeper == Member;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+
+        Outcome = outcome;
     }
 }
 
@@ -269,6 +370,41 @@ public sealed partial class OrganizeViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<SkippedEntry> _skipped = [];
+
+    /// <summary>같은 파일 묶음 목록 (탭 "같은 파일").</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDuplicateSets))]
+    [NotifyPropertyChangedFor(nameof(DuplicatesTabHeader))]
+    private ObservableCollection<DuplicateSetViewModel> _duplicateSets = [];
+
+    public bool HasDuplicateSets => DuplicateSets.Count > 0;
+
+    public string DuplicatesTabHeader => Foldy.Core.Localization.Loc.F("org.dupsTab", DuplicateSets.Count);
+
+    /// <summary>옮길 파일 목록에서 고른 줄. 같은 파일 묶음이면 아래에 묶음을 보여 준다.</summary>
+    [ObservableProperty]
+    private MoveItemViewModel? _selectedMove;
+
+    /// <summary>같은 파일 탭에서 고른 묶음.</summary>
+    [ObservableProperty]
+    private DuplicateSetViewModel? _selectedDuplicateSet;
+
+    /// <summary>지금 보여 주는 같은 파일 묶음의 파일들 (전체 경로와 [남기기]).</summary>
+    [ObservableProperty]
+    private ObservableCollection<DuplicateMemberViewModel> _duplicateMembers = [];
+
+    [ObservableProperty]
+    private bool _hasDuplicateSelection;
+
+    [ObservableProperty]
+    private string _duplicateTitle = "";
+
+    [ObservableProperty]
+    private string _duplicateTip = "";
+
+    private DuplicateSet? _shownSet;
+    private Dictionary<string, MoveItemViewModel> _bySource = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<DuplicateSet, DuplicateSetViewModel> _setViews = new();
 
     [ObservableProperty]
     private ObservableCollection<OrganizeTreeNode> _beforeTree = [];
@@ -616,7 +752,9 @@ public sealed partial class OrganizeViewModel : ObservableObject
     private bool CanPlan() => !IsBusy && !string.IsNullOrWhiteSpace(RootPath);
 
     /// <summary>계획을 화면에 보일 모양으로 (무거운 일이라 백그라운드에서 한다).</summary>
-    private sealed record PreparedPlan(OrganizePlan Plan, ObservableCollection<MoveItemViewModel> Moves, ObservableCollection<SkippedEntry> Skipped, PlanView? View, PlanView? Unchanged);
+    private sealed record PreparedPlan(
+        OrganizePlan Plan, ObservableCollection<MoveItemViewModel> Moves, ObservableCollection<SkippedEntry> Skipped, PlanView? View, PlanView? Unchanged,
+        Dictionary<string, MoveItemViewModel> BySource, ObservableCollection<DuplicateSetViewModel> DuplicateSets);
 
     /// <summary>트리 두 개와 요약 한 줄.</summary>
     private sealed record PlanView(ObservableCollection<OrganizeTreeNode> Before, ObservableCollection<OrganizeTreeNode> After, string Summary);
@@ -625,9 +763,16 @@ public sealed partial class OrganizeViewModel : ObservableObject
     {
         var moves = new ObservableCollection<MoveItemViewModel>(plan.Moves.Select(m => new MoveItemViewModel(m, plan.Root, this)));
         var skipped = new ObservableCollection<SkippedEntry>(plan.Skipped);
+        var bySource = new Dictionary<string, MoveItemViewModel>(moves.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var m in moves)
+        {
+            bySource[m.Move.Source] = m;
+        }
+
+        var sets = new ObservableCollection<DuplicateSetViewModel>(plan.DuplicateSets.Select(d => new DuplicateSetViewModel(d, plan.Root)));
         if (plan.Blocked is not null)
         {
-            return new(plan, moves, skipped, null, null);
+            return new(plan, moves, skipped, null, null, bySource, sets);
         }
 
         PlanView? unchanged = null;
@@ -639,7 +784,7 @@ public sealed partial class OrganizeViewModel : ObservableObject
             unchanged = new(OrganizeTreeNode.Build(rel, folders), OrganizeTreeNode.Build(rel, folders), "");
         }
 
-        return new(plan, moves, skipped, ComputeView(plan), unchanged);
+        return new(plan, moves, skipped, ComputeView(plan), unchanged, bySource, sets);
     }
 
     private void Show(PreparedPlan p)
@@ -649,6 +794,12 @@ public sealed partial class OrganizeViewModel : ObservableObject
         _viewGeneration++;
         Moves = p.Moves;
         Skipped = p.Skipped;
+        _bySource = p.BySource;
+        DuplicateSets = p.DuplicateSets;
+        _setViews = p.DuplicateSets.ToDictionary(v => v.Set);
+        SelectedMove = null;
+        SelectedDuplicateSet = null;
+        ShowDuplicateSet(null);
         if (plan.Blocked is not null)
         {
             State = OrganizeState.Error;
@@ -710,6 +861,8 @@ public sealed partial class OrganizeViewModel : ObservableObject
             return;
         }
 
+        RefreshDuplicatePanel();
+
         var gen = ++_viewGeneration;
         if (plan.Moves.Count <= SyncEditLimit)
         {
@@ -736,6 +889,112 @@ public sealed partial class OrganizeViewModel : ObservableObject
                 }
             });
         });
+    }
+
+    partial void OnSelectedMoveChanged(MoveItemViewModel? value)
+    {
+        // 남길 파일을 바꾸다 고른 줄이 목록에서 빠지면(null) 보던 묶음을 그대로 둔다
+        if (value is not null)
+        {
+            ShowDuplicateSet(value.Move.DuplicateSet);
+        }
+    }
+
+    partial void OnSelectedDuplicateSetChanged(DuplicateSetViewModel? value)
+    {
+        if (value is not null)
+        {
+            ShowDuplicateSet(value.Set);
+        }
+    }
+
+    /// <summary>같은 파일 묶음을 아래 칸에 보여 준다 (null이면 숨긴다).</summary>
+    private void ShowDuplicateSet(DuplicateSet? set)
+    {
+        _shownSet = set;
+        if (set is null || Plan is null)
+        {
+            HasDuplicateSelection = false;
+            DuplicateMembers = [];
+            DuplicateTitle = "";
+            DuplicateTip = "";
+            return;
+        }
+
+        DuplicateMembers = new ObservableCollection<DuplicateMemberViewModel>(set.Members.Select(m => new DuplicateMemberViewModel(set, m, this)));
+        DuplicateTip = Foldy.Core.Localization.Loc.F("org.dup.tip", set.TargetFolder);
+        RefreshDuplicatePanel();
+        HasDuplicateSelection = true;
+    }
+
+    private void RefreshDuplicatePanel()
+    {
+        if (_shownSet is not { } set || Plan is not { } plan)
+        {
+            return;
+        }
+
+        DuplicateTitle = Foldy.Core.Localization.Loc.F("org.dup.title", set.Members.Count, set.Name, Foldy.Presentation.Files.FileItem.FormatBytes(set.Size));
+        foreach (var m in DuplicateMembers)
+        {
+            _bySource.TryGetValue(m.FullPath, out var move);
+            string outcome;
+            if (set.Keeper == m.Member)
+            {
+                outcome = move is { IsIncluded: true }
+                    ? Foldy.Core.Localization.Loc.F("org.dup.keepTo", move.Move.TargetFolder.Length == 0 ? Path.GetFileName(plan.Root) : move.Move.TargetFolder)
+                    : Foldy.Core.Localization.Loc.T("org.dup.keepHere");
+            }
+            else
+            {
+                outcome = move is { IsIncluded: true }
+                    ? Foldy.Core.Localization.Loc.F("org.dup.toDups", move.Move.TargetFolder)
+                    : Foldy.Core.Localization.Loc.T("org.dup.stays");
+            }
+
+            m.Sync(outcome);
+        }
+    }
+
+    /// <summary>같은 파일 묶음에서 남길 파일을 바꿨다: 계획을 고치고 목록·트리를 맞춘다.</summary>
+    internal void ChooseKeeper(DuplicateMemberViewModel member)
+    {
+        if (Plan is not { } plan || State != OrganizeState.Ready)
+        {
+            RefreshDuplicatePanel(); // 지금은 바꿀 수 없다: 단추를 원래대로
+            return;
+        }
+
+        var change = OrganizePlanner.ChooseKeeper(plan, member.Set, member.Member, p => File.Exists(p) || Directory.Exists(p));
+        foreach (var r in change.Removed)
+        {
+            if (_bySource.Remove(r.Source, out var vm))
+            {
+                Moves.Remove(vm);
+            }
+        }
+
+        foreach (var a in change.Added)
+        {
+            var vm = new MoveItemViewModel(a, plan.Root, this);
+            _bySource[a.Source] = vm;
+            Moves.Add(vm);
+        }
+
+        foreach (var c in change.Changed)
+        {
+            if (_bySource.TryGetValue(c.Source, out var vm))
+            {
+                vm.RefreshFromMove();
+            }
+        }
+
+        if (_setViews.TryGetValue(member.Set, out var setView))
+        {
+            setView.Refresh();
+        }
+
+        OnPlanEdited(); // 트리·요약과 아래 칸을 다시 맞춘다
     }
 
     internal void Retarget(MoveItemViewModel item, string folder)
