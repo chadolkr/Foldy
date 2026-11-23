@@ -139,7 +139,7 @@ public static class FileOpWorker
             }
 
             var final = FileOpWorkerProtocol.Finish(result, cancelRequested, Foldy.Core.Localization.Loc.T("ops.workerCrashed"));
-            return new FileOpOutcome(final.Succeeded, final.Aborted, final.Error, null);
+            return new FileOpOutcome(final.Succeeded, final.Aborted, final.Error, null, final.Code);
         }
     }
 
@@ -208,7 +208,7 @@ public static class FileOpWorker
         };
 
         var outcome = FileOperations.RunAsync(new FileOpRequest(kind, req.Sources), new IntPtr(req.Owner), progress, cts.Token).GetAwaiter().GetResult();
-        Send(FileOpWorkerProtocol.WriteResult(new FileOpWorkerResult(outcome.Succeeded, outcome.Aborted, outcome.Error)));
+        Send(FileOpWorkerProtocol.WriteResult(new FileOpWorkerResult(outcome.Succeeded, outcome.Aborted, outcome.Error, outcome.ErrorCode)));
         return outcome.Succeeded ? 0 : 1;
     }
 }

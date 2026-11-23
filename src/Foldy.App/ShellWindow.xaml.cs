@@ -2478,6 +2478,32 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
+    /// <summary>경로 중 브라우저 캐시가 있고 그 브라우저가 켜져 있으면 브라우저 이름 (Chrome·Edge).</summary>
+    private static string? BusyBrowser(IReadOnlyList<string> paths)
+    {
+        foreach (var name in paths.Select(Foldy.Core.FileSystem.BrowserCache.BrowserName).OfType<string>().Distinct())
+        {
+            var process = name == "Chrome" ? "chrome" : "msedge";
+            var running = System.Diagnostics.Process.GetProcessesByName(process);
+            try
+            {
+                if (running.Length > 0)
+                {
+                    return name;
+                }
+            }
+            finally
+            {
+                foreach (var p in running)
+                {
+                    p.Dispose();
+                }
+            }
+        }
+
+        return null;
+    }
+
     private void OpenAnalysis(string? target = null)
     {
         var pane = Shell.ActivePane;
@@ -2499,6 +2525,11 @@ public partial class ShellWindow : Window, IPaneHost
             if (ok)
             {
                 Shell.Status = Foldy.Core.Localization.Loc.F("sw.recycled", e.Paths.Count, Foldy.Presentation.Files.FileItem.FormatBytes(e.TotalBytes));
+            }
+            else if (BusyBrowser(e.Paths) is { } browser)
+            {
+                // 브라우저 캐시는 브라우저가 켜져 있으면 파일을 쓰고 있어 못 옮긴다: 닫고 다시 하라고 알린다 (사용자 제보 2026-11-23)
+                Shell.Status = Foldy.Core.Localization.Loc.F("an.browserBusy", browser);
             }
             foreach (var item in e.Items)
             {
