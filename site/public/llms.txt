@@ -1,0 +1,43 @@
+# Foldy File Manager
+
+> Foldy File Manager is a multi-function file manager for Windows that finds files fast. It is free and open source (GPL-3.0) and runs on Windows 10 and 11. Around instant whole-PC file search (Ctrl+Space), it adds two panes, a disk space analyzer, safe step-by-step cleanup of the Desktop and Downloads folders, and folder templates, in one File Explorer-like window. It stays fast on slow network, cloud and company drives, works fully offline, and can optionally connect to AI apps through a read-only MCP server.
+
+Not to be confused with other projects named "Foldy" (for example a taskbar folder launcher, or an unrelated Microsoft Store app). This Foldy is a file manager made by David CHA: https://github.com/chadolkr/Foldy
+
+## Key facts
+
+- Platform: Windows 10 and Windows 11, x64. Installer: MSI from GitHub Releases.
+- License: GPL-3.0. Free, no account, no ads, no internet needed. Crash reports are off by default and ask before sending.
+- Built with: C# (WPF), Rust (index and copy engine), SQLite.
+- Languages: Korean, English, Spanish, Japanese, Simplified Chinese (follows the Windows display language).
+- Releases ship with SHA-256 checksums, an SBOM and build provenance. Only official sources: github.com/chadolkr/Foldy and chadolkr.github.io/Foldy.
+
+## What it does
+
+- Find anything (Ctrl+Space, from any app): files, apps, Windows settings and Foldy features in one box. Name search across about 2.17 million files takes about 0.003 s on a laptop, using a background index of NTFS drives. Network drives, Google Drive, USB sticks and SD cards are indexed gently in the background.
+- Free up space: folder analysis shows what takes up space as a treemap and picks only what is safe to delete (temporary files, build output, node_modules). Deleted items go to the Recycle Bin.
+- Tidy up: a guided helper organizes the Desktop, Downloads or any folder by type, by date or into PARA folders. It previews before moving, deletes nothing, and one undo puts everything back.
+- Folder templates: ready-made structures such as PARA, Johnny.Decimal, household papers and project phases (PMBOK, ISO/IEC/IEEE 12207, ISO 19650).
+- Two panes side by side with colored tabs, previews (F3), Git status and commits, SFTP, locked notes and a vault.
+- Slow drives: Foldy measures folder speed and shows the list first, so it does not freeze on slow or secured network drives.
+- AI connection (optional, off by default): one button connects Claude Desktop, Claude Code, Codex, Gemini CLI, Cursor, VS Code or Antigravity through MCP. It is read-only.
+
+## Who it is for
+
+People on Windows who want File Explorer plus fast search and cleanup in one simple program, including non-technical users. It is not a terminal file manager and not a cross-platform app.
+
+## How it compares (short, factual)
+
+- Files (files-community/Files): a modern WinUI file manager with a polished Windows 11 look. Foldy focuses on speed on large and slow drives, built-in search, space analysis and guided cleanup.
+- Everything + WizTree/TreeSize: Foldy puts instant search and disk space analysis inside the file manager itself.
+- Yazi, Superfile: keyboard-driven terminal file managers for developers. Foldy is a graphical app for everyone.
+- Spacedrive: a cross-device local-first data engine. Foldy is a Windows-only file manager for the PC you are using now.
+
+## Links
+
+- Website (5 languages): https://chadolkr.github.io/Foldy/en/
+- Source code: https://github.com/chadolkr/Foldy
+- Download (latest MSI): https://github.com/chadolkr/Foldy/releases/latest
+- English README: https://github.com/chadolkr/Foldy/blob/main/README.en.md
+- Changelog: https://github.com/chadolkr/Foldy/blob/main/CHANGELOG.md
+- Privacy: https://chadolkr.github.io/Foldy/en/privacy/
