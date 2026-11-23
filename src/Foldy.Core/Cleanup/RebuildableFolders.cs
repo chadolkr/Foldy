@@ -75,48 +75,187 @@ public static class RebuildableFolders
 
     /// <summary>
     /// root 안을 훑어 찾는다 (숨김·시스템 폴더 안, 바로 가기 폴더(링크)는 들어가지 않는다. .git·.venv는 숨김이어도 찾는다).
+    /// 폴더마다 목록은 한 번만 읽고(옆의 프로젝트 파일도 그 목록에서 본다), 이 PC 드라이브는 여러 폴더를 동시에 읽는다
+    /// (네트워크 드라이브는 1개씩, 1.4.0 정리 계획과 같은 규칙).
     /// sizeOf: 폴더 크기를 아는 방법(색인). null을 돌려주면 직접 더한다.
+    /// counter: 화면이 가끔 읽어 보여 줄 진행 수. onFound: 찾는 대로 하나씩 알린다 (여러 스레드에서 불릴 수 있다).
+    /// 취소하면 OperationCanceledException. 그때까지 찾은 것은 onFound로 이미 받았다.
     /// </summary>
-    public static IReadOnlyList<RebuildableFolder> Scan(string root, IReadOnlyList<RebuildableKind> kinds, DateTime nowUtc, Func<string, long?>? sizeOf = null, CancellationToken ct = default)
+    public static IReadOnlyList<RebuildableFolder> Scan(
+        string root,
+        IReadOnlyList<RebuildableKind> kinds,
+        DateTime nowUtc,
+        Func<string, long?>? sizeOf = null,
+        RebuildableScanCounter? counter = null,
+        Action<RebuildableFolder>? onFound = null,
+        int? parallelism = null,
+        CancellationToken ct = default)
     {
-        var byName = kinds.ToDictionary(k => k.Name, StringComparer.OrdinalIgnoreCase);
-        var found = new List<RebuildableFolder>();
-        var stack = new Stack<string>();
-        stack.Push(root);
-        var opts = new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = false, AttributesToSkip = FileAttributes.ReparsePoint, ReturnSpecialDirectories = false };
-        while (stack.Count > 0)
+        var walker = new Walker(kinds.ToDictionary(k => k.Name, StringComparer.OrdinalIgnoreCase), nowUtc, sizeOf, counter ?? new RebuildableScanCounter(), onFound, ct);
+        walker.Run(root, parallelism ?? Foldy.Core.Organize.OrganizeScanner.DefaultParallelism(root));
+        return [.. walker.Found.OrderByDescending(f => f.Size).ThenBy(f => f.Path, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    private static readonly EnumerationOptions ListOptions = new()
+    {
+        IgnoreInaccessible = true, RecurseSubdirectories = false, AttributesToSkip = 0, ReturnSpecialDirectories = false,
+    };
+
+    /// <summary>폴더 하나의 목록: 하위 폴더(이름·경로·속성)와 파일 이름.</summary>
+    private static (List<(string Path, string Name, FileAttributes Attr)> Dirs, List<string> Files) List(string dir)
+    {
+        var dirs = new List<(string, string, FileAttributes)>();
+        var files = new List<string>();
+        foreach (var (path, name, attr, isDir) in new FileSystemEnumerable<(string, string, FileAttributes, bool)>(
+            dir, (ref FileSystemEntry e) => (e.IsDirectory ? e.ToFullPath() : "", e.FileName.ToString(), e.Attributes, e.IsDirectory), ListOptions))
+        {
+            if (!isDir)
+            {
+                files.Add(name);
+            }
+            else if ((attr & FileAttributes.ReparsePoint) == 0)
+            {
+                dirs.Add((path, name, attr));
+            }
+        }
+
+        return (dirs, files);
+    }
+
+    /// <summary>옆 파일 목록(이미 읽은 것)으로 그 이름의 폴더가 정말 찌꺼기인지 본다. 안의 표시 파일만 디스크에 묻는다.</summary>
+    private static bool Matches(List<string> siblingFiles, string path, RebuildableKind kind)
+    {
+        try
+        {
+            if (kind.Inside is { } inside && !File.Exists(Path.Combine(path, inside)))
+            {
+                return false;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+
+        return kind.Markers.Count == 0 || kind.Markers.Any(m => m.Contains('*', StringComparison.Ordinal)
+            ? siblingFiles.Exists(f => FileSystemName.MatchesSimpleExpression(m, f, ignoreCase: true))
+            : siblingFiles.Exists(f => string.Equals(f, m, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    /// <summary>여러 스레드가 함께 쓰는 폴더 줄 (OrganizeScanner.Walker와 같은 방식).</summary>
+    private sealed class Walker(
+        Dictionary<string, RebuildableKind> byName,
+        DateTime nowUtc,
+        Func<string, long?>? sizeOf,
+        RebuildableScanCounter counter,
+        Action<RebuildableFolder>? onFound,
+        CancellationToken ct)
+    {
+        private readonly System.Collections.Concurrent.ConcurrentStack<string> _work = new();
+        private readonly object _gate = new();
+        private int _pending;
+        private Exception? _error;
+
+        public List<RebuildableFolder> Found { get; } = [];
+
+        public void Run(string root, int parallelism)
         {
             ct.ThrowIfCancellationRequested();
-            var dir = stack.Pop();
-            IEnumerable<(string Path, string Name, FileAttributes Attr)> subs;
+            _pending = 1;
+            _work.Push(root);
+            if (parallelism <= 1)
+            {
+                Worker();
+            }
+            else
+            {
+                var threads = Enumerable.Range(0, parallelism).Select(_ => new Thread(Worker) { IsBackground = true, Name = "Foldy rebuildable scan" }).ToList();
+                threads.ForEach(t => t.Start());
+                threads.ForEach(t => t.Join());
+            }
+
+            if (_error is not null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(_error);
+            }
+
+            ct.ThrowIfCancellationRequested();
+        }
+
+        private void Worker()
+        {
+            var spin = new SpinWait();
+            while (Volatile.Read(ref _pending) > 0)
+            {
+                if (_error is not null || ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (!_work.TryPop(out var dir))
+                {
+                    spin.SpinOnce(sleep1Threshold: 10);
+                    continue;
+                }
+
+                spin.Reset();
+                try
+                {
+                    Process(dir);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Interlocked.CompareExchange(ref _error, ex, null);
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _pending);
+                }
+            }
+        }
+
+        private void Process(string dir)
+        {
+            counter.Look(dir);
+            List<(string Path, string Name, FileAttributes Attr)> dirs;
+            List<string> files;
             try
             {
-                subs = [.. new FileSystemEnumerable<(string, string, FileAttributes)>(dir, (ref FileSystemEntry e) => (e.ToFullPath(), e.FileName.ToString(), e.Attributes), opts)
-                {
-                    ShouldIncludePredicate = (ref FileSystemEntry e) => e.IsDirectory,
-                }];
+                (dirs, files) = List(dir);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                continue;
+                return;
             }
 
-            foreach (var (path, name, attr) in subs)
+            foreach (var (path, name, attr) in dirs)
             {
-                if (byName.TryGetValue(name, out var kind) && Matches(dir, path, kind))
+                ct.ThrowIfCancellationRequested();
+                if (byName.TryGetValue(name, out var kind) && Matches(files, path, kind))
                 {
-                    found.Add(Describe(path, kind, nowUtc, sizeOf));
+                    counter.Look(path);
+                    var f = Describe(path, kind, nowUtc, sizeOf, ct);
+                    lock (_gate)
+                    {
+                        Found.Add(f);
+                    }
+
+                    counter.AddFound(f.Size);
+                    onFound?.Invoke(f);
                     continue; // 찾은 폴더 안은 더 보지 않는다
                 }
 
                 if ((attr & (FileAttributes.Hidden | FileAttributes.System)) == 0)
                 {
-                    stack.Push(path);
+                    Interlocked.Increment(ref _pending);
+                    _work.Push(path);
                 }
             }
         }
-
-        return [.. found.OrderByDescending(f => f.Size)];
     }
 
     /// <summary>그 이름의 폴더가 정말 찌꺼기인가 (옆의 프로젝트 파일, 안의 표시 파일).</summary>
@@ -139,9 +278,9 @@ public static class RebuildableFolders
         }
     }
 
-    private static RebuildableFolder Describe(string path, RebuildableKind kind, DateTime nowUtc, Func<string, long?>? sizeOf)
+    private static RebuildableFolder Describe(string path, RebuildableKind kind, DateTime nowUtc, Func<string, long?>? sizeOf, CancellationToken ct)
     {
-        var size = sizeOf?.Invoke(path) ?? SizeOf(path);
+        var size = sizeOf?.Invoke(path) ?? SizeOf(path, ct);
         var last = kind.CanRebuild ? SafeTime(() => Directory.GetLastWriteTimeUtc(path)) : GitLastUse(path);
         var recent = nowUtc - last < Recent;
         string? warning = null;
@@ -175,16 +314,65 @@ public static class RebuildableFolders
     }
 
     /// <summary>폴더 크기를 직접 더한다 (색인이 없을 때). 바로 가기 폴더는 따라가지 않는다.</summary>
-    public static long SizeOf(string dir)
+    public static long SizeOf(string dir, CancellationToken ct = default)
     {
         try
         {
             var opts = new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint };
-            return new FileSystemEnumerable<long>(dir, (ref FileSystemEntry e) => e.Length, opts) { ShouldIncludePredicate = (ref FileSystemEntry e) => !e.IsDirectory }.Sum();
+            long sum = 0, n = 0;
+            foreach (var len in new FileSystemEnumerable<long>(dir, (ref FileSystemEntry e) => e.Length, opts) { ShouldIncludePredicate = (ref FileSystemEntry e) => !e.IsDirectory })
+            {
+                sum += len;
+                if ((++n & 1023) == 0)
+                {
+                    ct.ThrowIfCancellationRequested(); // node_modules처럼 파일이 아주 많아도 [그만 찾기]가 바로 듣게
+                }
+            }
+
+            return sum;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return -1;
+        }
+    }
+}
+
+/// <summary>
+/// 지워도 되는 폴더를 찾는 동안의 진행 수 (2026-11-24 사용자 제보: 큰 폴더에서 빈 창이 멈춘 것처럼 보였다).
+/// 찾는 쪽 여러 스레드가 고치고, 화면은 가끔(0.25초마다) 읽어 보여 준다.
+/// </summary>
+public sealed class RebuildableScanCounter
+{
+    private long _folders;
+    private long _found;
+    private long _foundBytes;
+    private string? _current;
+
+    /// <summary>지금까지 살펴본 폴더 수.</summary>
+    public long Folders => Interlocked.Read(ref _folders);
+
+    /// <summary>지금까지 찾은 지워도 되는 폴더 수.</summary>
+    public long Found => Interlocked.Read(ref _found);
+
+    /// <summary>찾은 것들의 크기 합 (모르는 것은 빼고).</summary>
+    public long FoundBytes => Interlocked.Read(ref _foundBytes);
+
+    /// <summary>지금 보는 폴더 (아직 없으면 null).</summary>
+    public string? Current => Volatile.Read(ref _current);
+
+    internal void Look(string dir)
+    {
+        Interlocked.Increment(ref _folders);
+        Volatile.Write(ref _current, dir);
+    }
+
+    internal void AddFound(long size)
+    {
+        Interlocked.Increment(ref _found);
+        if (size > 0)
+        {
+            Interlocked.Add(ref _foundBytes, size);
         }
     }
 }

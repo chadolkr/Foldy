@@ -1,6 +1,9 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Threading;
 using Foldy.Core.Cleanup;
 using Foldy.Presentation.Files;
 using Foldy.Presentation.Shell;
@@ -28,29 +31,23 @@ public static class DevCleanupFlows
     {
         var w = Open(owner, Foldy.Core.Localization.Loc.T("dev.rb.title"));
         w.Say(Foldy.Core.Localization.Loc.F("dev.rb.hello", root));
-        w.Busy();
-        IReadOnlyList<RebuildableFolder> found;
-        try
+        var scan = await ScanWithProgressAsync(w, root, RebuildableFolders.With(extraNames), indexSize);
+        if (scan is not { } done)
         {
-            var kinds = RebuildableFolders.With(extraNames);
-            found = await Task.Run(() => RebuildableFolders.Scan(root, kinds, DateTime.UtcNow, indexSize));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.m.cantRead") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
-            w.Close();
-            return;
+            return; // 창을 닫았거나 읽지 못했다 (이미 알렸다)
         }
 
+        var (found, stopped, looked) = done;
         if (found.Count == 0)
         {
-            await w.AskAsync(Foldy.Core.Localization.Loc.T("dev.rb.none"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+            await w.AskAsync(stopped ? Foldy.Core.Localization.Loc.T("dev.rb.stoppedNone") : Foldy.Core.Localization.Loc.T("dev.rb.none"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
 
         var total = found.Where(f => f.Size > 0).Sum(f => f.Size);
-        w.Say(Foldy.Core.Localization.Loc.F("dev.rb.found", found.Count, FileItem.FormatBytes(total)));
+        w.Say((stopped ? Foldy.Core.Localization.Loc.T("dev.rb.stopped") : Foldy.Core.Localization.Loc.F("dev.rb.looked", looked))
+            + " " + Foldy.Core.Localization.Loc.F("dev.rb.found", found.Count, FileItem.FormatBytes(total)));
         string Label(RebuildableFolder f) =>
             $"{FileItem.FormatBytes(Math.Max(0, f.Size))}  ·  {Rel(root, f.Path)}  ·  {f.Kind.Why}"
             + (f.LastWriteUtc > DateTime.MinValue ? $"  ·  {f.LastWriteUtc.ToLocalTime():yyyy-MM-dd}" : "");
@@ -92,6 +89,101 @@ public static class DevCleanupFlows
             ? Foldy.Core.Localization.Loc.F("dev.rb.done", picked.Count, FileItem.FormatBytes(size))
             : Foldy.Core.Localization.Loc.T("dev.rb.partial"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
         w.Close();
+    }
+
+    /// <summary>
+    /// 찾는 동안 보여 주기 (2026-11-24 사용자 제보: 큰 폴더에서 안내 한 줄만 있는 빈 창이 한참 멈춘 것처럼 보였다).
+    /// 살펴본 폴더 수·찾은 수와 크기·지금 보는 곳을 0.25초마다 고치고, 찾은 폴더는 나오는 대로 아래에 쌓는다.
+    /// [그만 찾기]나 창 닫기로 멈출 수 있고, 멈추면 그때까지 찾은 것으로 고르게 한다. 다 끝나면 이 안내는 사라진다.
+    /// 창을 닫았거나 읽지 못하면 null.
+    /// </summary>
+    private static async Task<(IReadOnlyList<RebuildableFolder> Found, bool Stopped, long Looked)?> ScanWithProgressAsync(
+        GuideWindow w, string root, IReadOnlyList<RebuildableKind> kinds, Func<string, long?>? indexSize)
+    {
+        var counter = new RebuildableScanCounter();
+        var arrived = new ConcurrentQueue<RebuildableFolder>();
+        var sofar = new List<RebuildableFolder>();
+        var lines = new System.Text.StringBuilder();
+
+        var count = new TextBlock { Text = Foldy.Core.Localization.Loc.T("dev.rb.starting"), TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold };
+        var bar = new ProgressBar { IsIndeterminate = true, Height = 4, Margin = new Thickness(0, 6, 0, 2) };
+        var now = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 12 };
+        now.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextSecondary");
+        var list = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12 };
+        var listBox = new ScrollViewer { Content = list, MaxHeight = 180, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(0, 6, 0, 0), Visibility = Visibility.Collapsed };
+        var tip = new TextBlock { Text = Foldy.Core.Localization.Loc.T("dev.rb.tip"), TextWrapping = TextWrapping.Wrap, FontSize = 12, Margin = new Thickness(0, 6, 0, 0) };
+        tip.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextSecondary");
+        var panel = new StackPanel { Children = { count, bar, now, listBox, tip } };
+        w.ShowContent(panel);
+
+        void Refresh()
+        {
+            var added = false;
+            while (arrived.TryDequeue(out var f))
+            {
+                sofar.Add(f);
+                lines.Append(lines.Length == 0 ? "" : "\n").Append(FileItem.FormatBytes(Math.Max(0, f.Size))).Append("  ·  ").Append(Rel(root, f.Path));
+                added = true;
+            }
+
+            if (added)
+            {
+                list.Text = lines.ToString();
+                listBox.Visibility = Visibility.Visible;
+                listBox.ScrollToEnd();
+            }
+
+            count.Text = Foldy.Core.Localization.Loc.F("dev.rb.progress", counter.Folders, counter.Found, FileItem.FormatBytes(counter.FoundBytes));
+            now.Text = counter.Current is { } c ? Foldy.Core.Localization.Loc.F("dev.rb.now", c) : "";
+        }
+
+        var timer = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) => Refresh(), w.Dispatcher);
+        timer.Start();
+        using var cts = new CancellationTokenSource();
+        var stop = w.AskAsync(null, C("stop", Foldy.Core.Localization.Loc.T("dev.rb.stop")));
+        var scan = Task.Run(() => RebuildableFolders.Scan(root, kinds, DateTime.UtcNow, indexSize, counter, arrived.Enqueue, ct: cts.Token));
+        if (await Task.WhenAny(scan, stop) == stop)
+        {
+            await cts.CancelAsync(); // [그만 찾기] 또는 창 닫기
+        }
+
+        IReadOnlyList<RebuildableFolder>? found = null;
+        var stopped = false;
+        try
+        {
+            found = await scan;
+        }
+        catch (OperationCanceledException)
+        {
+            stopped = true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            timer.Stop();
+            w.Remove(panel);
+            if (!w.IsClosed)
+            {
+                await w.AskAsync(Foldy.Core.Localization.Loc.T("cf.m.cantRead") + ex.Message, C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+                w.Close();
+            }
+
+            return null;
+        }
+        finally
+        {
+            timer.Stop();
+        }
+
+        Refresh();
+        w.Remove(panel); // 진행 안내는 끝나면 사라진다
+        if (w.IsClosed)
+        {
+            return null;
+        }
+
+        w.Busy(); // [그만 찾기] 단추를 치운다
+        found ??= [.. sofar.OrderByDescending(f => f.Size).ThenBy(f => f.Path, StringComparer.OrdinalIgnoreCase)];
+        return (found, stopped, counter.Folders);
     }
 
     private static string Rel(string root, string path)

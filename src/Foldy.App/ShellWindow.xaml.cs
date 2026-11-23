@@ -2774,6 +2774,8 @@ public partial class ShellWindow : Window, IPaneHost
 
         var extra = _settings.RebuildableExtra.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var client = _indexer;
+        // 같은 부모(bin·obj처럼)는 한 번만 묻는다. 찾기는 여러 스레드에서 동시에 부른다.
+        var asked = new System.Collections.Concurrent.ConcurrentDictionary<string, Lazy<Foldy.Indexer.Client.FolderSizesReply?>>(StringComparer.OrdinalIgnoreCase);
         long? IndexSize(string dir)
         {
             // 색인이 있으면 부모 폴더의 크기 목록에서 바로 (폴더를 다시 읽지 않는다)
@@ -2782,17 +2784,20 @@ public partial class ShellWindow : Window, IPaneHost
                 return null;
             }
 
-            try
+            var r = asked.GetOrAdd(parent, p => new Lazy<Foldy.Indexer.Client.FolderSizesReply?>(() =>
             {
-                var r = client.FolderSizesAsync(parent).GetAwaiter().GetResult();
-                return r.Status == Foldy.Indexer.Client.FolderSizesStatus.Ok
-                    && r.Entries.FirstOrDefault(e => e.IsDir && string.Equals(e.Name, Path.GetFileName(dir), StringComparison.OrdinalIgnoreCase)) is { } hit
-                    ? (long)hit.Size : null;
-            }
-            catch (Exception ex) when (ex is IOException or Foldy.Indexer.Client.ProtocolException or OperationCanceledException or TimeoutException)
-            {
-                return null;
-            }
+                try
+                {
+                    return client.FolderSizesAsync(p).GetAwaiter().GetResult();
+                }
+                catch (Exception ex) when (ex is IOException or Foldy.Indexer.Client.ProtocolException or OperationCanceledException or TimeoutException)
+                {
+                    return null;
+                }
+            })).Value;
+            return r is { Status: Foldy.Indexer.Client.FolderSizesStatus.Ok }
+                && r.Entries.FirstOrDefault(e => e.IsDir && string.Equals(e.Name, Path.GetFileName(dir), StringComparison.OrdinalIgnoreCase)) is { } hit
+                ? (long)hit.Size : null;
         }
 
         _ = DevCleanupFlows.RebuildableAsync(this, folder, Shell, extra, IndexSize);

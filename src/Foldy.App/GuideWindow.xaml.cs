@@ -226,6 +226,16 @@ public partial class GuideWindow : Window
     /// <summary>선택지 없이 기다리는 동안 (찾는 중, 옮기는 중).</summary>
     public void Busy() => Choices.Children.Clear();
 
+    /// <summary>보여 준 말풍선 하나를 없앤다 (다 끝난 진행 안내는 스스로 사라지게).</summary>
+    public void Remove(FrameworkElement content)
+    {
+        if (content.Parent is Border bubble && Messages.Children.Contains(bubble))
+        {
+            bubble.Child = null;
+            Messages.Children.Remove(bubble);
+        }
+    }
+
     private void Add(FrameworkElement content, bool mine)
     {
         if (mine && content is TextBlock t)
