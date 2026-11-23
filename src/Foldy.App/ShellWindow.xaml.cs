@@ -162,6 +162,7 @@ public partial class ShellWindow : Window, IPaneHost
         RestorePlacement(session);
         LeftPane.Attach(this, Shell.Left);
         RightPane.Attach(this, Shell.Right);
+        InitSinglePane();
         // 두 패널 모두 왼쪽에 폴더 트리, 오른쪽에 파일 목록 (Ctrl+B로 숨기기, 가운데 선을 끌어 너비 조절)
         LeftPane.TreeWidth = session.LeftTreeWidth;
         RightPane.TreeWidth = session.RightTreeWidth;
@@ -885,7 +886,7 @@ public partial class ShellWindow : Window, IPaneHost
                 ? new WindowPlacement(Left, Top, Width, Height, WindowState == WindowState.Maximized)
                 : new WindowPlacement(RestoreBounds.Left, RestoreBounds.Top, RestoreBounds.Width, RestoreBounds.Height, WindowState == WindowState.Maximized);
             var total = LeftColumn.ActualWidth + RightColumn.ActualWidth;
-            var split = total > 0 ? LeftColumn.ActualWidth / total : 0.5;
+            var split = _singlePane is not null ? _splitBeforeSingle : total > 0 ? LeftColumn.ActualWidth / total : 0.5;
             JsonFileStore.Save(_sessionPath, s with
             {
                 Window = placement,
@@ -1113,6 +1114,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("folder.wizard", Foldy.Core.Localization.Loc.T("sw.c.wizard"), OpenWizard);
         Add("folder.organize", Foldy.Core.Localization.Loc.T("sw.c.organize"), () => OpenOrganize(Shell.ActivePane.ActiveFolder?.Path));
         Add("folder.description", Foldy.Core.Localization.Loc.T("sw.c.editDescription"), EditDescription);
+        Add("pane.single", Foldy.Core.Localization.Loc.T("cmd.singlePane"), () => ToggleSinglePane(ActiveView));
         Add("view.images", Foldy.Core.Localization.Loc.T("cmd.images"), () => ActiveView.ToggleImages(), Key.I, ModifierKeys.Control | ModifierKeys.Shift);
         Add("git.open", Foldy.Core.Localization.Loc.T("cmd.git"), () =>
         {

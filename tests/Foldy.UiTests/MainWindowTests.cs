@@ -387,6 +387,23 @@ public sealed partial class MainWindowTests
         }
     }
 
+    /// <summary>사용자 2026-11-23: 주 창의 한쪽 창만 크게 보고, 같은 단추로 다시 두 창으로.</summary>
+    [Fact]
+    public void One_pane_can_fill_the_window_and_come_back()
+    {
+        using var app = FoldyApp.Start();
+        AutomationElement[] Buttons() => app.Main.FindAllDescendants(app.By.ByAutomationId("PaneSingleButton"));
+        Retry.WhileFalse(() => Buttons().Length == 2, TimeSpan.FromSeconds(15), ignoreException: true);
+        Buttons().Should().HaveCount(2, "두 창 모두에 [이 창만 크게]가 있다");
+        Buttons()[0].AsButton().Invoke();
+        Retry.WhileFalse(() => Buttons().Length == 1, TimeSpan.FromSeconds(5), ignoreException: true);
+        var only = Buttons().Should().ContainSingle("다른 창은 접힌다").Subject;
+        only.Name.Should().Be("두 창으로 보기", "켜고 끄기는 같은 자리");
+        only.AsButton().Invoke();
+        Retry.WhileFalse(() => Buttons().Length == 2, TimeSpan.FromSeconds(5), ignoreException: true);
+        Buttons().Should().HaveCount(2, "같은 단추로 다시 두 창");
+    }
+
     /// <summary>
     /// 사용자 2026-11-23: 폴더 정리의 같은 파일은 어느 폴더의 파일과 같은지 전체 경로로 보이고, 남길 파일을 고를 수 있다.
     /// </summary>

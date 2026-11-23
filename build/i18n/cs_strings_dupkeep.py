@@ -27,4 +27,10 @@ DUPKEEP = [
     ("org.tree.hide", "숨기기", "Hide", "Ocultar", "隠す", "隐藏"),
     ("org.tree.showAfter", "정리 후 다시 보기", "Show 'After' again", "Volver a mostrar 'Después'", "整理後をもう一度表示", "重新显示“整理后”"),
     ("org.tree.showBefore", "지금 다시 보기", "Show 'Now' again", "Volver a mostrar 'Ahora'", "今をもう一度表示", "重新显示“现在”"),
+    # 주 창: 한쪽 창만 크게 / 두 창으로 (사용자 2026-11-23)
+    ("pane.single.on", "이 창만 크게", "Show only this pane", "Mostrar solo este panel", "この画面だけ大きく", "只显示这个窗格"),
+    ("pane.single.on.tip", "이 창만 크게: 다른 쪽 창을 접어요 (같은 단추로 다시 두 창)", "Show only this pane: hides the other one (press again for both)", "Mostrar solo este panel: oculta el otro (pulsa otra vez para ver los dos)", "この画面だけ大きく: もう片方を隠します (もう一度押すと 2 画面)", "只显示这个窗格：隐藏另一个（再按一次恢复两个）"),
+    ("pane.single.off", "두 창으로 보기", "Show both panes", "Mostrar los dos paneles", "2 画面で表示", "显示两个窗格"),
+    ("pane.single.off.tip", "두 창으로 보기: 접었던 창을 원래 넓이로 다시 열어요 (Tab을 누르면 다른 창을 크게)", "Show both panes: brings the hidden one back at its old width (Tab shows the other one full width)", "Mostrar los dos paneles: vuelve a abrir el oculto con su ancho anterior (Tab muestra el otro a pantalla completa)", "2 画面で表示: 隠した画面を元の幅で開きます (Tab でもう片方を大きく)", "显示两个窗格：按原来的宽度重新打开隐藏的窗格（按 Tab 可放大另一个）"),
+    ("cmd.singlePane", "이 창만 크게 / 두 창으로 보기", "Show only this pane / both panes", "Mostrar solo este panel / los dos", "この画面だけ大きく / 2 画面", "只显示这个窗格 / 两个窗格"),
 ]

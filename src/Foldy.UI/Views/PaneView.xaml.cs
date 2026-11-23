@@ -740,6 +740,28 @@ public partial class PaneView : UserControl
     /// <summary>선택 개수·용량 표시용 (상태바).</summary>
     public event EventHandler? SelectionInfoChanged;
 
+    /// <summary>[이 창만 크게]/[두 창으로 보기]를 눌렀다 (주 창이 다른 창을 접거나 다시 연다).</summary>
+    public event EventHandler? SinglePaneToggleRequested;
+
+    private void OnToggleSingle(object sender, RoutedEventArgs e) => SinglePaneToggleRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>이 창 하나만 크게 보이는 중이면 단추를 [두 창으로 보기]로 바꾼다.</summary>
+    public void SetSinglePane(bool single)
+    {
+        SingleBtn.Content = single ? "\uE73F" : "\uE740";
+        var name = Foldy.Core.Localization.Loc.T(single ? "pane.single.off" : "pane.single.on");
+        SingleBtn.ToolTip = Foldy.Core.Localization.Loc.T(single ? "pane.single.off.tip" : "pane.single.on.tip");
+        System.Windows.Automation.AutomationProperties.SetName(SingleBtn, name);
+        if (single)
+        {
+            SingleBtn.SetResourceReference(BackgroundProperty, "Brush.Selection");
+        }
+        else
+        {
+            SingleBtn.ClearValue(BackgroundProperty);
+        }
+    }
+
     private void OnItemActivated(object? sender, int index)
     {
         if (CurrentItems is not { } items || _host is null || _pane is null || index >= items.Count)
