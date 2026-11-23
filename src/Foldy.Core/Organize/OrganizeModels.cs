@@ -144,6 +144,81 @@ public sealed class OrganizePlan
             .ToList();
 }
 
+public enum OrganizePlanStage { Scanning, Duplicates, Planning }
+
+/// <summary>계획을 만드는 동안 어느 단계에서 몇 개를 했는지 (여러 스레드가 더하고, 화면이 가끔 읽는다).</summary>
+public sealed class OrganizePlanProgress
+{
+    private int _stage;
+    private long _done;
+    private long _total;
+
+    public OrganizePlanStage Stage => (OrganizePlanStage)Volatile.Read(ref _stage);
+
+    public long Done => Interlocked.Read(ref _done);
+
+    public long Total => Interlocked.Read(ref _total);
+
+    public void Start(OrganizePlanStage stage, long total)
+    {
+        Interlocked.Exchange(ref _total, total);
+        Interlocked.Exchange(ref _done, 0);
+        Volatile.Write(ref _stage, (int)stage);
+    }
+
+    public void Step(long n = 1) => Interlocked.Add(ref _done, n);
+}
+
+/// <summary>
+/// "이 경로가 이미 있나?"를 폴더 목록 한 번으로 답한다 (파일마다 디스크에 묻지 않는다).
+/// 정리 결과 폴더는 몇 개뿐이라 그 폴더들만 한 번씩 읽는다. 계획을 만드는 동안만 쓴다.
+/// </summary>
+public sealed class PathExistsCache
+{
+    private readonly Dictionary<string, HashSet<string>?> _dirs = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _gate = new();
+
+    public bool Exists(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        var dir = Path.GetDirectoryName(path);
+        if (dir is null)
+        {
+            return Directory.Exists(path);
+        }
+
+        HashSet<string>? names;
+        lock (_gate)
+        {
+            if (!_dirs.TryGetValue(dir, out names))
+            {
+                names = Load(dir);
+                _dirs[dir] = names;
+            }
+        }
+
+        return names?.Contains(Path.GetFileName(path)) ?? false;
+    }
+
+    private static HashSet<string>? Load(string dir)
+    {
+        try
+        {
+            if (!Directory.Exists(dir))
+            {
+                return null;
+            }
+
+            var opts = new EnumerationOptions { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = 0, ReturnSpecialDirectories = false };
+            return new HashSet<string>(new System.IO.Enumeration.FileSystemEnumerable<string>(dir, (ref System.IO.Enumeration.FileSystemEntry e) => e.FileName.ToString(), opts), StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+}
+
 /// <summary>사진·영상 촬영 시각(EXIF) 훅. Foldy.Platform이 WIC/셸 속성으로 구현한다.</summary>
 public interface IMediaDateProvider
 {
@@ -156,9 +231,41 @@ public interface IContentHasher
     string? Hash(string path);
 }
 
-public sealed class Sha256ContentHasher : IContentHasher
+/// <summary>빠른 걸러 내기용: 파일 앞·뒤 조각만 읽은 해시. 다르면 내용도 다르다 (같으면 끝까지 해시해 확인).</summary>
+public interface IPartialContentHasher
+{
+    string? HashEnds(string path);
+}
+
+public sealed class Sha256ContentHasher : IContentHasher, IPartialContentHasher
 {
     public static readonly Sha256ContentHasher Instance = new();
+
+    /// <summary>앞·뒤에서 읽는 조각 크기.</summary>
+    public const int EndChunk = 64 * 1024;
+
+    public string? HashEnds(string path)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.RandomAccess);
+            var len = fs.Length;
+            if (len <= EndChunk * 2)
+            {
+                return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(fs)); // 작은 파일은 통째로
+            }
+
+            var buf = new byte[EndChunk * 2];
+            fs.ReadExactly(buf, 0, EndChunk);
+            fs.Seek(-EndChunk, SeekOrigin.End);
+            fs.ReadExactly(buf, EndChunk, EndChunk);
+            return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(buf));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
 
     public string? Hash(string path)
     {

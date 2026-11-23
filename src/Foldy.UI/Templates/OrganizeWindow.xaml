@@ -97,6 +97,22 @@
           </Button>
         </StackPanel>
       </Border>
+      <!-- 큰 폴더: 오래 걸리면 뒤에서 만들고 끝나면 알려 주기 (사용자 2026-11-23) -->
+      <Border x:Name="BackgroundOffer" Style="{StaticResource Tpl.Card}" Margin="0,10,0,0" Padding="12,10"
+              Visibility="{Binding ShowBackgroundOffer, Converter={StaticResource BoolVis}}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="RunInBackgroundButton" Content="{loc:T org.bg.run}" Style="{StaticResource Tpl.Primary}" Command="{Binding RunInBackgroundCommand}"
+                    MinWidth="110" Margin="12,0,8,0" AutomationProperties.AutomationId="OrganizeRunInBackground" />
+            <Button Content="{loc:T org.bg.wait}" Command="{Binding KeepWaitingCommand}" MinWidth="110" AutomationProperties.AutomationId="OrganizeKeepWaiting" />
+          </StackPanel>
+          <TextBlock Style="{StaticResource Tpl.Icon}" Text="&#xE916;" FontSize="18" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" Margin="0,0,10,0" />
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{loc:T org.bg.offer}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:T org.bg.offerTip}" Style="{StaticResource Tpl.Secondary}" TextWrapping="Wrap" Margin="0,2,0,0" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
     </StackPanel>
 
     <!-- 3) 미리보기: 지금 ↔ 정리 후, 아래에 이동 목록 -->
@@ -114,21 +130,21 @@
         <Border Style="{StaticResource Tpl.Card}" Padding="10">
           <DockPanel>
             <TextBlock DockPanel.Dock="Top" Text="{loc:T org.now}" Style="{StaticResource Tpl.Section}" Margin="2,0,0,6" />
-            <TreeView ItemsSource="{Binding BeforeTree}" ItemTemplate="{StaticResource Tpl.OrganizeNode}" />
+            <TreeView ItemsSource="{Binding BeforeTree}" ItemTemplate="{StaticResource Tpl.OrganizeNode}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
           </DockPanel>
         </Border>
         <TextBlock Grid.Column="1" Style="{StaticResource Tpl.Icon}" Text="&#xE72A;" FontSize="18" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}" />
         <Border Grid.Column="2" Style="{StaticResource Tpl.Card}" Padding="10">
           <DockPanel>
             <TextBlock DockPanel.Dock="Top" Text="{loc:T org.after}" Style="{StaticResource Tpl.Section}" Margin="2,0,0,6" />
-            <TreeView ItemsSource="{Binding AfterTree}" ItemTemplate="{StaticResource Tpl.OrganizeNode}" />
+            <TreeView ItemsSource="{Binding AfterTree}" ItemTemplate="{StaticResource Tpl.OrganizeNode}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
           </DockPanel>
         </Border>
       </Grid>
 
       <TabControl Grid.Row="1" Style="{StaticResource Tpl.Tabs}" Margin="0,10,0,0" SelectedIndex="{Binding SelectedListTab}">
         <TabItem Header="{loc:T org.moves}">
-          <ListView ItemsSource="{Binding Moves}">
+          <ListView ItemsSource="{Binding Moves}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True">
             <ListView.View>
               <GridView>
                 <GridViewColumn Width="36">
@@ -153,7 +169,7 @@
           </ListView>
         </TabItem>
         <TabItem Header="{loc:T org.skipped}">
-          <ListView ItemsSource="{Binding Skipped}">
+          <ListView ItemsSource="{Binding Skipped}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True">
             <ListView.View>
               <GridView>
                 <GridViewColumn Header="{loc:T org.col.path}" Width="520" DisplayMemberBinding="{Binding FullPath}" />
@@ -175,6 +191,7 @@
       <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
         <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" />
         <!-- 정리할 수 없거나 옮길 것이 없을 때 이유가 잘 보이게 (오류면 굵은 빨간 글씨) -->
+        <TextBlock Text="{Binding ScanInfo}" Style="{StaticResource Tpl.Secondary}" TextWrapping="Wrap" MaxWidth="600" AutomationProperties.AutomationId="OrganizeScanInfo" />
         <TextBlock Text="{Binding Status}" TextWrapping="Wrap" MaxWidth="600">
           <TextBlock.Style>
             <Style TargetType="TextBlock" BasedOn="{StaticResource Tpl.Secondary}">

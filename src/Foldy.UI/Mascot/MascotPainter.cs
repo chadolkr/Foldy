@@ -485,45 +485,6 @@ public sealed partial class MascotPainter
         Curve(Pn(_p.Rim, 1.8), new Point(RimX - 6.8, RimY), new Point(RimX, RimY + 3.6), new Point(RimX + 6.8, RimY));
     }
 
-    /// <summary>바닥에 그린 3점 라인: 골대 아래를 중심으로 한 타원의 왼쪽 반 (옆에서 비스듬히 본 코트 바닥).</summary>
-    private void Arc3()
-    {
-        var rx = RimX - MascotCourt.ArcX(_w);
-        var g = new StreamGeometry();
-        using (var c = g.Open())
-        {
-            const int n = 28;
-            for (var i = 0; i <= n; i++)
-            {
-                var a = i * Math.PI / 2 / n;
-                var p = new Point(RimX - (rx * Math.Cos(a)), Ground + 1.2 - (7.5 * Math.Sin(a)));
-                if (i == 0)
-                {
-                    c.BeginFigure(p, false, false);
-                }
-                else
-                {
-                    c.LineTo(p, true, true);
-                }
-            }
-        }
-
-        g.Freeze();
-        var col = Color.FromArgb(235, _p.Accent.R, _p.Accent.G, _p.Accent.B);
-        _dc.DrawGeometry(null, Pn(col, 1.7), g);
-        // 라인 시작점의 표지 (슈터는 이 왼쪽에 선다)
-        Line(col, 2, MascotCourt.ArcX(_w), Ground - 3, MascotCourt.ArcX(_w), Ground + 2.2);
-    }
-
-    /// <summary>사이드라인: 이 선 오른쪽 바닥은 코트 밖(붉은 선)이고 휴지통이 있다.</summary>
-    private void Sideline()
-    {
-        var sx = MascotCourt.SideX(_w);
-        Line(_p.Error, 2, sx, Ground + 1.2, _w - 6, Ground + 1.2);
-        Line(_p.MetalDark, 1.4, sx, Ground - 14, sx, Ground);
-        Poly(_p.Error, null, new Point(sx, Ground - 14), new Point(sx + 8, Ground - 11.5), new Point(sx, Ground - 9));
-    }
-
     private void Bin(double cx, double rock, Point? inside)
     {
         Push(0, 0, rock, 1, 1, cx, Ground);
