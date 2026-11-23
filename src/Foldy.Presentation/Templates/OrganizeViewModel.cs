@@ -120,7 +120,7 @@ public sealed partial class MoveItemViewModel : ObservableObject
 }
 
 /// <summary>건너뛸 파일 한 줄: 전체 경로(풍선 도움말), 줄인 경로, 이유.</summary>
-public sealed record SkippedRow(string FullPath, string Short, string Reason);
+public sealed record SkippedRow(string FullPath, string ShortPath, string Reason);
 
 /// <summary>이유별 묶음 하나의 수 (계획을 그릴 때 뒤에서 센다).</summary>
 public sealed record CategoryStat(string Key, int Count, int Checked, long Bytes);

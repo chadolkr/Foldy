@@ -273,7 +273,7 @@
                 <GridViewColumn Header="{loc:T org.col.path}" Width="520">
                   <GridViewColumn.CellTemplate>
                     <DataTemplate>
-                      <TextBlock Text="{Binding Short}" ToolTip="{Binding FullPath}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding ShortPath}" ToolTip="{Binding FullPath}" TextTrimming="CharacterEllipsis" />
                     </DataTemplate>
                   </GridViewColumn.CellTemplate>
                 </GridViewColumn>
