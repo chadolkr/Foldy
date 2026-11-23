@@ -705,6 +705,7 @@ public partial class ShellWindow : Window, IPaneHost
         _crawler = new Foldy.Core.Search.SlowCrawler(Path.Combine(App.DataDir, "crawl"), CrawlDrives)
         {
             RescanEvery = Foldy.Presentation.Persistence.AppSettings.CrawlInterval(_settings.CrawlEvery),
+            AlwaysReadAll = Foldy.Platform.SystemInfo.CloudVolumes.IsCloudPath, // Google Drive는 폴더 시각을 믿을 수 없다
             ShouldPause = () =>
             {
                 try

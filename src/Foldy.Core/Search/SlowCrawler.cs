@@ -306,6 +306,12 @@ public sealed class SlowCrawler : IDisposable
     /// <summary>참이면 잠시 쉰다 (복사·이동 같은 작업 중).</summary>
     public Func<bool>? ShouldPause { get; set; }
 
+    /// <summary>
+    /// 참이면 그 드라이브는 다시 모을 때도 늘 모든 폴더를 읽는다. 안에 파일이 생겨도 폴더 수정 시각이 안 바뀌는 드라이브(Google Drive)는
+    /// 시각만 보면 변화를 놓친다 (2026-11-23 노트북에서 재 봄: 나중에 뭔가 생긴 폴더 19개 중 11개가 안 바뀜).
+    /// </summary>
+    public Func<string, bool>? AlwaysReadAll { get; set; }
+
     public event Action<CrawlStatus>? Changed;
 
     private readonly Dictionary<string, CrawlStore> _stores = new(StringComparer.OrdinalIgnoreCase);
@@ -637,7 +643,7 @@ public sealed class SlowCrawler : IDisposable
         int listed = 0, reused = 0, skipped = 0;
         var (pass, old) = LoadIndex(idxPath);
         pass++;
-        if (full)
+        if (full || AlwaysReadAll?.Invoke(root) == true)
         {
             old.Clear();
         }

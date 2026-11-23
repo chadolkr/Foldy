@@ -198,6 +198,29 @@ public sealed class SlowCrawlerTests : IDisposable
     }
 
     [Fact]
+    public void Drive_whose_folder_times_cannot_be_trusted_is_read_whole_every_time()
+    {
+        // Google Drive처럼: 파일이 생겼는데 폴더 수정 시각은 그대로
+        Make(@"a\처음.txt");
+        Make(@"b\다른.txt");
+        var a = Path.Combine(_root, "a");
+        var before = Directory.GetLastWriteTimeUtc(a);
+        using var c = new SlowCrawler(_store, () => [_root]);
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Make(@"a\나중.txt");
+        Directory.SetLastWriteTimeUtc(a, before);
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.Empty(c.StoreFor(_root).Search("나중", 10)); // 시각만 보면 놓친다
+
+        string? asked = null;
+        c.AlwaysReadAll = d => { asked = d; return true; };
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.Single(c.StoreFor(_root).Search("나중", 10));
+        Assert.Equal(3, c.LastPass!.Listed); // 뿌리 + 폴더 2개 모두
+        Assert.Equal(_root, asked);
+    }
+
+    [Fact]
     public void Requesting_twice_queues_once()
     {
         using var c = new SlowCrawler(_store, () => [_root]);
