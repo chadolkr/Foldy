@@ -70,6 +70,7 @@ public partial class PaneView : UserControl
         });
         List.SelectionChanged += OnListSelectionChanged;
         List.ItemActivated += OnItemActivated;
+        List.RenameRequested += (_, _) => BeginRename(); // 선택된 파일 이름을 한 번 더 천천히 누르면 (탐색기와 같음)
         List.HeaderClicked += OnHeaderClicked;
         List.TypeAhead += OnTypeAhead;
         List.ContextRequested += OnContextRequested;
@@ -81,7 +82,7 @@ public partial class PaneView : UserControl
         _busyTimer.Tick += (_, _) => UpdateBusy();
         Scroller.ScrollChanged += (_, _) =>
         {
-            CancelRename();
+            KeepRenameBoxLater();
             if (_tab is not null)
             {
                 _tab.ScrollOffset = Scroller.VerticalOffset;
@@ -347,6 +348,7 @@ public partial class PaneView : UserControl
         {
             case nameof(FolderTabViewModel.Items):
                 List.ItemsSource = _tab!.Items;
+                KeepRenameBoxLater(); // 이름을 입력하는 중에 목록이 새로 고쳐져도 입력 칸은 그 항목을 따라간다
                 UpdateState();
                 UpdateTagBar();
                 if (_tab.ImagesOnly)
@@ -937,6 +939,44 @@ public partial class PaneView : UserControl
         var item = (FileItem)box.Tag;
         await _host.Shell.RenameAsync(_tab, item, box.Text);
         List.Focus();
+    }
+
+    /// <summary>
+    /// 목록이 새로 고쳐지거나 스크롤된 뒤(배치가 끝난 뒤) 이름 입력 칸을 그 항목 자리로 옮긴다.
+    /// 느린 드라이브는 1초마다 바뀐 것을 확인해 새로 고치므로, 입력하던 이름이 사라지면 안 된다. 항목이 없어졌거나 화면 밖이면 닫는다.
+    /// </summary>
+    private void KeepRenameBoxLater()
+    {
+        if (_renameBox is not null)
+        {
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(KeepRenameBox));
+        }
+    }
+
+    private void KeepRenameBox()
+    {
+        if (_renameBox is not { Tag: FileItem item } box || _tab is null)
+        {
+            return;
+        }
+
+        var i = _tab.Items.IndexOfName(item.Name);
+        if (i < 0)
+        {
+            CancelRename();
+            return;
+        }
+
+        var r = List.NameCellRect(i);
+        if (r.Top < List.RowHeight || r.Bottom > List.ActualHeight) // 머리글 밑이나 화면 아래로 갔으면
+        {
+            CancelRename();
+            return;
+        }
+
+        Canvas.SetLeft(box, r.X);
+        Canvas.SetTop(box, r.Y);
+        box.Width = r.Width;
     }
 
     private void CancelRename()

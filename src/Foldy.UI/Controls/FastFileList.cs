@@ -93,6 +93,8 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     private Point _dragStart;
     private int _dragCandidate = -1;
     private int _pendingClick = -1;
+    private int _renameCandidate = -1;
+    private System.Windows.Threading.DispatcherTimer? _renameTimer;
     private FormattedText[]? _headerCache;
 
     public FastFileList()
@@ -123,6 +125,12 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
 
     /// <summary>글자를 입력했을 때 (Type-ahead).</summary>
     public event EventHandler<string>? TypeAhead;
+
+    /// <summary>
+    /// 이미 선택된 항목의 이름을 한 번 더 천천히 눌렀을 때 (탐색기와 같은 이름 바꾸기). 값은 행 번호.
+    /// 두 번 누르기(열기)와 헷갈리지 않게 Windows의 두 번 누르기 시간만큼 기다린 뒤에 알린다.
+    /// </summary>
+    public event EventHandler<int>? RenameRequested;
 
     /// <summary>이름 열 앞에 그릴 아이콘 (null이면 아이콘 칸 없음).</summary>
     public Func<object, ImageSource?>? IconSelector { get; set; }
@@ -272,6 +280,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         }
 
         _textCache.Clear();
+        CancelSlowRename();
         _selected = new BitArray(newList?.Count ?? 0);
         _selectedCount = 0;
         _anchor = _focus = _hover = -1;
@@ -652,8 +661,73 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
             SelectWithModifiers(_pendingClick, ModifierKeys.None);
         }
 
+        // 끌지 않고 뗐으면: 두 번 누르기 시간이 지나도 다음 클릭이 없을 때 이름 바꾸기
+        if (_renameCandidate >= 0 && _dragCandidate == _renameCandidate)
+        {
+            StartSlowRename(_renameCandidate);
+        }
+
+        _renameCandidate = -1;
         _pendingClick = -1;
         _dragCandidate = -1;
+    }
+
+    /// <summary>
+    /// 탐색기의 "천천히 두 번 클릭": 이 목록에 이미 포커스가 있고, 그 항목 하나만 선택돼 있고,
+    /// 꾸밈 키 없이 이름 칸을 눌렀을 때만.
+    /// </summary>
+    private bool IsSlowRenameClick(int i, Point pos, bool hadFocus)
+    {
+        if (!hadFocus || RenameRequested is null || Keyboard.Modifiers != ModifierKeys.None || _selectedCount != 1 || !IsSelected(i) || _focus != i)
+        {
+            return false;
+        }
+
+        var name = NameCellRect(i);
+        return pos.X >= name.Left && pos.X <= name.Right;
+    }
+
+    private void StartSlowRename(int index)
+    {
+        CancelSlowRename();
+        var timer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Input, Dispatcher)
+        {
+            Interval = TimeSpan.FromMilliseconds(DoubleClickTime() + 50),
+        };
+        timer.Tick += (_, _) =>
+        {
+            CancelSlowRename();
+            // 기다리는 사이 다른 것을 골랐거나, 다른 데로 갔거나, 끌기 시작했으면 하지 않는다
+            if (IsKeyboardFocusWithin && _focus == index && _selectedCount == 1 && IsSelected(index) && Mouse.LeftButton == MouseButtonState.Released)
+            {
+                RenameRequested?.Invoke(this, index);
+            }
+        };
+        _renameTimer = timer;
+        timer.Start();
+    }
+
+    /// <summary>기다리던 이름 바꾸기를 취소한다 (두 번째 클릭·키 입력·목록 바뀜).</summary>
+    public void CancelSlowRename()
+    {
+        _renameTimer?.Stop();
+        _renameTimer = null;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDoubleClickTime();
+
+    private static int DoubleClickTime()
+    {
+        try
+        {
+            var ms = (int)GetDoubleClickTime();
+            return ms is > 100 and < 5000 ? ms : 500;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return 500;
+        }
     }
 
     protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
@@ -708,6 +782,8 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+        var hadFocus = IsKeyboardFocusWithin; // 다른 곳에서 넘어온 첫 클릭은 이름 바꾸기가 아니다 (탐색기와 같음)
+        CancelSlowRename();
         Focus();
         var pos = e.GetPosition(this);
         if (pos.Y < HeaderHeight)
@@ -749,6 +825,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
 
         _dragStart = pos;
         _dragCandidate = i;
+        _renameCandidate = IsSlowRenameClick(i, pos, hadFocus) ? i : -1;
         if (IsSelected(i) && Keyboard.Modifiers == ModifierKeys.None)
         {
             _pendingClick = i; // 여러 개를 끌 수 있게 선택 변경은 버튼을 뗄 때
@@ -777,6 +854,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        CancelSlowRename();
         var n = Count;
         if (n == 0)
         {
