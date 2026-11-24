@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "id": "tier-protocol",
+  "name": "TIER Protocol 4.0 (재현 가능한 연구)",
+  "badge": "TIER",
+  "category": "프로젝트",
+  "description": "원본 데이터는 그대로 두고 스크립트로 결과를 다시 만들 수 있게 나누는 Project TIER의 연구 폴더 사양 (통계·실증 연구)",
+  "purposes": [
+    "study"
+  ],
+  "variables": [
+    {
+      "key": "프로젝트",
+      "label": "연구 이름 (폴더 이름, 빈칸 없이 추천)",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{프로젝트}}",
+      "children": [
+        {
+          "name": "Data",
+          "nameEn": "Data",
+          "purpose": "연구에 쓰는 데이터",
+          "children": [
+            {
+              "name": "InputData",
+              "nameEn": "InputData",
+              "purpose": "받은 원본 데이터 (고치지 않기)",
+              "children": [
+                {
+                  "name": "Metadata",
+                  "nameEn": "Metadata",
+                  "purpose": "데이터 출처 안내와 코드북"
+                }
+              ]
+            },
+            {
+              "name": "IntermediateData",
+              "nameEn": "IntermediateData",
+              "purpose": "처리 중간에 만든 데이터"
+            },
+            {
+              "name": "AnalysisData",
+              "nameEn": "AnalysisData",
+              "purpose": "분석에 쓰는 최종 데이터와 데이터 부록"
+            }
+          ]
+        },
+        {
+          "name": "Scripts",
+          "nameEn": "Scripts",
+          "purpose": "처리·분석을 실행하는 스크립트",
+          "children": [
+            {
+              "name": "ProcessingScripts",
+              "nameEn": "ProcessingScripts",
+              "purpose": "원본을 분석용 데이터로 바꾸는 스크립트"
+            },
+            {
+              "name": "DataAppendixScripts",
+              "nameEn": "DataAppendixScripts",
+              "purpose": "데이터 부록(변수 요약)을 만드는 스크립트"
+            },
+            {
+              "name": "AnalysisScripts",
+              "nameEn": "AnalysisScripts",
+              "purpose": "표·그림·결과를 만드는 스크립트"
+            }
+          ]
+        },
+        {
+          "name": "Output",
+          "nameEn": "Output",
+          "purpose": "스크립트가 만든 결과",
+          "children": [
+            {
+              "name": "DataAppendixOutput",
+              "nameEn": "DataAppendixOutput",
+              "purpose": "데이터 부록 결과"
+            },
+            {
+              "name": "Results",
+              "nameEn": "Results",
+              "purpose": "표·그림 같은 연구 결과"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "이름에 빈칸 없이, 단어마다 첫 글자를 대문자로 (TIER 이름 규칙)",
+      "examples": [
+        "ProcessingSurveyData.R",
+        "MasterScript.do"
+      ],
+      "folder": "{{프로젝트}}/Scripts",
+      "regex": "^[^ ]+$"
+    }
+  ],
+  "firstSteps": [
+    "받은 원본 데이터는 Data/InputData에 넣고 고치지 않기 (출처와 코드북은 Metadata에)",
+    "데이터를 고치는 일은 모두 Scripts/ProcessingScripts의 스크립트로 하고, 결과는 Data/AnalysisData에",
+    "분석 스크립트가 만든 표·그림은 Output/Results에, 맨 위에는 Readme와 보고서, 전체를 차례로 돌리는 마스터 스크립트는 Scripts에"
+  ],
+  "organize": [
+    {
+      "target": "Scripts",
+      "extensions": [
+        ".r",
+        ".rmd",
+        ".qmd",
+        ".do",
+        ".py",
+        ".ipynb",
+        ".sps",
+        ".sas",
+        ".m",
+        ".jl"
+      ],
+      "reason": "스크립트 → Scripts"
+    },
+    {
+      "target": "Data/InputData",
+      "extensions": [
+        ".csv",
+        ".tsv",
+        ".dta",
+        ".sav",
+        ".sas7bdat",
+        ".rds",
+        ".rdata",
+        ".parquet",
+        ".feather"
+      ],
+      "reason": "데이터 파일 → 원본 데이터"
+    },
+    {
+      "target": "Output/Results",
+      "keywords": [
+        "figure",
+        "table",
+        "그림",
+        "결과표"
+      ],
+      "reason": "이름에 그림·표"
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "gtd",
+  "name": "GTD (Getting Things Done)",
+  "badge": "GTD",
+  "category": "개인·업무",
+  "description": "들어온 것을 한곳에 모은 뒤 다음 할 일·프로젝트·기다리는 중·언젠가·참고 자료로 나누는 데이비드 앨런의 일 정리법",
+  "purposes": [
+    "personal",
+    "work"
+  ],
+  "variables": [],
+  "tree": [
+    {
+      "name": "0_받은 것",
+      "nameEn": "0_In",
+      "purpose": "새로 들어온 것을 일단 모으는 곳 (자주 비우기)"
+    },
+    {
+      "name": "1_다음 할 일",
+      "nameEn": "1_Next_Actions",
+      "purpose": "바로 할 수 있는 일에 쓰는 자료"
+    },
+    {
+      "name": "2_프로젝트",
+      "nameEn": "2_Projects",
+      "purpose": "두 단계 넘게 걸리는 일, 일마다 폴더 하나"
+    },
+    {
+      "name": "3_기다리는 중",
+      "nameEn": "3_Waiting_For",
+      "purpose": "남에게 맡겼거나 답을 기다리는 일의 자료"
+    },
+    {
+      "name": "4_언젠가",
+      "nameEn": "4_Someday_Maybe",
+      "purpose": "지금은 아니지만 나중에 할지도 모르는 것"
+    },
+    {
+      "name": "5_참고 자료",
+      "nameEn": "5_Reference",
+      "purpose": "할 일은 없지만 다시 볼 자료 (주제별)"
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "프로젝트 폴더는 이루고 싶은 결과로, 파일은 날짜_내용.확장자",
+      "examples": [
+        "여권 갱신하기",
+        "2026-11-24_보험 갱신 안내.pdf"
+      ]
+    }
+  ],
+  "firstSteps": [
+    "여기저기 흩어진 새 파일을 0_받은 것에 모두 모으기",
+    "하나씩 보며 할 일이 있으면 1_다음 할 일·2_프로젝트·3_기다리는 중으로, 없으면 4_언젠가·5_참고 자료로 옮기거나 지우기",
+    "일주일에 한 번 모든 폴더를 훑어보는 주간 검토하기"
+  ],
+  "organize": [
+    {
+      "target": "3_기다리는 중",
+      "keywords": [
+        "회신",
+        "답장",
+        "대기",
+        "waiting"
+      ],
+      "reason": "이름에 회신·대기"
+    },
+    {
+      "target": "4_언젠가",
+      "keywords": [
+        "언젠가",
+        "아이디어",
+        "someday",
+        "idea"
+      ],
+      "reason": "이름에 언젠가·아이디어"
+    },
+    {
+      "target": "5_참고 자료",
+      "keywords": [
+        "매뉴얼",
+        "설명서",
+        "manual",
+        "reference",
+        "참고"
+      ],
+      "reason": "이름에 설명서·참고"
+    },
+    {
+      "target": "0_받은 것",
+      "groups": [
+        "문서",
+        "이미지",
+        "압축"
+      ],
+      "reason": "아직 살펴보지 않은 것 → 받은 것"
+    }
+  ]
+}
