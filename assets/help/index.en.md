@@ -360,10 +360,10 @@ Project folders collect folders that can be rebuilt, often several GB (node_modu
 
 #### Clean developer caches
 
-Cleans the caches downloaded by npm, NuGet, pip, Yarn, pnpm, uv, Bun and Composer, the Go and Docker build caches, and conda packages no environment uses. Tidy → **Clean developer caches**.
+Cleans the caches downloaded by npm, NuGet, pip, Yarn, pnpm, uv, Bun and Composer, the Go and Docker build caches, and conda's downloaded archives. Tidy → **Clean developer caches**.
 
 - Shows only the tools installed on this PC, with their size and a note that they can be downloaded again.
-- Never deletes folders directly; it runs only **each tool's official command** (`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`, `go clean -cache`, `uv cache clean`, `conda clean --packages --tarballs --yes`, `bun pm cache rm`, `composer clear-cache`).
+- Never deletes folders directly; it runs only **each tool's official command** (`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`, `go clean -cache`, `uv cache clean`, `conda clean --tarballs --index-cache --yes`, `bun pm cache rm`, `composer clear-cache`).
 - For Docker, **only the build cache**: images, containers and volumes aren't touched.
 - This skips the Recycle Bin and can't be undone, so Foldy shows the size and **asks once** first. Anything needed is downloaded again on the next build or install.
 

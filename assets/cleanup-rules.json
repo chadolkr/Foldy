@@ -140,7 +140,7 @@
       "names": [".vs"],
       "olderThanDays": 30,
       "minSize": 104857600,
-      "reason": "Visual Studio가 다시 만드는 IntelliSense·캐시 폴더입니다."
+      "reason": "Visual Studio가 다시 만드는 IntelliSense·캐시 폴더입니다. 중단점·책갈피·열어 둔 파일 목록도 여기 있어 지우면 처음으로 돌아갑니다."
     },
     {
       "id": "unity-library",
@@ -183,14 +183,44 @@
       "reason": "다시 빌드하면 생기는 CMake 빌드 폴더입니다."
     },
     {
-      "id": "other-build",
+      "id": "android-ndk-build",
       "tag": "build",
-      "title": "그 밖의 빌드 출력",
-      "names": [".cxx", ".stack-work", "dist-newstyle", "_build", ".zig-cache", "zig-cache"],
-      "parentHas": ["build.gradle", "build.gradle.kts", "stack.yaml", "cabal.project", "*.cabal", "mix.exs", "build.zig"],
+      "title": "Android NDK 빌드 출력 (.cxx)",
+      "names": [".cxx"],
+      "parentHas": ["build.gradle", "build.gradle.kts"],
       "olderThanDays": 14,
       "minSize": 10485760,
-      "reason": "빌드 도구(Android NDK·Haskell·Elixir·Zig)가 다시 만드는 빌드 출력입니다."
+      "reason": "Android Gradle이 다시 만드는 네이티브 빌드 출력입니다."
+    },
+    {
+      "id": "haskell-build",
+      "tag": "build",
+      "title": "Haskell 빌드 출력",
+      "names": [".stack-work", "dist-newstyle"],
+      "parentHas": ["stack.yaml", "cabal.project", "*.cabal"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "stack·cabal이 다시 만드는 빌드 출력입니다."
+    },
+    {
+      "id": "elixir-build",
+      "tag": "build",
+      "title": "Elixir 빌드 출력 (_build)",
+      "names": ["_build"],
+      "parentHas": ["mix.exs"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "mix compile로 다시 만들어지는 빌드 출력입니다."
+    },
+    {
+      "id": "zig-build",
+      "tag": "build",
+      "title": "Zig 빌드 캐시",
+      "names": [".zig-cache", "zig-cache"],
+      "parentHas": ["build.zig"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "zig build가 다시 만드는 캐시입니다."
     },
     {
       "id": "adobe-media-cache",

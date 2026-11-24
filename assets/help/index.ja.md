@@ -360,10 +360,10 @@ USB に移したフォルダーと PC のフォルダー、どちらが新しい
 
 #### 開発キャッシュの整理
 
-npm・NuGet・pip・Yarn・pnpm・uv・Bun・Composer がためたキャッシュ、Go・Docker のビルド キャッシュ、conda のどの環境も使っていないパッケージを整理します。整理する → **開発キャッシュを整理**。
+npm・NuGet・pip・Yarn・pnpm・uv・Bun・Composer がためたキャッシュ、Go・Docker のビルド キャッシュ、conda のダウンロード済み圧縮ファイルを整理します。整理する → **開発キャッシュを整理**。
 
 - この PC に入っているツールだけを、サイズと「またダウンロードすれば大丈夫」という説明と一緒に見せます。
-- フォルダーを直接消さず、**各ツールの公式のコマンド** だけを実行します (`npm cache clean --force`、`dotnet nuget locals all --clear`、`py -m pip cache purge`、`yarn cache clean`、`pnpm store prune`、`docker builder prune --force`、`go clean -cache`、`uv cache clean`、`conda clean --packages --tarballs --yes`、`bun pm cache rm`、`composer clear-cache`)。
+- フォルダーを直接消さず、**各ツールの公式のコマンド** だけを実行します (`npm cache clean --force`、`dotnet nuget locals all --clear`、`py -m pip cache purge`、`yarn cache clean`、`pnpm store prune`、`docker builder prune --force`、`go clean -cache`、`uv cache clean`、`conda clean --tarballs --index-cache --yes`、`bun pm cache rm`、`composer clear-cache`)。
 - Docker は **ビルド キャッシュだけ**: イメージ・コンテナー・ボリュームには触れません。
 - ごみ箱を通さないので戻せません。サイズを見せて **一度確認** してから行います。必要なら次のビルドやインストールでまたダウンロードされます。
 

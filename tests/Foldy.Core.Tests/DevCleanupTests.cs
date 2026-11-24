@@ -170,7 +170,7 @@ public sealed class RebuildableFoldersTests : IDisposable
         Make(@"shooter\DerivedDataCache", "y.ddc");
         Make(@"shooter\Saved", "설정.ini"); // 설정·자동 저장: 찾지 않는다
         Make(@"vsapp", "App.sln");
-        Make(@"vsapp\.vs", "x.suo");
+        Make(@"vsapp\.vs", "x.suo"); // 중단점·책갈피가 들어 있어 찾지 않는다
         Make(@"web", "package.json");
         Make(@"web\.next", "build-manifest.json");
         Make(@"flutter", "pubspec.yaml");
@@ -183,7 +183,7 @@ public sealed class RebuildableFoldersTests : IDisposable
 
         var found = RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now);
         found.Select(f => Path.GetRelativePath(_root, f.Path)).Should().BeEquivalentTo([
-            @"game\Library", @"shooter\Intermediate", @"shooter\DerivedDataCache", @"vsapp\.vs", @"web\.next",
+            @"game\Library", @"shooter\Intermediate", @"shooter\DerivedDataCache", @"web\.next",
             @"flutter\.dart_tool", @"flutter\build", @"py\.pytest_cache", @"cpp\cmake-build-debug"]);
         RebuildableFolders.Matches(Path.Combine(_root, "game"), Path.Combine(_root, @"game\Library"), RebuildableFolders.Defaults.Single(k => k.Name == "Library"))
             .Should().BeTrue("하나씩 확인할 때도 옆 폴더(ProjectSettings)를 본다");
@@ -230,7 +230,8 @@ public sealed class DevCachesTests : IDisposable
         DevCaches.Kinds.Single(k => k.Id == "docker").Args.Should().Equal(["builder", "prune", "--force"], "Docker는 빌드 캐시만: 이미지·컨테이너·볼륨은 건드리지 않는다");
         DevCaches.Kinds.Should().NotContain(k => k.Args.Contains("system") || k.Args.Contains("--all") || k.Args.Contains("-a"));
         DevCaches.Kinds.Single(k => k.Id == "go").Args.Should().Equal(["clean", "-cache"], "Go는 빌드 캐시만: 받아 둔 모듈(-modcache)은 그대로");
-        DevCaches.Kinds.Single(k => k.Id == "conda").Args.Should().Equal(["clean", "--packages", "--tarballs", "--yes"], "conda는 안 쓰는 패키지·압축 파일만");
+        DevCaches.Kinds.Single(k => k.Id == "conda").Args.Should().Equal(["clean", "--tarballs", "--index-cache", "--yes"], "conda는 받아 둔 압축 파일·목록 캐시만: --packages는 심볼릭 링크 환경을 깨뜨릴 수 있다");
+        DevCaches.Kinds.Should().NotContain(k => k.Args.Contains("--packages"));
         DevCaches.Kinds.Should().NotContain(k => k.Args.Contains("-modcache") || k.Args.Contains("pub"), "전역 도구·받은 모듈까지 지우는 명령은 넣지 않는다");
     }
 

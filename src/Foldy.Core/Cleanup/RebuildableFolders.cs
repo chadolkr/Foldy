@@ -56,8 +56,7 @@ public static class RebuildableFolders
         K("build", Loc.T("rb.build"), ["package.json", "build.gradle", "build.gradle.kts", "CMakeLists.txt", "pyproject.toml", "setup.py", "pubspec.yaml"]),
         K(".gradle", Loc.T("rb.gradle"), Gradle),
 
-        // 1.10.0: Visual Studio·웹 프레임워크·파이썬 도구 캐시 (폴더 분석 규칙에는 있었는데 여기 없던 것)
-        K(".vs", Loc.T("rb.vs"), ["*.sln", "*.slnx"]),
+        // 1.10.0: 웹 프레임워크·파이썬 도구 캐시 (폴더 분석 규칙에는 있었는데 여기 없던 것). .vs는 중단점·책갈피가 들어 있어 뺐다
         K(".next", Loc.T("rb.jsCache"), Js),
         K(".nuxt", Loc.T("rb.jsCache"), Js),
         K(".svelte-kit", Loc.T("rb.jsCache"), Js),

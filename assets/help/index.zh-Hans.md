@@ -360,10 +360,10 @@ Foldy 同一时间只运行一个。在已运行时再次启动（快捷方式�
 
 #### 清理开发缓存
 
-清理 npm、NuGet、pip、Yarn、pnpm、uv、Bun、Composer 下载的缓存，Go 和 Docker 的构建缓存，以及没有任何环境使用的 conda 包。整理 → **清理开发缓存**。
+清理 npm、NuGet、pip、Yarn、pnpm、uv、Bun、Composer 下载的缓存，Go 和 Docker 的构建缓存，以及 conda 已下载的压缩包。整理 → **清理开发缓存**。
 
 - 只显示这台电脑上已安装的工具，并附上大小和“需要时重新下载即可”的说明。
-- 不直接删除文件夹，只运行 **各工具的官方命令**（`npm cache clean --force`、`dotnet nuget locals all --clear`、`py -m pip cache purge`、`yarn cache clean`、`pnpm store prune`、`docker builder prune --force`、`go clean -cache`、`uv cache clean`、`conda clean --packages --tarballs --yes`、`bun pm cache rm`、`composer clear-cache`）。
+- 不直接删除文件夹，只运行 **各工具的官方命令**（`npm cache clean --force`、`dotnet nuget locals all --clear`、`py -m pip cache purge`、`yarn cache clean`、`pnpm store prune`、`docker builder prune --force`、`go clean -cache`、`uv cache clean`、`conda clean --tarballs --index-cache --yes`、`bun pm cache rm`、`composer clear-cache`）。
 - Docker **只清理构建缓存**：不会动镜像、容器和卷。
 - 不经过回收站、无法恢复，所以会先显示大小并 **确认一次** 后再执行。需要的内容会在下次构建或安装时重新下载。
 

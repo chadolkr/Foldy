@@ -360,10 +360,10 @@ Las carpetas de proyectos acumulan carpetas regenerables, a menudo de varios GB 
 
 #### Limpiar cachés de desarrollo
 
-Limpia las cachés descargadas por npm, NuGet, pip, Yarn, pnpm, uv, Bun y Composer, las cachés de compilación de Go y Docker, y los paquetes de conda que ningún entorno usa. Ordenar → **Limpiar cachés de desarrollo**.
+Limpia las cachés descargadas por npm, NuGet, pip, Yarn, pnpm, uv, Bun y Composer, las cachés de compilación de Go y Docker, y los archivos descargados de conda. Ordenar → **Limpiar cachés de desarrollo**.
 
 - Solo muestra las herramientas instaladas en este PC, con su tamaño y una nota de que se pueden volver a descargar.
-- Nunca borra carpetas directamente; solo ejecuta **el comando oficial de cada herramienta** (`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`, `go clean -cache`, `uv cache clean`, `conda clean --packages --tarballs --yes`, `bun pm cache rm`, `composer clear-cache`).
+- Nunca borra carpetas directamente; solo ejecuta **el comando oficial de cada herramienta** (`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`, `go clean -cache`, `uv cache clean`, `conda clean --tarballs --index-cache --yes`, `bun pm cache rm`, `composer clear-cache`).
 - En Docker, **solo la caché de compilación**: no toca imágenes, contenedores ni volúmenes.
 - No pasa por la papelera y no se puede deshacer, así que Foldy muestra el tamaño y **pregunta una vez** antes. Lo necesario se vuelve a descargar en la siguiente compilación o instalación.
 

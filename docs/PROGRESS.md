@@ -2,7 +2,7 @@
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
-- 2026-11-24 (1.10.0 준비): 지워도 되는 폴더 찾기·개발 캐시 정리·폴더 분석 규칙에 "확실히 다시 만들 수 있는 것"만 더함(Unity Library·Unreal Intermediate/DerivedDataCache·.vs·웹 캐시·파이썬 도구 캐시·Flutter·CMake 등, Go·uv·conda·Bun·Composer 공식 명령, 웨일·Brave·Firefox·Adobe 미디어 캐시, 덜 받은 다운로드). 옆 표시는 폴더 이름도 봄(Unity ProjectSettings). DECISIONS.md 같은 날짜 항목.
+- 2026-11-24 (1.10.0 준비): 지워도 되는 폴더 찾기·개발 캐시 정리·폴더 분석 규칙에 "확실히 다시 만들 수 있는 것"만 더함(Unity Library·Unreal Intermediate/DerivedDataCache·웹 캐시·파이썬 도구 캐시·Flutter·CMake 등, Go·uv·conda(압축 파일만)·Bun·Composer 공식 명령, 웨일·Brave·Firefox·Adobe 미디어 캐시, 덜 받은 다운로드). 옆 표시는 폴더 이름도 봄(Unity ProjectSettings). DECISIONS.md 같은 날짜 항목.
 - 2026-11-24 (1.9.2 준비): 지워도 되는 폴더 찾기 진행 표시(살펴본 폴더 수·찾은 수와 크기·지금 보는 곳·찾은 것 바로 보이기)와 [그만 찾기](찾은 것까지로 고르기), 끝나면 안내 사라짐. Scan은 폴더마다 한 번만 읽고 동시에 읽기(로컬 4·네트워크 1), RebuildableScanCounter·onFound. DECISIONS.md 같은 날짜 항목.
 - 2026-11-24 (1.9.1 준비): 색인 서비스가 다시 시작되면 앱이 스스로 다시 연결(IndexerConnection: Disconnected 감지, 0.5초~30초 간격, 상태 줄 안내 6초 뒤 사라짐). 벤치마크 중 발견(readme 8,076개 대신 576개). Interop 시험 IndexerReconnectTests. DECISIONS.md 같은 날짜 항목.
 - 2026-11-23 (1.9.0 준비): SlowCrawler 이어서 모으기(.marks·.resume, 10초마다 남김, 7일 안), 다시 모을 때 끝 폴더는 위 폴더 목록의 시각으로 건너뜀(맨 위는 늘 읽음), 폴더 시각 믿을 수 있는지 스스로 시험(TimesTrusted), 정기 색인 전 남은 공간·맨 위 폴더 시각 신호(최대 6시간까지 건너뜀), 자주 바뀌는 폴더 먼저. K: 0개 고침: 숨김 폴더·클라우드 파일 폴더도 모음, 0개인데 드라이브에 파일이 있으면 "색인 못 함", 분석은 목록이 비었거나 사용량의 4분의 1 미만이면 직접 읽음(FallbackScanner도 클라우드 파일 폴더 들어감). 사이드바·분석 날짜 짧게. DECISIONS.md 같은 날짜 항목.
