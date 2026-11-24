@@ -24,9 +24,9 @@
         </TextBlock>
         <TextBlock Margin="0,2,0,0">
           <Run Text="{loc:T about.bug}" />
-          <Hyperlink Click="OnReportBug" ToolTip="{loc:T about.bug.tip}">버그 신고…</Hyperlink>
+          <Hyperlink Click="OnReportBug" ToolTip="{loc:T about.bug.tip}"><Run Text="{loc:T about.bug.link}" /></Hyperlink>
           <Run Text=" · " />
-          <Hyperlink NavigateUri="https://github.com/chadolkr/Foldy/issues" RequestNavigate="OnNavigate">이슈 목록</Hyperlink>
+          <Hyperlink NavigateUri="https://github.com/chadolkr/Foldy/issues" RequestNavigate="OnNavigate"><Run Text="{loc:T about.issues}" /></Hyperlink>
         </TextBlock>
         <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="360"
                    Text="{loc:T about.license}" />

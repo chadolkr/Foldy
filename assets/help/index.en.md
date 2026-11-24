@@ -2,7 +2,7 @@
 
 **A fast, smart file manager that works offline.** <small>Connect AI to make it even easier.</small>
 
-Foldy is a fast, never-freezing dual-pane file manager for Windows. You can open this guide anytime with **F1** or the **? Help** button at the bottom of the sidebar.
+Foldy is a fast, never-freezing dual-pane file manager for Windows. You can open this guide anytime with **F1** or the **? Help** button at the bottom of the left menu.
 
 | | |
 | --- | --- |
@@ -14,7 +14,7 @@ Foldy is a fast, never-freezing dual-pane file manager for Windows. You can open
 - [Easy for everyone](#easy-for-everyone)
 - [First run](#first-run)
 - [A tour of the screen](#a-tour-of-the-screen)
-- [The sidebar](#the-sidebar)
+- [The left menu](#the-left-menu)
 - [Tabs](#tabs)
 - [The kids play basketball](#the-kids-play-basketball)
 - [File operations](#file-operations)
@@ -54,7 +54,7 @@ The first time you start Foldy, it helps you make things comfortable to read.
 1. **Text size**: Normal, Large, Larger and Largest, shown on a real file list. Changes apply as soon as you press, so choose while you look.
 2. **Brightness**: Light, Dark or Follow Windows.
 3. **Quick search shortcut**: checks whether Ctrl+Space clashes with another program and, if it does, lets you pick another key right there.
-4. **Short intro**: like a vertical short video, the real Foldy screen moves while one line at a time shows the main features (Ctrl+Space quick search — files, Windows settings, math and plain-language commands; drag and drop to copy; folder analysis; desktop tidy; folder tidy; locked notes; folder structure templates; Git). It advances by itself; click the right side for next, the left side for previous, and [Skip] anytime. Scenes you have seen do not play again after you reinstall or update; when an update adds a new feature, only that scene plays once. You can watch the whole intro again anytime from the **?** button at the bottom of the sidebar → "Short intro".
+4. **Short intro**: like a vertical short video, the real Foldy screen moves while one line at a time shows the main features (Ctrl+Space quick search — files, Windows settings, math and plain-language commands; drag and drop to copy; folder analysis; desktop tidy; folder tidy; locked notes; folder structure templates; Git). It advances by itself; click the right side for next, the left side for previous, and [Skip] anytime. Scenes you have seen do not play again after you reinstall or update; when an update adds a new feature, only that scene plays once. You can watch the whole intro again anytime from the **?** button at the bottom of the left menu → "Short intro".
 
    ![Short intro](images/en/tour.png)
 
@@ -64,7 +64,7 @@ When you update, your settings stay as they are, so Foldy doesn't ask again; it 
 
 ![Foldy main window](images/en/main.png)
 
-On the far left is the **sidebar** (pinned folders, drives, tools, settings), and to its right are the **left and right panes**. The pane you're working in (the active pane) shows an accent-colored line under its tabs. Press **Tab** to switch to the other pane.
+On the far left is the **left menu** (pinned folders, drives, tools, settings), and to its right are the **left and right panes**. The pane you're working in (the active pane) shows an accent-colored line under its tabs. Press **Tab** to switch to the other pane.
 
 From top to bottom, each pane has:
 
@@ -78,7 +78,7 @@ At the bottom are the **jobs panel** (copy and move progress), the **file operat
 
 Only one Foldy runs at a time. If you start it again while it's running (a shortcut, opening a folder with Foldy, and so on), **the running window comes to the front** instead of a new window, and a folder you passed opens in a new tab.
 
-## The sidebar
+## The left menu
 
 The strip on the far left holds features you use from either pane. Collapse it with the pane button at the top (or **Ctrl+Shift+B**) to leave only icons; press the same button again to expand it. It looks like the folder tree button and shows a pressed background when expanded. You can also drag its right edge to change the width (very narrow shows icons only).
 
@@ -122,7 +122,7 @@ They know 15 moves: crossover, behind the back, between the legs, spin move, eur
 - Copy and move: one kid passes, the other dribbles forward as the job progresses and, at the end, **sinks a three-pointer** followed by a high five!
 - Delete: they throw the ball into the trash. For permanent delete the ball flies out of the court.
 - Search and network waits: the two look around for the ball.
-- Indexing and analysis: one kid practices dribbling while the other takes notes.
+- Getting ready to search and analysis: one kid practices dribbling while the other takes notes.
 - Paused or name conflict: a kid holds the ball and waits. If something fails, the shot bounces off the rim.
 
 You can turn it off with "Use animations" in Settings → General, and it stops (using no CPU) when the window is minimized or covered.
@@ -156,7 +156,7 @@ The preview pane closes by itself when you go to another folder, drive or tab (t
 
 - Cloud-only files aren't read, so nothing gets downloaded.
 - Network drives and SFTP aren't read automatically (to stay fast); they're read only when you press **[Preview]**.
-- The same goes for the Google Drive for desktop drive (usually G:). It shows in the sidebar with a cloud icon as "Google Drive", and thumbnails, icons and previews never download online-only files by themselves. A file is downloaded only when you open or copy it.
+- The same goes for the Google Drive for desktop drive (usually G:). It shows in the left menu with a cloud icon as "Google Drive", and thumbnails, icons and previews never download online-only files by themselves. A file is downloaded only when you open or copy it.
 - **Files protected by DRM or a password** show "This file is protected by DRM, so it can't be previewed" (or "…password-protected…") instead of an error. Open the file to view it in the app your security software allows. Foldy recognizes them when the start of the file doesn't match its format (Office, Hangul, PDF, images) and looks encrypted.
 
 ## Markdown viewer
@@ -187,7 +187,7 @@ Drives that take a long time to open folders, such as company security drives, a
 | **F3** | Show/hide the preview pane |
 | **Ctrl+,** | Settings |
 | **Ctrl+B** | Show/hide the folder tree |
-| **Ctrl+Shift+B** | Collapse/expand the sidebar |
+| **Ctrl+Shift+B** | Collapse/expand the left menu |
 | **Ctrl+Shift+I** | Images only |
 | **Ctrl+Shift+N** | New folder from template |
 | **Ctrl+Shift+O** | Connect to an SFTP server |
@@ -196,7 +196,7 @@ Drives that take a long time to open folders, such as company security drives, a
 
 ## 🔍 Find
 
-Features for finding files and seeing what takes up space. They're gathered under **Find** in the sidebar.
+Features for finding files and seeing what takes up space. They're gathered under **Find** in the left menu.
 
 ### Quick search (Ctrl+Space)
 
@@ -204,7 +204,7 @@ Whatever program you're using, press **Ctrl+Space** and a big search box appears
 
 ![Quick search](images/en/quicksearch.png)
 
-- **Files and folders**: searches every drive if the index service is installed, otherwise inside the current folder. A preview (picture, start of the text, size, date) appears on the right.
+- **Files and folders**: searches every drive if the fast search helper is installed, otherwise inside the current folder. A preview (picture, start of the text, size, date) appears on the right.
 - **Apps**: finds programs in the Start menu by name and runs them.
 - **Windows settings and Control Panel**: type something like "display", "wifi", "text size" or "printer" to open that settings page directly. Classic Control Panel and admin tool names such as "control panel", "add or remove programs", "device manager", "task manager" or "environment variables", and everyday words like "driver" or "not responding", work too.
 - **Pinned and recent folders** appear at the top.
@@ -216,7 +216,7 @@ The **best match** appears large at the top, with the rest grouped by kind below
 
 When it finds files, a **sharp-nosed bloodhound** sniffs the floor, runs with its ears flapping and fetches them: "Sniff! Fetched 1,284 in 0.03 s". If nothing turns up, it tilts its head. Turn off "Use animations" in settings to see text only.
 
-**How far does it search?** The index is built for this PC's NTFS drives (C: and so on). Under each drive in the sidebar you'll see "Indexed" or "Indexing 62%". Drives without an index (company drives, Google Drive, USB sticks, SD cards and so on) are **gathered gently** in the background while Foldy is running: one at a time, resting more if the drive slows down, and pausing during jobs like copying. The drive shows "Indexing · 12,345" and then "Indexed" when done. While another drive is being gathered it says what it's waiting for, like "Waiting for its turn · after G:". When gathering again, only changed folders are read (Google Drive is read in full each time, because its folder times do not always change), and new or deleted files are reflected right away. **Index regularly**: in Settings → General → Quick find, choose every hour (default), every 6 hours, once a day, or only when you ask. It counts from the last time it finished, while Foldy is running. **Index now**: right-click a drive → **Index now**, or choose "Index now" in the **Find** menu or Ctrl+Space (all such drives) to read every folder again from the start, so files whose size alone changed are corrected too. If another drive is being gathered, it starts after that one. The time it finished is shown next to "Indexed". You can search what has been gathered so far, and the folder you have open is always scanned directly. Turn it off in Settings → General → Quick find.
+**How far does it search?** To find things fast, Foldy keeps a ready-made list of files for each drive (**getting ready to search**). This PC's NTFS drives (C: and so on) are handled by the fast search helper. Under each drive in the left menu you'll see "Ready to search" or "Getting ready to search 62%". Other drives (company drives, Google Drive, USB sticks, SD cards and so on) are **gathered gently** in the background while Foldy is running: one at a time, resting more if the drive slows down, and pausing during jobs like copying. The drive shows "Building the search list · 12,345" and then "Ready to search" when done. While another drive is being gathered it says what it's waiting for, like "Waiting for its turn · after G:". When gathering again, only changed folders are read (Google Drive is read in full each time, because its folder times do not always change), and new or deleted files are reflected right away. **Update the search list automatically**: in Settings → General → Quick find, choose every hour (default), every 6 hours, once a day, or only when you ask. It counts from the last time it finished, while Foldy is running. **Update search list now**: right-click a drive → **Update search list now**, or choose "Update search list now" in the **Find** menu or Ctrl+Space (all such drives) to read every folder again from the start, so files whose size alone changed are corrected too. If another drive is being gathered, it starts after that one. The time it finished is shown next to "Ready to search". You can search what has been gathered so far, and the folder you have open is always scanned directly. Turn it off in Settings → General → Quick find.
 
 **What if the shortcut clashes?** If another program already uses Ctrl+Space, or a Chinese or Japanese input method is installed (where Ctrl+Space switches input), Foldy tells you during the first setup and lets you pick a free key (such as Ctrl+Shift+Space) or press your own. You can also choose "Use only inside Foldy". After updates it doesn't ask again unless registration fails. You can change it anytime in Settings → Shortcuts.
 
@@ -224,13 +224,13 @@ When it finds files, a **sharp-nosed bloodhound** sniffs the floor, runs with it
 
 Press **Ctrl+F**, type part of a name in the search box and press Enter to open a search results tab.
 
-- With the **index service** installed, every drive is searched instantly (milliseconds even for millions of files). The status bar shows "Search: indexed".
+- With the **fast search helper** installed, every drive is searched instantly (in the blink of an eye, even for millions of files). The status bar shows "Search: ready".
 - Without the service, the current folder and below are scanned directly (up to 20,000 items).
 - Opening a folder in the results opens a new folder tab; files open directly. Esc cancels the search.
 
 ### Folder analysis
 
-Choose **Folder analysis** (from the Find menu, "folder analysis" in Ctrl+Space, or the command list) and **Foldy first asks what to analyze.** There's a button for each disk with its free space, the current folder, and [Choose another folder…]. Your choice opens an analysis tab. Right-clicking a drive in the sidebar → Analyze opens that drive directly.
+Choose **Folder analysis** (from the Find menu, "folder analysis" in Ctrl+Space, or the command list) and **Foldy first asks what to analyze.** There's a button for each disk with its free space, the current folder, and [Choose another folder…]. Your choice opens an analysis tab. Right-clicking a drive in the left menu → Analyze opens that drive directly.
 
 - **Treemap**: bigger folders get bigger boxes. Click a box to go inside; Backspace, right-click or the mouse back button goes up one level.
 - **Lists**: largest folders and files, and folders that grew the most since the last analysis.
@@ -271,7 +271,7 @@ Choose **Folder analysis** (from the Find menu, "folder analysis" in Ctrl+Space,
 - Windows Update files, Delivery Optimization files, the thumbnail cache and the previous Windows installation (Windows.old): the system uses these, so it's safer to let Windows remove them. Press **[Open Windows cleanup recommendations]** above the suggestions to open the cleanup page in Windows Settings (Disk Cleanup on Windows 10).
 - Antivirus update backups and quarantine files: we found no official guidance from vendors saying they're safe to delete, and quarantine exists to restore wrongly cleaned files, so they're not included. Clean them up from the antivirus program's own menu.
 
-With the index service installed, analysis takes a few seconds without rereading the disk. Without it, the disk is scanned directly at low priority.
+With the fast search helper installed, analysis takes a few seconds without rereading the drive. Without it, the disk is scanned directly at low priority.
 
 ### Compare and sync both panes
 
@@ -285,7 +285,7 @@ Use this when you can't tell which is newer, a folder you copied to USB or the o
 
 ### Images only
 
-Press **Ctrl+Shift+I** or Find → Images only in the sidebar to show only the images in the current folder as a thumbnail grid. Other files are just hidden, never moved.
+Press **Ctrl+Shift+I** or Find → Images only in the left menu to show only the images in the current folder as a thumbnail grid. Other files are just hidden, never moved.
 
 While it's on, a line right above the list says "Showing images only · N pictures" (or "this folder has no pictures"), and **[Show all files]** in the same place turns it off.
 
@@ -295,11 +295,11 @@ While it's on, a line right above the list says "Showing images only · N pictur
 
 ## 🧹 Tidy
 
-Features that tidy folders the way you'd clean a room. They're gathered under **Tidy** in the sidebar. Nothing is thrown away on its own: you see it first, and it can be undone.
+Features that tidy folders the way you'd clean a room. They're gathered under **Tidy** in the left menu. Nothing is thrown away on its own: you see it first, and it can be undone.
 
 ### Tidy tools
 
-Foldy tidies your computer the way you'd clean a room. Press **Tidy** in the sidebar to choose desktop, Downloads or log cleanup (also in the command list). Every tool talks you through it one step at a time: what it found, why tidying helps and what happens when you press, and then lets you choose **[Clean up as shown] [See details] [Later]**. Take your time.
+Foldy tidies your computer the way you'd clean a room. Press **Tidy** in the left menu to choose desktop, Downloads or log cleanup (also in the command list). Every tool talks you through it one step at a time: what it found, why tidying helps and what happens when you press, and then lets you choose **[Clean up as shown] [See details] [Later]**. Take your time.
 
 ![A window that tidies through a conversation](images/en/guide.png)
 
@@ -339,7 +339,7 @@ The Downloads folder keeps piling up. Foldy finds files worth tidying and sugges
 
 The `*.log` files programs leave behind can quietly pile up to several GB. Foldy packs old logs tightly into **monthly zips** in the same folder. Text logs usually shrink by more than 85%.
 
-- **Targets**: `*.log` files unchanged for more than 7 days (the whole current drive; with the index service they're found in an instant)
+- **Targets**: `*.log` files unchanged for more than 7 days (the whole current drive; with the fast search helper they're found in an instant)
 - **Left alone**: logs a program is using, the `Windows` folder, the Recycle Bin, System Volume Information
 - **What it makes**: `logs-year-month.zip` in the folder where the logs were
 - The originals go to the Recycle Bin only after the zip is reopened and checked to match them exactly (SHA-256). If the check fails, the originals stay.
@@ -351,7 +351,7 @@ The `*.log` files programs leave behind can quietly pile up to several GB. Foldy
 
 Project folders collect folders that can be rebuilt, often several GB (node_modules, bin/obj, target, __pycache__, .venv, dist/build, Delphi's __history, Unity's Library, Unreal's Intermediate, web build caches like .next, Python caches like .pytest_cache, and Flutter, CMake, Haskell, Elixir and Zig build folders). Find them in Tidy → **Find folders you can delete**, **[Folders you can delete]** in folder analysis, or Ctrl+Space.
 
-- Searches **only inside the folder you're viewing** and shows the biggest first. With the index, sizes appear right away.
+- Searches **only inside the folder you're viewing** and shows the biggest first. On drives that are ready to search, sizes appear right away.
 - Picks a folder **only when a project file is next to it**: node_modules next to package.json, bin/obj next to a .csproj, target next to Cargo.toml. A photo folder that just happens to be called "build" is left alone.
 - Anything used in the last 30 days isn't preselected.
 - **.git is never preselected.** Deleting it loses Git history, so Foldy warns in red, and for a recently used .git it says "Don't delete it if you're still working on the project". If it's a backup copy whose original exists elsewhere, you can pick it yourself (Foldy asks once more).
@@ -417,7 +417,7 @@ So you don't have to go looking for features, Foldy shows one line at the top su
 
 Because it's easy to miss, Foldy takes a light look now and then and, only when there's a lot to tidy, mentions it in one line at the bottom of the window. At most once a week, and it never tidies on its own.
 
-- Logs: when the space you could save exceeds 1 GB or 5% of the drive's free space (checked only with the index service)
+- Logs: when the space you could save exceeds 1 GB or 5% of the drive's free space (checked only with the fast search helper)
 - Downloads: when files worth tidying exceed 1 GB
 - Desktop: when more than 50 files could be archived
 - To turn it off: Settings → General → **Tidy reminders**
@@ -463,7 +463,7 @@ Folders are named in the app language at the moment they're created. Folders tha
 
 ### Folder templates, wizard and tidying
 
-Open these from the sidebar tools or the command list (**Ctrl+Shift+P**).
+Open these from the left menu tools or the command list (**Ctrl+Shift+P**).
 
 - **New folder from template** (**Ctrl+Shift+N**): creates the structures below in one go. Preview the tree on the right and untick folders you don't need. Existing folders are left alone; only missing ones are created. You can also read each style's **How to use**.
   - **Personal & work**: PARA, Johnny.Decimal, Numbers and dates (with an inbox), client projects, document stages (draft → review → final → distributed), research & study (literature, data, analysis, manuscript, presentations), household papers (finances, health, home, vehicle, passport, insurance)
@@ -481,7 +481,7 @@ Open these from the sidebar tools or the command list (**Ctrl+Shift+P**).
 
 ## 🔒 Protect
 
-Features that protect your important files. They're gathered under **Protect** in the sidebar.
+Features that protect your important files. They're gathered under **Protect** in the left menu.
 
 ### Notes (.md · .textpack)
 
@@ -505,7 +505,7 @@ When copying or moving with Foldy **overwrites** a file with the same name, Fold
 
 The Wi-Fi password, the door code — things you must remember but don't want written just anywhere. Put them in a **locked note**. It asks for the password every time you open it, and you can read and edit it right inside Foldy.
 
-- **Creating**: sidebar **Protect** → **🔒 Write a locked note**. `New note.memo.foldylock` appears in the current folder (in Documents if the current folder isn't on this PC) and the editor opens. Rename it with F2. Foldy then selects the new file in the list and shows where it was saved at the top of the note window.
+- **Creating**: left menu **Protect** → **🔒 Write a locked note**. `New note.memo.foldylock` appears in the current folder (in Documents if the current folder isn't on this PC) and the editor opens. Rename it with F2. Foldy then selects the new file in the list and shows where it was saved at the top of the note window.
 - **Opening**: double-click, enter the password, and the editor opens. Text on the left, preview on the right (Markdown).
 - **Pictures**: capture the screen and paste with **Ctrl+V**, or drag in a picture file, and it's stored inside the note.
 ![Locked note editor](images/en/memo.png)
@@ -516,14 +516,14 @@ The Wi-Fi password, the door code — things you must remember but don't want wr
 
 ### Locking a file
 
-You can lock an existing file, such as a contract. Right-click the file → **🔒 Lock (password)…**, or sidebar **Protect** → **🔒 Lock a file** (if no file is selected, a window opens to choose one). `contract.pdf.foldylock` appears in the same folder; after checking that it decrypts correctly, Foldy asks "Send the original to the Recycle Bin?".
+You can lock an existing file, such as a contract. Right-click the file → **🔒 Lock (password)…**, or left menu **Protect** → **🔒 Lock a file** (if no file is selected, a window opens to choose one). `contract.pdf.foldylock` appears in the same folder; after checking that it decrypts correctly, Foldy asks "Send the original to the Recycle Bin?".
 
 - Double-click to enter the password; pictures and text are shown right inside Foldy. For other files, Foldy says "Open it with its usual program" and **[Decrypt and open]** turns it back into the original file and opens it.
 - You get back exactly what you locked. Not a single byte changes.
 
 ### Vault
 
-Put an important folder into a vault, whole. Right-click the folder → **🔒 Put in vault…**, or sidebar **Protect** → **🔒 Put a folder in a vault** (if no folder is selected, a window opens to choose one). A single `foldername.foldyvault` file appears; after checking each file by decrypting it, Foldy asks whether to send the original folder to the Recycle Bin.
+Put an important folder into a vault, whole. Right-click the folder → **🔒 Put in vault…**, or left menu **Protect** → **🔒 Put a folder in a vault** (if no folder is selected, a window opens to choose one). A single `foldername.foldyvault` file appears; after checking each file by decrypting it, Foldy asks whether to send the original folder to the Recycle Bin.
 
 - **There's no size limit.** Files over 4 GB go in and come out fine. Foldy keeps the originals until it's done, though, so it needs that much extra free space, and an older USB stick formatted as FAT32 can't hold a vault over 4 GB. Foldy checks **before** asking for a password, tells you right away if space is short, and offers [Free up space] to help you clear some.
 - Double-click to enter the password and see the list of files inside. Pick files to **preview** (in memory only), **extract**, or **extract all**. Files you take out go, without a password, into a folder with the same name next to the vault; they also stay in the vault.
@@ -552,15 +552,15 @@ When you delete a folder with **more than 5,000 files**, like `node_modules`, Fo
 
 ### Recycle Bin
 
-The **Recycle Bin** line in the sidebar shows how much has piled up (e.g. Recycle Bin · 38 GB). Click it to open the Windows Recycle Bin; press **Empty** on the right to empty the Recycle Bin on every drive after one confirmation (can't be undone).
+The **Recycle Bin** line in the left menu shows how much has piled up (e.g. Recycle Bin · 38 GB). Click it to open the Windows Recycle Bin; press **Empty** on the right to empty the Recycle Bin on every drive after one confirmation (can't be undone).
 
 ## 🔗 Connect
 
-Features that connect you to servers, Git and the terminal. They're gathered under **Connect** in the sidebar.
+Features that connect you to servers, Git and the terminal. They're gathered under **Connect** in the left menu.
 
 ### SFTP and SSH
 
-Connect to a server with the **SFTP** button at the end of the drive buttons on the tab bar, **Ctrl+Shift+O**, or Connect → SFTP in the sidebar, and the SFTP folder opens as a tab in that pane. The tree on the left becomes the server tree, with the folder you opened and the server root (/) expanded one level so you see the folders right away.
+Connect to a server with the **SFTP** button at the end of the drive buttons on the tab bar, **Ctrl+Shift+O**, or Connect → SFTP in the left menu, and the SFTP folder opens as a tab in that pane. The tree on the left becomes the server tree, with the folder you opened and the server root (/) expanded one level so you see the folders right away.
 
 - Authenticate with a password or a key file. With "Save this connection" on, the password is stored encrypted with Windows DPAPI.
 - Host entries in `~/.ssh/config` also appear in "Saved connections". When you choose a key file, a default key such as `~/.ssh/id_ed25519` is filled in automatically.
@@ -643,11 +643,11 @@ Each app is a little different. For Claude Code, Gemini CLI and the Codex comman
 - "Tell me what's in my Downloads folder": look inside a folder
 - "Read the description of this project folder": folder descriptions kept in Foldy
 - "Which files in the reports folder are still in review?": file status tags
-- "Tell me the free space and index status of my drives": drive status
+- "Show free space and search readiness for my drives": drive status
 
 If an AI app is installed on this PC but not connected yet, Foldy mentions it in one line at the top of the window when it starts, for example: Ask Claude Desktop "find last year's quotes" and Foldy finds it on your PC [Connect] [Later] [Don't ask again] (the example changes each time). If you ignore it, it disappears; to see it again, turn it on in Settings → General → AI connection.
 
-- What the AI can use: find files (including company drives and Google Drive), look inside folders, folder sizes, folder descriptions, file status tags, drive and index status. **All read-only.** There's no moving or deleting.
+- What the AI can use: find files (including company drives and Google Drive), look inside folders, folder sizes, folder descriptions, file status tags, drive and search readiness. **All read-only.** There's no moving or deleting.
 - It only sees what your account can see. Nothing is opened to the internet; Foldy talks only with the AI app inside your PC (how the AI app uses the results follows that app's policy).
 - It's off by default. Turn it off anytime with "Turn on AI connection" in that window, where you can also see the tool list (names, descriptions, inputs).
 - For other AI apps, copy the settings under "Add manually" at the bottom (`Foldy.exe --mcp`). ChatGPT can only connect over the internet, so for safety it isn't supported.
@@ -656,13 +656,13 @@ If an AI app is installed on this PC but not connected yet, Foldy mentions it in
 
 **If the text is small, make the screen bigger.** By default Foldy follows Windows: enlarge Windows Settings → Accessibility → **Text size** and Foldy grows with it (it follows the display scale too). To enlarge Foldy alone, press **Ctrl+=** to enlarge, **Ctrl+-** to shrink, and **Ctrl+0** to follow Windows again. You can also choose "Display size" in the More menu. Text and buttons grow together, and dialogs and the note window open at the same size.
 
-Open the settings window with **Ctrl+,** or **Settings** in the sidebar. There are General, Appearance, List, Terminal, Copy, Updates and Shortcuts pages.
+Open the settings window with **Ctrl+,** or **Settings** in the left menu. There are General, Appearance, List, Terminal, Copy, Updates and Shortcuts pages.
 
 - **Language**: Follow Windows, or choose 한국어, English, Español, 日本語 or 简体中文 in Settings → Appearance → Language.
 - **Accent color**: Foldy orange, or follow the Windows accent color
 - **Shortcuts**: click a box and press a new combination (Esc to cancel, Backspace to clear). Clashing shortcuts are flagged with a warning. Only what you change is saved, in `%LOCALAPPDATA%\Foldy\keymap.json`.
 
-Common settings can also be changed right from the **More** menu in the sidebar.
+Common settings can also be changed right from the **More** menu in the left menu.
 
 - **Theme**: Follow system (light/dark automatically) · Light · Dark · Retro
 - **List spacing**: Compact · Normal · Roomy
@@ -671,13 +671,13 @@ Common settings can also be changed right from the **More** menu in the sidebar.
 
 ## Updates
 
-Foldy checks GitHub Releases for a new version 5 seconds after starting and every 6 hours. A new version is installed only after its signature (Ed25519) and hash are verified, and **"Foldy x.y.z · restart and update"** appears on the right of the status bar. Press [Restart and update] and Foldy closes while a small window shows "installing → reopening". During the install, the two kids dribble and pass on the court, and at the end one catches the other's pass, makes a layup for two points, and they high-five (text only if animations are off). It closes itself when the new Foldy opens. If another Foldy window is open, it asks you to close it, and if something fails it tells you why. Behind a company proxy (PAC, or a proxy without authentication), the Windows user proxy settings are used as they are. If the index service (running as SYSTEM) can't check, Foldy checks directly with your user account, and then installing needs one administrator confirmation. If you press "restart and update" during a job such as copying, the update is scheduled without interrupting the job and installed automatically when everything is done, then Foldy restarts (press again while scheduled to cancel). **… (More) → Check for updates…** at the bottom of the sidebar checks right away and asks whether to install a new version. If the check fails, it shows why.
+Foldy checks GitHub Releases for a new version 5 seconds after starting and every 6 hours. A new version is installed only after its signature (Ed25519) and hash are verified, and **"Foldy x.y.z · restart and update"** appears on the right of the status bar. Press [Restart and update] and Foldy closes while a small window shows "installing → reopening". During the install, the two kids dribble and pass on the court, and at the end one catches the other's pass, makes a layup for two points, and they high-five (text only if animations are off). It closes itself when the new Foldy opens. If another Foldy window is open, it asks you to close it, and if something fails it tells you why. Behind a company proxy (PAC, or a proxy without authentication), the Windows user proxy settings are used as they are. If the fast search helper can't check, Foldy checks directly, and then Windows asks for permission once when installing. If you press "restart and update" during a job such as copying, the update is scheduled without interrupting the job and installed automatically when everything is done, then Foldy restarts (press again while scheduled to cancel). **… (More) → Check for updates…** at the bottom of the left menu checks right away and asks whether to install a new version. If the check fails, it shows why.
 
 ![Update progress window](images/update-progress.png)
 
 ## Reporting bugs
 
-The **Report a bug** button at the bottom of the sidebar (or More → Report a bug…, or the About window) opens a GitHub issue page pre-filled with the app and Windows versions and recent logs.
+The **Report a bug** button at the bottom of the left menu (or More → Report a bug…, or the About window) opens a GitHub issue page pre-filled with the app and Windows versions and recent logs.
 
 Foldy collects errors automatically: not just crashes but also errors that happened and passed, recording each kind only once. The first time, it asks whether to send them.
 
@@ -688,7 +688,7 @@ Reports include only the app and Windows versions, the error and recent logs; fi
 
 ### Bug diagnostic mode
 
-For problems that happen only in certain situations (for example a network drive showing an empty screen), **⋯ (More) → Toggle bug diagnostic mode** at the bottom of the sidebar (or the command list) records detailed logs.
+For problems that happen only in certain situations (for example a network drive showing an empty screen), **⋯ (More) → Toggle bug diagnostic mode** at the bottom of the left menu (or the command list) records detailed logs.
 
 1. Turn on bug diagnostic mode, and **Diagnosing** appears on the right of the status bar.
 2. Reproduce the problem.
@@ -699,7 +699,7 @@ It turns off by itself after 24 hours. If a drive can't be opened, Foldy records
 ## FAQ
 
 **Search only finds files in the current folder.**
-The index service isn't installed or is still getting ready. Press **More** in the sidebar → **Install index service (admin)…**. The first index takes tens of seconds depending on drive size.
+The fast search helper isn't installed or is still getting ready. Press **More** in the left menu → **Install the fast search helper…** (Windows will ask for permission). Getting ready the first time takes tens of seconds depending on drive size.
 
 **Does a disconnected network drive slow things down?**
 No. Each drive works separately, so the other tabs and panes keep moving even if one drive doesn't respond. Press **Esc** in that tab to cancel loading.
@@ -711,10 +711,10 @@ Like File Explorer, only the "hidden" attribute is hidden (since 0.3.5). Root fo
 No. If it's already running, that window comes to the front, and a folder you passed opens in a new tab.
 
 **Updates don't work (company network).**
-Press **… (More) → Check for updates** at the bottom of the sidebar. Even if the service can't get out, Foldy checks again through your user proxy. If it still fails, the reason is shown; please paste it into a [bug report](#reporting-bugs).
+Press **… (More) → Check for updates** at the bottom of the left menu. Even if the service can't get out, Foldy checks again through your user proxy. If it still fails, the reason is shown; please paste it into a [bug report](#reporting-bugs).
 
 **Where are the settings and logs?**
-`%LOCALAPPDATA%\Foldy` (settings.json, session.json, logs). Index data is in `%ProgramData%\Foldy`.
+`%LOCALAPPDATA%\Foldy` (settings.json, session.json, logs). The search lists are in `%ProgramData%\Foldy`.
 
 **Source code and license?**
 Foldy is free software under GPL-3.0-or-later. https://github.com/chadolkr/Foldy

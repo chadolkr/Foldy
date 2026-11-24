@@ -191,7 +191,7 @@ public sealed class FolderTabTests : IAsyncDisposable
         await tab.NavigateAsync(_root);
         await tab.NavigateAsync(Path.Combine(_root, "없는 폴더"));
         tab.State.Should().Be(LoadState.Error);
-        tab.Error.Should().Contain("찾을 수 없습니다");
+        tab.Error.Should().Contain("찾을 수 없어요");
         tab.Path.Should().Be(_root, "잘못된 경로면 현재 위치에 머문다");
         tab.Items.Should().HaveCount(3);
 

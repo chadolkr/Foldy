@@ -34,7 +34,7 @@ $g.DrawString('오프라인에서도', $tag, $wb, 18, 112)
 $item = New-Object System.Drawing.Font $font, 8
 $soft = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 255, 244, 230))
 $y = 146
-foreach ($lines in @(@('무엇이든 찾기', 'Ctrl+Space'), @('공간 늘리기'), @('바탕화면, 다운로드,', '폴더 정리'), @('템플릿으로 폴더 만들기'))) {
+foreach ($lines in @(@('무엇이든 찾기', 'Ctrl+Space'), @('공간 늘리기'), @('바탕화면, 다운로드,', '폴더 정리'), @('폴더 틀로 한 번에 만들기'))) {
     $g.FillEllipse($wb, 18, $y + 5, 5, 5)
     foreach ($l in $lines) {
         $g.DrawString($l, $item, $soft, 27, $y)

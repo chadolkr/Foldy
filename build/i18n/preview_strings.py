@@ -6,7 +6,7 @@
 
 PREVIEW = [
     ("preview.drm",
-     "DRM으로 보호된 파일이라 미리 볼 수 없어요. 파일을 열어서 보세요.",
+     '회사에서 복사 방지를 걸어 둔 파일이라 미리 볼 수 없어요. 파일을 열어서 보세요.',
      "This file is protected by DRM, so it can't be previewed. Open the file to view it.",
      "Este archivo está protegido con DRM, así que no se puede previsualizar. Ábrelo para verlo.",
      "DRM で保護されたファイルのため、プレビューできません。ファイルを開いて確認してください。",
@@ -18,7 +18,7 @@ PREVIEW = [
      "パスワードが設定されたファイルのため、プレビューできません。ファイルを開いてパスワードを入力すると表示できます。",
      "此文件设有密码，无法预览。打开文件并输入密码即可查看。"),
     ("preview.protected",
-     "암호나 DRM으로 보호된 파일이라 미리 볼 수 없어요. 파일을 열어서 보세요.",
+     '암호나 복사 방지가 걸린 파일이라 미리 볼 수 없어요. 파일을 열어서 보세요.',
      "This file is protected by a password or DRM, so it can't be previewed. Open the file to view it.",
      "Este archivo está protegido con contraseña o DRM, así que no se puede previsualizar. Ábrelo para verlo.",
      "パスワードまたは DRM で保護されたファイルのため、プレビューできません。ファイルを開いて確認してください。",

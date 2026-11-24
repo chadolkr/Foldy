@@ -180,7 +180,8 @@ public sealed class QuickIntentTests
     [InlineData("file.versions", "덮어쓴 파일 되살리기 (이전 버전, 고른 파일)", "복구해줘")]
     [InlineData("ai.connect", "AI 연결 (Claude 등에서 Foldy로 파일 찾기)", "클로드")]
     [InlineData("view.images", "이미지만 보기 켜기/끄기", "사진 크게 볼래")]
-    [InlineData("index.now", "지금 색인하기 (네트워크·USB·Google Drive 등)", "색인 다시")]
+    [InlineData("index.now", "지금 목록 새로 만들기 (네트워크·USB·Google Drive 등)", "색인 다시")]
+    [InlineData("index.now", "지금 목록 새로 만들기 (네트워크·USB·Google Drive 등)", "찾기 준비 다시")]
     [InlineData("compare.panes", "두 창 비교·맞추기", "백업 확인")]
     [InlineData("view.preview", "미리보기 창 보이기/숨기기", "열지 않고 보기")]
     public void Finds_hidden_features_in_korean(string id, string title, string q) => Assert.True(QuickIntent.Score(id, title, q, "ko") >= 50, q);

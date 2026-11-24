@@ -100,6 +100,24 @@ public sealed partial class LocalizationTests
         used.Where(k => !k.EndsWith('.') && !ko.ContainsKey(k)).Should().BeEmpty("strings.py 표에 넣고 python build/i18n/strings.py로 언어 파일을 다시 만들어야 한다");
     }
 
+    /// <summary>
+    /// 쉬운 말 (사용자 2026-11-25: 컴퓨터를 잘 모르는 분이 "색인" 같은 말이 어렵다고 함, 토스처럼).
+    /// 한국어 화면 글에 어려운 말과 "~습니다"가 다시 들어오지 않게 한다. 바꿀 말은 docs/DESIGN-PRINCIPLES.md의 쉬운 말 사전.
+    /// Windows가 쓰는 이름(cp.·ws.), 기능 찾기 낱말(qi.·*.k: 옛말로도 찾게), 예시 파일 내용(demo.)은 빼고 본다.
+    /// </summary>
+    [Fact]
+    public void Korean_screen_text_uses_plain_words()
+    {
+        string[] hard = ["색인", "패널", "사이드바", "확장자", "영구 삭제", "위저드", "템플릿", "썸네일", "클립보드", "폴더 트리", "강조색", "비정상 종료", "접근 권한", "습니다", "입니다", "십시오"];
+        var bad = Loc.Table("ko")
+            .Where(p => !p.Key.StartsWith("demo.", StringComparison.Ordinal) && !p.Key.StartsWith("qi.", StringComparison.Ordinal)
+                && !p.Key.StartsWith("cp.", StringComparison.Ordinal) && !p.Key.StartsWith("ws.", StringComparison.Ordinal)
+                && !p.Key.EndsWith(".k", StringComparison.Ordinal))
+            .SelectMany(p => hard.Where(w => p.Value.Contains(w, StringComparison.Ordinal)).Select(w => $"{p.Key}: '{w}' in {p.Value}"))
+            .ToList();
+        bad.Should().BeEmpty("화면 글은 쉬운 말과 해요체로 쓴다 (docs/DESIGN-PRINCIPLES.md 쉬운 말 사전)");
+    }
+
     /// <summary>언어별 설명서(assets/help/index.&lt;언어&gt;.md)의 그림이 다 있어야 하고, 한국어 말고는 본문에 한국어가 거의 없어야 한다.</summary>
     [Fact]
     public void Help_files_point_to_existing_images()

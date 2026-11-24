@@ -20,7 +20,7 @@ S = {
     "side.space.tip": {"ko": "폴더 분석: 무엇이 공간을 차지하는지 보고 지워도 되는 것만 골라 비우기", "en": "Folder analysis: see what takes up space and remove only what is safe to delete", "es": "Análisis de carpetas: mira qué ocupa espacio y elimina solo lo que se puede borrar", "ja": "フォルダー分析: 何が容量を使っているかを見て、消しても大丈夫なものだけ片付けます", "zh-Hans": "文件夹分析：查看什么占用了空间，只清理可以安全删除的内容"},
     "side.tidy": {"ko": "바탕화면, 다운로드, 폴더 정리", "en": "Tidy up folders", "es": "Ordenar carpetas", "ja": "フォルダーを整理", "zh-Hans": "整理文件夹"},
     "side.tidy.tip": {"ko": "정리 도우미: 어디를 · 어떻게 고르면 정리 후 모습을 먼저 보여 줘요 (지우지 않고, 되돌릴 수 있어요)", "en": "Tidy helper: choose where and how, and see the result before anything moves (nothing is deleted, and you can undo)", "es": "Asistente de orden: elige dónde y cómo, y mira el resultado antes de mover nada (no se borra nada y puedes deshacer)", "ja": "整理アシスタント: 場所と方法を選ぶと、動かす前に整理後の姿を見せます (削除なし、元に戻せます)", "zh-Hans": "整理助手：选好位置和方式，先看整理后的样子（不会删除，可以撤销）"},
-    "side.template": {"ko": "템플릿으로 폴더 만들기", "en": "Folders from a template", "es": "Carpetas con plantilla", "ja": "テンプレートで作成", "zh-Hans": "用模板创建文件夹"},
+    "side.template": {"ko": '폴더 틀로 한 번에 만들기', "en": "Folders from a template", "es": "Carpetas con plantilla", "ja": "テンプレートで作成", "zh-Hans": "用模板创建文件夹"},
     "side.template.tip": {"ko": "PARA·업종별 프로젝트 단계 같은 폴더 틀을 미리 보고 한 번에 만들기 (Ctrl+Shift+N)", "en": "Preview and create a folder structure such as PARA or industry project phases in one go (Ctrl+Shift+N)", "es": "Previsualiza y crea de una vez una estructura como PARA o las fases de un proyecto por sector (Ctrl+Mayús+N)", "ja": "PARA や業種別のプロジェクト工程などのフォルダー構成を確認して一度に作成 (Ctrl+Shift+N)", "zh-Hans": "预览并一次创建 PARA 或各行业项目阶段等文件夹结构（Ctrl+Shift+N）"},
 
     # 사이드바: 제목과 묶음
@@ -50,7 +50,7 @@ S = {
     "ai.ex.2": {"ko": "다운로드 폴더에 뭐가 있는지 정리해서 알려 줘", "en": "Summarize what's in my Downloads folder", "es": "Resume qué hay en mi carpeta de Descargas", "ja": "ダウンロードフォルダーに何があるかまとめて", "zh-Hans": "总结一下下载文件夹里有什么"},
     "ai.ex.3": {"ko": "이 프로젝트 폴더 설명 읽어 줘", "en": "Read me this project folder's description", "es": "Léeme la descripción de esta carpeta de proyecto", "ja": "このプロジェクトフォルダーの説明を読んで", "zh-Hans": "读一下这个项目文件夹的说明"},
     "ai.ex.4": {"ko": "보고서 폴더에서 아직 검토 중인 파일 알려 줘", "en": "Which files in the reports folder are still in review?", "es": "¿Qué archivos de la carpeta de informes siguen en revisión?", "ja": "報告書フォルダーでまだレビュー中のファイルは?", "zh-Hans": "报告文件夹里哪些文件还在审阅中？"},
-    "ai.ex.5": {"ko": "드라이브 남은 공간과 색인 상태 알려 줘", "en": "Show free space and index status for my drives", "es": "Muestra el espacio libre y el estado del índice de mis unidades", "ja": "ドライブの空き容量とインデックスの状態を教えて", "zh-Hans": "告诉我各驱动器的剩余空间和索引状态"},
+    "ai.ex.5": {"ko": '드라이브마다 남은 공간과 찾기 준비 상태 알려 줘', "en": 'Show free space and search readiness for my drives', "es": 'Muestra el espacio libre y si mis unidades están listas para buscar', "ja": 'ドライブの空き容量と検索の準備状況を教えて', "zh-Hans": '告诉我各驱动器的剩余空间和查找准备状态'},
 
     # 짧은 소개
     "tour.qs.t": {"ko": "어디서든 Ctrl+Space, 치는 순간 찾아요", "en": "Ctrl+Space anywhere, found as you type", "es": "Ctrl+Espacio en cualquier lugar: lo encuentra mientras escribes", "ja": "どこでも Ctrl+Space、打った瞬間に見つかる", "zh-Hans": "随处按 Ctrl+Space，边输入边找到"},
@@ -82,6 +82,10 @@ S = {
     "tour.end.s": {"ko": "모르는 게 있으면 F1 · 이 소개는 ? → 짧은 소개 보기에서 다시 볼 수 있어요", "en": "Press F1 for help · replay this from ? → Short intro", "es": "Pulsa F1 para ayuda · vuelve a verlo desde ? → Introducción breve", "ja": "わからないときは F1 · この紹介は ? → 短い紹介 からもう一度見られます", "zh-Hans": "有问题按 F1 · 可在 ? → 简短介绍 中重看"},
     "tour.skip": {"ko": "건너뛰기", "en": "Skip", "es": "Omitir", "ja": "スキップ", "zh-Hans": "跳过"},
     "tour.start": {"ko": "시작하기", "en": "Get started", "es": "Empezar", "ja": "はじめる", "zh-Hans": "开始使用"},
+
+    # 정보 창: 문제 알리기 링크 (2026-11-25 쉬운 말: XAML에 한국어로만 적혀 있던 것)
+    "about.bug.link": {"ko": "알리러 가기…", "en": "Report a problem…", "es": "Informar de un problema…", "ja": "問題を知らせる…", "zh-Hans": "报告问题…"},
+    "about.issues": {"ko": "다른 사람이 알린 문제 보기", "en": "See problems others reported", "es": "Ver problemas que informaron otros", "ja": "ほかの人が知らせた問題を見る", "zh-Hans": "查看其他人报告的问题"},
 
     # 설정: 언어
     "settings.language": {"ko": "언어", "en": "Language", "es": "Idioma", "ja": "言語", "zh-Hans": "语言"},

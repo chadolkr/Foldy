@@ -3,7 +3,7 @@
 
 CF = [
     ("cf.log.title", "로그 정리", "Log cleanup", "Limpieza de registros", "ログの整理", "清理日志"),
-    ("cf.log.crawl", "색인 서비스가 없어서 드라이브를 직접 훑고 있어요. 조금 걸려요.", "There's no index service, so I'm scanning the drive directly. This takes a little while.", "No hay servicio de índice, así que recorro la unidad directamente. Tardará un poco.", "インデックス サービスがないので、ドライブを直接走査しています。少しかかります。", "没有索引服务，正在直接扫描驱动器，需要一点时间。"),
+    ("cf.log.crawl", '빠른 찾기 도우미가 없어서 드라이브를 하나하나 살펴보고 있어요. 조금 걸려요.', "The fast search helper isn't installed, so I'm looking through the drive one folder at a time. This takes a little while.", 'No está el asistente de búsqueda rápida, así que reviso la unidad carpeta por carpeta. Tardará un poco.', '高速検索ヘルパーがないので、ドライブを一つずつ見ています。少しかかります。', '没有快速查找助手，正在逐个查看驱动器，需要一点时间。'),
     ("cf.log.none", "정리할 오래된 로그가 없어요. 깔끔하네요! 🙂", "No old logs to clean up. Nice and tidy! 🙂", "No hay registros antiguos que limpiar. ¡Todo en orden! 🙂", "整理する古いログはありません。すっきりですね! 🙂", "没有需要清理的旧日志，很干净！🙂"),
     ("cf.close", "닫기", "Close", "Cerrar", "閉じる", "关闭"),
     ("cf.log.what", "로그는 프로그램이 남기는 기록이에요. 문제가 생겼을 때 말고는 다시 볼 일이 거의 없는데, 모르는 사이에 몇 GB씩 쌓이곤 해요.", "Logs are records programs leave behind. You rarely look at them unless something goes wrong, yet they can quietly pile up to several GB.", "Los registros son anotaciones que dejan los programas. Casi nunca se miran salvo cuando hay un problema, pero pueden acumular varios GB sin que te des cuenta.", "ログはプログラムが残す記録です。問題が起きたとき以外はほとんど見ませんが、知らないうちに数 GB もたまることがあります。", "日志是程序留下的记录。除了出问题时几乎不会再看，却常常不知不觉堆到好几 GB。"),
