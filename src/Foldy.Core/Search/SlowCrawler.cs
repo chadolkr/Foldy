@@ -279,13 +279,28 @@ public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Co
 /// </summary>
 public sealed class SlowCrawler : IDisposable
 {
-    public static TimeSpan MinPause { get; set; } = TimeSpan.FromMilliseconds(25);
+    public static TimeSpan MinPause { get; set; } = TimeSpan.FromMilliseconds(10);
 
     /// <summary>다 모은 뒤 다시 모으기까지 (다시 모을 때는 바뀐 폴더만 읽어서 가볍다).</summary>
     public static TimeSpan RescanAfter { get; set; } = TimeSpan.FromHours(1);
 
-    /// <summary>처음 쉬는 비율: 폴더를 여는 데 걸린 시간의 몇 배를 쉬나. 모으는 동안 드라이브 속도에 맞춰 0.5~8배로 바뀐다.</summary>
-    public static double PauseFactor { get; set; } = 2;
+    /// <summary>처음 쉬는 비율: 읽는 데 걸린 시간의 몇 배를 쉬나. 모으는 동안 드라이브 응답에 맞춰 <see cref="MinPauseFactor"/>~<see cref="MaxPauseFactor"/>배로 바뀐다.</summary>
+    public static double PauseFactor { get; set; } = 0.5;
+
+    /// <summary>응답이 평소 같을 때 쉬는 비율의 바닥 (읽는 시간의 20%를 쉰다 → 드라이브는 늘 숨 돌릴 틈이 있다).</summary>
+    public const double MinPauseFactor = 0.2;
+
+    /// <summary>응답이 계속 늦을 때 쉬는 비율의 꼭대기.</summary>
+    public const double MaxPauseFactor = 3;
+
+    /// <summary>한 드라이브에서 같이 읽는 폴더 수의 최대 (응답이 느린 네트워크·클라우드 드라이브). 가까운 드라이브는 2.</summary>
+    public const int MaxWidth = 4;
+
+    /// <summary>폴더 하나 읽는 데 평소 이보다 오래 걸리면 멀리 있는 드라이브로 본다.</summary>
+    internal const double RemoteMs = 20;
+
+    /// <summary>먼저 모을 폴더 (자주 쓰는 폴더·최근 폴더). 그 폴더로 가는 길을 먼저 읽어 찾기에 빨리 나온다.</summary>
+    public Func<IReadOnlyList<string>>? PreferFirst { get; set; }
 
     private readonly string _dir;
     private readonly Func<IReadOnlyList<string>> _drives;
@@ -530,6 +545,11 @@ public sealed class SlowCrawler : IDisposable
                 var store = StoreFor(d);
                 var root = Root(d);
                 Watch(root);
+                if (IsCrawling(root))
+                {
+                    continue; // 이 드라이브는 지금 모으는 중
+                }
+
                 bool due, onSchedule = false;
                 var done = store.CompletedUtc;
                 var unfinished = HasUnfinished(root); // 모으다 끊긴 것은 주기를 기다리지 않고 이어서 한다 (직접 누를 때만 설정이어도: 사용자가 시작한 것)
@@ -584,9 +604,7 @@ public sealed class SlowCrawler : IDisposable
                     continue;
                 }
 
-                CrawlOnce(d, _cts.Token);
-                did = true;
-                CrawlRequested(drives); // 여러 드라이브가 밀려 있어도 사용자가 누른 것이 먼저
+                did |= TryStart(d, full: false);
             }
 
             if (WaitHandle.WaitAny([_cts.Token.WaitHandle, _kick], did ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1)) == 0)
@@ -611,24 +629,32 @@ public sealed class SlowCrawler : IDisposable
         return drives;
     }
 
-    /// <summary>[지금 색인하기]를 누른 드라이브를 누른 순서대로 모은다. 그사이 뽑힌 드라이브는 넘어간다.</summary>
+    /// <summary>
+    /// [지금 색인하기]를 누른 드라이브를 누른 순서대로 시작한다. 그사이 뽑힌 드라이브는 넘어간다.
+    /// 그 드라이브를 이미 모으는 중이거나 한꺼번에 모으는 드라이브 수가 꽉 찼으면 차례를 기다린다.
+    /// </summary>
     private bool CrawlRequested(IReadOnlyList<string> drives)
     {
         var did = false;
-        while (!_cts.IsCancellationRequested)
+        List<string> queue;
+        lock (_gate)
         {
-            string? next;
-            lock (_gate)
-            {
-                next = _requested.FirstOrDefault();
-            }
+            queue = [.. _requested];
+        }
 
-            if (next is null)
+        foreach (var next in queue)
+        {
+            if (_cts.IsCancellationRequested)
             {
-                return did;
+                break;
             }
 
             var ready = drives.Any(d => string.Equals(Root(d), next, StringComparison.OrdinalIgnoreCase));
+            if (ready && (IsCrawling(next) || CrawlingCount() >= MaxDrivesAtOnce))
+            {
+                continue; // 차례를 기다린다
+            }
+
             if (ready)
             {
                 Watch(next);
@@ -644,12 +670,80 @@ public sealed class SlowCrawler : IDisposable
 
             if (ready)
             {
-                CrawlOnce(next, _cts.Token, full: true);
-                did = true;
+                did |= TryStart(next, full: true);
             }
         }
 
         return did;
+    }
+
+    /// <summary>
+    /// 한꺼번에 모으는 드라이브 수의 최대. 드라이브끼리는 서로 다른 장치·서버라 같이 모아도 한 곳에 몰리지 않는다
+    /// (사용자 2026-11-24: K:를 모으는 동안 M:은 "K: 다음"으로 기다리기만 했다).
+    /// </summary>
+    public const int MaxDrivesAtOnce = 3;
+
+    private readonly HashSet<string> _crawling = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<Thread> _workers = [];
+
+    private bool IsCrawling(string root)
+    {
+        lock (_gate)
+        {
+            return _crawling.Contains(Root(root));
+        }
+    }
+
+    private int CrawlingCount()
+    {
+        lock (_gate)
+        {
+            return _crawling.Count;
+        }
+    }
+
+    /// <summary>드라이브 하나를 따로 스레드에서 모으기 시작한다. 이미 모으는 중이거나 꽉 찼으면 false.</summary>
+    private bool TryStart(string drive, bool full)
+    {
+        var root = Root(drive);
+        Thread t;
+        lock (_gate)
+        {
+            if (_crawling.Contains(root) || _crawling.Count >= MaxDrivesAtOnce || _cts.IsCancellationRequested)
+            {
+                return false;
+            }
+
+            _crawling.Add(root);
+            t = new Thread(() =>
+            {
+                try
+                {
+                    CrawlOnce(drive, _cts.Token, full);
+                }
+                finally
+                {
+                    lock (_gate)
+                    {
+                        _crawling.Remove(root);
+                    }
+
+                    try
+                    {
+                        _kick.Set(); // 기다리던 드라이브가 있으면 바로 시작
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                }
+            })
+            { IsBackground = true, Name = "SlowCrawler " + root, Priority = ThreadPriority.BelowNormal };
+            _workers.RemoveAll(w => !w.IsAlive);
+            _workers.Add(t);
+        }
+
+        t.Start();
+        return true;
     }
 
     /// <summary>폴더 하나의 기록: 그때의 수정 시각, 목록 파일 안 위치, 연속으로 안 바뀐 횟수.</summary>
@@ -768,14 +862,32 @@ public sealed class SlowCrawler : IDisposable
 
         Report(new CrawlStatus(root, true, found, false, store.CompletedUtc));
         double factor = PauseFactor, baseline = -1;
+        var width = 1;
+        var preferred = PreferFirst?.Invoke() ?? [];
 
-        void Breathe(TimeSpan took)
+        void Breathe(TimeSpan batch, int folders, TimeSpan perAsk)
         {
-            // 속도 조절: 평소보다 두 배 넘게 느리면 쉬는 비율을 두 배로, 아니면 조금씩 줄인다
-            var ms = took.TotalMilliseconds;
-            baseline = baseline < 0 ? ms : (0.9 * baseline) + (0.1 * ms);
-            factor = ms > 2 * Math.Max(baseline, 1) ? Math.Min(8, factor * 2) : Math.Max(0.5, factor * 0.95);
-            var pause = TimeSpan.FromTicks(Math.Max(MinPause.Ticks, (long)(took.Ticks * factor)));
+            // 속도 조절 (2026-11-24 고침: 예전에는 읽은 시간의 2~8배를 쉬어 회사 클라우드 드라이브가 쓸 수 없을 만큼 느렸다).
+            // 응답이 평소의 3배 넘게 늦으면 쉬는 비율을 1.5배로 늘리고 같이 읽는 수를 줄인다. 평소 같으면 쉬는 비율을 줄이고 같이 읽는 수를 늘린다.
+            // 응답이 느린(멀리 있는) 드라이브일수록 같이 읽으면 기다리는 시간이 겹쳐 빨라진다. 가까운 드라이브(USB·SD)는 둘까지만
+            if (perAsk > TimeSpan.Zero)
+            {
+                var ms = perAsk.TotalMilliseconds;
+                var slow = baseline >= 0 && ms > 3 * Math.Max(baseline, 1);
+                baseline = baseline < 0 ? ms : (0.9 * baseline) + (0.1 * ms);
+                if (slow)
+                {
+                    factor = Math.Min(MaxPauseFactor, factor * 1.5);
+                    width = Math.Max(1, width / 2);
+                }
+                else
+                {
+                    factor = Math.Max(MinPauseFactor, factor * 0.9);
+                    width = Math.Min(baseline >= RemoteMs ? MaxWidth : 2, width + 1);
+                }
+            }
+
+            var pause = TimeSpan.FromTicks(Math.Max(MinPause.Ticks * folders, (long)(batch.Ticks * factor)));
             if (pause > TimeSpan.Zero && ct.WaitHandle.WaitOne(pause))
             {
                 ct.ThrowIfCancellationRequested();
@@ -830,7 +942,8 @@ public sealed class SlowCrawler : IDisposable
                     SaveCheckpoint(resumePath, new Checkpoint(pass, readAll, found, data.Length, marksOut.BaseStream.Length, checks, misses, listed, reused, skipped, DateTime.UtcNow, [.. stack]));
                 }
 
-                (string Dir, long Time)? current = null;
+                // 끊길 때 아직 기록하지 않은 폴더들 (다시 쌓아 다음에 이어서 한다)
+                List<(string Dir, long Time)> pending = [];
                 try
                 {
                     var lastReport = Stopwatch.StartNew();
@@ -846,88 +959,92 @@ public sealed class SlowCrawler : IDisposable
                             }
                         }
 
-                        var (dir, mtime) = stack.Pop();
-                        current = (dir, mtime);
-                        // 폴더마다 그 폴더 자신의 시각을 묻는다 (위 폴더 목록에 적힌 시각은 NTFS에서 늦게 고쳐진다)
-                        var sw0 = Stopwatch.StartNew();
-                        mtime = DirTime(dir);
-                        Breathe(sw0.Elapsed);
-
-                        var before = old.TryGetValue(dir, out var o) ? o : null;
-                        var oldBlock = before is not null && oldData is not null ? ReadBlock(oldData, before) : null;
-                        var sameTime = before is not null && mtime != 0 && mtime == before.MTime;
-                        byte[] block;
-                        var unchanged = 0;
-                        var took = TimeSpan.Zero;
-                        var asked = false;
-                        var children = new List<(string Dir, long Time)>();
-                        if (!readAll && dir != root && sameTime && oldBlock is not null && !HasFolder(oldBlock))
+                        // 폴더 몇 개를 한꺼번에 꺼내 같이 읽는다 (응답을 기다리는 시간이 겹친다). 기록은 꺼낸 차례대로 하나씩
+                        pending = [];
+                        while (pending.Count < width && stack.Count > 0)
                         {
-                            // 끝 폴더, 시각 그대로: 드라이브에 묻지 않고 지난 목록을 쓴다
-                            block = oldBlock;
-                            unchanged = before!.Unchanged + 1;
-                            reused++;
-                            skipped++;
-                            found += CountLines(block);
+                            pending.Add(stack.Pop());
+                        }
+
+                        var jobs = pending.Select(p =>
+                        {
+                            var before = old.TryGetValue(p.Dir, out var o) ? o : null;
+                            return new FetchJob(p.Dir, p.Time, before, before is not null && oldData is not null ? ReadBlock(oldData, before) : null);
+                        }).ToList();
+                        var wall = Stopwatch.StartNew();
+                        var results = new Fetched[jobs.Count];
+                        if (jobs.Count == 1)
+                        {
+                            results[0] = Fetch(jobs[0], root, readAll);
                         }
                         else
                         {
-                            var sw = Stopwatch.StartNew();
-                            List<CrawlEntry> entries;
-                            var ok = true;
-                            try
-                            {
-                                entries = [.. List(dir)];
-                            }
-                            catch (Exception ex) when ((ex is IOException or UnauthorizedAccessException) && dir != root)
-                            {
-                                entries = [];
-                                ok = false;
-                            }
+                            Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = jobs.Count }, i => results[i] = Fetch(jobs[i], root, readAll));
+                        }
 
-                            took = sw.Elapsed;
-                            asked = true;
-                            listed++;
-                            var sb = new StringBuilder();
-                            foreach (var e in entries)
-                            {
-                                sb.Append(CrawlStore.Format(e)).Append('\n');
-                                found++;
-                                if (e.IsFolder)
-                                {
-                                    children.Add((e.Path, e.ModifiedUtc.Ticks));
-                                }
-                            }
+                        var batchTook = wall.Elapsed;
+                        var asked = 0;
+                        TimeSpan askedTime = TimeSpan.Zero;
 
-                            block = Encoding.UTF8.GetBytes(sb.ToString());
-                            if (ok && sameTime && oldBlock is not null)
+                        // 여기서부터 이 묶음을 다 기록할 때까지는 끊기지 않는다 (남기는 기록이 늘 맞게)
+                        foreach (var r in results)
+                        {
+                            if (r.RootError is { } rootError)
                             {
-                                // 스스로 시험: 시각은 그대로인데 안 목록이 바뀌었나
-                                var same = SameNames(oldBlock, entries);
-                                checks++;
-                                if (!same)
-                                {
-                                    misses++;
-                                }
-
-                                unchanged = same ? before!.Unchanged + 1 : 0;
+                                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(rootError).Throw();
                             }
                         }
 
-                        // 여기서부터 끝까지는 끊기지 않는다 (남기는 기록이 늘 맞게)
-                        var offset = data.Position;
-                        data.Write(block);
-                        var mark = new DirMark(mtime, offset, block.Length, unchanged);
-                        marks[dir] = mark;
-                        marksOut.WriteLine(FormatMark(dir, mark));
+                        var newChildren = new List<(string Dir, long Time)>();
+                        for (var i = 0; i < results.Length; i++)
+                        {
+                            var r = results[i];
+                            var job = jobs[i];
+                            var unchanged = 0;
+                            if (r.Reused)
+                            {
+                                unchanged = job.Before!.Unchanged + 1;
+                                reused++;
+                                skipped++;
+                                found += CountLines(r.Block);
+                            }
+                            else
+                            {
+                                asked++;
+                                askedTime += r.Took;
+                                listed++;
+                                found += r.Count;
+                                if (r.Ok && r.SameTime && job.OldBlock is not null)
+                                {
+                                    // 스스로 시험: 시각은 그대로인데 안 목록이 바뀌었나
+                                    checks++;
+                                    if (!r.SameNames)
+                                    {
+                                        misses++;
+                                    }
 
-                        // 최근에 바뀐 폴더가 먼저 나오게: 오래 안 바뀐 것부터 쌓는다(나중에 쌓은 것이 먼저 나온다)
-                        foreach (var c in children.OrderByDescending(c => old.TryGetValue(c.Dir, out var m) ? m.Unchanged : -1))
+                                    unchanged = r.SameNames ? job.Before!.Unchanged + 1 : 0;
+                                }
+
+                                newChildren.AddRange(r.Children);
+                            }
+
+                            var offset = data.Position;
+                            data.Write(r.Block);
+                            var mark = new DirMark(r.MTime, offset, r.Block.Length, unchanged);
+                            marks[job.Dir] = mark;
+                            marksOut.WriteLine(FormatMark(job.Dir, mark));
+                        }
+
+                        // 자주 쓰는 폴더로 가는 길은 맨 먼저, 그다음 최근에 바뀐 폴더: 나중에 쌓은 것이 먼저 나온다
+                        foreach (var c in newChildren
+                            .OrderBy(c => preferred.Count > 0 && LeadsTo(c.Dir, preferred))
+                            .ThenByDescending(c => old.TryGetValue(c.Dir, out var m) ? m.Unchanged : -1))
                         {
                             stack.Push(c);
                         }
 
-                        current = null;
+                        pending = [];
                         if (lastReport.Elapsed > TimeSpan.FromSeconds(1))
                         {
                             data.Flush(); // 모으는 중에도 찾을 수 있게
@@ -941,17 +1058,14 @@ public sealed class SlowCrawler : IDisposable
                             lastSave.Restart();
                         }
 
-                        if (asked)
-                        {
-                            Breathe(took);
-                        }
+                        Breathe(batchTook, results.Length, asked == 0 ? TimeSpan.Zero : askedTime / asked);
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    if (current is { } cur)
+                    for (var i = pending.Count - 1; i >= 0; i--)
                     {
-                        stack.Push(cur);
+                        stack.Push(pending[i]);
                     }
 
                     SaveProgress();
@@ -1031,6 +1145,102 @@ public sealed class SlowCrawler : IDisposable
 
     /// <summary>이 드라이브를 모으다 끊긴 곳이 남아 있나 (Foldy를 켜면 주기를 기다리지 않고 이어서 한다).</summary>
     public bool HasUnfinished(string drive) => File.Exists(StoreFor(drive).FilePath + ".resume");
+
+    private sealed record FetchJob(string Dir, long Time, DirMark? Before, byte[]? OldBlock);
+
+    /// <summary>폴더 하나를 읽은 결과 (여러 폴더를 같이 읽고, 기록은 차례대로 한다).</summary>
+    private sealed class Fetched
+    {
+        public long MTime { get; set; }
+
+        public byte[] Block { get; set; } = [];
+
+        public bool Reused { get; set; }
+
+        public bool Ok { get; set; } = true;
+
+        public bool SameTime { get; set; }
+
+        public bool SameNames { get; set; }
+
+        public long Count { get; set; }
+
+        public TimeSpan Took { get; set; }
+
+        public List<(string Dir, long Time)> Children { get; } = [];
+
+        public Exception? RootError { get; set; }
+    }
+
+    /// <summary>폴더 하나: 시각을 보고 그대로인 끝 폴더면 지난 목록을, 아니면 목록을 새로 읽는다. 여러 스레드에서 같이 불린다(공유하는 것을 건드리지 않는다).</summary>
+    private static Fetched Fetch(FetchJob job, string root, bool readAll)
+    {
+        var r = new Fetched();
+        var sw = Stopwatch.StartNew();
+        // 모두 읽을 때(처음 모으기·직접 누른 색인)는 폴더 시각을 따로 묻지 않고 위 폴더 목록에 적힌 것을 쓴다 (드라이브에 묻는 횟수가 반).
+        // 그 값이 NTFS에서 늦게 고쳐진 것이면 다음에 비교할 때 그 폴더를 한 번 더 읽을 뿐이다. 다시 모을 때는 폴더 자신의 시각을 묻는다
+        r.MTime = readAll && job.Dir != root && job.Time != 0 ? job.Time : DirTime(job.Dir);
+        r.SameTime = job.Before is not null && r.MTime != 0 && r.MTime == job.Before.MTime;
+        if (!readAll && job.Dir != root && r.SameTime && job.OldBlock is not null && !HasFolder(job.OldBlock))
+        {
+            // 끝 폴더, 시각 그대로: 지난 목록을 쓴다
+            r.Block = job.OldBlock;
+            r.Reused = true;
+            return r;
+        }
+
+        List<CrawlEntry> entries;
+        try
+        {
+            entries = [.. List(job.Dir)];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            if (job.Dir == root)
+            {
+                r.RootError = ex;
+                return r;
+            }
+
+            entries = [];
+            r.Ok = false;
+        }
+
+        r.Took = sw.Elapsed;
+        var sb = new StringBuilder();
+        foreach (var e in entries)
+        {
+            sb.Append(CrawlStore.Format(e)).Append('\n');
+            r.Count++;
+            if (e.IsFolder)
+            {
+                r.Children.Add((e.Path, e.ModifiedUtc.Ticks));
+            }
+        }
+
+        r.Block = Encoding.UTF8.GetBytes(sb.ToString());
+        if (r.Ok && r.SameTime && job.OldBlock is not null)
+        {
+            r.SameNames = SameNames(job.OldBlock, entries);
+        }
+
+        return r;
+    }
+
+    /// <summary>이 폴더가 먼저 모을 폴더이거나 그리로 가는 길인가.</summary>
+    private static bool LeadsTo(string dir, IReadOnlyList<string> preferred)
+    {
+        foreach (var p in preferred)
+        {
+            if (p.Length >= dir.Length && p.StartsWith(dir, StringComparison.OrdinalIgnoreCase)
+                && (p.Length == dir.Length || p[dir.Length] == '\\' || dir.EndsWith('\\')))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool HasFolder(byte[] block)
     {
@@ -1367,7 +1577,16 @@ public sealed class SlowCrawler : IDisposable
         _cts.Cancel();
         // 1초 안에 끝나지 않으면(느린 드라이브를 읽는 중) 돌던 스레드가 아직 _cts·_kick을 쓰므로 버리지 않는다.
         // 먼저 버리면 그 스레드가 ObjectDisposedException으로 프로세스를 죽인다(CI Foldy.Core.Tests 2026-11-23). 남은 것은 GC가 치운다.
-        if (_thread is null || _thread.Join(1000))
+        List<Thread> workers;
+        lock (_gate)
+        {
+            workers = [.. _workers];
+        }
+
+        var until = Environment.TickCount64 + 1000;
+        var stopped = (_thread is null || _thread.Join(1000))
+            && workers.All(w => w.Join(TimeSpan.FromMilliseconds(Math.Max(0, until - Environment.TickCount64))));
+        if (stopped)
         {
             _cts.Dispose();
             _kick.Dispose();

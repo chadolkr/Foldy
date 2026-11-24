@@ -1435,7 +1435,7 @@
   "set.shell.cmd": "命令提示符（cmd）",
   "set.showHidden": "显示隐藏文件",
   "set.slowCrawl": "慢慢收集没有索引的驱动器（网络驱动器、Google 云端硬盘等）",
-  "set.slowCrawl.hint": "Foldy 运行时会逐个打开文件夹收集文件列表。驱动器越慢就越慢，复制等任务期间会暂停。列表只保存在这台电脑上，可用 Ctrl+Space 和 Ctrl+F 搜索。",
+  "set.slowCrawl.hint": "Foldy 运行时会收集文件列表。驱动器响应变慢时会自动放慢，复制等任务期间会暂停。先从常用文件夹所在的位置开始收集。列表只保存在这台电脑上，可用 Ctrl+Space 和 Ctrl+F 搜索。",
   "set.term.auto": "自动（如有 Windows Terminal 则使用）",
   "set.term.console": "控制台窗口",
   "set.terminalApp": "终端程序",

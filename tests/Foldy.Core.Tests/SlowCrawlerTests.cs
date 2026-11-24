@@ -170,7 +170,7 @@ public sealed class SlowCrawlerTests : IDisposable
             var n = 0;
             first.ShouldPause = () =>
             {
-                if (++n > 6)
+                if (++n > 2) // 폴더 몇 개를 같이 읽으므로 몇 묶음만에 끊는다
                 {
                     cts.Cancel();
                 }
@@ -195,6 +195,33 @@ public sealed class SlowCrawlerTests : IDisposable
         Assert.False(c.HasUnfinished(_root));
         Assert.False(File.Exists(c.StoreFor(_root).FilePath + ".part"));
         Assert.False(File.Exists(c.StoreFor(_root).FilePath + ".marks"));
+    }
+
+    [Fact]
+    public void Favorite_folders_are_gathered_first()
+    {
+        // 자주 쓰는 폴더가 있는 곳부터 모은다: 다 모으기 전에도 쓰는 파일이 먼저 찾아진다 (사용자 2026-11-24)
+        foreach (var name in new[] { "a", "b", "c", "d", "e" })
+        {
+            Make($@"{name}\{name}파일.txt");
+        }
+
+        using var cts = new CancellationTokenSource();
+        using var c = new SlowCrawler(_store, () => [_root]) { PreferFirst = () => [Path.Combine(_root, "c")] };
+        var n = 0;
+        c.ShouldPause = () =>
+        {
+            if (++n > 1)
+            {
+                cts.Cancel(); // 맨 위 폴더 다음 한 묶음만 읽고 끊는다
+            }
+
+            return false;
+        };
+        c.CrawlOnce(_root, cts.Token);
+        var store = c.StoreFor(_root);
+        Assert.Single(store.Search("c파일", 10));
+        Assert.Empty(store.Search("a파일", 10));
     }
 
     [Fact]
