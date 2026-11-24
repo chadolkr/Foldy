@@ -66,6 +66,7 @@ B4 = [
     ("pane.menu.versions", "이전 버전 보기…", "Previous versions…", "Versiones anteriores…", "以前のバージョンを見る…", "查看以前的版本…"),
     ("pane.menu.vault", "🔒 금고에 넣기…", "🔒 Put in vault…", "🔒 Guardar en la caja fuerte…", "🔒 金庫に入れる…", "🔒 放入保险箱…"),
     ("pane.clipWrite", "클립보드를 쓸 수 없습니다: ", "Can't write to the clipboard: ", "No se puede escribir en el portapapeles: ", "クリップボードに書き込めません: ", "无法写入剪贴板："),
+    ("pane.dropSameFolder", "이미 이 폴더에 있는 파일이에요. 양쪽 창이 같은 폴더를 보고 있으면, 한쪽 창에서 다른 폴더를 연 다음 놓아 주세요.", "These files are already in this folder. If both panes show the same folder, open another folder in one pane, then drop.", "Estos archivos ya están en esta carpeta. Si los dos paneles muestran la misma carpeta, abre otra carpeta en uno de ellos y suelta ahí.", "このファイルはすでにこのフォルダーにあります。両方の画面が同じフォルダーなら、片方で別のフォルダーを開いてからドロップしてください。", "这些文件已经在此文件夹中。如果两侧窗格是同一个文件夹，请在其中一侧打开其他文件夹后再放下。"),
     ("pane.clipRead", "클립보드를 읽을 수 없습니다: ", "Can't read the clipboard: ", "No se puede leer el portapapeles: ", "クリップボードを読めません: ", "无法读取剪贴板："),
     ("pane.treeHide", "폴더 트리 숨기기 (Ctrl+B)", "Hide folder tree (Ctrl+B)", "Ocultar árbol de carpetas (Ctrl+B)", "フォルダー ツリーを隠す (Ctrl+B)", "隐藏文件夹树（Ctrl+B）"),
     ("pane.treeShow", "폴더 트리 보이기 (Ctrl+B)", "Show folder tree (Ctrl+B)", "Mostrar árbol de carpetas (Ctrl+B)", "フォルダー ツリーを表示 (Ctrl+B)", "显示文件夹树（Ctrl+B）"),

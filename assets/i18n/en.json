@@ -1086,6 +1086,7 @@
   "pane.col.size": "Size",
   "pane.copiedN": "{0:N0} copied",
   "pane.cutN": "{0:N0} cut",
+  "pane.dropSameFolder": "These files are already in this folder. If both panes show the same folder, open another folder in one pane, then drop.",
   "pane.empty": "This folder is empty",
   "pane.empty.tip": "Drag files here from the other pane to copy them. Press F7 for a new folder.",
   "pane.escCancel": " · Esc to cancel",
