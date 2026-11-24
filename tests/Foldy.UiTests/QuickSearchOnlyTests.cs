@@ -92,8 +92,10 @@ public sealed class QuickSearchOnlyTests : IDisposable
         Retry.WhileException(() => main!.Patterns.Window.Pattern.Close(), TimeSpan.FromSeconds(10));
         // 프로세스가 끝나는 시간은 보지 않는다: CI에서는 다른 화면 시험도 닫은 뒤 바로 끝나지 않는다 (FoldyApp의 "Application failed to exit")
         Retry.WhileTrue(() => MainWindow(foldy.Id) is not null, TimeSpan.FromSeconds(15), ignoreException: true);
-        MainWindow(foldy.Id).Should().BeNull("주 창이 닫혀야 한다");
+        MainWindow(foldy.Id).Should().BeNull("주 창이 닫혀야 한다. Foldy 기록 끝부분:\n" + LogTail());
     }
+
+    private string LogTail() => FoldyApp.LogTail(_data);
 
     public void Dispose()
     {
