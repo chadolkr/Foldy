@@ -4,7 +4,7 @@ Claude Code, Codex, Copilot 같은 AI 도구로 Foldy를 고칠 때 먼저 읽�
 
 ## 프로젝트
 
-- Windows용 파일 관리자. UI는 C# .NET 10 + WPF(`src/`), 색인·복사 엔진은 Rust(`engine/`), 캐시는 SQLite.
+- Windows용 파일 관리자. UI는 C# .NET 10 + WPF(`src/`), 색인·복사 엔진은 Rust(`engine/`). 찾기 색인은 메모리와 전용 파일(`.idx`), 폴더 분석 결과와 정리 계획 저장은 SQLite.
 - 테스트는 `tests/`(.NET)와 각 crate 안(Rust). 화면 자동 테스트는 `tests/Foldy.UiTests`(FlaUI).
 - 화면 문구는 5개 언어(ko·en·es·ja·zh-CN). 번역 원본은 `build/i18n/`.
 
