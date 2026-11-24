@@ -115,7 +115,7 @@ public static class RebuildableFolders
     }
 
     /// <summary>
-    /// root 안을 훑어 찾는다 (숨김·시스템 폴더 안, 바로 가기 폴더(링크)는 들어가지 않는다. .git·.venv는 숨김이어도 찾는다).
+    /// root 안을 훑어 찾는다 (비어 있는 폴더(0바이트)는 빼고, 숨김·시스템 폴더 안, 바로 가기 폴더(링크)는 들어가지 않는다. .git·.venv는 숨김이어도 찾는다).
     /// 폴더마다 목록은 한 번만 읽고(옆의 프로젝트 파일도 그 목록에서 본다), 이 PC 드라이브는 여러 폴더를 동시에 읽는다
     /// (네트워크 드라이브는 1개씩, 1.4.0 정리 계획과 같은 규칙).
     /// sizeOf: 폴더 크기를 아는 방법(색인). null을 돌려주면 직접 더한다.
@@ -282,6 +282,11 @@ public static class RebuildableFolders
                 {
                     counter.Look(path);
                     var f = Describe(path, kind, nowUtc, sizeOf, ct);
+                    if (f.Size == 0)
+                    {
+                        continue; // 빈 폴더는 지워도 늘어나는 공간이 없다: 목록에 넣지 않는다 (1.10.2)
+                    }
+
                     lock (_gate)
                     {
                         Found.Add(f);
@@ -323,7 +328,8 @@ public static class RebuildableFolders
 
     private static RebuildableFolder Describe(string path, RebuildableKind kind, DateTime nowUtc, Func<string, long?>? sizeOf, CancellationToken ct)
     {
-        var size = sizeOf?.Invoke(path) ?? SizeOf(path, ct);
+        // 색인이 0이라고 하면 직접 한 번 더 센다 (색인이 늦게 바뀌었을 수 있다. 정말 비었으면 금방 끝난다)
+        var size = sizeOf?.Invoke(path) is long known and > 0 ? known : SizeOf(path, ct);
         var last = kind.CanRebuild ? SafeTime(() => Directory.GetLastWriteTimeUtc(path)) : GitLastUse(path);
         var recent = nowUtc - last < Recent;
         string? warning = null;
