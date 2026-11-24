@@ -1427,6 +1427,8 @@
   "set.pressKey": "キーを押してください…",
   "set.preview": "プレビュー",
   "set.preview.sample": "Foldy の設定 Aa 123 あいう 漢字",
+  "set.qsAlways": "Foldy を閉じていてもショートカットで検索ウィンドウを開く",
+  "set.qsAlways.hint": "サインインすると、とても小さなヘルパー (メモリ約 1 MB) がショートカットだけを待ちます。押すと Foldy のウィンドウなしで検索ウィンドウだけが開きます。最初の 1 回は 1～2 秒かかり、その後 10 分間はすぐに開きます。",
   "set.quickFind": "クイック検索",
   "set.rebuildable": "消してもよいフォルダーを探す",
   "set.rebuildable.hint": "既定の一覧 (node_modules・bin/obj・target・__pycache__・.venv・dist/build・__history・.git など) に加えるフォルダー名 (カンマ区切り)",

@@ -1,0 +1,33 @@
+[package]
+name = "foldy-hotkey"
+description = "Foldy Quick Search key - Foldy가 꺼져 있어도 단축키(기본 Ctrl+Space)로 무엇이든 찾기 창을 여는 아주 작은 도우미"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lib]
+name = "foldy_hotkey"
+path = "src/lib.rs"
+
+[[bin]]
+name = "foldy-hotkey"
+path = "src/main.rs"
+
+# 메모리를 아끼려고 다른 라이브러리는 쓰지 않는다 (Win32 함수만)
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_Threading",
+    "Win32_System_RemoteDesktop",
+    "Win32_System_WindowsProgramming",
+    "Win32_System_LibraryLoader",
+] }
+
+[lints]
+workspace = true

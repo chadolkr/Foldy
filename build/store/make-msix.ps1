@@ -1,6 +1,6 @@
 <#
   Foldy Store 판(MSIX)을 만든다. 같은 소스·같은 payload(dist\Foldy-Setup\payload)를 MSIX로 감싼다 (docs/store.md).
-  - 색인 서비스(foldy-index.exe)와 자체 업데이트 도구(foldy-update.exe)는 넣지 않는다. 앱은 패키지로 실행되면 이를 알아채고 Store에 맡긴다.
+  - 색인 서비스(foldy-index.exe)·자체 업데이트 도구(foldy-update.exe)·단축키 도우미(foldy-hotkey.exe)는 넣지 않는다. 앱은 패키지로 실행되면 이를 알아채고 Store에 맡긴다.
   - 서명하지 않는다: Store가 제출받은 패키지를 Microsoft 인증서로 서명한다.
     로컬 시험 설치만 하려면 -TestCert로 자체 서명 인증서를 만들어 서명한다 (그 PC에서만 신뢰).
 
@@ -33,7 +33,7 @@ $stage = Join-Path $root 'dist\Foldy-Store'
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $stage | Out-Null
 Copy-Item (Join-Path $payload '*') $stage -Recurse
-foreach ($f in 'foldy-index.exe', 'foldy-update.exe') { Remove-Item (Join-Path $stage $f) -ErrorAction SilentlyContinue }
+foreach ($f in 'foldy-index.exe', 'foldy-update.exe', 'foldy-hotkey.exe') { Remove-Item (Join-Path $stage $f) -ErrorAction SilentlyContinue }
 
 # ── 로고 (foldy-256.png에서 크기별로) ──
 Add-Type -AssemblyName System.Drawing

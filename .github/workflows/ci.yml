@@ -47,7 +47,7 @@ jobs:
       - name: Rust binaries need no VC++ runtime
         shell: pwsh
         run: |
-          foreach ($f in 'foldy-index.exe', 'foldy-update.exe', 'foldy_copy.dll') {
+          foreach ($f in 'foldy-index.exe', 'foldy-update.exe', 'foldy-hotkey.exe', 'foldy_copy.dll') {
             $p = "engine/target/release/$f"
             if (-not (Test-Path $p)) { throw "$p 없음" }
             $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($p))

@@ -171,6 +171,7 @@ internal sealed class QuickSearchWindow : Window
             App.ApplyScale(this);
         }
 
+        Closing += (_, _) => _closing = true; // 밖에서 닫을 때(Alt+F4 등) 닫히는 중에 Deactivated가 또 닫지 않게
         _input.TextChanged += (_, _) => _ = SearchAsync(_input.Text);
         PreviewKeyDown += OnKey;
         // 다른 곳을 누르면 닫힌다 (Spotlight처럼). 막 뜬 순간의 포커스 흔들림으로 닫히지 않게, 한 번 활성화되고 잠시 뒤부터

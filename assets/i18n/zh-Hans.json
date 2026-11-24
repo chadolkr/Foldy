@@ -1427,6 +1427,8 @@
   "set.pressKey": "请按键…",
   "set.preview": "预览",
   "set.preview.sample": "Foldy 设置 Aa 123 中文 字体",
+  "set.qsAlways": "即使 Foldy 已关闭，也能用快捷键打开查找窗口",
+  "set.qsAlways.hint": "登录后，一个很小的助手（约 1 MB 内存）只等待快捷键。按下后只打开查找窗口，不打开 Foldy 主窗口。第一次需要 1–2 秒，之后 10 分钟内会立即打开。",
   "set.quickFind": "快速查找",
   "set.rebuildable": "查找可安全删除的文件夹",
   "set.rebuildable.hint": "添加到默认列表（node_modules、bin/obj、target、__pycache__、.venv、dist/build、__history、.git 等）的文件夹名（用逗号分隔）",

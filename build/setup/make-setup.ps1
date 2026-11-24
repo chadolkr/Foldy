@@ -22,7 +22,7 @@ $payload = Join-Path $out 'payload'
 Remove-Item $out -Recurse -Force -ErrorAction SilentlyContinue
 dotnet publish (Join-Path $root 'src\Foldy.App\Foldy.App.csproj') -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o $payload $(if ($Version) { "-p:Version=$Version" })
 if ($LASTEXITCODE) { throw 'dotnet publish 실패' }
-foreach ($f in 'foldy-index.exe', 'foldy-update.exe') {
+foreach ($f in 'foldy-index.exe', 'foldy-update.exe', 'foldy-hotkey.exe') {
     $src = Join-Path $root "engine\target\release\$f"
     if (Test-Path $src) { Copy-Item $src $payload }
 }

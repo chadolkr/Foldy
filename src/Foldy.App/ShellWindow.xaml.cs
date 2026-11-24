@@ -353,6 +353,14 @@ public partial class ShellWindow : Window, IPaneHost
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _shown = true;
+        _quietExit?.Stop();
+        if (_firstConnectUiPending)
+        {
+            _firstConnectUiPending = false;
+            StartFirstConnectUi(); // 찾기 창만 떠 있는 동안 미뤄 둔 정리 알림·AI 제안
+        }
+
         ActiveView.FocusList();
         if (App.Options.OpenPath is { } open && Shell.ActivePane.ActiveFolder is { } tab)
         {
@@ -636,6 +644,25 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
+    private bool _firstConnectUiPending;
+
+    /// <summary>색인 서비스에 처음 연결된 뒤 한 번: 정리 알림 확인 시작, 잠시 뒤 AI 연결·바탕화면 정리 제안.</summary>
+    private void StartFirstConnectUi()
+    {
+        StartCleanupChecks();
+        // AI 연결 제안: 켠 뒤 잠시 있다가 한 번 (화면이 자리 잡은 뒤)
+        var aiOnce = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+        aiOnce.Tick += (_, _) =>
+        {
+            aiOnce.Stop();
+            if (!MaybeSuggestDesktop())
+            {
+                MaybeSuggestAi(); // 한 줄 제안은 한 번에 하나만
+            }
+        };
+        aiOnce.Start();
+    }
+
     /// <summary>연결 상태가 바뀔 때 (UI 스레드).</summary>
     private async Task OnIndexerStateAsync(IndexerLinkState state)
     {
@@ -677,19 +704,16 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
-        // 처음 연결될 때만
-        StartCleanupChecks();
-        // AI 연결 제안: 켠 뒤 잠시 있다가 한 번 (화면이 자리 잡은 뒤)
-        var aiOnce = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
-        aiOnce.Tick += (_, _) =>
+        // 처음 연결될 때만. 주 창 없이 찾기 창만 떠 있으면(단축키 도우미) 알림·제안은 주 창이 보일 때로 미룬다
+        if (_shown)
         {
-            aiOnce.Stop();
-            if (!MaybeSuggestDesktop())
-            {
-                MaybeSuggestAi(); // 한 줄 제안은 한 번에 하나만
-            }
-        };
-        aiOnce.Start();
+            StartFirstConnectUi();
+        }
+        else
+        {
+            _firstConnectUiPending = true;
+        }
+
         _indexStatusTimer ??= new DispatcherTimer(TimeSpan.FromSeconds(5), DispatcherPriority.Background, async (_, _) =>
         {
             await _search.RefreshStateAsync();
@@ -980,10 +1004,18 @@ public partial class ShellWindow : Window, IPaneHost
 #pragma warning restore CA1031
     }
 
+    private bool _closedDown;
+
     private void OnClosing(object? sender, CancelEventArgs e)
     {
+        if (_closedDown)
+        {
+            return;
+        }
+
+        _closedDown = true;
         _crawler?.Dispose();
-        SaveSession(Shell.Capture(null, double.NaN));
+        SaveSession(Shell.Capture(null, double.NaN)); // 한 번도 보이지 않은 창(찾기 창만)은 SaveSession이 건너뛴다
         _quickSave.Stop();
         SaveQuickAccess();
         foreach (var t in Shell.Left.Tabs.Concat(Shell.Right.Tabs))
@@ -1004,6 +1036,11 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void SaveSession(SessionState s)
     {
+        if (!_shown)
+        {
+            return; // 찾기 창만 떠 있는 Foldy: 주 창이 한 번도 보이지 않아 창 크기가 정해지지 않았다(NaN). 저장할 것도 없다
+        }
+
         try
         {
             var placement = RestoreBounds.IsEmpty
@@ -2133,6 +2170,58 @@ public partial class ShellWindow : Window, IPaneHost
     // ───────────── 빠른 검색 (Ctrl+Space) ─────────────
 
     private QuickSearchWindow? _quickSearch;
+
+    /// <summary>주 창이 한 번이라도 보였나. 단축키 도우미가 띄운 Foldy는 찾기 창만 띄우고 주 창은 숨겨 둔다.</summary>
+    private bool _shown;
+
+    /// <summary>찾기 창만 떠 있던 Foldy가 찾기 창을 닫은 뒤 이만큼 쓰지 않으면 끝난다 (메모리를 돌려준다). 그동안 다시 누르면 바로 뜬다.</summary>
+    private static readonly TimeSpan QuietExitAfter = TimeSpan.FromMinutes(10);
+
+    private DispatcherTimer? _quietExit;
+
+    /// <summary>
+    /// 단축키 도우미(foldy-hotkey.exe)가 띄운 Foldy (--quick-search, 1.11.0): 주 창은 띄우지 않고 무엇이든 찾기 창만 연다.
+    /// 색인 서비스 연결을 잠깐(0.7초까지) 기다려 처음부터 모든 드라이브에서 찾게 한다. 주 창은 "Foldy에서 열기"를 고를 때 처음 보인다.
+    /// </summary>
+    public void StartForQuickSearch()
+    {
+        Log.Information("단축키 도우미가 띄움: 찾기 창만 엽니다");
+        _ = Dispatcher.InvokeAsync(async () =>
+        {
+            var engines = ProbeEnginesAsync();
+            await Task.WhenAny(engines, Task.Delay(700));
+            ShowQuickSearch();
+        });
+    }
+
+    private void ArmQuietExit()
+    {
+        _quietExit ??= new DispatcherTimer(QuietExitAfter, DispatcherPriority.Background, (_, _) =>
+        {
+            _quietExit!.Stop();
+            if (_shown || _quickSearch is not null)
+            {
+                return;
+            }
+
+            if (Shell.Jobs.Any(j => !j.IsFinished))
+            {
+                _quietExit.Start(); // 하던 일이 끝나면
+                return;
+            }
+
+            Log.Information("찾기 창만 쓰던 Foldy를 끝냅니다 ({Minutes}분 동안 쓰지 않음)", QuietExitAfter.TotalMinutes);
+            OnClosing(this, new CancelEventArgs()); // 한 번도 보이지 않은 창은 닫기 처리가 불리지 않을 수 있어 직접 정리한다
+            Application.Current.Shutdown(0);
+        }, Dispatcher);
+        _quietExit.Stop();
+        _quietExit.Start();
+    }
+
+    /// <summary>Foldy 창에서 여는 파일 (마크다운 문서 보기, 메모·금고·잠긴 파일).</summary>
+    private static bool NeedsFoldyWindow(string path) =>
+        Foldy.Presentation.Shell.ShellViewModel.MarkdownExtensions.Contains(Path.GetExtension(path)) || SecureFlows.Handles(path);
+
     private IReadOnlyList<Foldy.Core.QuickSearch.StartApp>? _startApps;
 
     /// <summary>
@@ -2141,6 +2230,7 @@ public partial class ShellWindow : Window, IPaneHost
     /// </summary>
     private void ShowQuickSearch()
     {
+        _quietExit?.Stop();
         if (_quickSearch is { IsLoaded: true })
         {
             _quickSearch.Activate();
@@ -2159,7 +2249,14 @@ public partial class ShellWindow : Window, IPaneHost
                 : Foldy.Core.Localization.Loc.F("sw.qs.footerNoService", Path.GetFileName(scope?.TrimEnd('\\') ?? "")))
             + Foldy.Core.Localization.Loc.T("sw.qs.keys") + Foldy.Core.Localization.Loc.T("qs.filterKeys");
         _quickSearch = BuildQuickSearch(scope, footer);
-        _quickSearch.Closed += (_, _) => _quickSearch = null;
+        _quickSearch.Closed += (_, _) =>
+        {
+            _quickSearch = null;
+            if (!_shown)
+            {
+                ArmQuietExit();
+            }
+        };
         _quickSearch.Show();
     }
 
@@ -2171,7 +2268,16 @@ public partial class ShellWindow : Window, IPaneHost
             f.Kind == Foldy.Core.FileSystem.FsKind.Folder ? "\uE8B7" : "\uE8A5",
             f.Name,
             Path.GetDirectoryName(f.Path.Value) ?? "",
-            () => { BringToFront(); _ = Shell.OpenAsync(Shell.ActivePane, new Foldy.Presentation.Files.FileItem(f)); },
+            () =>
+            {
+                // 찾기 창만 떠 있을 때(Foldy 꺼져 있었음) 파일은 그 파일의 프로그램으로만 연다. Foldy 창이 필요한 것만 주 창을 띄운다
+                if (_shown || f.Kind == Foldy.Core.FileSystem.FsKind.Folder || NeedsFoldyWindow(f.Path.Value))
+                {
+                    BringToFront();
+                }
+
+                _ = Shell.OpenAsync(Shell.ActivePane, new Foldy.Presentation.Files.FileItem(f));
+            },
             () => RevealInFoldy(f.Path.Value),
             Preview: () => QuickSearchWindow.FilePreview(f)),
         footer,
@@ -2315,6 +2421,11 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void BringToFront()
     {
+        if (!IsVisible)
+        {
+            Show(); // 찾기 창만 떠 있다가 Foldy에서 열기를 골랐다: 이제 주 창을 처음 띄운다 (OnLoaded)
+        }
+
         if (WindowState == WindowState.Minimized)
         {
             WindowState = WindowState.Normal;
@@ -2339,16 +2450,29 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
+        _hotkeyAsking = true;
+        try
+        {
+            // 도우미가 키를 쥐고 있으면 Foldy가 키를 확인(등록)할 수 없다: 잠깐 끄고, 확인이 끝나면 다시 넘긴다
+            await Foldy.Platform.SystemInfo.QuickSearchKeyAgent.StopAsync();
+        }
+        finally
+        {
+            _hotkeyAsking = false;
+        }
+
         GlobalHotkey.Unregister(hwnd, GlobalHotkey.QuickSearchId);
         var g = _keyMap.GetGesture(id);
         if (!_settings.QuickSearchGlobal || g is null)
         {
+            TurnOffQuickSearchAgent();
             return;
         }
 
         if (!GlobalHotkey.ConflictsWithInputMethod(g) && GlobalHotkey.Register(hwnd, GlobalHotkey.QuickSearchId, g))
         {
             w?.Say(Foldy.Core.Localization.Loc.F("sw.qs.tip", g));
+            await HandOverQuickSearchKeyAsync(hwnd, g);
             return;
         }
 
@@ -2366,6 +2490,7 @@ public partial class ShellWindow : Window, IPaneHost
             if (ch.Gesture is null)
             {
                 ShowStatus(Foldy.Core.Localization.Loc.F("sw.qs.hotkeyTaken", g));
+                TurnOffQuickSearchAgent();
                 return;
             }
 
@@ -2373,6 +2498,7 @@ public partial class ShellWindow : Window, IPaneHost
             {
                 _settings = _settings with { QuickSearchGlobal = false };
                 SaveSettings();
+                TurnOffQuickSearchAgent();
                 return;
             }
 
@@ -2393,6 +2519,7 @@ public partial class ShellWindow : Window, IPaneHost
             }
 
             GlobalHotkey.Register(hwnd, GlobalHotkey.QuickSearchId, ch.Gesture);
+            await HandOverQuickSearchKeyAsync(hwnd, ch.Gesture);
             if (own && !w.IsClosed)
             {
                 await w.AskAsync(null, ("ok", Foldy.Core.Localization.Loc.T("sw.okGood")));
@@ -2406,6 +2533,45 @@ public partial class ShellWindow : Window, IPaneHost
                 w.Close();
             }
         }
+    }
+
+    private static string QuickSearchKeyConfigPath => Path.Combine(App.DataDir, Foldy.Platform.SystemInfo.QuickSearchKeyAgent.ConfigFileName);
+
+    private static string QuickSearchKeyExe => Path.Combine(AppContext.BaseDirectory, Foldy.Platform.SystemInfo.QuickSearchKeyAgent.ExeName);
+
+    /// <summary>
+    /// Foldy가 확인한 키를 단축키 도우미에게 넘긴다 (1.11.0): 도우미가 키를 쥐면 Foldy가 꺼져 있어도 찾기 창이 열린다.
+    /// Foldy가 켜져 있을 때도 도우미가 받아 이 Foldy에 "찾기 창 열기"를 보낸다 (둘이 같은 키를 등록할 수 없어서).
+    /// 설정에서 껐거나, Store 판처럼 도우미가 없거나, 도우미가 뜨지 못하면 예전처럼 Foldy가 켜져 있는 동안만 받는다.
+    /// </summary>
+    private async Task HandOverQuickSearchKeyAsync(IntPtr hwnd, string gesture)
+    {
+        var exe = QuickSearchKeyExe;
+        if (!_settings.QuickSearchAlways || Foldy.Platform.SystemInfo.AppPackage.IsPackaged || !File.Exists(exe)
+            || !GlobalHotkey.TryNative(gesture, out var mods, out var vk))
+        {
+            TurnOffQuickSearchAgent();
+            return;
+        }
+
+        GlobalHotkey.Unregister(hwnd, GlobalHotkey.QuickSearchId);
+        if (await Foldy.Platform.SystemInfo.QuickSearchKeyAgent.StartAsync(exe, QuickSearchKeyConfigPath, mods, vk))
+        {
+            Foldy.Platform.SystemInfo.QuickSearchKeyAgent.SetAutostart(exe, on: true);
+            Log.Information("단축키 도우미가 {Gesture}를 받습니다 (Foldy가 꺼져 있어도 찾기 창)", gesture);
+            return;
+        }
+
+        Log.Warning("단축키 도우미가 {Gesture}를 받지 못해 Foldy가 켜져 있는 동안만 받습니다", gesture);
+        GlobalHotkey.Register(hwnd, GlobalHotkey.QuickSearchId, gesture);
+    }
+
+    /// <summary>도우미를 쉬게 한다: 설정 파일에 off를 적어 로그인 때 떠도 바로 끝나게 하고, 사용자 시작 등록을 지운다.</summary>
+    private static void TurnOffQuickSearchAgent()
+    {
+        Foldy.Platform.SystemInfo.QuickSearchKeyAgent.WriteConfig(QuickSearchKeyConfigPath, Foldy.Platform.SystemInfo.QuickSearchKeyAgent.Off);
+        _ = Foldy.Platform.SystemInfo.QuickSearchKeyAgent.StopAsync();
+        Foldy.Platform.SystemInfo.QuickSearchKeyAgent.SetAutostart(QuickSearchKeyExe, on: false);
     }
 
     private void ShowPalette()
@@ -3521,7 +3687,14 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>다른 Foldy가 실행됐다: 이 창을 앞으로 가져오고, 경로 인자가 있으면 활성 패널에 새 탭으로 연다.</summary>
     public void ActivateFromOtherInstance(string[] args)
     {
-        var path = AppOptions.Parse(args).OpenPath;
+        var options = AppOptions.Parse(args);
+        if (options.QuickSearch && options.OpenPath is null)
+        {
+            ShowQuickSearch(); // 단축키 도우미: 주 창은 그대로 두고 찾기 창만
+            return;
+        }
+
+        var path = options.OpenPath;
         if (!string.IsNullOrWhiteSpace(path) && File.Exists(path) && SecureFlows.TryOpen(this, path, Shell))
         {
             path = null; // 탐색기에서 연 잠긴 파일·금고

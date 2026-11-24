@@ -67,7 +67,7 @@ if ($msiFoldy) {
     return
 }
 # 실행 중인 Foldy와 서비스 정지
-Get-Process Foldy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-Process Foldy, foldy-hotkey -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue  # 단축키 도우미는 Foldy를 켜면 다시 뜬다
 if (Get-Service $service -ErrorAction SilentlyContinue) {
     Step '색인 서비스 정지'
     Stop-Service $service -Force -ErrorAction SilentlyContinue

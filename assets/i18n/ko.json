@@ -1427,6 +1427,8 @@
   "set.pressKey": "키를 누르세요…",
   "set.preview": "미리보기",
   "set.preview.sample": "가나다라 마바사 Foldy 설정 Aa 123",
+  "set.qsAlways": "Foldy가 꺼져 있어도 단축키로 찾기 창 열기",
+  "set.qsAlways.hint": "컴퓨터를 켜면 아주 작은 도우미(메모리 약 1MB)가 단축키만 기다려요. 누르면 Foldy 창 없이 찾기 창만 떠요. 처음 한 번은 1~2초 걸리고, 그다음 10분 동안은 바로 떠요.",
   "set.quickFind": "빠른 찾기",
   "set.rebuildable": "지워도 되는 폴더 찾기",
   "set.rebuildable.hint": "기본 목록(node_modules, bin·obj, target, __pycache__, .venv, dist·build, __history, .git 등)에 더할 폴더 이름 (쉼표로 구분)",

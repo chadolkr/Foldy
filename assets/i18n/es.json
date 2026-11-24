@@ -1427,6 +1427,8 @@
   "set.pressKey": "Pulsa una tecla…",
   "set.preview": "Vista previa",
   "set.preview.sample": "Configuración de Foldy Aa 123 ñ á é",
+  "set.qsAlways": "Abrir la ventana de búsqueda con el atajo aunque Foldy esté cerrado",
+  "set.qsAlways.hint": "Al iniciar sesión, un ayudante diminuto (unos 1 MB de memoria) solo espera el atajo. Al pulsarlo se abre solo la ventana de búsqueda, sin la ventana de Foldy. La primera vez tarda 1–2 segundos; durante los 10 minutos siguientes se abre al instante.",
   "set.quickFind": "Búsqueda rápida",
   "set.rebuildable": "Buscar carpetas que se pueden borrar",
   "set.rebuildable.hint": "Nombres de carpeta para añadir a la lista predeterminada (node_modules, bin/obj, target, __pycache__, .venv, dist/build, __history, .git…), separados por comas",

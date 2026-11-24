@@ -1427,6 +1427,8 @@
   "set.pressKey": "Press a key…",
   "set.preview": "Preview",
   "set.preview.sample": "Foldy settings Aa 123 The quick brown fox",
+  "set.qsAlways": "Open the find window with the shortcut even when Foldy is closed",
+  "set.qsAlways.hint": "When you sign in, a tiny helper (about 1 MB of memory) waits only for the shortcut. Press it and just the find window opens, without the Foldy window. The first time takes 1–2 seconds; for the next 10 minutes it opens right away.",
   "set.quickFind": "Quick find",
   "set.rebuildable": "Find folders safe to delete",
   "set.rebuildable.hint": "Folder names to add to the default list (node_modules, bin/obj, target, __pycache__, .venv, dist/build, __history, .git…), separated by commas",

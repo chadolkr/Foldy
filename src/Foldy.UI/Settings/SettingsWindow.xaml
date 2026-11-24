@@ -254,6 +254,8 @@
           <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.versions.on}" IsChecked="{Binding KeepPreviousVersions, Mode=TwoWay}" />
           <TextBlock Text="{loc:T set.versions.hint}" Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="{loc:T set.quickFind}" Style="{StaticResource Settings.Section}" />
+          <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.qsAlways}" IsChecked="{Binding QuickSearchAlways, Mode=TwoWay}" />
+          <TextBlock Text="{loc:T set.qsAlways.hint}" Style="{StaticResource Settings.Hint}" />
           <CheckBox Style="{StaticResource Settings.Check}" Content="{loc:T set.slowCrawl}" IsChecked="{Binding SlowCrawl, Mode=TwoWay}" />
           <TextBlock Text="{loc:T set.slowCrawl.hint}" Style="{StaticResource Settings.Hint}" />
           <TextBlock Text="{loc:T set.crawl.every}" Style="{StaticResource Settings.Label}" />

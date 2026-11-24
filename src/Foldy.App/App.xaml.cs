@@ -214,13 +214,36 @@ public partial class App : Application
         else
         {
             var main = new ShellWindow();
-            main.Show();
+            if (Options.QuickSearch && !Options.BenchShell)
+            {
+                // 단축키 도우미가 띄웠다: 찾기 창만. 주 창은 사용자가 Foldy에서 열기를 고를 때 처음 보인다
+                main.StartForQuickSearch();
+            }
+            else
+            {
+                main.Show();
+            }
+
             if (Options.BenchShell)
             {
                 _ = main.RunBenchAsync(Options);
             }
             _instance?.StartServer(args => Dispatcher.BeginInvoke(() => main.ActivateFromOtherInstance(args)));
-            CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
+            if (!Options.QuickSearch || Options.BenchShell)
+            {
+                CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
+            }
+            else
+            {
+                // 보이지 않는 창은 대화 창의 주인이 될 수 없다: 주 창이 처음 보일 때 묻는다
+                RoutedEventHandler? once = null;
+                once = (_, _) =>
+                {
+                    main.Loaded -= once;
+                    CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
+                };
+                main.Loaded += once;
+            }
         }
     }
 

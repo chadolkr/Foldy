@@ -72,9 +72,12 @@ public sealed class FoldyApp : IDisposable
     {
         try
         {
-            App.Close();
+            App.Close(killIfCloseFails: false);
+            Retry.WhileFalse(() => App.HasExited, TimeSpan.FromSeconds(10), ignoreException: true);
             if (!App.HasExited)
             {
+                // 진단: 닫아도 끝나지 않으면 Foldy 기록 끝부분을 시험 출력에 남긴다
+                Console.WriteLine("Foldy가 닫히지 않음. 기록 끝부분:\n" + LogTail(_data));
                 App.Kill();
             }
         }
@@ -95,6 +98,28 @@ public sealed class FoldyApp : IDisposable
             {
                 Thread.Sleep(500);
             }
+        }
+    }
+
+    /// <summary>데이터 폴더의 Foldy 기록(logs\foldy-*.log) 끝부분.</summary>
+    public static string LogTail(string dataDir, int lines = 40)
+    {
+        try
+        {
+            var dir = Path.Combine(dataDir, "logs");
+            var log = Directory.Exists(dir) ? Directory.GetFiles(dir, "foldy-*.log").OrderBy(f => f).LastOrDefault() : null;
+            if (log is null)
+            {
+                return "(기록 없음)";
+            }
+
+            using var fs = new FileStream(log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var r = new StreamReader(fs);
+            return string.Join('\n', r.ReadToEnd().Split('\n').TakeLast(lines));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return "(기록을 못 읽음: " + ex.Message + ")";
         }
     }
 

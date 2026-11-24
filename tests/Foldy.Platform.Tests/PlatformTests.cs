@@ -213,6 +213,20 @@ public sealed class SingleInstanceTests
         ok.Should().BeFalse();
     }
 
+    /// <summary>
+    /// 단축키 도우미(engine/foldy-hotkey, user_hash 시험)가 같은 파이프 이름을 만들어야 꺼진 줄 알고 Foldy를 또 띄우지 않는다.
+    /// 예전 string.GetHashCode는 프로세스마다 값이 달라 두 번째 Foldy가 첫 Foldy를 못 찾았다.
+    /// </summary>
+    [Fact]
+    public void User_hash_is_stable_and_matches_the_helper()
+    {
+        SingleInstance.UserHash("david").Should().Be(0x73d6ce3du);
+        SingleInstance.UserHash("DAVID").Should().Be(0x73d6ce3du);
+        SingleInstance.UserHash("차선생").Should().Be(0x8ffa604bu);
+        using var me = SingleInstance.Acquire(Key());
+        me.PipeName.Should().EndWith("." + SingleInstance.UserHash(Environment.UserName).ToString("x8", System.Globalization.CultureInfo.InvariantCulture) + ".activate");
+    }
+
     [Fact]
     public async Task Released_after_dispose()
     {
@@ -226,6 +240,22 @@ public sealed class SingleInstanceTests
             return next.IsFirst;
         })).Should().BeTrue();
     }
+}
+
+/// <summary>단축키 도우미(foldy-hotkey.exe)에 건네는 값: 도우미 parse_config 시험과 같은 형식.</summary>
+public class QuickSearchKeyAgentFormatTests
+{
+    [Fact]
+    public void Key_line_is_modifier_bits_and_virtual_key()
+    {
+        QuickSearchKeyAgent.FormatKey(0x2, 0x20).Should().Be("2 32", "Ctrl+Space");
+        QuickSearchKeyAgent.FormatKey(0x2 | 0x4, 0x46).Should().Be("6 70", "Ctrl+Shift+F");
+        QuickSearchKeyAgent.Off.Should().Be("off");
+    }
+
+    [Fact]
+    public void Run_command_survives_spaces_in_the_path() =>
+        QuickSearchKeyAgent.RunCommand(@"C:\Program Files\Foldy\foldy-hotkey.exe").Should().Be(@"""C:\Program Files\Foldy\foldy-hotkey.exe""");
 }
 
 public class RecycleBinTests
