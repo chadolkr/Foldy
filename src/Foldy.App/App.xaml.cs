@@ -120,6 +120,7 @@ public partial class App : Application
             System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         }
         Foldy.UI.Controls.FileListView.LightweightAutomation = !Options.FullAutomation;
+        Diagnostics.CutTextReport.StartIfAsked(Dispatcher); // 시험: 잘린 화면 글 찾기 (FOLDY_CUT_TEXT_REPORT)
 
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.ControlledBy(Diagnostics.DiagnosticMode.Level)
