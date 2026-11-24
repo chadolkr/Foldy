@@ -64,6 +64,17 @@ B7 = [
     ("dc.docker", "Docker 빌드 캐시", "Docker build cache", "Caché de compilación de Docker", "Docker ビルド キャッシュ", "Docker 构建缓存"),
     ("dc.docker.x", "다음 docker build 때 다시 만들어요. 이미지·컨테이너·볼륨은 건드리지 않아요.", "Rebuilt on the next docker build. Images, containers and volumes aren't touched.", "Se regenera en el próximo docker build. No toca imágenes, contenedores ni volúmenes.", "次の docker build でまた作られます。イメージ・コンテナー・ボリュームには触れません。", "下次 docker build 时重新生成。不会动镜像、容器和卷。"),
     ("dc.docker.w", "Docker Desktop이 켜져 있어야 해요.", "Docker Desktop needs to be running.", "Docker Desktop debe estar en ejecución.", "Docker Desktop が起動している必要があります。", "需要先启动 Docker Desktop。"),
+    # DevCaches 1.10.0 (2026-11-24 사용자 "안전한 것만 적용하자")
+    ("dc.go", "Go 빌드 캐시", "Go build cache", "Caché de compilación de Go", "Go ビルド キャッシュ", "Go 构建缓存"),
+    ("dc.go.x", "다음 go build 때 다시 만들어요. 받아 둔 모듈은 건드리지 않아요.", "Rebuilt on the next go build. Downloaded modules aren't touched.", "Se regenera en el próximo go build. No toca los módulos descargados.", "次の go build でまた作られます。ダウンロード済みのモジュールには触れません。", "下次 go build 时重新生成。不会动已下载的模块。"),
+    ("dc.uv", "uv 캐시", "uv cache", "Caché de uv", "uv キャッシュ", "uv 缓存"),
+    ("dc.uv.x", "uv로 설치할 때 다시 받아요. 만들어 둔 가상 환경과 uv 도구는 그대로예요.", "Downloaded again when uv installs. Existing virtual environments and uv tools stay as they are.", "Se vuelve a descargar cuando uv instala. Los entornos virtuales y las herramientas de uv se quedan como están.", "uv でインストールするときにまたダウンロードされます。作った仮想環境と uv のツールはそのままです。", "用 uv 安装时会重新下载。已建的虚拟环境和 uv 工具保持不变。"),
+    ("dc.conda", "conda 받아 둔 압축 파일", "conda downloaded archives", "Archivos descargados de conda", "conda のダウンロード済み圧縮ファイル", "conda 已下载的压缩包"),
+    ("dc.conda.x", "패키지를 받을 때 쓴 압축 파일과 목록 캐시만 지워요. 환경과 설치된 패키지는 그대로예요.", "Removes only the archives downloaded for packages and the index cache. Environments and installed packages stay as they are.", "Solo elimina los archivos descargados de los paquetes y la caché de índices. Los entornos y los paquetes instalados se quedan como están.", "パッケージを受け取るときに使った圧縮ファイルと一覧のキャッシュだけ消します。環境とインストール済みのパッケージはそのままです。", "只删除下载包时用的压缩包和索引缓存。环境和已安装的包保持不变。"),
+    ("dc.bun", "Bun 캐시", "Bun cache", "Caché de Bun", "Bun キャッシュ", "Bun 缓存"),
+    ("dc.bun.x", "bun install 할 때 다시 받아요.", "Downloaded again on bun install.", "Se vuelve a descargar con bun install.", "bun install のときにまたダウンロードされます。", "bun install 时会重新下载。"),
+    ("dc.composer", "Composer 캐시", "Composer cache", "Caché de Composer", "Composer キャッシュ", "Composer 缓存"),
+    ("dc.composer.x", "composer install 할 때 다시 받아요.", "Downloaded again on composer install.", "Se vuelve a descargar con composer install.", "composer install のときにまたダウンロードされます。", "composer install 时会重新下载。"),
     # OrganizePlanner
     ("op.projectFolder", "프로젝트 폴더 — 통째로 그대로 둠", "Project folder — left as a whole", "Carpeta de proyecto — se deja entera", "プロジェクト フォルダー — まるごとそのまま", "项目文件夹 — 整体保持不变"),
     ("op.folderRuleOnly", "폴더는 규칙에 맞을 때만 옮김", "Folders move only when a rule matches", "Las carpetas solo se mueven si coincide una regla", "フォルダーはルールに合うときだけ移します", "文件夹仅在符合规则时移动"),
@@ -92,6 +103,14 @@ B7 = [
     ("rb.custom", "직접 더한 이름이에요", "A name you added yourself", "Un nombre que añadiste tú", "自分で追加した名前です", "你自己添加的名称"),
     ("rb.gitWarn", "지우면 Git 기록(커밋·브랜치)이 없어져요. 다른 곳에 원본이 있을 때만 지우세요", "Deleting it removes Git history (commits, branches). Delete only if the original exists elsewhere", "Borrarlo elimina el historial de Git (commits, ramas). Bórralo solo si el original existe en otro sitio", "消すと Git の履歴 (コミット・ブランチ) がなくなります。元がほかにあるときだけ消してください", "删除后 Git 记录（提交、分支）会消失。只有在别处有原件时才删除"),
     ("rb.gitRecent", "{0}일 전에도 쓴 Git 기록이에요. 지금 쓰는 프로젝트라면 지우지 마세요", "This Git history was used {0} days ago. Don't delete it if you're still working on the project", "Este historial de Git se usó hace {0} días. No lo borres si sigues trabajando en el proyecto", "{0} 日前にも使った Git の履歴です。いま使っているプロジェクトなら消さないでください", "这是 {0} 天前还用过的 Git 记录。如果是正在进行的项目请不要删除"),
+    # RebuildableFolders 1.10.0
+    ("rb.jsCache", "다음 빌드 때 다시 만들어요 (웹 프레임워크 캐시)", "Rebuilt on the next build (web framework cache)", "Se regenera en la próxima compilación (caché del framework web)", "次のビルドでまた作られます (Web フレームワークのキャッシュ)", "下次构建时重新生成（Web 框架缓存）"),
+    ("rb.pyTool", "파이썬 검사 도구가 다시 만들어요 (캐시)", "Python check tools recreate it (cache)", "Las herramientas de comprobación de Python lo recrean (caché)", "Python のチェック ツールがまた作ります (キャッシュ)", "Python 检查工具会重新生成（缓存）"),
+    ("rb.pyTest", "시험 도구(tox·nox)가 다시 만들어요", "The test tool (tox, nox) recreates it", "La herramienta de pruebas (tox, nox) lo recrea", "テスト ツール (tox・nox) がまた作ります", "测试工具（tox、nox）会重新生成"),
+    ("rb.unity", "Unity가 프로젝트를 열 때 다시 만들어요 (처음 한 번 오래 걸려요)", "Unity recreates it when you open the project (takes a while once)", "Unity lo recrea al abrir el proyecto (tarda un rato la primera vez)", "Unity がプロジェクトを開くときにまた作ります (最初の 1 回は時間がかかります)", "Unity 打开项目时会重新生成（第一次会慢一些）"),
+    ("rb.unreal", "Unreal이 다시 만들어요 (처음 한 번 오래 걸려요)", "Unreal recreates it (takes a while once)", "Unreal lo recrea (tarda un rato la primera vez)", "Unreal がまた作ります (最初の 1 回は時間がかかります)", "Unreal 会重新生成（第一次会慢一些）"),
+    ("rb.dart", "flutter pub get 하면 다시 생겨요", "Comes back with flutter pub get", "Vuelve con flutter pub get", "flutter pub get すると戻ります", "flutter pub get 后会重新生成"),
+    ("rb.pixi", "pixi install 하면 다시 생겨요", "Comes back with pixi install", "Vuelve con pixi install", "pixi install すると戻ります", "pixi install 后会重新生成"),
     # AnalysisText (종류)
     ("at.noExt", "확장자 없음", "No extension", "Sin extensión", "拡張子なし", "无扩展名"),
     ("at.other", "기타", "Other", "Otros", "その他", "其他"),

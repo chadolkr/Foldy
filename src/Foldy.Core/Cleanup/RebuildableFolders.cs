@@ -1,12 +1,13 @@
 using System.IO.Enumeration;
+using Foldy.Core.Localization;
 
 namespace Foldy.Core.Cleanup;
 
 /// <summary>지워도 되는 폴더 한 종류: 이름, 그 폴더가 맞는지 확인하는 방법, 왜 지워도 되는지.</summary>
 /// <param name="Name">폴더 이름 (대소문자 무시).</param>
 /// <param name="Why">사용자에게 보여 줄 한 줄 (다시 만드는 방법).</param>
-/// <param name="Markers">옆(같은 부모 폴더)에 이 중 하나가 있어야 맞다고 본다. 비면 이름만으로.</param>
-/// <param name="Inside">그 폴더 안에 이 파일이 있어야 맞다고 본다 (예: .venv의 pyvenv.cfg). null이면 보지 않는다.</param>
+/// <param name="Markers">옆(같은 부모 폴더)에 이 중 하나가 있어야 맞다고 본다 (파일 또는 폴더 이름, 예: Unity의 ProjectSettings 폴더). 비면 이름만으로.</param>
+/// <param name="Inside">그 폴더 안에 이 파일(또는 폴더)이 있어야 맞다고 본다 (예: .venv의 pyvenv.cfg, Unity Library의 ArtifactDB). null이면 보지 않는다.</param>
 /// <param name="CanRebuild">다시 만들 수 있나. 아니면(.git) 기본으로 고르지 않고 경고한다.</param>
 public sealed record RebuildableKind(string Name, string Why, IReadOnlyList<string> Markers, string? Inside = null, bool CanRebuild = true);
 
@@ -32,22 +33,62 @@ public static class RebuildableFolders
 {
     private static readonly string[] DotNet = ["*.csproj", "*.vbproj", "*.fsproj", "*.sln", "*.slnx"];
     private static readonly string[] Js = ["package.json"];
+    private static readonly string[] Gradle = ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"];
+    private static readonly string[] Unreal = ["*.uproject"];
 
-    /// <summary>기본 종류 (이름 순서는 화면에 보이는 순서).</summary>
+    private static RebuildableKind K(string name, string why, IReadOnlyList<string> markers, string? inside = null) => new(name, why, markers, inside);
+
+    /// <summary>
+    /// 기본 종류 (이름 순서는 화면에 보이는 순서). 1.10.0(2026-11-24 사용자 "안전한 것만 적용하자")에 더한 것은
+    /// 그 도구가 스스로 다시 만든다고 문서에 적힌 폴더만, 그 도구의 프로젝트 파일이 옆에 있을 때만 찾는다
+    /// (kondo·npkill이 지우는 목록과 같거나 더 좁게: Unreal Saved·Binaries, Composer vendor, Godot .godot 등 애매한 것은 뺐다).
+    /// </summary>
     public static readonly IReadOnlyList<RebuildableKind> Defaults =
     [
-        new("node_modules", Foldy.Core.Localization.Loc.T("rb.npm"), Js),
-        new("bin", Foldy.Core.Localization.Loc.T("rb.dotnet"), DotNet),
-        new("obj", Foldy.Core.Localization.Loc.T("rb.dotnet"), DotNet),
-        new("target", Foldy.Core.Localization.Loc.T("rb.rustJava"), ["Cargo.toml", "pom.xml"]),
-        new("__pycache__", Foldy.Core.Localization.Loc.T("rb.pycache"), []),
-        new(".venv", Foldy.Core.Localization.Loc.T("rb.venv"), [], "pyvenv.cfg"),
-        new("venv", Foldy.Core.Localization.Loc.T("rb.venv"), [], "pyvenv.cfg"),
-        new("dist", Foldy.Core.Localization.Loc.T("rb.build"), ["package.json", "pyproject.toml", "setup.py"]),
-        new("build", Foldy.Core.Localization.Loc.T("rb.build"), ["package.json", "build.gradle", "build.gradle.kts", "CMakeLists.txt", "pyproject.toml", "setup.py"]),
-        new(".gradle", Foldy.Core.Localization.Loc.T("rb.gradle"), ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"]),
-        new("__history", Foldy.Core.Localization.Loc.T("rb.history"), []),
-        new("__recovery", Foldy.Core.Localization.Loc.T("rb.recovery"), []),
+        K("node_modules", Loc.T("rb.npm"), Js),
+        K("bin", Loc.T("rb.dotnet"), DotNet),
+        K("obj", Loc.T("rb.dotnet"), DotNet),
+        K("target", Loc.T("rb.rustJava"), ["Cargo.toml", "pom.xml", "build.sbt"]),
+        K("__pycache__", Loc.T("rb.pycache"), []),
+        K(".venv", Loc.T("rb.venv"), [], "pyvenv.cfg"),
+        K("venv", Loc.T("rb.venv"), [], "pyvenv.cfg"),
+        K("dist", Loc.T("rb.build"), ["package.json", "pyproject.toml", "setup.py"]),
+        K("build", Loc.T("rb.build"), ["package.json", "build.gradle", "build.gradle.kts", "CMakeLists.txt", "pyproject.toml", "setup.py", "pubspec.yaml"]),
+        K(".gradle", Loc.T("rb.gradle"), Gradle),
+
+        // 1.10.0: 웹 프레임워크·파이썬 도구 캐시 (폴더 분석 규칙에는 있었는데 여기 없던 것). .vs는 중단점·책갈피가 들어 있어 뺐다
+        K(".next", Loc.T("rb.jsCache"), Js),
+        K(".nuxt", Loc.T("rb.jsCache"), Js),
+        K(".svelte-kit", Loc.T("rb.jsCache"), Js),
+        K(".angular", Loc.T("rb.jsCache"), Js),
+        K(".parcel-cache", Loc.T("rb.jsCache"), Js),
+        K(".turbo", Loc.T("rb.jsCache"), ["package.json", "turbo.json"]),
+        K(".pytest_cache", Loc.T("rb.pyTool"), []),
+        K(".mypy_cache", Loc.T("rb.pyTool"), []),
+        K(".ruff_cache", Loc.T("rb.pyTool"), []),
+        K(".tox", Loc.T("rb.pyTest"), ["tox.ini", "pyproject.toml", "setup.cfg"]),
+        K(".nox", Loc.T("rb.pyTest"), ["noxfile.py"]),
+
+        // 1.10.0: 게임 엔진 (다시 열 때 처음 한 번 오래 걸린다)
+        K("Library", Loc.T("rb.unity"), ["ProjectSettings"], "ArtifactDB"),
+        K("Intermediate", Loc.T("rb.unreal"), Unreal),
+        K("DerivedDataCache", Loc.T("rb.unreal"), Unreal),
+
+        // 1.10.0: 다른 언어·빌드 도구의 빌드 출력
+        K(".dart_tool", Loc.T("rb.dart"), ["pubspec.yaml"]),
+        K("cmake-build-debug", Loc.T("rb.build"), ["CMakeLists.txt"]),
+        K("cmake-build-release", Loc.T("rb.build"), ["CMakeLists.txt"]),
+        K(".cxx", Loc.T("rb.build"), Gradle),
+        K(".stack-work", Loc.T("rb.build"), ["stack.yaml"]),
+        K("dist-newstyle", Loc.T("rb.build"), ["cabal.project", "*.cabal"]),
+        K("_build", Loc.T("rb.build"), ["mix.exs"]),
+        K(".build", Loc.T("rb.build"), ["Package.swift"]),
+        K(".zig-cache", Loc.T("rb.build"), ["build.zig"]),
+        K("zig-cache", Loc.T("rb.build"), ["build.zig"]),
+        K(".pixi", Loc.T("rb.pixi"), ["pixi.toml"]),
+
+        K("__history", Loc.T("rb.history"), []),
+        K("__recovery", Loc.T("rb.recovery"), []),
         new(".git", Foldy.Core.Localization.Loc.T("rb.git"), [], "HEAD", CanRebuild: false),
     ];
 
@@ -122,12 +163,12 @@ public static class RebuildableFolders
         return (dirs, files);
     }
 
-    /// <summary>옆 파일 목록(이미 읽은 것)으로 그 이름의 폴더가 정말 찌꺼기인지 본다. 안의 표시 파일만 디스크에 묻는다.</summary>
-    private static bool Matches(List<string> siblingFiles, string path, RebuildableKind kind)
+    /// <summary>옆 목록(이미 읽은 파일·폴더 이름)으로 그 이름의 폴더가 정말 찌꺼기인지 본다. 안의 표시만 디스크에 묻는다.</summary>
+    private static bool Matches(List<string> siblingFiles, List<(string Path, string Name, FileAttributes Attr)> siblingDirs, string path, RebuildableKind kind)
     {
         try
         {
-            if (kind.Inside is { } inside && !File.Exists(Path.Combine(path, inside)))
+            if (kind.Inside is { } inside && !Path.Exists(Path.Combine(path, inside)))
             {
                 return false;
             }
@@ -137,9 +178,11 @@ public static class RebuildableFolders
             return false;
         }
 
-        return kind.Markers.Count == 0 || kind.Markers.Any(m => m.Contains('*', StringComparison.Ordinal)
-            ? siblingFiles.Exists(f => FileSystemName.MatchesSimpleExpression(m, f, ignoreCase: true))
-            : siblingFiles.Exists(f => string.Equals(f, m, StringComparison.OrdinalIgnoreCase)));
+        bool Is(string m, string n) => m.Contains('*', StringComparison.Ordinal)
+            ? FileSystemName.MatchesSimpleExpression(m, n, ignoreCase: true)
+            : string.Equals(n, m, StringComparison.OrdinalIgnoreCase);
+
+        return kind.Markers.Count == 0 || kind.Markers.Any(m => siblingFiles.Exists(f => Is(m, f)) || siblingDirs.Exists(d => Is(m, d.Name)));
     }
 
     /// <summary>여러 스레드가 함께 쓰는 폴더 줄 (OrganizeScanner.Walker와 같은 방식).</summary>
@@ -235,7 +278,7 @@ public static class RebuildableFolders
             foreach (var (path, name, attr) in dirs)
             {
                 ct.ThrowIfCancellationRequested();
-                if (byName.TryGetValue(name, out var kind) && Matches(files, path, kind))
+                if (byName.TryGetValue(name, out var kind) && Matches(files, dirs, path, kind))
                 {
                     counter.Look(path);
                     var f = Describe(path, kind, nowUtc, sizeOf, ct);
@@ -263,14 +306,14 @@ public static class RebuildableFolders
     {
         try
         {
-            if (kind.Inside is { } inside && !File.Exists(Path.Combine(path, inside)))
+            if (kind.Inside is { } inside && !Path.Exists(Path.Combine(path, inside)))
             {
                 return false;
             }
 
             return kind.Markers.Count == 0 || kind.Markers.Any(m => m.Contains('*', StringComparison.Ordinal)
-                ? Directory.EnumerateFiles(parent, m).Any()
-                : File.Exists(Path.Combine(parent, m)));
+                ? Directory.EnumerateFileSystemEntries(parent, m).Any()
+                : Path.Exists(Path.Combine(parent, m)));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

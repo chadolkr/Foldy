@@ -1,6 +1,14 @@
 # 변경 기록
 
 ## 1.10.0
+- **지워도 되는 폴더를 더 많이 찾아요.** 정리하기 → 지워도 되는 폴더 찾기가 이제 이런 것도 찾아요. 모두 그 프로그램이 스스로 다시 만드는 폴더이고, 그 프로그램의 프로젝트 파일이 옆에 있을 때만 골라요.
+  - 게임 엔진: Unity의 `Library`(옆에 `ProjectSettings` 폴더, 안에 Unity가 만드는 파일이 있을 때만), Unreal의 `Intermediate`·`DerivedDataCache`(옆에 `.uproject`). 설정과 자동 저장이 든 Unreal `Saved`는 건드리지 않아요. 다음에 열 때 처음 한 번 오래 걸린다고 알려 줘요.
+  - 웹 프레임워크 캐시 `.next`·`.nuxt`·`.svelte-kit`·`.angular`·`.parcel-cache`·`.turbo`(옆에 `package.json`)
+  - 파이썬 도구 캐시 `.pytest_cache`·`.mypy_cache`·`.ruff_cache`, 시험 환경 `.tox`·`.nox`
+  - Flutter의 `.dart_tool`·`build`(옆에 `pubspec.yaml`), CLion의 `cmake-build-debug`·`cmake-build-release`, Android NDK `.cxx`, Haskell `.stack-work`·`dist-newstyle`, Elixir `_build`, Swift `.build`, Zig `.zig-cache`, Scala `target`, pixi `.pixi`
+- **개발 캐시 정리에 도구가 늘었어요.** Go 빌드 캐시(`go clean -cache`, 받아 둔 모듈은 그대로), uv 캐시(`uv cache clean`), conda가 받아 둔 압축 파일(`conda clean --tarballs --index-cache`, 설치된 패키지·환경은 그대로), Bun 캐시(`bun pm cache rm`), Composer 캐시(`composer clear-cache`). 예전처럼 각 도구의 공식 명령만 실행해요.
+- **공간 늘리기·폴더 분석의 정리 후보가 늘었어요.** 위 게임 엔진·빌드 폴더, 웨일·Brave·Firefox 브라우저 캐시, Premiere Pro·After Effects 미디어 캐시, Go·uv·Bun·Composer 캐시, 다운로드 폴더에서 14일 넘게 멈춰 있는 다 받지 못한 파일(`.crdownload`, `.part`). 예전처럼 휴지통으로만 보내요.
+- 일부러 넣지 않은 것: Visual Studio `.vs`(중단점·책갈피가 들어 있음, 폴더 분석 설명에도 이 점을 적었어요), Godot `.godot`(지우면 설정이 사라졌다는 보고가 있음), Composer `vendor`(저장소에 넣어 두는 프로젝트가 있음), Unreal `Saved`·`Binaries`, Terraform `.terraform`, Jupyter `.ipynb_checkpoints`(예전 저장본), Teams·카카오톡 캐시(받은 파일·설정이 섞임), Windows 업데이트 찌꺼기·Windows.old(Windows의 저장소 설정으로 정리하는 게 안전함).
 - **템플릿이 6가지 늘었어요 (13 → 19가지).** 템플릿으로 폴더 만들기에, 공식 설명이 있고 널리 알려진 폴더링 방식을 더했어요. 모두 다섯 언어로 폴더 이름·사용법이 나오고, 사용법 맨 아래에 원래 설명이 있는 곳(출처)을 적었어요.
   - **GTD (Getting Things Done)**: 받은 것 → 다음 할 일·프로젝트·기다리는 중·언젠가·참고 자료. 데이비드 앨런의 일 정리법이에요.
   - **ACE (Atlas·Calendar·Efforts)**: 알게 된 것·날짜가 있는 기록·하고 있는 일, 세 칸이에요. 닉 밀로의 Linking Your Thinking 방식이에요.

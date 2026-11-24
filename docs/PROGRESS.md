@@ -2,6 +2,7 @@
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
+- 2026-11-24 (1.10.0 준비): 지워도 되는 폴더 찾기·개발 캐시 정리·폴더 분석 규칙에 "확실히 다시 만들 수 있는 것"만 더함(Unity Library·Unreal Intermediate/DerivedDataCache·웹 캐시·파이썬 도구 캐시·Flutter·CMake 등, Go·uv·conda(압축 파일만)·Bun·Composer 공식 명령, 웨일·Brave·Firefox·Adobe 미디어 캐시, 덜 받은 다운로드). 옆 표시는 폴더 이름도 봄(Unity ProjectSettings). DECISIONS.md 같은 날짜 항목.
 - 2026-11-24 (1.10.0 준비): 잘 알려진 폴더링 템플릿 6가지 더함(gtd, ace, records-classification, tier-protocol, cookiecutter-data-science, bids → 내장 19가지). 번역 build/i18n/templates_tr4.py, 사용법 5개 언어, 위저드 study-kind 질문. DECISIONS.md 같은 날짜 항목.
 - 2026-11-24 (1.9.2 준비): 지워도 되는 폴더 찾기 진행 표시(살펴본 폴더 수·찾은 수와 크기·지금 보는 곳·찾은 것 바로 보이기)와 [그만 찾기](찾은 것까지로 고르기), 끝나면 안내 사라짐. Scan은 폴더마다 한 번만 읽고 동시에 읽기(로컬 4·네트워크 1), RebuildableScanCounter·onFound. DECISIONS.md 같은 날짜 항목.
 - 2026-11-24 (1.9.1 준비): 색인 서비스가 다시 시작되면 앱이 스스로 다시 연결(IndexerConnection: Disconnected 감지, 0.5초~30초 간격, 상태 줄 안내 6초 뒤 사라짐). 벤치마크 중 발견(readme 8,076개 대신 576개). Interop 시험 IndexerReconnectTests. DECISIONS.md 같은 날짜 항목.
