@@ -15,6 +15,9 @@
   - Flutter의 `.dart_tool`·`build`(옆에 `pubspec.yaml`), CLion의 `cmake-build-debug`·`cmake-build-release`, Android NDK `.cxx`, Haskell `.stack-work`·`dist-newstyle`, Elixir `_build`, Swift `.build`, Zig `.zig-cache`, Scala `target`, pixi `.pixi`
 - **개발 캐시 정리에 도구가 늘었어요.** Go 빌드 캐시(`go clean -cache`, 받아 둔 모듈은 그대로), uv 캐시(`uv cache clean`), conda가 받아 둔 압축 파일(`conda clean --tarballs --index-cache`, 설치된 패키지·환경은 그대로), Bun 캐시(`bun pm cache rm`), Composer 캐시(`composer clear-cache`). 예전처럼 각 도구의 공식 명령만 실행해요.
 - **공간 늘리기·폴더 분석의 정리 후보가 늘었어요.** 위 게임 엔진·빌드 폴더, 웨일·Brave·Firefox 브라우저 캐시, Premiere Pro·After Effects 미디어 캐시, Go·uv·Bun·Composer 캐시, 다운로드 폴더에서 14일 넘게 멈춰 있는 다 받지 못한 파일(`.crdownload`, `.part`). 예전처럼 휴지통으로만 보내요.
+- **탐색기처럼 이름을 바꿀 수 있어요.** 이미 선택된 파일이나 폴더의 이름을 한 번 더 천천히 누르면 이름 입력 칸이 열려요. 두 번 빠르게 누르면 예전처럼 열려요. 다른 곳을 보다가 처음 누른 클릭, Ctrl·Shift를 누른 클릭, 여러 개를 고른 상태에서는 열리지 않아요.
+- **이름 바꾸기·새 폴더·지우기·옮기기가 목록에 바로 보여요.** 회사 보안 드라이브(K:)나 네트워크 드라이브에서 F2로 이름을 바꾸면 한동안 옛 이름이 보여 새로 고침을 눌러야 했어요. 이제 Foldy가 직접 한 일은 드라이브가 알려 주기를 기다리지 않고 목록을 바로 고쳐요. 드라이브가 잠깐 옛 목록을 돌려줘도 30초 동안은 바꾼 대로 보여요. 같은 폴더를 연 다른 쪽 패널과 탭도 같이 바뀌어요.
+- 이름을 입력하는 중에 목록이 새로 고쳐져도 입력 칸이 사라지지 않아요.
 - 일부러 넣지 않은 것: Visual Studio `.vs`(중단점·책갈피가 들어 있음, 폴더 분석 설명에도 이 점을 적었어요), Godot `.godot`(지우면 설정이 사라졌다는 보고가 있음), Composer `vendor`(저장소에 넣어 두는 프로젝트가 있음), Unreal `Saved`·`Binaries`, Terraform `.terraform`, Jupyter `.ipynb_checkpoints`(예전 저장본), Teams·카카오톡 캐시(받은 파일·설정이 섞임), Windows 업데이트 찌꺼기·Windows.old(Windows의 저장소 설정으로 정리하는 게 안전함).
 - **템플릿이 6가지 늘었어요 (13 → 19가지).** 템플릿으로 폴더 만들기에, 공식 설명이 있고 널리 알려진 폴더링 방식을 더했어요. 모두 다섯 언어로 폴더 이름·사용법이 나오고, 사용법 맨 아래에 원래 설명이 있는 곳(출처)을 적었어요.
   - **GTD (Getting Things Done)**: 받은 것 → 다음 할 일·프로젝트·기다리는 중·언젠가·참고 자료. 데이비드 앨런의 일 정리법이에요.

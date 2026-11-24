@@ -317,6 +317,7 @@ public sealed partial class ShellViewModel : ObservableObject
             ? await _services.FileOps.MoveAsync(src, dest, job, job.Token)
             : await _services.FileOps.CopyAsync(src, dest, job, job.Token);
         FinishJob(job, r, src);
+        await ReflectTransferAsync(src, dest, move);
         await RefreshFoldersAsync([dest, .. src.Select(s => PathUtil.Parent(s) ?? s)]);
     }
 
@@ -331,6 +332,7 @@ public sealed partial class ShellViewModel : ObservableObject
         var job = StartJob(Foldy.Core.Localization.Loc.F("ops.job.recycle", JobViewModel.Describe(paths)), Mascot.JobKind.Delete);
         var r = await _services.FileOps.DeleteAsync(paths, recycle: true, job, job.Token);
         FinishJob(job, r, paths);
+        await ReflectGoneAsync(paths);
         await RefreshFoldersAsync(paths.Select(s => PathUtil.Parent(s) ?? s));
         return r.Succeeded;
     }
@@ -346,6 +348,7 @@ public sealed partial class ShellViewModel : ObservableObject
         var job = StartJob(Foldy.Core.Localization.Loc.F("ops.job.deletePermanent", JobViewModel.Describe(paths)), Mascot.JobKind.DeletePermanent);
         var r = await _services.FileOps.DeleteAsync(paths, recycle: false, job, job.Token);
         FinishJob(job, r, paths);
+        await ReflectGoneAsync(paths);
         await RefreshFoldersAsync(paths.Select(s => PathUtil.Parent(s) ?? s));
         return r.Succeeded;
     }
@@ -414,6 +417,7 @@ public sealed partial class ShellViewModel : ObservableObject
         var job = StartJob($"{JobViewModel.Describe(src)} {(permanent ? Foldy.Core.Localization.Loc.T("cmd.deletePermanent") : Foldy.Core.Localization.Loc.T("ops.toRecycle"))}", permanent ? Mascot.JobKind.DeletePermanent : Mascot.JobKind.Delete);
         var r = await _services.FileOps.DeleteAsync(src, recycle: !permanent, job, job.Token);
         FinishJob(job, r, src);
+        await ReflectGoneAsync(src);
         await RefreshFoldersAsync(src.Select(s => PathUtil.Parent(s) ?? s));
     }
 
@@ -447,6 +451,7 @@ public sealed partial class ShellViewModel : ObservableObject
             Status = Foldy.Core.Localization.Loc.F("ops.deleteStopped", res.DeletedFiles);
         }
 
+        await ReflectGoneAsync(src);
         await RefreshFoldersAsync(src.Select(s => PathUtil.Parent(s) ?? s));
     }
 
@@ -471,8 +476,15 @@ public sealed partial class ShellViewModel : ObservableObject
             return false;
         }
 
-        Foldy.Core.Tags.FileTags.Moved(item.FullPath, Path.Combine(Path.GetDirectoryName(item.FullPath) ?? "", newName));
-        await RefreshFoldersAsync([tab.Path], focus: newName);
+        var newPath = PathUtil.IsSftp(item.FullPath)
+            ? item.FullPath[..(item.FullPath.LastIndexOf('/') + 1)] + newName
+            : Path.Combine(Path.GetDirectoryName(item.FullPath) ?? "", newName);
+        Foldy.Core.Tags.FileTags.Moved(item.FullPath, newPath);
+
+        // 드라이브 알림·새로 고침을 기다리지 않고 목록을 바로 고친다 (느린 드라이브는 새로 고침해도 한동안 옛 이름을 돌려준다, 2026-11-24)
+        var renamed = item.Entry with { Name = newName, Path = item.Entry.Path with { Value = newPath } };
+        ReflectLocal(tab.Path, [item.Name], [renamed], tab, newName);
+        _ = RefreshFoldersAsync([tab.Path]);
         return true;
     }
 
@@ -486,9 +498,93 @@ public sealed partial class ShellViewModel : ObservableObject
             return null;
         }
 
-        var created = r.CreatedPath is null ? name : Path.GetFileName(r.CreatedPath);
-        await RefreshFoldersAsync([tab.Path], focus: created);
+        var created = r.CreatedPath is null ? name : PathUtil.DisplayName(r.CreatedPath);
+        var full = r.CreatedPath ?? (PathUtil.IsSftp(tab.Path) ? tab.Path.TrimEnd('/') + "/" + created : Path.Combine(tab.Path, created));
+        var now = DateTime.UtcNow;
+        var entry = new FsEntry(created, PathUtil.IsSftp(full) ? new FsPath(ProviderId.Sftp, full) : FsPath.Local(full), FsKind.Folder, 0, null, now, now, FileAttributes.Directory, null);
+        ReflectLocal(tab.Path, [], [entry], tab, created);
+        _ = RefreshFoldersAsync([tab.Path]);
         return created;
+    }
+
+    // ───────────── Foldy가 한 바꾸기를 목록에 바로 (드라이브 알림을 기다리지 않는다) ─────────────
+
+    /// <summary>그 폴더를 보여 주는 모든 폴더 탭 (양쪽 패널, 안 보이는 탭 포함).</summary>
+    private IEnumerable<FolderTabViewModel> TabsAt(string folder)
+    {
+        var key = PathUtil.Normalize(folder) ?? folder;
+        return new[] { Left, Right }.SelectMany(p => p.Tabs).OfType<FolderTabViewModel>()
+            .Where(t => string.Equals(t.Path, key, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void ReflectLocal(string folder, IReadOnlyList<string> gone, IReadOnlyList<FsEntry> added, FolderTabViewModel? focusTab = null, string? focus = null)
+    {
+        foreach (var t in TabsAt(folder).ToList())
+        {
+            t.ApplyLocalChanges(gone, added, ReferenceEquals(t, focusTab) ? focus : null);
+        }
+    }
+
+    /// <summary>한 번에 바로 반영하는 최대 개수 (그 이상은 평소처럼 새로 고침만).</summary>
+    private const int MaxReflect = 200; // 느린 드라이브에서 하나씩 묻는 시간이 길어지지 않게
+
+    /// <summary>지우기·옮기기 뒤: 실제로 없어진 것만 목록에서 바로 뺀다 (일부만 실패하거나 멈췄을 수 있다).</summary>
+    private async Task ReflectGoneAsync(IReadOnlyList<string> paths)
+    {
+        var local = paths.Where(p => !PathUtil.IsSftp(p)).Take(MaxReflect).ToArray();
+        if (local.Length == 0)
+        {
+            return;
+        }
+
+        var gone = await Task.Run(() => local.Where(p => !File.Exists(p) && !Directory.Exists(p)).ToArray());
+        foreach (var g in gone.GroupBy(p => PathUtil.Parent(p) ?? p, StringComparer.OrdinalIgnoreCase))
+        {
+            ReflectLocal(g.Key, [.. g.Select(PathUtil.DisplayName)], []);
+        }
+    }
+
+    /// <summary>복사·이동 뒤: 받는 폴더에 생긴 것을 넣고, 이동이면 보낸 폴더에서 뺀다.</summary>
+    private async Task ReflectTransferAsync(IReadOnlyList<string> src, string dest, bool move)
+    {
+        if (PathUtil.IsSftp(dest) || src.Count > MaxReflect)
+        {
+            if (move)
+            {
+                await ReflectGoneAsync(src);
+            }
+
+            return;
+        }
+
+        var arrived = await Task.Run(() => src.Select(s => Stat(Path.Combine(dest, PathUtil.DisplayName(s)))).OfType<FsEntry>().ToArray());
+        ReflectLocal(dest, [], arrived);
+        if (move)
+        {
+            await ReflectGoneAsync(src);
+        }
+    }
+
+    /// <summary>방금 생긴 파일·폴더 하나의 정보. 없거나 못 읽으면 null.</summary>
+    private static FsEntry? Stat(string path)
+    {
+        try
+        {
+            var fi = new FileInfo(path);
+            if (fi.Exists)
+            {
+                return new FsEntry(fi.Name, FsPath.Local(path), FsKind.File, fi.Length, null, fi.LastWriteTimeUtc, fi.CreationTimeUtc, fi.Attributes, null);
+            }
+
+            var di = new DirectoryInfo(path);
+            return di.Exists
+                ? new FsEntry(di.Name, FsPath.Local(path), FsKind.Folder, 0, null, di.LastWriteTimeUtc, di.CreationTimeUtc, di.Attributes, null)
+                : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Security.SecurityException)
+        {
+            return null;
+        }
     }
 
     /// <summary>앱 쪽 작업(뒤에서 만드는 정리 계획 등)을 작업 창에 올린다. 끝내는 것은 부른 쪽이 <see cref="JobViewModel.Finish"/>로.</summary>

@@ -267,6 +267,7 @@ public sealed partial class FolderTabViewModel : TabBase
                     {
                         live = new ItemList();
                         Items = live;
+                        _streaming = true;
                     }
 
                     live.AddBatch(mapped);
@@ -293,6 +294,12 @@ public sealed partial class FolderTabViewModel : TabBase
             if (!committed)
             {
                 Commit(target, push); // 빈 폴더
+            }
+
+            // 방금 Foldy가 한 바꾸기를 드라이브가 아직 모르면(느린 드라이브의 옛 목록) 그 바꾸기를 덮어 보인다
+            if (string.Equals(target, Path, StringComparison.OrdinalIgnoreCase))
+            {
+                PatchWithLocalChanges(all, dropConfirmed: true);
             }
 
             var spec = Sort;
@@ -357,6 +364,7 @@ public sealed partial class FolderTabViewModel : TabBase
             if (gen == _generation)
             {
                 IsBusy = false;
+                _streaming = false;
             }
         }
     }
@@ -487,6 +495,110 @@ public sealed partial class FolderTabViewModel : TabBase
         }
 
         return -1;
+    }
+
+    // ───────────── Foldy가 직접 한 바꾸기 (드라이브 알림을 기다리지 않는다) ─────────────
+
+    /// <summary>
+    /// Foldy가 직접 한 바꾸기(이름 바꾸기·새 폴더·삭제·이동)를 목록에 붙들고 있는 시간.
+    /// 느린 드라이브(회사 보안 드라이브·네트워크)는 바꾼 뒤에도 한동안 옛 목록을 돌려주기 때문이다 (사용자 2026-11-24 K: 드라이브).
+    /// 드라이브 목록이 바꾼 대로 나오면 그때 바로 놓는다.
+    /// </summary>
+    public TimeSpan LocalChangeHold { get; set; } = TimeSpan.FromSeconds(30);
+
+    private readonly List<LocalChange> _changes = [];
+
+    // 처음 읽는 중이라 나오는 대로 보이는 목록(live)을 쓰는 중인가
+    private bool _streaming;
+
+    /// <summary>Added가 null이면 Name이 없어진 것, 있으면 그 항목이 생긴 것.</summary>
+    private sealed record LocalChange(string Name, FsEntry? Added, DateTime At);
+
+    /// <summary>
+    /// Foldy가 이 폴더에서 한 바꾸기를 목록에 바로 반영한다. 새로 고침을 기다리지 않는다.
+    /// gone: 없어진 이름, added: 생긴 항목. focus: 바꾼 뒤 포커스를 둘 이름 (null이면 그대로).
+    /// </summary>
+    public void ApplyLocalChanges(IReadOnlyList<string> gone, IReadOnlyList<FsEntry> added, string? focus = null)
+    {
+        if (gone.Count == 0 && added.Count == 0)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        foreach (var name in gone)
+        {
+            Remember(new LocalChange(name, null, now));
+        }
+
+        foreach (var e in added)
+        {
+            Remember(new LocalChange(e.Name, e, now));
+        }
+
+        // 처음 읽는 중이면(나오는 대로 보이는 목록) 읽기가 끝날 때 붙인다. 새로 고침 중이면 지금 목록을 바로 고친다
+        if (_streaming || !IsLoaded)
+        {
+            return;
+        }
+
+        var list = Items.ToList();
+        PatchWithLocalChanges(list, dropConfirmed: false);
+        var sorted = FileSorter.Sort(list, Sort);
+        Items = new ItemList(sorted);
+        ItemsReplaced?.Invoke(focus ?? FocusName);
+        _env.Cache.Put(Path, sorted);
+        if (focus is not null)
+        {
+            FocusName = focus;
+        }
+    }
+
+    /// <summary>같은 이름의 앞선 기록은 새 기록이 대신한다 (지웠다가 같은 이름으로 다시 만들기, 이름을 두 번 바꾸기).</summary>
+    private void Remember(LocalChange c)
+    {
+        _changes.RemoveAll(x => string.Equals(x.Name, c.Name, StringComparison.OrdinalIgnoreCase));
+        _changes.Add(c);
+    }
+
+    /// <summary>
+    /// 목록에 남아 있는 바꾸기를 붙인다. dropConfirmed면 드라이브 목록이 이미 바꾼 대로인 기록은 놓는다.
+    /// 오래된 기록(<see cref="LocalChangeHold"/>)은 버린다: 그 사이 다른 데서 바뀐 것을 가리지 않게.
+    /// </summary>
+    private void PatchWithLocalChanges(List<FileItem> list, bool dropConfirmed)
+    {
+        if (_changes.Count == 0)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        _changes.RemoveAll(c => now - c.At > LocalChangeHold);
+        for (var k = 0; k < _changes.Count; k++)
+        {
+            var c = _changes[k];
+            var at = list.FindIndex(i => string.Equals(i.Name, c.Name, StringComparison.OrdinalIgnoreCase));
+            var confirmed = c.Added is null ? at < 0 : at >= 0 && string.Equals(list[at].Name, c.Name, StringComparison.Ordinal);
+            if (confirmed)
+            {
+                if (dropConfirmed)
+                {
+                    _changes.RemoveAt(k--);
+                }
+
+                continue;
+            }
+
+            if (at >= 0)
+            {
+                list.RemoveAt(at);
+            }
+
+            if (c.Added is { } e)
+            {
+                list.Add(new FileItem(e, _env.TypeName));
+            }
+        }
     }
 
     // ───────────── 감시 ─────────────
