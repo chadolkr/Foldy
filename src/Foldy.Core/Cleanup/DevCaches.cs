@@ -38,6 +38,21 @@ public static class DevCaches
             Foldy.Core.Localization.Loc.T("dc.pnpm.x")),
         new("docker", Foldy.Core.Localization.Loc.T("dc.docker"), ["docker.exe"], ["builder", "prune", "--force"], [],
             Foldy.Core.Localization.Loc.T("dc.docker.x"), Foldy.Core.Localization.Loc.T("dc.docker.w")),
+
+        // 1.10.0 (2026-11-24 사용자 "안전한 것만 적용하자"): 공식 문서에 적힌 "캐시만 지우는" 명령이 있는 도구만.
+        // Go는 빌드 캐시만(-cache, 받은 모듈 -modcache는 그대로), conda는 받아 둔 압축 파일과 목록 캐시만(--packages는 심볼릭 링크로 설치한 환경을 깨뜨릴 수 있다고 conda 문서가 경고해 뺐다).
+        // dart pub cache clean은 전역 도구(pub global)까지 지워서 뺐다.
+        new("go", Foldy.Core.Localization.Loc.T("dc.go"), ["go.exe"], ["clean", "-cache"], [@"%LOCALAPPDATA%\go-build"],
+            Foldy.Core.Localization.Loc.T("dc.go.x")),
+        new("uv", Foldy.Core.Localization.Loc.T("dc.uv"), ["uv.exe"], ["cache", "clean"], [@"%LOCALAPPDATA%\uv\cache"],
+            Foldy.Core.Localization.Loc.T("dc.uv.x")),
+        new("conda", Foldy.Core.Localization.Loc.T("dc.conda"), ["conda.exe", "conda.bat"], ["clean", "--tarballs", "--index-cache", "--yes"],
+            [], // pkgs 폴더에는 풀어 둔 패키지도 있어 폴더 크기가 지울 양보다 커 보인다: 크기는 모른다고 둔다
+            Foldy.Core.Localization.Loc.T("dc.conda.x")),
+        new("bun", Foldy.Core.Localization.Loc.T("dc.bun"), ["bun.exe"], ["pm", "cache", "rm"], [@"%USERPROFILE%\.bun\install\cache"],
+            Foldy.Core.Localization.Loc.T("dc.bun.x")),
+        new("composer", Foldy.Core.Localization.Loc.T("dc.composer"), ["composer.bat", "composer.exe"], ["clear-cache"], [@"%LOCALAPPDATA%\Composer"],
+            Foldy.Core.Localization.Loc.T("dc.composer.x")),
     ];
 
     /// <summary>PATH에서 실행 파일을 찾는다 (없으면 null).</summary>

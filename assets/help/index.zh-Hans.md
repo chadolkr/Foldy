@@ -249,14 +249,21 @@ Foldy 同一时间只运行一个。在已运行时再次启动（快捷方式�
 | 前端构建缓存 | `.next`、`.nuxt`、`.parcel-cache`、`.turbo`、`.angular`、`.svelte-kit`（旁边有 `package.json`） | 14 天，10MB |
 | Python 缓存 | `__pycache__`、`.pytest_cache`、`.mypy_cache`、`.ruff_cache`、`.tox` | 30 天，1MB |
 | Visual Studio 缓存 | `.vs` | 30 天，100MB |
+| Unity 项目缓存 | `Library`（旁边有 `ProjectSettings`） | 30 天，100MB |
+| Unreal 中间文件和缓存 | `Intermediate`、`DerivedDataCache`（旁边有 `*.uproject`，不碰 `Saved`） | 30 天，100MB |
+| Flutter/Dart 构建输出 | `.dart_tool`、`build`（旁边有 `pubspec.yaml`） | 14 天，10MB |
+| CMake 构建输出（CLion） | `cmake-build-*`（旁边有 `CMakeLists.txt`） | 14 天，10MB |
+| 其他构建输出 | `.cxx`、`.stack-work`、`dist-newstyle`、`_build`、`.zig-cache`（旁边有该工具的项目文件） | 14 天，10MB |
+| Adobe 媒体缓存 | `%APPDATA%\Adobe\Common\Media Cache Files`、`Media Cache` | 14 天，500MB |
 | 用户临时文件夹 | `%LOCALAPPDATA%\Temp` | 7 天，50MB |
 | 名为 temp/tmp 的文件夹 | `temp`、`tmp` | 30 天，100MB |
-| 浏览器缓存 | Chrome、Edge 配置文件中的 `Cache`、`Code Cache` | 100MB |
-| 包管理器缓存 | `npm-cache`、`pip\cache`、`Yarn\Cache`、`%USERPROFILE%\.gradle\caches` | 30 天，500MB |
+| 浏览器缓存 | Chrome、Edge、Whale、Brave 配置文件中的 `Cache`、`Code Cache`，Firefox 配置文件中的 `cache2` | 100MB |
+| 包管理器缓存 | `npm-cache`、`pip\cache`、`Yarn\Cache`、`%USERPROFILE%\.gradle\caches`、`go-build`、`uv\cache`、`Composer`、`%USERPROFILE%\.bun\install\cache` | 30 天，500MB |
 | NuGet 包缓存 | `%USERPROFILE%\.nuget\packages` | 60 天，1GB |
 | 崩溃转储文件 | `*.dmp`、`*.hdmp`、`*.mdmp` | 14 天，10MB |
 | 崩溃转储文件夹 | `%LOCALAPPDATA%\CrashDumps`（Windows 错误报告的默认转储文件夹） | 14 天，10MB |
 | 旧的安装文件 | 下载文件夹中的 `*.exe`、`*.msi`、`*.msix`、`*.iso` | 90 天，50MB |
+| 没下载完的文件 | 下载文件夹中的 `*.crdownload`、`*.part` | 14 天，1MB |
 
 `.git` 只显示不建议。Windows、Program Files、ProgramData 等系统文件夹无论规则如何都不会建议。
 
@@ -342,7 +349,7 @@ Foldy 同一时间只运行一个。在已运行时再次启动（快捷方式�
 
 ![查找可删除的文件夹](images/zh-Hans/rebuildable.png)
 
-项目文件夹里会堆积可以重新生成的文件夹，常常有好几 GB（node_modules、bin/obj、target、__pycache__、.venv、dist/build、Delphi 的 __history）。可以在 整理 → **查找可删除的文件夹**、文件夹分析中的 **[可删除的文件夹]** 或 Ctrl+Space 中找到。
+项目文件夹里会堆积可以重新生成的文件夹，常常有好几 GB（node_modules、bin/obj、target、__pycache__、.venv、dist/build、Delphi 的 __history、Unity 的 Library、Unreal 的 Intermediate、.next 等 Web 构建缓存、.pytest_cache 等 Python 缓存，以及 Flutter、CMake、Haskell、Elixir、Zig 的构建文件夹）。可以在 整理 → **查找可删除的文件夹**、文件夹分析中的 **[可删除的文件夹]** 或 Ctrl+Space 中找到。
 
 - **只在当前查看的文件夹中** 查找，从大到小显示。有索引时大小立即可见。
 - **只有旁边有项目文件时** 才选择：package.json 旁的 node_modules、.csproj 旁的 bin/obj、Cargo.toml 旁的 target。只是名为“build”的照片文件夹不会被碰。
@@ -353,10 +360,10 @@ Foldy 同一时间只运行一个。在已运行时再次启动（快捷方式�
 
 #### 清理开发缓存
 
-清理 npm、NuGet、pip、Yarn、pnpm 下载的缓存和 Docker 构建缓存。整理 → **清理开发缓存**。
+清理 npm、NuGet、pip、Yarn、pnpm、uv、Bun、Composer 下载的缓存，Go 和 Docker 的构建缓存，以及 conda 已下载的压缩包。整理 → **清理开发缓存**。
 
 - 只显示这台电脑上已安装的工具，并附上大小和“需要时重新下载即可”的说明。
-- 不直接删除文件夹，只运行 **各工具的官方命令**（`npm cache clean --force`、`dotnet nuget locals all --clear`、`py -m pip cache purge`、`yarn cache clean`、`pnpm store prune`、`docker builder prune --force`）。
+- 不直接删除文件夹，只运行 **各工具的官方命令**（`npm cache clean --force`、`dotnet nuget locals all --clear`、`py -m pip cache purge`、`yarn cache clean`、`pnpm store prune`、`docker builder prune --force`、`go clean -cache`、`uv cache clean`、`conda clean --tarballs --index-cache --yes`、`bun pm cache rm`、`composer clear-cache`）。
 - Docker **只清理构建缓存**：不会动镜像、容器和卷。
 - 不经过回收站、无法恢复，所以会先显示大小并 **确认一次** 后再执行。需要的内容会在下次构建或安装时重新下载。
 

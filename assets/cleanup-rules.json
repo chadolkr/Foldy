@@ -87,7 +87,12 @@
         "\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Cache",
         "\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Code Cache",
         "\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Cache",
-        "\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Code Cache"
+        "\\Users\\*\\AppData\\Local\\Microsoft\\Edge\\User Data\\*\\Code Cache",
+        "\\Users\\*\\AppData\\Local\\Naver\\Naver Whale\\User Data\\*\\Cache",
+        "\\Users\\*\\AppData\\Local\\Naver\\Naver Whale\\User Data\\*\\Code Cache",
+        "\\Users\\*\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\*\\Cache",
+        "\\Users\\*\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\*\\Code Cache",
+        "\\Users\\*\\AppData\\Local\\Mozilla\\Firefox\\Profiles\\*\\cache2"
       ],
       "minSize": 104857600,
       "reason": "브라우저가 다시 받아 오는 캐시입니다. 브라우저를 닫은 뒤 정리하세요."
@@ -101,7 +106,11 @@
         "\\Users\\*\\AppData\\Roaming\\npm-cache",
         "\\Users\\*\\AppData\\Local\\pip\\cache",
         "\\Users\\*\\AppData\\Local\\Yarn\\Cache",
-        "\\Users\\*\\.gradle\\caches"
+        "\\Users\\*\\.gradle\\caches",
+        "\\Users\\*\\AppData\\Local\\go-build",
+        "\\Users\\*\\AppData\\Local\\uv\\cache",
+        "\\Users\\*\\AppData\\Local\\Composer",
+        "\\Users\\*\\.bun\\install\\cache"
       ],
       "olderThanDays": 30,
       "minSize": 524288000,
@@ -131,7 +140,99 @@
       "names": [".vs"],
       "olderThanDays": 30,
       "minSize": 104857600,
-      "reason": "Visual Studio가 다시 만드는 IntelliSense·캐시 폴더입니다."
+      "reason": "Visual Studio가 다시 만드는 IntelliSense·캐시 폴더입니다. 중단점·책갈피·열어 둔 파일 목록도 여기 있어 지우면 처음으로 돌아갑니다."
+    },
+    {
+      "id": "unity-library",
+      "tag": "build",
+      "title": "Unity 프로젝트 캐시 (Library)",
+      "names": ["library"],
+      "parentHas": ["projectsettings"],
+      "olderThanDays": 30,
+      "minSize": 104857600,
+      "reason": "Unity가 프로젝트를 열 때 다시 만드는 캐시입니다(Unity 문서: Library 폴더). Unity를 닫은 뒤 정리하세요. 다음에 열 때 처음 한 번 오래 걸립니다."
+    },
+    {
+      "id": "unreal-intermediate",
+      "tag": "build",
+      "title": "Unreal 중간 파일·캐시",
+      "names": ["intermediate", "deriveddatacache"],
+      "parentHas": ["*.uproject"],
+      "olderThanDays": 30,
+      "minSize": 104857600,
+      "reason": "Unreal이 다시 만드는 중간 파일과 캐시입니다. Saved(설정·자동 저장) 폴더는 건드리지 않습니다."
+    },
+    {
+      "id": "dart-build",
+      "tag": "build",
+      "title": "Flutter·Dart 빌드 출력",
+      "names": [".dart_tool", "build"],
+      "parentHas": ["pubspec.yaml"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "flutter pub get이나 빌드로 다시 만들어지는 폴더입니다(flutter clean이 지우는 것과 같습니다)."
+    },
+    {
+      "id": "cmake-ide-build",
+      "tag": "build",
+      "title": "CMake 빌드 출력 (CLion)",
+      "names": ["cmake-build-*"],
+      "parentHas": ["cmakelists.txt"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "다시 빌드하면 생기는 CMake 빌드 폴더입니다."
+    },
+    {
+      "id": "android-ndk-build",
+      "tag": "build",
+      "title": "Android NDK 빌드 출력 (.cxx)",
+      "names": [".cxx"],
+      "parentHas": ["build.gradle", "build.gradle.kts"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "Android Gradle이 다시 만드는 네이티브 빌드 출력입니다."
+    },
+    {
+      "id": "haskell-build",
+      "tag": "build",
+      "title": "Haskell 빌드 출력",
+      "names": [".stack-work", "dist-newstyle"],
+      "parentHas": ["stack.yaml", "cabal.project", "*.cabal"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "stack·cabal이 다시 만드는 빌드 출력입니다."
+    },
+    {
+      "id": "elixir-build",
+      "tag": "build",
+      "title": "Elixir 빌드 출력 (_build)",
+      "names": ["_build"],
+      "parentHas": ["mix.exs"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "mix compile로 다시 만들어지는 빌드 출력입니다."
+    },
+    {
+      "id": "zig-build",
+      "tag": "build",
+      "title": "Zig 빌드 캐시",
+      "names": [".zig-cache", "zig-cache"],
+      "parentHas": ["build.zig"],
+      "olderThanDays": 14,
+      "minSize": 10485760,
+      "reason": "zig build가 다시 만드는 캐시입니다."
+    },
+    {
+      "id": "adobe-media-cache",
+      "tag": "cache",
+      "title": "Adobe 미디어 캐시",
+      "paths": [
+        "\\Users\\*\\AppData\\Roaming\\Adobe\\Common\\Media Cache Files",
+        "\\Users\\*\\AppData\\Roaming\\Adobe\\Common\\Media Cache"
+      ],
+      "olderThanDays": 14,
+      "minSize": 524288000,
+      "reason": "Premiere Pro·After Effects가 영상을 다시 열 때 만드는 캐시입니다(Adobe 도움말: 미디어 캐시 파일 직접 삭제). 프로그램을 닫은 뒤 정리하세요."
     },
     {
       "id": "crash-dumps",
@@ -162,6 +263,17 @@
       "olderThanDays": 90,
       "minSize": 52428800,
       "reason": "다운로드 폴더에 90일 넘게 남아 있는 설치 파일입니다."
+    },
+    {
+      "id": "partial-downloads",
+      "tag": "installer",
+      "title": "다 받지 못한 다운로드",
+      "kind": "file",
+      "paths": ["\\Users\\*\\Downloads\\**"],
+      "extensions": ["crdownload", "part"],
+      "olderThanDays": 14,
+      "minSize": 1048576,
+      "reason": "받다가 멈춘 채 14일 넘게 그대로인 파일입니다(Chrome·Edge의 .crdownload, Firefox의 .part). 필요하면 다시 받으면 됩니다."
     }
   ]
 }

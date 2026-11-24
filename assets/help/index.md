@@ -250,14 +250,21 @@ Foldy는 한 번에 하나만 뜹니다. 이미 켜져 있을 때 다시 실행�
 | 프런트엔드 빌드 캐시 | `.next`, `.nuxt`, `.parcel-cache`, `.turbo`, `.angular`, `.svelte-kit` (옆에 `package.json`) | 14일, 10MB |
 | Python 캐시 | `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox` | 30일, 1MB |
 | Visual Studio 캐시 | `.vs` | 30일, 100MB |
+| Unity 프로젝트 캐시 | `Library` (옆에 `ProjectSettings`) | 30일, 100MB |
+| Unreal 중간 파일·캐시 | `Intermediate`, `DerivedDataCache` (옆에 `*.uproject`, `Saved`는 건드리지 않음) | 30일, 100MB |
+| Flutter·Dart 빌드 출력 | `.dart_tool`, `build` (옆에 `pubspec.yaml`) | 14일, 10MB |
+| CMake 빌드 출력 (CLion) | `cmake-build-*` (옆에 `CMakeLists.txt`) | 14일, 10MB |
+| 그 밖의 빌드 출력 | `.cxx`, `.stack-work`, `dist-newstyle`, `_build`, `.zig-cache` (옆에 그 도구의 프로젝트 파일) | 14일, 10MB |
+| Adobe 미디어 캐시 | `%APPDATA%\Adobe\Common\Media Cache Files`, `Media Cache` | 14일, 500MB |
 | 사용자 임시 폴더 | `%LOCALAPPDATA%\Temp` | 7일, 50MB |
 | 이름이 temp/tmp인 폴더 | `temp`, `tmp` | 30일, 100MB |
-| 브라우저 캐시 | Chrome·Edge 프로필의 `Cache`, `Code Cache` | 100MB |
-| 패키지 관리자 캐시 | `npm-cache`, `pip\cache`, `Yarn\Cache`, `%USERPROFILE%\.gradle\caches` | 30일, 500MB |
+| 브라우저 캐시 | Chrome·Edge·웨일·Brave 프로필의 `Cache`, `Code Cache`, Firefox 프로필의 `cache2` | 100MB |
+| 패키지 관리자 캐시 | `npm-cache`, `pip\cache`, `Yarn\Cache`, `%USERPROFILE%\.gradle\caches`, `go-build`, `uv\cache`, `Composer`, `%USERPROFILE%\.bun\install\cache` | 30일, 500MB |
 | NuGet 패키지 캐시 | `%USERPROFILE%\.nuget\packages` | 60일, 1GB |
 | 충돌 덤프 파일 | `*.dmp`, `*.hdmp`, `*.mdmp` | 14일, 10MB |
 | 충돌 덤프 폴더 | `%LOCALAPPDATA%\CrashDumps` (Windows 오류 보고의 기본 덤프 폴더) | 14일, 10MB |
 | 오래된 설치 파일 | 다운로드 폴더의 `*.exe`, `*.msi`, `*.msix`, `*.iso` | 90일, 50MB |
+| 다 받지 못한 다운로드 | 다운로드 폴더의 `*.crdownload`, `*.part` | 14일, 1MB |
 
 `.git`은 표시만 하고 제안하지 않습니다. Windows, Program Files, ProgramData 같은 시스템 폴더는 규칙과 상관없이 제안하지 않습니다.
 
@@ -342,7 +349,7 @@ USB에 옮겨 둔 폴더와 PC 폴더, 어느 쪽이 최신인지 헷갈릴 때 
 
 ![지워도 되는 폴더 찾기](images/rebuildable.png)
 
-프로젝트 폴더에는 다시 만들 수 있는 폴더가 몇 GB씩 쌓여요(node_modules, bin·obj, target, __pycache__, .venv, dist·build, Delphi의 __history). 정리하기 → **지워도 되는 폴더 찾기**, 폴더 분석의 **[지워도 되는 폴더]**, 또는 Ctrl+Space에서 찾을 수 있어요.
+프로젝트 폴더에는 다시 만들 수 있는 폴더가 몇 GB씩 쌓여요(node_modules, bin·obj, target, __pycache__, .venv, dist·build, Delphi의 __history, Unity의 Library, Unreal의 Intermediate, .next 같은 웹 빌드 캐시, .pytest_cache 같은 파이썬 캐시, Flutter·CMake·Haskell·Elixir·Zig의 빌드 폴더). 정리하기 → **지워도 되는 폴더 찾기**, 폴더 분석의 **[지워도 되는 폴더]**, 또는 Ctrl+Space에서 찾을 수 있어요.
 
 - **지금 보는 폴더 안에서만** 찾고, 큰 것부터 보여 줘요. 색인이 있으면 크기가 바로 나와요.
 - **옆에 프로젝트 파일이 있을 때만** 골라요: package.json 옆의 node_modules, .csproj 옆의 bin·obj, Cargo.toml 옆의 target. 그냥 "build"라는 이름의 사진 폴더는 건드리지 않아요.
@@ -353,10 +360,10 @@ USB에 옮겨 둔 폴더와 PC 폴더, 어느 쪽이 최신인지 헷갈릴 때 
 
 #### 개발 캐시 정리
 
-npm·NuGet·pip·Yarn·pnpm이 받아 둔 캐시와 Docker 빌드 캐시를 정리해요. 정리하기 → **개발 캐시 정리**.
+npm·NuGet·pip·Yarn·pnpm·uv·Bun·Composer가 받아 둔 캐시, Go·Docker 빌드 캐시, conda가 받아 둔 압축 파일을 정리해요. 정리하기 → **개발 캐시 정리**.
 
 - 이 PC에 깔린 도구만 보여 주고, 크기와 "다시 받으면 돼요" 설명을 함께 보여 줘요.
-- 폴더를 직접 지우지 않고 **각 도구의 공식 명령**만 실행해요(`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`).
+- 폴더를 직접 지우지 않고 **각 도구의 공식 명령**만 실행해요(`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`, `go clean -cache`, `uv cache clean`, `conda clean --tarballs --index-cache --yes`, `bun pm cache rm`, `composer clear-cache`).
 - Docker는 **빌드 캐시만**: 이미지·컨테이너·볼륨은 건드리지 않아요.
 - 휴지통을 거치지 않아 되살릴 수 없으니, 크기를 보여 주고 **한 번 확인**한 뒤에만 해요. 필요하면 다음 빌드·설치 때 다시 받아요.
 
