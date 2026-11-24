@@ -1177,9 +1177,9 @@ public sealed class SlowCrawler : IDisposable
     {
         var r = new Fetched();
         var sw = Stopwatch.StartNew();
-        // 모두 읽을 때(처음 모으기·직접 누른 색인)는 폴더 시각을 따로 묻지 않고 위 폴더 목록에 적힌 것을 쓴다 (드라이브에 묻는 횟수가 반).
-        // 그 값이 NTFS에서 늦게 고쳐진 것이면 다음에 비교할 때 그 폴더를 한 번 더 읽을 뿐이다. 다시 모을 때는 폴더 자신의 시각을 묻는다
-        r.MTime = readAll && job.Dir != root && job.Time != 0 ? job.Time : DirTime(job.Dir);
+        // 폴더 자신의 시각을 묻는다. 위 폴더 목록에 적힌 시각은 NTFS에서 늦게 고쳐져서, 그것을 기록하면 다음에 거의 모든 폴더를 다시 읽게 된다(CI 확인).
+        // 묻는 것도 같이 읽는 묶음 안에서 겹쳐 하고, 쉬는 것은 묶음마다 한 번이다
+        r.MTime = DirTime(job.Dir);
         r.SameTime = job.Before is not null && r.MTime != 0 && r.MTime == job.Before.MTime;
         if (!readAll && job.Dir != root && r.SameTime && job.OldBlock is not null && !HasFolder(job.OldBlock))
         {
