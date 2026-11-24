@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "id": "records-classification",
+  "name": "업무 분류 체계 (ISO 15489)",
+  "badge": "기록",
+  "category": "기록·보관",
+  "description": "기능 → 활동 → 건, 조직이 하는 일을 기준으로 나누는 ISO 15489 기록관리 방식 (회사·기관 공유 드라이브)",
+  "purposes": [
+    "work",
+    "archive"
+  ],
+  "variables": [
+    {
+      "key": "조직",
+      "label": "회사·기관·팀 이름 (폴더 이름)",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{조직}}",
+      "children": [
+        {
+          "name": "01_전략·기획",
+          "nameEn": "01_strategic_management",
+          "purpose": "경영 계획, 목표, 이사회·위원회 회의"
+        },
+        {
+          "name": "02_재무",
+          "nameEn": "02_financial_management",
+          "purpose": "예산, 회계, 세금, 감사",
+          "children": [
+            {
+              "name": "예산·결산",
+              "nameEn": "budget"
+            },
+            {
+              "name": "회계",
+              "nameEn": "accounting"
+            },
+            {
+              "name": "세무",
+              "nameEn": "tax"
+            }
+          ]
+        },
+        {
+          "name": "03_인사",
+          "nameEn": "03_personnel",
+          "purpose": "채용, 근무, 급여, 교육",
+          "children": [
+            {
+              "name": "채용",
+              "nameEn": "recruitment"
+            },
+            {
+              "name": "급여·복리후생",
+              "nameEn": "payroll"
+            },
+            {
+              "name": "교육·연수",
+              "nameEn": "training"
+            }
+          ]
+        },
+        {
+          "name": "04_구매·계약",
+          "nameEn": "04_procurement",
+          "purpose": "견적, 계약, 발주, 거래처"
+        },
+        {
+          "name": "05_시설·장비",
+          "nameEn": "05_property_equipment",
+          "purpose": "사무실, 장비, 차량, 물품"
+        },
+        {
+          "name": "06_정보·IT",
+          "nameEn": "06_information_technology",
+          "purpose": "시스템, 계정, 보안, 기록 관리"
+        },
+        {
+          "name": "07_법무",
+          "nameEn": "07_legal",
+          "purpose": "법률 검토, 소송, 규정, 인허가"
+        },
+        {
+          "name": "08_대외 협력",
+          "nameEn": "08_community_relations",
+          "purpose": "홍보, 고객, 언론, 행사"
+        },
+        {
+          "name": "09_핵심 업무",
+          "nameEn": "09_core_business",
+          "purpose": "우리 조직만의 본업 (예: 영업, 생산, 연구)"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "건 폴더는 연도_건 이름, 파일은 날짜_내용.확장자",
+      "examples": [
+        "2026_사무실 이전",
+        "2026-11-24_임대차 계약서.pdf"
+      ]
+    }
+  ],
+  "firstSteps": [
+    "기능 폴더(01~09) 가운데 우리 조직이 하지 않는 일은 지우고, 본업은 09_핵심 업무 아래에 활동 이름으로 나누기",
+    "기능 안에 활동 폴더(예: 02_재무/예산·결산), 그 안에 건 폴더(예: 2026_본사 이전)를 만들어 문서 넣기",
+    "사람·부서 이름이 아니라 하는 일 이름으로 나누기 (부서가 바뀌어도 그대로)"
+  ],
+  "organize": [
+    {
+      "target": "04_구매·계약",
+      "keywords": [
+        "계약",
+        "견적",
+        "발주",
+        "구매",
+        "contract",
+        "quote"
+      ],
+      "reason": "이름에 계약·견적"
+    },
+    {
+      "target": "02_재무",
+      "keywords": [
+        "예산",
+        "회계",
+        "세금",
+        "결산",
+        "영수증",
+        "invoice",
+        "budget"
+      ],
+      "reason": "이름에 예산·회계·세금"
+    },
+    {
+      "target": "03_인사",
+      "keywords": [
+        "채용",
+        "급여",
+        "이력서",
+        "근무",
+        "payroll",
+        "resume"
+      ],
+      "reason": "이름에 채용·급여"
+    },
+    {
+      "target": "07_법무",
+      "keywords": [
+        "법률",
+        "소송",
+        "규정",
+        "인허가",
+        "legal"
+      ],
+      "reason": "이름에 법률·규정"
+    },
+    {
+      "target": "08_대외 협력",
+      "keywords": [
+        "홍보",
+        "보도",
+        "행사",
+        "press"
+      ],
+      "reason": "이름에 홍보·행사"
+    },
+    {
+      "target": "01_전략·기획",
+      "keywords": [
+        "전략",
+        "사업계획",
+        "이사회",
+        "strategy"
+      ],
+      "reason": "이름에 전략·계획"
+    }
+  ]
+}

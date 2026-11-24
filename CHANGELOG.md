@@ -16,6 +16,15 @@
 - **개발 캐시 정리에 도구가 늘었어요.** Go 빌드 캐시(`go clean -cache`, 받아 둔 모듈은 그대로), uv 캐시(`uv cache clean`), conda가 받아 둔 압축 파일(`conda clean --tarballs --index-cache`, 설치된 패키지·환경은 그대로), Bun 캐시(`bun pm cache rm`), Composer 캐시(`composer clear-cache`). 예전처럼 각 도구의 공식 명령만 실행해요.
 - **공간 늘리기·폴더 분석의 정리 후보가 늘었어요.** 위 게임 엔진·빌드 폴더, 웨일·Brave·Firefox 브라우저 캐시, Premiere Pro·After Effects 미디어 캐시, Go·uv·Bun·Composer 캐시, 다운로드 폴더에서 14일 넘게 멈춰 있는 다 받지 못한 파일(`.crdownload`, `.part`). 예전처럼 휴지통으로만 보내요.
 - 일부러 넣지 않은 것: Visual Studio `.vs`(중단점·책갈피가 들어 있음, 폴더 분석 설명에도 이 점을 적었어요), Godot `.godot`(지우면 설정이 사라졌다는 보고가 있음), Composer `vendor`(저장소에 넣어 두는 프로젝트가 있음), Unreal `Saved`·`Binaries`, Terraform `.terraform`, Jupyter `.ipynb_checkpoints`(예전 저장본), Teams·카카오톡 캐시(받은 파일·설정이 섞임), Windows 업데이트 찌꺼기·Windows.old(Windows의 저장소 설정으로 정리하는 게 안전함).
+- **템플릿이 6가지 늘었어요 (13 → 19가지).** 템플릿으로 폴더 만들기에, 공식 설명이 있고 널리 알려진 폴더링 방식을 더했어요. 모두 다섯 언어로 폴더 이름·사용법이 나오고, 사용법 맨 아래에 원래 설명이 있는 곳(출처)을 적었어요.
+  - **GTD (Getting Things Done)**: 받은 것 → 다음 할 일·프로젝트·기다리는 중·언젠가·참고 자료. 데이비드 앨런의 일 정리법이에요.
+  - **ACE (Atlas·Calendar·Efforts)**: 알게 된 것·날짜가 있는 기록·하고 있는 일, 세 칸이에요. 닉 밀로의 Linking Your Thinking 방식이에요.
+  - **업무 분류 체계 (ISO 15489)**: 회사·기관 공유 드라이브를 사람·부서가 아니라 하는 일(기능 → 활동 → 건)로 나눠요.
+  - **TIER Protocol 4.0**: 원본 데이터는 그대로 두고 스크립트로 결과를 다시 만들 수 있게 나누는 연구 폴더 사양이에요.
+  - **Cookiecutter Data Science**: data(raw·interim·processed)·notebooks·models·reports로 나누는 데이터 과학 프로젝트 구조예요.
+  - **BIDS**: 참가자 → 세션 → 데이터 종류로 나누는 뇌 영상(MRI·EEG·MEG) 연구 데이터 국제 표준이에요. dataset_description.json 같은 필수 파일도 함께 만들어요.
+  - ACE·TIER·Cookiecutter·BIDS의 폴더 이름은 도구와 다른 사람이 그대로 알아보도록 어느 언어에서나 원래 영어 이름으로 만들어요.
+- **어울리는 템플릿 찾기에 "어떤 연구를 하나요?"를 더했어요.** 연구·논문·학습을 고르면 문헌·원고 / 통계 데이터 / 데이터 과학 코드 / 뇌 영상 중에서 골라 알맞은 템플릿을 먼저 보여 줘요. 개인 문서와 업무에서도 GTD·업무 분류 체계가 추천에 들어가요.
 
 ## 1.9.2
 - **지워도 되는 폴더 찾기가 멈춘 것처럼 보이지 않아요.** 정리하기 → 지워도 되는 폴더 찾기를 큰 폴더에서 누르면 안내 한 줄만 있는 빈 창이 한참 그대로라 멈춘 줄 알기 쉬웠어요.

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "id": "bids",
+  "name": "BIDS (뇌 영상 데이터 표준)",
+  "badge": "BIDS",
+  "category": "프로젝트",
+  "description": "참가자(sub-) → 세션(ses-) → 데이터 종류(anat·func 등)로 나누는 뇌 영상 연구 데이터 국제 표준 (MRI·EEG·MEG·PET)",
+  "purposes": [
+    "study"
+  ],
+  "variables": [
+    {
+      "key": "데이터셋",
+      "label": "데이터셋 이름 (폴더 이름)",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{데이터셋}}",
+      "children": [
+        {
+          "name": "dataset_description.json",
+          "file": "{\n  \"Name\": \"{{데이터셋}}\",\n  \"BIDSVersion\": \"1.10.0\"\n}\n"
+        },
+        {
+          "name": "participants.tsv",
+          "file": "participant_id\nsub-01\n"
+        },
+        {
+          "name": "README.md",
+          "file": "# {{데이터셋}}\n\nBrain Imaging Data Structure (BIDS): https://bids.neuroimaging.io/\n"
+        },
+        {
+          "name": "sub-01",
+          "nameEn": "sub-01",
+          "purpose": "참가자 한 명 (sub-참가자번호)",
+          "children": [
+            {
+              "name": "ses-01",
+              "nameEn": "ses-01",
+              "purpose": "측정 한 번 (세션이 하나뿐이면 없어도 됨)",
+              "children": [
+                {
+                  "name": "anat",
+                  "nameEn": "anat",
+                  "purpose": "구조 MRI"
+                },
+                {
+                  "name": "func",
+                  "nameEn": "func",
+                  "purpose": "기능 MRI"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "sourcedata",
+          "nameEn": "sourcedata",
+          "purpose": "변환하기 전 원본 (DICOM 등)"
+        },
+        {
+          "name": "derivatives",
+          "nameEn": "derivatives",
+          "purpose": "처리·분석 결과"
+        },
+        {
+          "name": "code",
+          "nameEn": "code",
+          "purpose": "변환·분석 스크립트"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "sub-참가자_ses-세션_종류.확장자 (BIDS 이름 규칙)",
+      "examples": [
+        "sub-01_ses-01_T1w.nii.gz",
+        "sub-01_ses-01_task-rest_bold.nii.gz"
+      ],
+      "regex": "^sub-[A-Za-z0-9]+_.+"
+    }
+  ],
+  "firstSteps": [
+    "장비에서 받은 원본(DICOM 등)은 sourcedata에 그대로 두기",
+    "변환한 파일은 sub-참가자/ses-세션/종류(anat·func …) 폴더에 BIDS 이름으로 (dcm2bids 같은 변환 도구 추천)",
+    "처리 결과는 derivatives에 두고, 마치면 BIDS Validator로 검사하기"
+  ],
+  "organize": [
+    {
+      "target": "sourcedata",
+      "extensions": [
+        ".dcm",
+        ".ima",
+        ".par",
+        ".rec"
+      ],
+      "reason": "장비 원본 → sourcedata"
+    },
+    {
+      "target": "code",
+      "extensions": [
+        ".py",
+        ".m",
+        ".r",
+        ".ipynb",
+        ".sh"
+      ],
+      "reason": "스크립트 → code"
+    }
+  ]
+}
