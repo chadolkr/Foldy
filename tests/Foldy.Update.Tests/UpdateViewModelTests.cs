@@ -142,7 +142,7 @@ public class UpdateViewModelTests
         vm.CanSkip.Should().BeTrue();
         await vm.SkipCommand.ExecuteAsync(null);
         svc.Calls.Should().Contain("skip 1.2.3");
-        vm.StatusText.Should().Be("1.2.3 버전을 건너뛰었습니다");
+        vm.StatusText.Should().Be("1.2.3 버전은 건너뛰었어요");
 
         svc.Status = new UpdateStatus(UpdatePhase.ReadyToInstall, "1.0.0", "1.3.0", Mandatory: true);
         await vm.RefreshAsync();

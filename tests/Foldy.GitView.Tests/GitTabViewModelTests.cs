@@ -491,7 +491,7 @@ public class GitTabViewModelTests
 
     [Theory]
     [InlineData(GitFailure.GitNotFound, "Git for Windows")]
-    [InlineData(GitFailure.AuthenticationFailed, "인증")]
+    [InlineData(GitFailure.AuthenticationFailed, "로그인")]
     [InlineData(GitFailure.MergeConflict, "충돌")]
     [InlineData(GitFailure.NotARepository, "저장소가 아닙니다")]
     [InlineData(GitFailure.Other, "boom")]

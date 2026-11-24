@@ -90,7 +90,7 @@ public class OrganizePlannerTests
         var rules = new[] { new CustomRule { Pattern = "*.pdf", Target = @"..\..\escape" } };
         var plan = PlanOf(tmp, new OrganizeOptions { Mode = OrganizeMode.Custom, Rules = rules });
         plan.Moves.Should().BeEmpty();
-        plan.Skipped.Should().Contain(s => s.Reason.Contains("대상 폴더", StringComparison.Ordinal));
+        plan.Skipped.Should().Contain(s => s.Reason.Contains("옮길 폴더", StringComparison.Ordinal));
 
         var abs = PlanOf(tmp, new OrganizeOptions { Mode = OrganizeMode.Custom, Rules = [new CustomRule { Pattern = "*", Target = @"C:\Windows" }] });
         abs.Moves.Should().BeEmpty();

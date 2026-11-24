@@ -196,7 +196,7 @@ public sealed class FolderTabTests : IAsyncDisposable
         tab.Items.Should().HaveCount(3);
 
         await tab.NavigateAsync("상대경로");
-        tab.Error.Should().Contain("형식");
+        tab.Error.Should().Contain("열 수 없어요");
     }
 
     [Fact]
