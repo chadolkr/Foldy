@@ -753,6 +753,18 @@ public partial class ShellWindow : Window, IPaneHost
         {
             RescanEvery = Foldy.Presentation.Persistence.AppSettings.CrawlInterval(_settings.CrawlEvery),
             AlwaysReadAll = Foldy.Platform.SystemInfo.CloudVolumes.IsCloudPath, // Google Drive는 폴더 시각을 믿을 수 없다
+            PreferFirst = () =>
+            {
+                // 자주 쓰는 폴더·최근 폴더가 있는 곳부터 모은다: 쓰는 파일이 먼저 찾아진다 (사용자 2026-11-24 "K 드라이브 색인이 너무 느려서")
+                try
+                {
+                    return Dispatcher.Invoke(() => (IReadOnlyList<string>)[.. _quick.Pinned.Select(q => q.Path), .. _quick.Recent.Select(q => q.Path)]);
+                }
+                catch (Exception ex) when (ex is TaskCanceledException or InvalidOperationException)
+                {
+                    return [];
+                }
+            },
             ShouldPause = () =>
             {
                 try
@@ -948,7 +960,7 @@ public partial class ShellWindow : Window, IPaneHost
             return Foldy.Core.Localization.Loc.T("sw.drv.none");
         }
 
-        // 한 번에 한 드라이브씩 모은다: 무엇을 기다리는지 말한다
+        // 한꺼번에 모으는 드라이브 수가 꽉 찼으면 무엇을 기다리는지 말한다
         return _crawler.Current() is { } now ? Foldy.Core.Localization.Loc.F("sw.drv.waiting", now.Drive.TrimEnd('\\')) : Foldy.Core.Localization.Loc.T("sw.drv.soon");
     }
 

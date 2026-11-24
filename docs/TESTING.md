@@ -9,7 +9,7 @@
 
 - **언어별 시험 (2026-11-22, 사용자 "언어별로 테스트를 해줘")**:
   - `LanguageTests`(UI): en·es·ja·zh-Hans로 Foldy를 띄워 주 창과 설정 창에 보이는 글(화면 낭독기 이름·도움말)에 한국어가 남았는지 본다. 폴더 트리(Windows가 주는 폴더 이름)와 제목 표시줄(Windows가 그 PC 언어로 그림)은 뺀다. 찾은 글은 `TestResults/language-<언어>.txt`, 본 글 전부는 `language-<언어>-all.txt`(검수·글자 잘림 확인용), 설정 창 사진은 `language-<언어>-settings.png`. 주 창은 실제 드라이브가 보이므로 찍지 않는다(개인 폴더 이름 노출 방지). 주 창 사진은 `build/doc-screenshots.ps1 -Lang <언어>`(예시 폴더만 보임)로 본다.
-  - `LanguageFolderTests`(Templates): 네 언어마다 내장 템플릿 13개를 계획해 폴더·파일 이름에 한국어가 없는지, 정리 규칙 대상이 트리 이름과 맞는지, 위저드 질문이 번역됐는지, 바탕화면 보관·종류 폴더가 그 언어 이름이고 이미 있는 한국어 폴더는 그대로 쓰는지 본다.
+  - `LanguageFolderTests`(Templates): 네 언어마다 내장 템플릿 19개를 계획해 폴더·파일 이름에 한국어가 없는지, 정리 규칙 대상이 트리 이름과 맞는지, 위저드 질문이 번역됐는지, 바탕화면 보관·종류 폴더가 그 언어 이름이고 이미 있는 한국어 폴더는 그대로 쓰는지 본다.
   - `Every_key_used_in_code_is_in_the_language_files`(Core): 코드·XAML이 쓰는 키가 언어 파일에 다 있는지.
 - **불안정 시험 대응 (2026-11-22)**: 화면 시험의 `Retry.While*`는 모두 `ignoreException: true`(UI 자동화가 가끔 COMException E_UNEXPECTED를 낸다). 복사 취소 시험은 "반쪽 파일이 남지 않는다"만 본다(빠른 디스크에서는 취소가 닿기 전에 다 복사될 수 있다).
 - 다국어: `LocalizationTests`(키·자리 표시자·남은 한국어, 언어 고르기). UI 시험은 FOLDY_LANGUAGE=ko로 돈다(CI는 영어 Windows). 영어 화면 확인은 `FOLDY_LANGUAGE=en build/doc-screenshots.ps1 -Out <dir>`.

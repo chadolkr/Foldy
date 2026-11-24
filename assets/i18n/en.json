@@ -1435,7 +1435,7 @@
   "set.shell.cmd": "Command Prompt (cmd)",
   "set.showHidden": "Show hidden files",
   "set.slowCrawl": "Gently gather drives without an index (network drives, Google Drive, etc.)",
-  "set.slowCrawl.hint": "While Foldy is running it opens folders one at a time to gather file lists. It slows down on slow drives and pauses during jobs like copying. The list stays on this PC and is searchable with Ctrl+Space and Ctrl+F.",
+  "set.slowCrawl.hint": "While Foldy is running it gathers file lists. It slows down by itself when a drive answers slowly and pauses during jobs like copying. Places with your favorite folders come first. The list stays on this PC and is searchable with Ctrl+Space and Ctrl+F.",
   "set.term.auto": "Automatic (Windows Terminal if installed)",
   "set.term.console": "Console window",
   "set.terminalApp": "Terminal app",

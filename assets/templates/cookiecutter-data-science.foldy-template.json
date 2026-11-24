@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "id": "cookiecutter-data-science",
+  "name": "Cookiecutter Data Science",
+  "badge": "데이터",
+  "category": "프로젝트",
+  "description": "data(raw·interim·processed·external)·notebooks·models·reports로 나누는 DrivenData의 데이터 과학 프로젝트 구조. 코드는 Git에",
+  "purposes": [
+    "study"
+  ],
+  "variables": [
+    {
+      "key": "프로젝트",
+      "label": "프로젝트 이름 (폴더 이름)",
+      "required": true
+    }
+  ],
+  "tree": [
+    {
+      "name": "{{프로젝트}}",
+      "children": [
+        {
+          "name": "data",
+          "nameEn": "data",
+          "purpose": "데이터",
+          "children": [
+            {
+              "name": "raw",
+              "nameEn": "raw",
+              "purpose": "받은 원본 데이터 (고치지 않기)"
+            },
+            {
+              "name": "interim",
+              "nameEn": "interim",
+              "purpose": "중간에 바꾼 데이터"
+            },
+            {
+              "name": "processed",
+              "nameEn": "processed",
+              "purpose": "모델에 쓰는 최종 데이터"
+            },
+            {
+              "name": "external",
+              "nameEn": "external",
+              "purpose": "다른 곳에서 받은 데이터"
+            }
+          ]
+        },
+        {
+          "name": "docs",
+          "nameEn": "docs",
+          "purpose": "프로젝트 문서"
+        },
+        {
+          "name": "models",
+          "nameEn": "models",
+          "purpose": "학습한 모델, 예측 결과"
+        },
+        {
+          "name": "notebooks",
+          "nameEn": "notebooks",
+          "purpose": "Jupyter 노트북"
+        },
+        {
+          "name": "references",
+          "nameEn": "references",
+          "purpose": "데이터 사전, 설명서 같은 참고 자료"
+        },
+        {
+          "name": "reports",
+          "nameEn": "reports",
+          "purpose": "분석 보고서 (HTML, PDF)",
+          "children": [
+            {
+              "name": "figures",
+              "nameEn": "figures",
+              "purpose": "보고서에 쓰는 그림"
+            }
+          ]
+        },
+        {
+          "name": "README.md",
+          "file": "# {{프로젝트}}\n\nProject structure: Cookiecutter Data Science (https://cookiecutter-data-science.drivendata.org/)\n"
+        }
+      ]
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "노트북은 번호-이니셜-설명 (Cookiecutter 이름 규칙)",
+      "examples": [
+        "1.0-jqp-initial-data-exploration.ipynb"
+      ],
+      "folder": "{{프로젝트}}/notebooks",
+      "regex": "^\\d+(\\.\\d+)?-[A-Za-z]+-.+"
+    }
+  ],
+  "firstSteps": [
+    "받은 원본 데이터는 data/raw에 넣고 고치지 않기",
+    "탐색·실험은 notebooks에 번호-이니셜-설명 이름으로",
+    "학습한 모델은 models에, 보고서와 그림은 reports와 reports/figures에"
+  ],
+  "organize": [
+    {
+      "target": "notebooks",
+      "extensions": [
+        ".ipynb"
+      ],
+      "reason": "노트북 → notebooks"
+    },
+    {
+      "target": "models",
+      "extensions": [
+        ".pkl",
+        ".joblib",
+        ".h5",
+        ".onnx",
+        ".pt",
+        ".pth",
+        ".ckpt",
+        ".safetensors"
+      ],
+      "reason": "모델 파일 → models"
+    },
+    {
+      "target": "data/raw",
+      "extensions": [
+        ".csv",
+        ".tsv",
+        ".parquet",
+        ".feather",
+        ".jsonl"
+      ],
+      "reason": "데이터 파일 → 원본 데이터"
+    },
+    {
+      "target": "reports/figures",
+      "groups": [
+        "이미지"
+      ],
+      "reason": "그림 → reports/figures"
+    }
+  ]
+}

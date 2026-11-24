@@ -65,6 +65,9 @@ public sealed partial class FolderTabViewModel : TabBase
     private int _generation;
     private bool _active;
 
+    // 시각 확인 스레드가 읽는 "보이는 탭인가" (_active와 같이 바꾼다)
+    private volatile bool _seen;
+
     [ObservableProperty]
     private string _path = "";
 
@@ -182,6 +185,7 @@ public sealed partial class FolderTabViewModel : TabBase
     public override void OnActivated()
     {
         _active = true;
+        _seen = true;
         if (!IsLoaded && State != LoadState.Loading && !string.IsNullOrEmpty(Path))
         {
             _ = LoadAsync(Path, push: false, focus: FocusName);
@@ -195,6 +199,7 @@ public sealed partial class FolderTabViewModel : TabBase
     public override void OnDeactivated()
     {
         _active = false;
+        _seen = false;
         StopWatching();
     }
 
@@ -609,14 +614,35 @@ public sealed partial class FolderTabViewModel : TabBase
         if (_watch is null)
         {
             // 감시할 수 없는 드라이브(네트워크·SFTP)는 활성 탭만 주기적으로 새로 고친다 (DESIGN.md: 30~60초 폴링)
+            // 시각만 보면 알 수 없는 것(파일 크기·내용만 바뀜)은 이 주기로 맞춘다
             var period = PathUtil.IsSftp(Path) ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(45);
-            _watch = new Timer(_ => _env.Ui.Post(() =>
+            var full = new Timer(_ => _env.Ui.Post(() =>
             {
                 if (_active && State == LoadState.Idle)
                 {
                     _ = RefreshAsync();
                 }
             }), null, period, period);
+            if (PathUtil.IsSftp(Path))
+            {
+                _watch = full;
+            }
+            else
+            {
+                // 네트워크·회사 클라우드 드라이브: 보고 있는 폴더의 수정 시각만 1초마다 물어 파일이 생기거나 지워지면 바로 새로 고친다 (2026-11-24)
+                var poller = new FolderTimePoller(Path, () => _seen, () => _env.Ui.Post(ScheduleRefresh));
+                _watch = new Both(full, poller);
+            }
+        }
+    }
+
+    /// <summary>둘을 함께 끈다.</summary>
+    private sealed class Both(IDisposable a, IDisposable b) : IDisposable
+    {
+        public void Dispose()
+        {
+            a.Dispose();
+            b.Dispose();
         }
     }
 

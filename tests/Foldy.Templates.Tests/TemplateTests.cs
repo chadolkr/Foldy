@@ -271,7 +271,8 @@ public class LibraryAndCaptureTests
         all.Select(t => t.Id).Should().BeEquivalentTo([
             "para", "johnny-decimal", "client-project", "photo-archive",
             "date-archive", "document-workflow", "research-project", "household-life", "design-assets", "number-prefix",
-            "pm-project", "it-project", "cde-project"]);
+            "pm-project", "it-project", "cde-project",
+            "gtd", "ace", "records-classification", "tier-protocol", "cookiecutter-data-science", "bids"]);
         all.Should().NotContain(t => t.Category == "개발", "개발용은 이미 정해진 폴더링이 있어 내장하지 않는다 (2026-11-21)");
         all.Select(t => t.Id).Should().OnlyHaveUniqueItems();
         foreach (var t in all)

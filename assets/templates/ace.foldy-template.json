@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "ace",
+  "name": "ACE (Atlas·Calendar·Efforts)",
+  "badge": "ACE",
+  "category": "개인·업무",
+  "description": "알게 된 것(Atlas)·날짜가 있는 기록(Calendar)·하고 있는 일(Efforts) 세 칸으로 나누는 닉 밀로의 Linking Your Thinking 방식",
+  "purposes": [
+    "personal"
+  ],
+  "variables": [],
+  "tree": [
+    {
+      "name": "Atlas",
+      "nameEn": "Atlas",
+      "purpose": "알게 된 것·모은 지식",
+      "children": [
+        {
+          "name": "Cards",
+          "nameEn": "Cards",
+          "purpose": "생각과 개념을 정리한 메모"
+        },
+        {
+          "name": "Sources",
+          "nameEn": "Sources",
+          "purpose": "책·글·영상 같은 출처 자료"
+        }
+      ]
+    },
+    {
+      "name": "Calendar",
+      "nameEn": "Calendar",
+      "purpose": "날짜가 있는 기록 (회의록, 일지)"
+    },
+    {
+      "name": "Efforts",
+      "nameEn": "Efforts",
+      "purpose": "하고 있는 일·프로젝트, 일마다 폴더 하나"
+    }
+  ],
+  "naming": [
+    {
+      "pattern": "Calendar의 기록은 날짜_내용.확장자",
+      "examples": [
+        "2026-11-24_주간 회의.md"
+      ],
+      "folder": "Calendar",
+      "regex": "^\\d{4}-\\d{2}-\\d{2}_.+"
+    }
+  ],
+  "firstSteps": [
+    "회의록·일지처럼 날짜가 붙는 기록은 Calendar에 날짜_내용 이름으로",
+    "하고 있는 일은 Efforts에 일마다 폴더를 하나씩",
+    "알게 된 것은 Atlas에: 내 생각은 Cards, 책·글 같은 자료는 Sources"
+  ],
+  "organize": [
+    {
+      "target": "Calendar",
+      "keywords": [
+        "회의록",
+        "일지",
+        "meeting",
+        "journal",
+        "daily"
+      ],
+      "reason": "이름에 회의록·일지"
+    },
+    {
+      "target": "Atlas/Sources",
+      "keywords": [
+        "책",
+        "논문",
+        "기사",
+        "book",
+        "article",
+        "paper"
+      ],
+      "reason": "이름에 책·논문·기사"
+    }
+  ]
+}
