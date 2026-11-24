@@ -88,7 +88,8 @@ public sealed class QuickSearchOnlyTests : IDisposable
         var again = Retry.WhileNull(() => FindWindow(foldy.Id), TimeSpan.FromSeconds(15), ignoreException: true).Result;
         again.Should().NotBeNull();
         again!.Close();
-        main!.Close();
+        // 주 창 닫기: 제목 표시줄 단추 대신 창 닫기 요청(WM_CLOSE)으로. 찾기 창이 막 닫히는 동안 단추가 잠깐 꺼져 있을 수 있다
+        Retry.WhileException(() => main!.Patterns.Window.Pattern.Close(), TimeSpan.FromSeconds(10));
         foldy.WaitForExit(15_000).Should().BeTrue("주 창을 닫으면 끝난다");
     }
 
