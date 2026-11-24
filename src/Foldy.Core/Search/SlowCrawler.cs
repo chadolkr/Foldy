@@ -273,31 +273,26 @@ public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Co
 
 /// <summary>
 /// 색인 없는 드라이브를 "살살" 모은다 (사용자 2026-11-21: "회사 드라이브도 부하 주지 않게 살살 수집해 줘").
-/// 폴더를 하나 열 때마다, 여는 데 걸린 시간의 몇 배(최소 <see cref="MinPause"/>)를 쉰다 → 느린 드라이브일수록 저절로 천천히.
+/// 가까운 드라이브는 다른 프로그램에 비켜 주며(<see cref="GiveWay"/>) 쉬지 않고 읽고, 먼 드라이브는 짧게 쉬며 읽는다(<see cref="CrawlPace"/>).
 /// <see cref="ShouldPause"/>가 참이면(복사 같은 작업 중) 기다린다. Windows 폴더(휴지통·시스템 볼륨 정보)와 숨김+시스템 파일, 링크(정션·심볼릭 링크) 안은 들어가지 않는다.
 /// 다 모으면 <see cref="RescanEvery"/> 뒤에 다시 모으고, <see cref="RequestNow"/>로 지금 모으게 할 수도 있다.
 /// </summary>
 public sealed class SlowCrawler : IDisposable
 {
-    public static TimeSpan MinPause { get; set; } = TimeSpan.FromMilliseconds(10);
+    /// <summary>클라우드 드라이브에서 폴더마다 적어도 이만큼 쉰다 (모아서 한 번에).</summary>
+    public static TimeSpan MinPause { get; set; } = TimeSpan.FromMilliseconds(1);
+
+    /// <summary>
+    /// 네트워크 드라이브에서 폴더마다 적어도 쉬는 시간. 클라우드 드라이브는 이 PC에서 도는 프로그램이 답하지만,
+    /// 네트워크 드라이브는 여럿이 쓰는 서버라 더 쉰다 (PC 여러 대가 함께 모아도 몰리지 않게).
+    /// </summary>
+    public static TimeSpan MinNetworkPause { get; set; } = TimeSpan.FromMilliseconds(5);
 
     /// <summary>다 모은 뒤 다시 모으기까지 (다시 모을 때는 바뀐 폴더만 읽어서 가볍다).</summary>
     public static TimeSpan RescanAfter { get; set; } = TimeSpan.FromHours(1);
 
-    /// <summary>처음 쉬는 비율: 읽는 데 걸린 시간의 몇 배를 쉬나. 모으는 동안 드라이브 응답에 맞춰 <see cref="MinPauseFactor"/>~<see cref="MaxPauseFactor"/>배로 바뀐다.</summary>
-    public static double PauseFactor { get; set; } = 0.5;
-
-    /// <summary>응답이 평소 같을 때 쉬는 비율의 바닥 (읽는 시간의 20%를 쉰다 → 드라이브는 늘 숨 돌릴 틈이 있다).</summary>
-    public const double MinPauseFactor = 0.2;
-
-    /// <summary>응답이 계속 늦을 때 쉬는 비율의 꼭대기.</summary>
-    public const double MaxPauseFactor = 3;
-
-    /// <summary>한 드라이브에서 같이 읽는 폴더 수의 최대 (응답이 느린 네트워크·클라우드 드라이브). 가까운 드라이브는 2.</summary>
+    /// <summary>한 드라이브에서 같이 읽는 폴더 수의 최대 (응답이 느린 네트워크·클라우드 드라이브). 가까운 드라이브는 하나씩.</summary>
     public const int MaxWidth = 4;
-
-    /// <summary>폴더 하나 읽는 데 평소 이보다 오래 걸리면 멀리 있는 드라이브로 본다.</summary>
-    internal const double RemoteMs = 20;
 
     /// <summary>먼저 모을 폴더 (자주 쓰는 폴더·최근 폴더). 그 폴더로 가는 길을 먼저 읽어 찾기에 빨리 나온다.</summary>
     public Func<IReadOnlyList<string>>? PreferFirst { get; set; }
@@ -315,6 +310,7 @@ public sealed class SlowCrawler : IDisposable
     {
         _dir = dir;
         _drives = drives;
+        IsNear = LooksNear;
         Directory.CreateDirectory(dir);
     }
 
@@ -326,6 +322,41 @@ public sealed class SlowCrawler : IDisposable
     /// 시각만 보면 변화를 놓친다 (2026-11-23 노트북에서 재 봄: 나중에 뭔가 생긴 폴더 19개 중 11개가 안 바뀜).
     /// </summary>
     public Func<string, bool>? AlwaysReadAll { get; set; }
+
+    /// <summary>
+    /// 이 PC에 바로 꽂힌 드라이브(디스크·USB·SD)인가. 네트워크와, Windows가 "고정 드라이브"라고 하는 클라우드 드라이브(Google Drive)는 아니다.
+    /// 시험에서 바꾼다.
+    /// </summary>
+    internal Func<string, bool> IsNear { get; set; }
+
+    /// <summary>여럿이 쓰는 서버의 드라이브인가 (네트워크 드라이브, \\서버\공유). 시험에서 바꾼다.</summary>
+    internal Func<string, bool> IsNetwork { get; set; } = root =>
+    {
+        try
+        {
+            return root.StartsWith(@"\\", StringComparison.Ordinal)
+                || (Path.GetPathRoot(root) is { Length: > 0 } drive && new DriveInfo(drive).DriveType == DriveType.Network);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return false;
+        }
+    };
+
+    private bool LooksNear(string root)
+    {
+        try
+        {
+            return !root.StartsWith(@"\\", StringComparison.Ordinal)
+                && Path.GetPathRoot(root) is { Length: > 0 } drive
+                && new DriveInfo(drive).DriveType is DriveType.Fixed or DriveType.Removable or DriveType.Ram
+                && AlwaysReadAll?.Invoke(root) != true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return false;
+        }
+    }
 
     public event Action<CrawlStatus>? Changed;
 
@@ -834,6 +865,18 @@ public sealed class SlowCrawler : IDisposable
     /// <param name="full">지난 목록을 쓰지 않고 모든 폴더를 다시 읽는다.</param>
     public long CrawlOnce(string drive, CancellationToken ct, bool full = false)
     {
+        if (!IsNear(Root(drive)))
+        {
+            return Crawl(drive, full, near: false, ct);
+        }
+
+        long found = 0;
+        GiveWay.Run(() => found = Crawl(drive, full, near: true, ct));
+        return found;
+    }
+
+    private long Crawl(string drive, bool full, bool near, CancellationToken ct)
+    {
         var root = Root(drive);
         var store = StoreFor(root);
         var temp = store.FilePath + ".part";
@@ -861,36 +904,21 @@ public sealed class SlowCrawler : IDisposable
         int listed = ck?.Listed ?? 0, reused = ck?.Reused ?? 0, skipped = ck?.Skipped ?? 0;
 
         Report(new CrawlStatus(root, true, found, false, store.CompletedUtc));
-        double factor = PauseFactor, baseline = -1;
-        var width = 1;
+        var pace = new CrawlPace(near, IsNetwork(root) ? MinNetworkPause : MinPause);
         var preferred = PreferFirst?.Invoke() ?? [];
 
         void Breathe(TimeSpan batch, int folders, TimeSpan perAsk)
         {
-            // 속도 조절 (2026-11-24 고침: 예전에는 읽은 시간의 2~8배를 쉬어 회사 클라우드 드라이브가 쓸 수 없을 만큼 느렸다).
-            // 응답이 평소의 3배 넘게 늦으면 쉬는 비율을 1.5배로 늘리고 같이 읽는 수를 줄인다. 평소 같으면 쉬는 비율을 줄이고 같이 읽는 수를 늘린다.
-            // 응답이 느린(멀리 있는) 드라이브일수록 같이 읽으면 기다리는 시간이 겹쳐 빨라진다. 가까운 드라이브(USB·SD)는 둘까지만
-            if (perAsk > TimeSpan.Zero)
+            var pause = pace.After(batch, folders, perAsk);
+            if (pause > TimeSpan.Zero)
             {
-                var ms = perAsk.TotalMilliseconds;
-                var slow = baseline >= 0 && ms > 3 * Math.Max(baseline, 1);
-                baseline = baseline < 0 ? ms : (0.9 * baseline) + (0.1 * ms);
-                if (slow)
+                var slept = Stopwatch.StartNew();
+                if (ct.WaitHandle.WaitOne(pause))
                 {
-                    factor = Math.Min(MaxPauseFactor, factor * 1.5);
-                    width = Math.Max(1, width / 2);
+                    ct.ThrowIfCancellationRequested();
                 }
-                else
-                {
-                    factor = Math.Max(MinPauseFactor, factor * 0.9);
-                    width = Math.Min(baseline >= RemoteMs ? MaxWidth : 2, width + 1);
-                }
-            }
 
-            var pause = TimeSpan.FromTicks(Math.Max(MinPause.Ticks * folders, (long)(batch.Ticks * factor)));
-            if (pause > TimeSpan.Zero && ct.WaitHandle.WaitOne(pause))
-            {
-                ct.ThrowIfCancellationRequested();
+                pace.Slept(slept.Elapsed);
             }
         }
 
@@ -961,7 +989,7 @@ public sealed class SlowCrawler : IDisposable
 
                         // 폴더 몇 개를 한꺼번에 꺼내 같이 읽는다 (응답을 기다리는 시간이 겹친다). 기록은 꺼낸 차례대로 하나씩
                         pending = [];
-                        while (pending.Count < width && stack.Count > 0)
+                        while (pending.Count < pace.Width && stack.Count > 0)
                         {
                             pending.Add(stack.Pop());
                         }
@@ -1177,22 +1205,27 @@ public sealed class SlowCrawler : IDisposable
     {
         var r = new Fetched();
         var sw = Stopwatch.StartNew();
-        // 폴더 자신의 시각을 묻는다. 위 폴더 목록에 적힌 시각은 NTFS에서 늦게 고쳐져서, 그것을 기록하면 다음에 거의 모든 폴더를 다시 읽게 된다(CI 확인).
-        // 묻는 것도 같이 읽는 묶음 안에서 겹쳐 하고, 쉬는 것은 묶음마다 한 번이다
-        r.MTime = DirTime(job.Dir);
-        r.SameTime = job.Before is not null && r.MTime != 0 && r.MTime == job.Before.MTime;
-        if (!readAll && job.Dir != root && r.SameTime && job.OldBlock is not null && !HasFolder(job.OldBlock))
+        // 폴더 자신의 시각을 본다. 위 폴더 목록에 적힌 시각은 NTFS에서 늦게 고쳐져서, 그것을 기록하면 다음에 거의 모든 폴더를 다시 읽게 된다(CI 확인).
+        // 목록을 안 읽어도 될 수 있는 끝 폴더만 시각을 따로 묻고, 나머지는 목록의 "." 줄에 딸려 오는 것을 쓴다
+        // (Google Drive는 한 번 묻는 데 0.7ms. 2026-11-24 D:·G:·C: 11,681개 폴더에서 "." 시각이 따로 물은 시각과 모두 같음)
+        if (!readAll && job.Dir != root && job.Before is not null && job.OldBlock is not null && !HasFolder(job.OldBlock))
         {
-            // 끝 폴더, 시각 그대로: 지난 목록을 쓴다
-            r.Block = job.OldBlock;
-            r.Reused = true;
-            return r;
+            r.MTime = DirTime(job.Dir);
+            if (r.MTime != 0 && r.MTime == job.Before.MTime)
+            {
+                // 끝 폴더, 시각 그대로: 지난 목록을 쓴다
+                r.SameTime = true;
+                r.Block = job.OldBlock;
+                r.Reused = true;
+                return r;
+            }
         }
 
         List<CrawlEntry> entries;
         try
         {
-            entries = [.. List(job.Dir)];
+            entries = List(job.Dir, out var time);
+            r.MTime = time;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -1206,6 +1239,8 @@ public sealed class SlowCrawler : IDisposable
             r.Ok = false;
         }
 
+        r.MTime = r.MTime != 0 ? r.MTime : DirTime(job.Dir); // 드라이브 맨 위에는 "."이 없다
+        r.SameTime = job.Before is not null && r.MTime != 0 && r.MTime == job.Before.MTime;
         r.Took = sw.Elapsed;
         var sb = new StringBuilder();
         foreach (var e in entries)
@@ -1483,11 +1518,20 @@ public sealed class SlowCrawler : IDisposable
     }
 
     // 목록은 한 번에 크게 받는다 (네트워크 왕복을 줄인다)
-    private static readonly EnumerationOptions Flat = new() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = 0, ReturnSpecialDirectories = false, BufferSize = 64 * 1024 };
+    private static readonly EnumerationOptions Flat = new() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = 0, ReturnSpecialDirectories = true, BufferSize = 64 * 1024 };
 
-    private static IEnumerable<CrawlEntry> List(string dir) =>
-        new FileSystemEnumerable<CrawlEntry?>(dir, (ref FileSystemEntry e) =>
+    /// <summary>폴더 하나의 목록과 그 폴더 자신의 수정 시각 (목록의 "." 줄, 없으면 0).</summary>
+    internal static List<CrawlEntry> List(string dir, out long time)
+    {
+        long self = 0;
+        List<CrawlEntry> entries = [.. new FileSystemEnumerable<CrawlEntry?>(dir, (ref FileSystemEntry e) =>
         {
+            if (e.FileName is "." or "..")
+            {
+                self = e.FileName.Length == 1 ? e.LastWriteTimeUtc.UtcDateTime.Ticks : self;
+                return null;
+            }
+
             var path = e.ToFullPath();
             // 링크(정션·심볼릭 링크) 안은 들어가지 않는다 (다른 곳을 두 번 세거나 끝없이 돌지 않게).
             // 클라우드 드라이브(OneDrive 같은 Windows 클라우드 파일)의 폴더도 "재분석 지점"이지만 링크가 아니라 진짜 폴더라 들어간다
@@ -1501,7 +1545,10 @@ public sealed class SlowCrawler : IDisposable
                 ? null
                 : new CrawlEntry(path, e.IsDirectory, e.IsDirectory ? 0 : e.Length, e.LastWriteTimeUtc.UtcDateTime);
         }, Flat)
-            .OfType<CrawlEntry>();
+            .OfType<CrawlEntry>()];
+        time = self;
+        return entries;
+    }
 
     /// <summary>Windows가 드라이브마다 두는 폴더 (사용자 파일이 아니다)</summary>
     internal static bool IsWindowsFolder(ReadOnlySpan<char> name) =>

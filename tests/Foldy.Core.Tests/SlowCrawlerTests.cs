@@ -15,7 +15,7 @@ public sealed class SlowCrawlerTests : IDisposable
 
     public void Dispose()
     {
-        SlowCrawler.MinPause = TimeSpan.FromMilliseconds(25);
+        SlowCrawler.MinPause = TimeSpan.FromMilliseconds(1);
         foreach (var d in new[] { _root, _store })
         {
             try
@@ -292,19 +292,80 @@ public sealed class SlowCrawlerTests : IDisposable
     }
 
     [Fact]
-    public void Slow_folders_make_it_pause_longer()
+    public void Far_drive_rests_at_least_the_minimum_per_folder()
     {
-        // 폴더를 여는 데 걸린 시간의 몇 배를 쉰다: 쉬는 시간이 최소값보다 길어지는지 (시간 비례 원칙)
+        // 먼 드라이브(네트워크·클라우드)는 폴더마다 최소 시간을 쉰다 (모아서 한 번에 쉬어도 합은 같다)
         for (var i = 0; i < 30; i++)
         {
             Make($@"d{i}\f.txt");
         }
 
         SlowCrawler.MinPause = TimeSpan.FromMilliseconds(10);
-        using var c = new SlowCrawler(_store, () => [_root]);
+        using var c = new SlowCrawler(_store, () => [_root]) { IsNear = _ => false };
         var sw = System.Diagnostics.Stopwatch.StartNew();
         c.CrawlOnce(_root, TestContext.Current.CancellationToken);
-        Assert.True(sw.Elapsed >= TimeSpan.FromMilliseconds(31 * 10), "폴더마다 최소 10ms는 쉬어야 한다");
+        Assert.True(sw.Elapsed >= TimeSpan.FromMilliseconds(30 * 10), "폴더마다 10ms씩은 쉬어야 한다");
+    }
+
+    [Fact]
+    public void Network_drive_rests_longer_than_a_cloud_drive_because_others_share_the_server()
+    {
+        for (var i = 0; i < 40; i++)
+        {
+            Make($@"d{i}\f.txt");
+        }
+
+        TimeSpan Gather(bool network)
+        {
+            using var c = new SlowCrawler(Path.Combine(_store, network ? "n" : "c"), () => [_root]) { IsNear = _ => false, IsNetwork = _ => network };
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+            return sw.Elapsed;
+        }
+
+        SlowCrawler.MinPause = TimeSpan.Zero;
+        Assert.True(Gather(network: true) >= SlowCrawler.MinNetworkPause * 35, "서버를 여럿이 쓰는 네트워크 드라이브는 폴더마다 쉬어야 한다");
+        Assert.True(SlowCrawler.MinNetworkPause > TimeSpan.FromMilliseconds(1));
+        using var d = new SlowCrawler(_store, () => [_root]);
+        Assert.True(d.IsNetwork(@"\\server\share\"));
+        Assert.False(d.IsNetwork(Path.GetPathRoot(_root)!));
+    }
+
+    [Fact]
+    public void Near_drive_is_gathered_without_the_minimum_rest()
+    {
+        for (var i = 0; i < 60; i++)
+        {
+            Make($@"d{i}\f.txt");
+        }
+
+        SlowCrawler.MinPause = TimeSpan.FromMilliseconds(100);
+        using var c = new SlowCrawler(_store, () => [_root]) { IsNear = _ => true };
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var n = c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.Equal(120, n);
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(4), $"가까운 드라이브인데 {sw.Elapsed.TotalSeconds:F1}초 걸림 (폴더마다 쉬면 6초)");
+    }
+
+    [Fact]
+    public void Cloud_drive_is_never_near_even_when_windows_calls_it_fixed()
+    {
+        using var c = new SlowCrawler(_store, () => [_root]) { AlwaysReadAll = _ => true };
+        Assert.False(c.IsNear(Path.GetPathRoot(_root)!)); // Google Drive는 "고정 드라이브"로 보인다
+        using var local = new SlowCrawler(_store, () => [_root]);
+        Assert.True(local.IsNear(Path.GetPathRoot(_root)!));
+        Assert.False(local.IsNear(@"\\server\share\"));
+    }
+
+    [Fact]
+    public void Folder_time_comes_with_its_listing()
+    {
+        Make(@"a\1.txt");
+        var dir = Path.Combine(_root, "a");
+        File.WriteAllText(Path.Combine(dir, "2.txt"), "x");
+        var entries = SlowCrawler.List(dir, out var time);
+        Assert.Equal(Directory.GetLastWriteTimeUtc(dir).Ticks, time); // 폴더를 한 번 더 열지 않는다
+        Assert.Equal(["1.txt", "2.txt"], entries.Select(e => Path.GetFileName(e.Path)).Order()); // "."과 ".."는 목록에 넣지 않는다
     }
 
     private static void WaitFor(Func<bool> ok)
