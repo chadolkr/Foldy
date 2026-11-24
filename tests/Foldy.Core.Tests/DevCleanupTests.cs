@@ -190,6 +190,53 @@ public sealed class RebuildableFoldersTests : IDisposable
     }
 
     [Fact]
+    public void Empty_folders_are_left_out_so_nothing_found_means_nothing_to_delete()
+    {
+        // 1.10.2: 비어 있는 bin·node_modules는 지워도 공간이 늘지 않는다. 그런 것만 있으면 "지워도 되는 폴더가 없어요"로 끝나야 한다
+        Make(@"app", "App.csproj");
+        Make(@"app\bin\Debug");
+        Make(@"app\obj");
+        Make(@"web", "package.json");
+        Make(@"web\node_modules");
+
+        var counter = new RebuildableScanCounter();
+        RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now, counter: counter).Should().BeEmpty();
+        counter.Found.Should().Be(0);
+        counter.Folders.Should().BeGreaterThan(0, "살펴본 폴더 수는 그대로 센다 (안내에 보여 준다)");
+    }
+
+    [Fact]
+    public void Index_saying_zero_is_checked_again_on_disk()
+    {
+        Make(@"web", "package.json");
+        Make(@"web\node_modules\a", "a.js", 300);
+        RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now, _ => 0).Single().Size.Should().Be(300, "색인이 늦게 바뀌었을 수 있다");
+    }
+
+    [Theory]
+    [InlineData("ko")]
+    [InlineData("en")]
+    [InlineData("es")]
+    [InlineData("ja")]
+    [InlineData("zh-Hans")]
+    public void Nothing_found_messages_say_how_many_folders_were_looked_at_and_differ_when_stopped(string lang)
+    {
+        var before = Foldy.Core.Localization.Loc.Current;
+        try
+        {
+            Foldy.Core.Localization.Loc.Use(lang);
+            var none = Foldy.Core.Localization.Loc.F("dev.rb.none", 7);
+            var stopped = Foldy.Core.Localization.Loc.F("dev.rb.stoppedNone", 7);
+            none.Should().Contain("7").And.NotBe("dev.rb.none");
+            stopped.Should().Contain("7").And.NotBe("dev.rb.stoppedNone").And.NotBe(none, "멈춘 것과 끝까지 본 것은 다르게 알린다");
+        }
+        finally
+        {
+            Foldy.Core.Localization.Loc.Use(before);
+        }
+    }
+
+    [Fact]
     public void Hidden_folders_are_not_entered()
     {
         var hidden = Make(@"숨김");

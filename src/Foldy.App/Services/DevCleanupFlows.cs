@@ -40,7 +40,8 @@ public static class DevCleanupFlows
         var (found, stopped, looked) = done;
         if (found.Count == 0)
         {
-            await w.AskAsync(stopped ? Foldy.Core.Localization.Loc.T("dev.rb.stoppedNone") : Foldy.Core.Localization.Loc.T("dev.rb.none"), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
+            // 끝까지 살펴봤는데 없으면 "없어요"를, [그만 찾기]로 멈췄으면 멈춘 것을 분명히 (빈 목록을 보여 주지 않는다)
+            await w.AskAsync(stopped ? Foldy.Core.Localization.Loc.F("dev.rb.stoppedNone", looked) : Foldy.Core.Localization.Loc.F("dev.rb.none", looked), C("close", Foldy.Core.Localization.Loc.T("cf.close")));
             w.Close();
             return;
         }
