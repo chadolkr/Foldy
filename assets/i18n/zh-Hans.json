@@ -1086,6 +1086,7 @@
   "pane.col.size": "大小",
   "pane.copiedN": "已复制 {0:N0} 个",
   "pane.cutN": "已剪切 {0:N0} 个",
+  "pane.dropSameFolder": "这些文件已经在此文件夹中。如果两侧窗格是同一个文件夹，请在其中一侧打开其他文件夹后再放下。",
   "pane.empty": "此文件夹为空",
   "pane.empty.tip": "从另一个窗格把文件拖到这里就会复制。按 F7 新建文件夹。",
   "pane.escCancel": " · Esc 取消",

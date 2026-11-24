@@ -1351,6 +1351,7 @@ public partial class PaneView : UserControl
 
         var data = BuildDataObject(CurrentSelection.Select(i => i.FullPath).ToArray(), DragDropEffects.Copy);
         _dragSourceFolder = _tab?.Path;
+        _dragSourcePane = this;
         try
         {
             DragDrop.DoDragDrop(List, data, DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link);
@@ -1358,6 +1359,7 @@ public partial class PaneView : UserControl
         finally
         {
             _dragSourceFolder = null;
+            _dragSourcePane = null;
         }
 
         // 다른 곳으로 옮겨졌으면 목록 갱신
@@ -1365,6 +1367,9 @@ public partial class PaneView : UserControl
     }
 
     private static string? _dragSourceFolder;
+
+    /// <summary>끌기를 시작한 창 (Foldy 밖에서 끌어 오면 null).</summary>
+    private static PaneView? _dragSourcePane;
 
     private void OnListDragOver(object sender, DragEventArgs e)
     {
@@ -1379,9 +1384,18 @@ public partial class PaneView : UserControl
             return DragDropEffects.None;
         }
 
-        if (string.Equals(_dragSourceFolder, _tab.Path, StringComparison.OrdinalIgnoreCase))
+        var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+        if (Foldy.Presentation.Navigation.DropRules.AllAlreadyIn(files, _dragSourceFolder, _tab.Path))
         {
-            return DragDropEffects.None; // 같은 폴더에 놓기는 무시
+            // 같은 폴더에 놓기는 아무것도 하지 않는다 (탐색기와 같음).
+            // 다만 반대쪽 창이 같은 폴더를 보고 있으면 금지 표시만으로는 왜 안 되는지 모르므로 쉬운 말로 알려 준다.
+            // 끌기를 막 시작한 자기 창 위에서는 알리지 않는다.
+            if (_dragSourcePane != this && _host is not null)
+            {
+                _host.Shell.Status = Foldy.Core.Localization.Loc.T("pane.dropSameFolder");
+            }
+
+            return DragDropEffects.None;
         }
 
         if ((e.KeyStates & DragDropKeyStates.ShiftKey) != 0)
@@ -1395,7 +1409,6 @@ public partial class PaneView : UserControl
         }
 
         // 탐색기 규칙: 같은 드라이브면 이동, 다르면 복사
-        var files = e.Data.GetData(DataFormats.FileDrop) as string[];
         var sameDrive = files is { Length: > 0 } && !files.Any(Foldy.Presentation.Navigation.PathUtil.IsSftp) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path) && string.Equals(Path.GetPathRoot(files[0]), Path.GetPathRoot(_tab.Path), StringComparison.OrdinalIgnoreCase);
         var want = sameDrive ? DragDropEffects.Move : DragDropEffects.Copy;
         return (want & e.AllowedEffects) != 0 ? want : DragDropEffects.Copy & e.AllowedEffects;

@@ -1086,6 +1086,7 @@
   "pane.col.size": "크기",
   "pane.copiedN": "{0:N0}개 복사해 둠",
   "pane.cutN": "{0:N0}개 잘라 둠",
+  "pane.dropSameFolder": "이미 이 폴더에 있는 파일이에요. 양쪽 창이 같은 폴더를 보고 있으면, 한쪽 창에서 다른 폴더를 연 다음 놓아 주세요.",
   "pane.empty": "빈 폴더입니다",
   "pane.empty.tip": "다른 창에서 파일을 끌어다 놓으면 복사돼요. 새 폴더는 F7이에요.",
   "pane.escCancel": " · Esc 취소",

@@ -1086,6 +1086,7 @@
   "pane.col.size": "Tamaño",
   "pane.copiedN": "{0:N0} copiados",
   "pane.cutN": "{0:N0} cortados",
+  "pane.dropSameFolder": "Estos archivos ya están en esta carpeta. Si los dos paneles muestran la misma carpeta, abre otra carpeta en uno de ellos y suelta ahí.",
   "pane.empty": "Esta carpeta está vacía",
   "pane.empty.tip": "Arrastra archivos aquí desde el otro panel para copiarlos. Pulsa F7 para crear una carpeta.",
   "pane.escCancel": " · Esc para cancelar",
