@@ -54,6 +54,12 @@ public sealed record AppSettings
     /// <summary>빠른 검색 단축키를 다른 프로그램을 쓰는 중에도 받는다 (기본 켬). 끄면 Foldy 창 안에서만.</summary>
     public bool QuickSearchGlobal { get; init; } = true;
 
+    /// <summary>
+    /// Foldy가 꺼져 있어도 같은 단축키로 무엇이든 찾기 창을 연다 (1.11.0, 기본 켬). 로그인할 때 아주 작은 도우미(foldy-hotkey.exe)가
+    /// 단축키만 기다리다 Foldy를 찾기 창만으로 띄운다. QuickSearchGlobal이 꺼져 있으면 함께 쉰다.
+    /// </summary>
+    public bool QuickSearchAlways { get; init; } = true;
+
     /// <summary>AI 연결(MCP): AI 앱이 Foldy로 파일을 찾고 폴더를 볼 수 있게 한다 (기본 끔, "AI에 연결"을 누르면 켜진다). 읽기 전용.</summary>
     public bool McpEnabled { get; init; }
 

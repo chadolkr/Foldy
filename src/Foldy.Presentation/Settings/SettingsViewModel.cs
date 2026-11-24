@@ -257,6 +257,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsDirty))]
     private bool _slowCrawl = true;
 
+    /// <summary>Foldy가 꺼져 있어도 단축키(Ctrl+Space)로 무엇이든 찾기 창을 연다 (1.11.0, 기본 켬).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private bool _quickSearchAlways = true;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDirty))]
     private string _crawlEvery = "1h";
@@ -315,6 +320,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         CleanupNotices = CleanupNotices,
         KeepPreviousVersions = KeepPreviousVersions,
         SlowCrawl = SlowCrawl,
+        QuickSearchAlways = QuickSearchAlways,
         CrawlEvery = CrawlEvery,
         AiSuggest = AiSuggest,
         Language = Language,
@@ -389,6 +395,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         CleanupNotices = s.CleanupNotices;
         KeepPreviousVersions = s.KeepPreviousVersions;
         SlowCrawl = s.SlowCrawl;
+        QuickSearchAlways = s.QuickSearchAlways;
         CrawlEvery = Pick(CrawlEveryChoices, s.CrawlEvery, "1h");
         AiSuggest = s.AiSuggest;
         Language = s.Language;

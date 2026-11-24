@@ -41,10 +41,26 @@ public sealed partial class SingleInstance : IDisposable
     public static SingleInstance Acquire(string key = "Foldy")
     {
         var session = System.Diagnostics.Process.GetCurrentProcess().SessionId;
-        var user = Environment.UserName.GetHashCode(StringComparison.OrdinalIgnoreCase).ToString("x8", System.Globalization.CultureInfo.InvariantCulture);
-        var name = $"{key}.{session}.{user}";
+        var name = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{key}.{session}.{UserHash(Environment.UserName):x8}");
         var marker = new EventWaitHandle(false, EventResetMode.ManualReset, @"Local\" + name + ".instance", out var createdNew);
         return new SingleInstance(marker, createdNew, name + ".activate");
+    }
+
+    /// <summary>
+    /// 사용자 이름의 짧은 고정 해시 (FNV-1a 32비트, 대문자 UTF-8). 단축키 도우미(engine/foldy-hotkey, user_hash)와 같은 값이어야 한다.
+    /// 예전에는 string.GetHashCode를 썼는데, .NET은 이 값을 프로세스마다 다르게 섞어서 두 번째 Foldy가 첫 Foldy를 찾지 못했다 (1.11.0에서 고침).
+    /// </summary>
+    public static uint UserHash(string user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        var h = 0x811c9dc5u;
+        foreach (var b in Encoding.UTF8.GetBytes(user.ToUpperInvariant()))
+        {
+            h ^= b;
+            h = unchecked(h * 0x01000193u);
+        }
+
+        return h;
     }
 
     /// <summary>첫 Foldy: 다른 Foldy의 요청을 받기 시작한다. onActivate는 스레드 풀에서 불린다 (UI로 넘기는 건 호출자 몫).</summary>

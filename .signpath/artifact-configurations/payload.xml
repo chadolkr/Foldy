@@ -15,6 +15,7 @@
     <pe-file-set>
       <include path="foldy-index.exe" />
       <include path="foldy-update.exe" />
+      <include path="foldy-hotkey.exe" min-matches="0" />
       <include path="foldy_*.dll" min-matches="0" max-matches="unbounded" />
       <for-each>
         <authenticode-sign />

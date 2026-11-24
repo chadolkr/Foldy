@@ -81,6 +81,15 @@
           <RemoveFile Id="RemoveScriptSetup" Name="Foldy-Setup.ps1" On="install" />
         </Component>
 
+        <!-- 단축키 도우미 (1.11.0): Foldy가 꺼져 있어도 Ctrl+Space로 무엇이든 찾기 창. 로그인할 때 모든 사용자에게 시작되고(메모리 약 1MB),
+             사용자가 설정에서 끄면 도우미가 설정 파일(%LOCALAPPDATA%\Foldy\quick-search-key.txt)의 off를 보고 바로 끝난다.
+             제거하면 Run 값도 지워진다. -->
+        <Component Id="QuickSearchKey" Bitness="always64">
+          <File Id="FoldyHotkeyExe" Source="$(PayloadDir)\foldy-hotkey.exe" KeyPath="yes" />
+          <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run" Name="Foldy Quick Search"
+                         Type="string" Value="&quot;[#FoldyHotkeyExe]&quot;" />
+        </Component>
+
         <!-- 색인 서비스: LocalSystem, 지연된 자동 시작, 실패 시 재시작 -->
         <Component Id="IndexerService" Bitness="always64">
           <File Id="FoldyIndexExe" Source="$(PayloadDir)\foldy-index.exe" KeyPath="yes" />
@@ -118,10 +127,16 @@
          창이 있는 Foldy는 건드리지 않는다 (복사·이동 중일 수 있다, 파일 사용 중 안내를 따른다). AI 앱이 다음에 다시 띄운다.
          MSI 서식 문자열에서 대괄호·중괄호는 특별한 뜻이 있어 쓰지 않는다. -->
     <CustomAction Id="EndAiConnectionFoldy" Directory="TARGETDIR"
-                  ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -C &quot;gcim Win32_Process -F 'Name=''Foldy.exe''' | ? CommandLine -Match '\s--mcp' | icim -M Terminate&quot;"
+                  ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -C &quot;gcim Win32_Process -F 'Name=''Foldy.exe''' | ? CommandLine -Match '\s--mcp' | icim -M Terminate; gcim Win32_Process -F 'Name=''foldy-hotkey.exe''' | icim -M Terminate&quot;"
                   Execute="immediate" Return="ignore" />
+    <!-- 단축키 도우미는 사용자마다 하나씩 떠 있다: 다른 사용자의 것도 바꿀 수 있게 관리자 권한으로 한 번 더 끝낸다.
+         다음 로그인 때나 Foldy를 켤 때 다시 뜬다. -->
+    <CustomAction Id="EndQuickSearchKey" Directory="TARGETDIR"
+                  ExeCommand="&quot;[System64Folder]taskkill.exe&quot; /F /IM foldy-hotkey.exe"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
     <InstallExecuteSequence>
       <Custom Action="EndAiConnectionFoldy" Before="InstallValidate" />
+      <Custom Action="EndQuickSearchKey" Before="RemoveFiles" />
       <Custom Action="SetIndexerDelayedAuto" After="InstallServices" Condition="NOT REMOVE" />
     </InstallExecuteSequence>
 
@@ -129,6 +144,7 @@
     <Feature Id="Main" Title="Foldy" Level="1" AllowAbsent="no">
       <ComponentRef Id="FoldyExe" />
       <ComponentRef Id="IndexerService" />
+      <ComponentRef Id="QuickSearchKey" />
       <ComponentGroupRef Id="PayloadFiles" />
     </Feature>
   </Package>
@@ -138,6 +154,7 @@
       <Files Include="$(PayloadDir)\**">
         <Exclude Files="$(PayloadDir)\Foldy.exe" />
         <Exclude Files="$(PayloadDir)\foldy-index.exe" />
+        <Exclude Files="$(PayloadDir)\foldy-hotkey.exe" />
       </Files>
     </ComponentGroup>
   </Fragment>

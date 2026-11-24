@@ -71,33 +71,41 @@ internal static class GlobalHotkey
     public static bool Register(IntPtr hwnd, int id, string? gesture)
     {
         Unregister(hwnd, id);
-        if (!TryParse(gesture, out var mods, out var key))
+        return TryNative(gesture, out var mods, out var vk) && RegisterHotKey(hwnd, id, mods | ModNoRepeat, vk);
+    }
+
+    /// <summary>RegisterHotKey에 넘기는 값 (수식 키 비트, 가상 키 코드). 단축키 도우미 설정 파일에도 이 값을 적는다.</summary>
+    public static bool TryNative(string? gesture, out uint mods, out uint vk)
+    {
+        mods = 0;
+        vk = 0;
+        if (!TryParse(gesture, out var m, out var key))
         {
             return false;
         }
 
-        uint m = ModNoRepeat;
-        if (mods.HasFlag(ModifierKeys.Control))
+        if (m.HasFlag(ModifierKeys.Control))
         {
-            m |= ModControl;
+            mods |= ModControl;
         }
 
-        if (mods.HasFlag(ModifierKeys.Alt))
+        if (m.HasFlag(ModifierKeys.Alt))
         {
-            m |= ModAlt;
+            mods |= ModAlt;
         }
 
-        if (mods.HasFlag(ModifierKeys.Shift))
+        if (m.HasFlag(ModifierKeys.Shift))
         {
-            m |= ModShift;
+            mods |= ModShift;
         }
 
-        if (mods.HasFlag(ModifierKeys.Windows))
+        if (m.HasFlag(ModifierKeys.Windows))
         {
-            m |= ModWin;
+            mods |= ModWin;
         }
 
-        return RegisterHotKey(hwnd, id, m, (uint)KeyInterop.VirtualKeyFromKey(key));
+        vk = (uint)KeyInterop.VirtualKeyFromKey(key);
+        return vk != 0;
     }
 
     public static void Unregister(IntPtr hwnd, int id) => UnregisterHotKey(hwnd, id);

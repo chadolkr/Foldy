@@ -7,11 +7,14 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Foldy.Copy.Native\Foldy.Copy.Native.csproj" />
     <ProjectReference Include="..\..\src\Foldy.Indexer.Client\Foldy.Indexer.Client.csproj" />
+    <ProjectReference Include="..\..\src\Foldy.Platform\Foldy.Platform.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\engine\foldy-proto\tests\golden\*.bin" LinkBase="golden" CopyToOutputDirectory="PreserveNewest" />
     <!-- 자동 업데이트 시험: 시험 키로 서명된 update.json (engine/foldy-update/tests/fixtures) -->
     <None Include="..\..\engine\foldy-update\tests\fixtures\*" LinkBase="update-fixtures" CopyToOutputDirectory="PreserveNewest" />
     <None Condition="Exists('$(FoldyEngineOut)foldy-index.exe')" Include="$(FoldyEngineOut)foldy-index.exe" Link="foldy-index.exe" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 단축키 도우미 시험 (Foldy가 꺼져 있어도 Ctrl+Space, 1.11.0) -->
+    <None Condition="Exists('$(FoldyEngineOut)foldy-hotkey.exe')" Include="$(FoldyEngineOut)foldy-hotkey.exe" Link="foldy-hotkey.exe" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

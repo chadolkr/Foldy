@@ -37,6 +37,14 @@ public sealed record AppOptions
 
     /// <summary>명령줄로 받은 폴더(또는 .md 파일): 활성 패널에서 연다 ("Foldy.exe C:\경로").</summary>
     public string? OpenPath { get; init; }
+
+    /// <summary>
+    /// 단축키 도우미(foldy-hotkey.exe)가 띄운 실행: 주 창은 띄우지 않고 무엇이든 찾기 창만 연다 (1.11.0).
+    /// 이미 Foldy가 켜져 있으면 그 Foldy에 넘겨져 찾기 창만 열린다.
+    /// </summary>
+    public bool QuickSearch { get; init; }
+
+    public const string QuickSearchArg = "--quick-search";
     public Foldy.UI.Theming.FoldyTheme Theme { get; init; } = Foldy.UI.Theming.FoldyTheme.System;
 
     public bool IsBench => BenchList || BenchShell || BenchFolder is not null;
@@ -62,6 +70,7 @@ public sealed record AppOptions
                 "--screenshot" => o with { Screenshot = Next() },
                 "--doc-screenshots" => o with { DocShots = Next() },
                 "--doc-root" => o with { DocRoot = Next() },
+                QuickSearchArg => o with { QuickSearch = true },
                 "--theme" => o with { Theme = Enum.Parse<Foldy.UI.Theming.FoldyTheme>(Next(), ignoreCase: true), ThemeGiven = true },
                 var a when !a.StartsWith("--", StringComparison.Ordinal) => o with { OpenPath = a },
                 _ => o,

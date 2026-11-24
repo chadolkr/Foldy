@@ -263,6 +263,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "foldy-hotkey"
+version = "0.1.0"
+dependencies = [
+ "windows-sys",
+]
+
+[[package]]
 name = "foldy-index"
 version = "0.1.0"
 dependencies = [

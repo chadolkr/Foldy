@@ -32,6 +32,10 @@ public static class SecureFlows
     public static bool IsVault(string path) => path.EndsWith(SecureZip.VaultExtension, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>더블클릭·Enter·탐색기에서 연 파일이 Foldy가 다룰 잠긴 파일이면 열고 true.</summary>
+    /// <summary>Foldy가 자기 창으로 여는 파일인가 (그림 든 메모·금고·잠긴 메모·잠긴 파일). <see cref="TryOpen"/>과 같은 기준.</summary>
+    public static bool Handles(string path) =>
+        TextPack.Is(path) || IsVault(path) || path.EndsWith(SecureZip.MemoSuffix, StringComparison.OrdinalIgnoreCase) || IsLocked(path);
+
     public static bool TryOpen(Window owner, string path, ShellViewModel shell)
     {
         if (TextPack.Is(path))
