@@ -1435,7 +1435,7 @@
   "set.shell.cmd": "コマンド プロンプト (cmd)",
   "set.showHidden": "隠しファイルを表示",
   "set.slowCrawl": "インデックスのないドライブもゆっくり集める (社内ドライブ・Google ドライブなど)",
-  "set.slowCrawl.hint": "Foldy の起動中、フォルダーを 1 つずつそっと開いてファイル一覧を集めます。遅いドライブほどゆっくり、コピーなどの作業中は休みます。集めた一覧はこの PC だけに置き、Ctrl+Space・Ctrl+F で探せます。",
+  "set.slowCrawl.hint": "Foldy の起動中にファイル一覧を集めます。ドライブの応答が遅くなると自動でゆっくりにし、コピーなどの作業中は休みます。よく使うフォルダーがある場所から集めます。集めた一覧はこの PC だけに置き、Ctrl+Space・Ctrl+F で探せます。",
   "set.term.auto": "自動 (Windows Terminal があれば使う)",
   "set.term.console": "コンソール ウィンドウ",
   "set.terminalApp": "ターミナル アプリ",

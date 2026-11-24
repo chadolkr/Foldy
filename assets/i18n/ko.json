@@ -1435,7 +1435,7 @@
   "set.shell.cmd": "명령 프롬프트 (cmd)",
   "set.showHidden": "숨김 파일 보기",
   "set.slowCrawl": "색인 없는 드라이브도 천천히 모으기 (회사 드라이브·Google Drive 등)",
-  "set.slowCrawl.hint": "Foldy가 켜져 있는 동안 폴더를 하나씩 살살 열어 파일 목록을 모아요. 드라이브가 느릴수록 더 천천히, 복사 같은 작업 중에는 쉬어요. 모은 목록은 이 PC에만 두고, Ctrl+Space·Ctrl+F로 찾을 수 있어요.",
+  "set.slowCrawl.hint": "Foldy가 켜져 있는 동안 파일 목록을 모아요. 드라이브 응답이 느려지면 저절로 천천히, 복사 같은 작업 중에는 쉬어요. 자주 쓰는 폴더가 있는 곳부터 모아요. 모은 목록은 이 PC에만 두고, Ctrl+Space·Ctrl+F로 찾을 수 있어요.",
   "set.term.auto": "자동 (Windows Terminal이 있으면 사용)",
   "set.term.console": "콘솔 창",
   "set.terminalApp": "터미널 프로그램",

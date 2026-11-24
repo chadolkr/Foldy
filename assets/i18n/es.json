@@ -1435,7 +1435,7 @@
   "set.shell.cmd": "Símbolo del sistema (cmd)",
   "set.showHidden": "Mostrar archivos ocultos",
   "set.slowCrawl": "Recopilar poco a poco las unidades sin índice (unidades de red, Google Drive, etc.)",
-  "set.slowCrawl.hint": "Mientras Foldy está abierto, abre las carpetas de una en una para recopilar la lista de archivos. Va más despacio en unidades lentas y se detiene durante trabajos como copiar. La lista se queda en este PC y se puede buscar con Ctrl+Espacio y Ctrl+F.",
+  "set.slowCrawl.hint": "Mientras Foldy está abierto, recopila la lista de archivos. Va más despacio por sí solo cuando una unidad responde lento y se detiene durante trabajos como copiar. Empieza por donde están tus carpetas favoritas. La lista se queda en este PC y se puede buscar con Ctrl+Espacio y Ctrl+F.",
   "set.term.auto": "Automático (Windows Terminal si está instalado)",
   "set.term.console": "Ventana de consola",
   "set.terminalApp": "Aplicación de terminal",
