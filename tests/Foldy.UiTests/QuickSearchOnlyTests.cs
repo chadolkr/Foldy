@@ -90,7 +90,9 @@ public sealed class QuickSearchOnlyTests : IDisposable
         again!.Close();
         // 주 창 닫기: 제목 표시줄 단추 대신 창 닫기 요청(WM_CLOSE)으로. 찾기 창이 막 닫히는 동안 단추가 잠깐 꺼져 있을 수 있다
         Retry.WhileException(() => main!.Patterns.Window.Pattern.Close(), TimeSpan.FromSeconds(10));
-        foldy.WaitForExit(15_000).Should().BeTrue("주 창을 닫으면 끝난다");
+        // 프로세스가 끝나는 시간은 보지 않는다: CI에서는 다른 화면 시험도 닫은 뒤 바로 끝나지 않는다 (FoldyApp의 "Application failed to exit")
+        Retry.WhileTrue(() => MainWindow(foldy.Id) is not null, TimeSpan.FromSeconds(15), ignoreException: true);
+        MainWindow(foldy.Id).Should().BeNull("주 창이 닫혀야 한다");
     }
 
     public void Dispose()
