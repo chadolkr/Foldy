@@ -1015,10 +1015,7 @@ public partial class ShellWindow : Window, IPaneHost
 
         _closedDown = true;
         _crawler?.Dispose();
-        if (_shown)
-        {
-            SaveSession(Shell.Capture(null, double.NaN)); // 한 번도 보이지 않은 창(찾기 창만)은 창 위치·탭이 그대로라 저장하지 않는다
-        }
+        SaveSession(Shell.Capture(null, double.NaN)); // 한 번도 보이지 않은 창(찾기 창만)은 SaveSession이 건너뛴다
         _quickSave.Stop();
         SaveQuickAccess();
         foreach (var t in Shell.Left.Tabs.Concat(Shell.Right.Tabs))
@@ -1039,6 +1036,11 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void SaveSession(SessionState s)
     {
+        if (!_shown)
+        {
+            return; // 찾기 창만 떠 있는 Foldy: 주 창이 한 번도 보이지 않아 창 크기가 정해지지 않았다(NaN). 저장할 것도 없다
+        }
+
         try
         {
             var placement = RestoreBounds.IsEmpty

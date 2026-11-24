@@ -72,7 +72,8 @@ public sealed class FoldyApp : IDisposable
     {
         try
         {
-            App.Close();
+            App.Close(killIfCloseFails: false);
+            Retry.WhileFalse(() => App.HasExited, TimeSpan.FromSeconds(10), ignoreException: true);
             if (!App.HasExited)
             {
                 // 진단: 닫아도 끝나지 않으면 Foldy 기록 끝부분을 시험 출력에 남긴다
