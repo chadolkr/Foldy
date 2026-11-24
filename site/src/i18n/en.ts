@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'New in 1.10: indexing slow drives got much faster',
-    eyebrow: 'Foldy 1.10',
+    badge: 'New in 1.11: Ctrl+Space works even when Foldy is closed',
+    eyebrow: 'Foldy 1.11',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
+      { icon: 'search', title: 'Ctrl+Space, even when Foldy is closed', text: 'A tiny helper waits for the shortcut from the moment you start your PC. Press Ctrl+Space to search without keeping Foldy open, and a file you pick opens in its own program. When idle, Foldy closes itself and gives the memory back.' },
       { icon: 'turtle', title: 'Fast indexing, even on slow drives', text: 'Slow drives like work and network drives are gathered much faster: shorter pauses, several folders and drives read together, and your favorite folders first. Files saved by other programs show up in the folder view within a second.' },
       { icon: 'disk', title: 'Finds more folders you can delete', text: 'More folders that programs rebuild by themselves, like Unity, Unreal, Flutter and web framework caches. Only when the project file sits next to them, and folders holding settings are left alone.' },
       { icon: 'panes', title: '19 templates', text: 'Added well-known folder methods: GTD, ACE, function-based classification (ISO 15489), TIER, Cookiecutter Data Science and BIDS. For research, pick your kind of research and the right template comes first.' },
-      { icon: 'update', title: 'Rename like File Explorer', text: 'Click a selected file once more, slowly, to edit its name. On network drives, renamed items, new folders and deletions show up in the list right away.' },
     ],
     link: 'See everything that changed',
   },

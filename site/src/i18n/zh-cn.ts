@@ -38,15 +38,15 @@ const zhCN: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: '1.10 新功能：慢速驱动器索引快多了',
-    eyebrow: 'Foldy 1.10',
+    badge: '1.11 新功能：Foldy 关闭时也能用 Ctrl+Space',
+    eyebrow: 'Foldy 1.11',
     title: '最近的变化',
     lead: '1.0 正式版之后，我们仍在天天使用、不断打磨。如果你已经在用 Foldy，它会自动更新到最新版本。',
     items: [
+      { icon: 'search', title: 'Foldy 关闭时也能用 Ctrl+Space', text: '开机后会有一个小助手等待快捷键。无需一直开着 Foldy，按 Ctrl+Space 即可搜索，选中的文件会用对应程序打开。不使用时 Foldy 会自动退出并释放内存。' },
       { icon: 'turtle', title: '慢速驱动器也能快速索引', text: '公司驱动器、网络驱动器等慢速驱动器的收集快多了：休息时间更短，多个文件夹和多个驱动器同时读取，并从常用文件夹开始。其他程序保存的文件也会在 1 秒内出现在文件夹视图中。' },
       { icon: 'disk', title: '找到更多可以删除的文件夹', text: '找到更多程序会自己重建的文件夹，例如 Unity、Unreal、Flutter 和 Web 框架缓存。只在项目文件就在旁边时才选，含设置的文件夹不会动。' },
       { icon: 'panes', title: '模板增至 19 种', text: '新增 GTD、ACE、业务分类体系（ISO 15489）、TIER、Cookiecutter Data Science、BIDS 等知名的文件夹整理方法。做研究时，选择研究类型即可先看到合适的模板。' },
-      { icon: 'update', title: '像资源管理器一样重命名', text: '再慢慢点一次已选中的文件即可编辑名称。在网络驱动器上，改名、新建文件夹和删除也会立刻显示在列表中。' },
     ],
     link: '查看全部变化',
   },
