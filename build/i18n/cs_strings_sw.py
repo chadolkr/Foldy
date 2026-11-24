@@ -12,7 +12,7 @@ SW = [
     ('sw.copyRust', '복사: 빠른 방식', 'Copy: fast mode', 'Copia: modo rápido', 'コピー: 高速', '复制：快速模式'),
     ('sw.copyBasic', '복사: 기본 방식', 'Copy: standard mode', 'Copia: modo estándar', 'コピー: 標準', '复制：标准模式'),
     ('sw.copyRustTip', '빠른 복사를 쓰고 있어요 (foldy_copy.dll)', 'Using fast copy (foldy_copy.dll)', 'Usando la copia rápida (foldy_copy.dll)', '高速コピーを使っています (foldy_copy.dll)', '正在使用快速复制（foldy_copy.dll）'),
-    ('sw.idx.crawlOnly', '찾기: 연 폴더만 (빠른 찾기 도우미 없음)', 'Search: open folder only (no fast search helper)', 'Búsqueda: solo la carpeta abierta (sin asistente de búsqueda rápida)', '検索: 開いたフォルダーのみ (高速検索ヘルパーなし)', '查找：仅打开的文件夹（无快速查找助手）'),
+    ('sw.idx.crawlOnly', '찾기: 연 폴더만', 'Search: open folder only', 'Búsqueda: solo carpeta abierta', '検索: 開いたフォルダーのみ', '查找：仅打开的文件夹'),
     ('sw.idx.preparingAll', '찾기: 준비 중', 'Search: getting ready', 'Búsqueda: preparándose', '検索: 準備中', '查找：正在准备'),
     ('sw.crawl.running', '천천히 모으는 중', 'collecting slowly', 'recopilando despacio', 'ゆっくり収集中', '正在慢慢收集'),
     ('sw.crawl.done', '모으기 완료', 'collected', 'recopilado', '収集完了', '收集完成'),
