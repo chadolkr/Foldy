@@ -156,6 +156,40 @@ public sealed class RebuildableFoldersTests : IDisposable
     }
 
     [Fact]
+    public void Newer_kinds_are_found_only_next_to_their_project_files()
+    {
+        // 1.10.0: Unity는 옆에 ProjectSettings 폴더와 안에 ArtifactDB가 있어야, Unreal은 옆에 *.uproject가 있어야
+        Make(@"game\ProjectSettings", "ProjectVersion.txt");
+        Make(@"game\Assets");
+        Make(@"game\Library", "ArtifactDB");
+        Make(@"photos\Library", "사진.jpg"); // 그냥 "Library"라는 이름의 폴더는 건드리지 않는다
+        Make(@"notunity\ProjectSettings");
+        Make(@"notunity\Library", "책.pdf"); // ArtifactDB가 없으면 Unity 캐시가 아니다
+        Make(@"shooter", "Shooter.uproject");
+        Make(@"shooter\Intermediate", "x.obj");
+        Make(@"shooter\DerivedDataCache", "y.ddc");
+        Make(@"shooter\Saved", "설정.ini"); // 설정·자동 저장: 찾지 않는다
+        Make(@"vsapp", "App.sln");
+        Make(@"vsapp\.vs", "x.suo");
+        Make(@"web", "package.json");
+        Make(@"web\.next", "build-manifest.json");
+        Make(@"flutter", "pubspec.yaml");
+        Make(@"flutter\.dart_tool", "package_config.json");
+        Make(@"flutter\build", "app.apk");
+        Make(@"py\.pytest_cache", "README.md");
+        Make(@"cpp", "CMakeLists.txt");
+        Make(@"cpp\cmake-build-debug", "a.exe");
+        Make(@"note\.next", "메모.txt"); // package.json이 옆에 없다
+
+        var found = RebuildableFolders.Scan(_root, RebuildableFolders.Defaults, Now);
+        found.Select(f => Path.GetRelativePath(_root, f.Path)).Should().BeEquivalentTo([
+            @"game\Library", @"shooter\Intermediate", @"shooter\DerivedDataCache", @"vsapp\.vs", @"web\.next",
+            @"flutter\.dart_tool", @"flutter\build", @"py\.pytest_cache", @"cpp\cmake-build-debug"]);
+        RebuildableFolders.Matches(Path.Combine(_root, "game"), Path.Combine(_root, @"game\Library"), RebuildableFolders.Defaults.Single(k => k.Name == "Library"))
+            .Should().BeTrue("하나씩 확인할 때도 옆 폴더(ProjectSettings)를 본다");
+    }
+
+    [Fact]
     public void Hidden_folders_are_not_entered()
     {
         var hidden = Make(@"숨김");
@@ -195,6 +229,9 @@ public sealed class DevCachesTests : IDisposable
 
         DevCaches.Kinds.Single(k => k.Id == "docker").Args.Should().Equal(["builder", "prune", "--force"], "Docker는 빌드 캐시만: 이미지·컨테이너·볼륨은 건드리지 않는다");
         DevCaches.Kinds.Should().NotContain(k => k.Args.Contains("system") || k.Args.Contains("--all") || k.Args.Contains("-a"));
+        DevCaches.Kinds.Single(k => k.Id == "go").Args.Should().Equal(["clean", "-cache"], "Go는 빌드 캐시만: 받아 둔 모듈(-modcache)은 그대로");
+        DevCaches.Kinds.Single(k => k.Id == "conda").Args.Should().Equal(["clean", "--packages", "--tarballs", "--yes"], "conda는 안 쓰는 패키지·압축 파일만");
+        DevCaches.Kinds.Should().NotContain(k => k.Args.Contains("-modcache") || k.Args.Contains("pub"), "전역 도구·받은 모듈까지 지우는 명령은 넣지 않는다");
     }
 
     [Fact]

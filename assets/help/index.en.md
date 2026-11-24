@@ -249,14 +249,21 @@ Choose **Folder analysis** (from the Find menu, "folder analysis" in Ctrl+Space,
 | Front-end build caches | `.next`, `.nuxt`, `.parcel-cache`, `.turbo`, `.angular`, `.svelte-kit` (next to `package.json`) | 14 days, 10 MB |
 | Python caches | `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox` | 30 days, 1 MB |
 | Visual Studio cache | `.vs` | 30 days, 100 MB |
+| Unity project cache | `Library` (next to `ProjectSettings`) | 30 days, 100 MB |
+| Unreal intermediate files and cache | `Intermediate`, `DerivedDataCache` (next to `*.uproject`; `Saved` is left alone) | 30 days, 100 MB |
+| Flutter/Dart build output | `.dart_tool`, `build` (next to `pubspec.yaml`) | 14 days, 10 MB |
+| CMake build output (CLion) | `cmake-build-*` (next to `CMakeLists.txt`) | 14 days, 10 MB |
+| Other build output | `.cxx`, `.stack-work`, `dist-newstyle`, `_build`, `.zig-cache` (next to that tool's project file) | 14 days, 10 MB |
+| Adobe media cache | `%APPDATA%\Adobe\Common\Media Cache Files`, `Media Cache` | 14 days, 500 MB |
 | User temp folder | `%LOCALAPPDATA%\Temp` | 7 days, 50 MB |
 | Folders named temp/tmp | `temp`, `tmp` | 30 days, 100 MB |
-| Browser caches | `Cache`, `Code Cache` in Chrome and Edge profiles | 100 MB |
-| Package manager caches | `npm-cache`, `pip\cache`, `Yarn\Cache`, `%USERPROFILE%\.gradle\caches` | 30 days, 500 MB |
+| Browser caches | `Cache`, `Code Cache` in Chrome, Edge, Whale and Brave profiles, `cache2` in Firefox profiles | 100 MB |
+| Package manager caches | `npm-cache`, `pip\cache`, `Yarn\Cache`, `%USERPROFILE%\.gradle\caches`, `go-build`, `uv\cache`, `Composer`, `%USERPROFILE%\.bun\install\cache` | 30 days, 500 MB |
 | NuGet package cache | `%USERPROFILE%\.nuget\packages` | 60 days, 1 GB |
 | Crash dump files | `*.dmp`, `*.hdmp`, `*.mdmp` | 14 days, 10 MB |
 | Crash dump folder | `%LOCALAPPDATA%\CrashDumps` (the default folder for Windows Error Reporting) | 14 days, 10 MB |
 | Old installers | `*.exe`, `*.msi`, `*.msix`, `*.iso` in Downloads | 90 days, 50 MB |
+| Unfinished downloads | `*.crdownload`, `*.part` in Downloads | 14 days, 1 MB |
 
 `.git` is shown but never suggested. System folders such as Windows, Program Files and ProgramData are never suggested, whatever the rules.
 
@@ -342,7 +349,7 @@ The `*.log` files programs leave behind can quietly pile up to several GB. Foldy
 
 ![Find folders you can delete](images/en/rebuildable.png)
 
-Project folders collect folders that can be rebuilt, often several GB (node_modules, bin/obj, target, __pycache__, .venv, dist/build, Delphi's __history). Find them in Tidy → **Find folders you can delete**, **[Folders you can delete]** in folder analysis, or Ctrl+Space.
+Project folders collect folders that can be rebuilt, often several GB (node_modules, bin/obj, target, __pycache__, .venv, dist/build, Delphi's __history, Unity's Library, Unreal's Intermediate, web build caches like .next, Python caches like .pytest_cache, and Flutter, CMake, Haskell, Elixir and Zig build folders). Find them in Tidy → **Find folders you can delete**, **[Folders you can delete]** in folder analysis, or Ctrl+Space.
 
 - Searches **only inside the folder you're viewing** and shows the biggest first. With the index, sizes appear right away.
 - Picks a folder **only when a project file is next to it**: node_modules next to package.json, bin/obj next to a .csproj, target next to Cargo.toml. A photo folder that just happens to be called "build" is left alone.
@@ -353,10 +360,10 @@ Project folders collect folders that can be rebuilt, often several GB (node_modu
 
 #### Clean developer caches
 
-Cleans the caches downloaded by npm, NuGet, pip, Yarn and pnpm, and the Docker build cache. Tidy → **Clean developer caches**.
+Cleans the caches downloaded by npm, NuGet, pip, Yarn, pnpm, uv, Bun and Composer, the Go and Docker build caches, and conda packages no environment uses. Tidy → **Clean developer caches**.
 
 - Shows only the tools installed on this PC, with their size and a note that they can be downloaded again.
-- Never deletes folders directly; it runs only **each tool's official command** (`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`).
+- Never deletes folders directly; it runs only **each tool's official command** (`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`, `go clean -cache`, `uv cache clean`, `conda clean --packages --tarballs --yes`, `bun pm cache rm`, `composer clear-cache`).
 - For Docker, **only the build cache**: images, containers and volumes aren't touched.
 - This skips the Recycle Bin and can't be undone, so Foldy shows the size and **asks once** first. Anything needed is downloaded again on the next build or install.
 

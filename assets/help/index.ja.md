@@ -249,14 +249,21 @@ Foldy は同時に 1 つだけ起動します。すでに起動中にもう一�
 | フロントエンドのビルド キャッシュ | `.next`、`.nuxt`、`.parcel-cache`、`.turbo`、`.angular`、`.svelte-kit` (隣に `package.json`) | 14 日、10MB |
 | Python のキャッシュ | `__pycache__`、`.pytest_cache`、`.mypy_cache`、`.ruff_cache`、`.tox` | 30 日、1MB |
 | Visual Studio のキャッシュ | `.vs` | 30 日、100MB |
+| Unity プロジェクトのキャッシュ | `Library` (隣に `ProjectSettings`) | 30 日、100MB |
+| Unreal の中間ファイル・キャッシュ | `Intermediate`、`DerivedDataCache` (隣に `*.uproject`、`Saved` には触れません) | 30 日、100MB |
+| Flutter・Dart のビルド出力 | `.dart_tool`、`build` (隣に `pubspec.yaml`) | 14 日、10MB |
+| CMake のビルド出力 (CLion) | `cmake-build-*` (隣に `CMakeLists.txt`) | 14 日、10MB |
+| その他のビルド出力 | `.cxx`、`.stack-work`、`dist-newstyle`、`_build`、`.zig-cache` (隣にそのツールのプロジェクト ファイル) | 14 日、10MB |
+| Adobe のメディア キャッシュ | `%APPDATA%\Adobe\Common\Media Cache Files`、`Media Cache` | 14 日、500MB |
 | ユーザーの一時フォルダー | `%LOCALAPPDATA%\Temp` | 7 日、50MB |
 | 名前が temp/tmp のフォルダー | `temp`、`tmp` | 30 日、100MB |
-| ブラウザーのキャッシュ | Chrome・Edge のプロファイルの `Cache`、`Code Cache` | 100MB |
-| パッケージ マネージャーのキャッシュ | `npm-cache`、`pip\cache`、`Yarn\Cache`、`%USERPROFILE%\.gradle\caches` | 30 日、500MB |
+| ブラウザーのキャッシュ | Chrome・Edge・Whale・Brave のプロファイルの `Cache`、`Code Cache`、Firefox のプロファイルの `cache2` | 100MB |
+| パッケージ マネージャーのキャッシュ | `npm-cache`、`pip\cache`、`Yarn\Cache`、`%USERPROFILE%\.gradle\caches`、`go-build`、`uv\cache`、`Composer`、`%USERPROFILE%\.bun\install\cache` | 30 日、500MB |
 | NuGet パッケージ キャッシュ | `%USERPROFILE%\.nuget\packages` | 60 日、1GB |
 | クラッシュ ダンプ ファイル | `*.dmp`、`*.hdmp`、`*.mdmp` | 14 日、10MB |
 | クラッシュ ダンプ フォルダー | `%LOCALAPPDATA%\CrashDumps` (Windows エラー報告の既定のダンプ フォルダー) | 14 日、10MB |
 | 古いインストーラー | ダウンロード フォルダーの `*.exe`、`*.msi`、`*.msix`、`*.iso` | 90 日、50MB |
+| ダウンロードしきれなかったファイル | ダウンロード フォルダーの `*.crdownload`、`*.part` | 14 日、1MB |
 
 `.git` は表示だけして提案しません。Windows、Program Files、ProgramData のようなシステム フォルダーは、ルールに関係なく提案しません。
 
@@ -342,7 +349,7 @@ USB に移したフォルダーと PC のフォルダー、どちらが新しい
 
 ![削除してよいフォルダーを探す](images/ja/rebuildable.png)
 
-プロジェクト フォルダーには、作り直せるフォルダーが数 GB もたまります (node_modules、bin・obj、target、__pycache__、.venv、dist・build、Delphi の __history)。整理する → **削除してよいフォルダーを探す**、フォルダー分析の **[削除してよいフォルダー]**、または Ctrl+Space から探せます。
+プロジェクト フォルダーには、作り直せるフォルダーが数 GB もたまります (node_modules、bin・obj、target、__pycache__、.venv、dist・build、Delphi の __history、Unity の Library、Unreal の Intermediate、.next などの Web ビルド キャッシュ、.pytest_cache などの Python キャッシュ、Flutter・CMake・Haskell・Elixir・Zig のビルド フォルダー)。整理する → **削除してよいフォルダーを探す**、フォルダー分析の **[削除してよいフォルダー]**、または Ctrl+Space から探せます。
 
 - **いま見ているフォルダーの中だけ** を探し、大きいものから見せます。インデックスがあればサイズがすぐ出ます。
 - **隣にプロジェクト ファイルがあるときだけ** 選びます: package.json の隣の node_modules、.csproj の隣の bin・obj、Cargo.toml の隣の target。ただ「build」という名前の写真フォルダーには触れません。
@@ -353,10 +360,10 @@ USB に移したフォルダーと PC のフォルダー、どちらが新しい
 
 #### 開発キャッシュの整理
 
-npm・NuGet・pip・Yarn・pnpm がためたキャッシュと Docker のビルド キャッシュを整理します。整理する → **開発キャッシュを整理**。
+npm・NuGet・pip・Yarn・pnpm・uv・Bun・Composer がためたキャッシュ、Go・Docker のビルド キャッシュ、conda のどの環境も使っていないパッケージを整理します。整理する → **開発キャッシュを整理**。
 
 - この PC に入っているツールだけを、サイズと「またダウンロードすれば大丈夫」という説明と一緒に見せます。
-- フォルダーを直接消さず、**各ツールの公式のコマンド** だけを実行します (`npm cache clean --force`、`dotnet nuget locals all --clear`、`py -m pip cache purge`、`yarn cache clean`、`pnpm store prune`、`docker builder prune --force`)。
+- フォルダーを直接消さず、**各ツールの公式のコマンド** だけを実行します (`npm cache clean --force`、`dotnet nuget locals all --clear`、`py -m pip cache purge`、`yarn cache clean`、`pnpm store prune`、`docker builder prune --force`、`go clean -cache`、`uv cache clean`、`conda clean --packages --tarballs --yes`、`bun pm cache rm`、`composer clear-cache`)。
 - Docker は **ビルド キャッシュだけ**: イメージ・コンテナー・ボリュームには触れません。
 - ごみ箱を通さないので戻せません。サイズを見せて **一度確認** してから行います。必要なら次のビルドやインストールでまたダウンロードされます。
 

@@ -40,6 +40,23 @@ public class RulesTests
         rs.MatchDir("node_modules", @"\a\node_modules", @"D:\a\node_modules", 50 << 20, Now - (60 * Day), systemOrReparse: true, Now, () => pkg)!.Suggest.Should().BeFalse();
     }
 
+    [Fact]
+    public void Newer_rules_need_their_project_files()
+    {
+        var rs = CleanupRules.Default;
+        var old = Now - (60 * Day);
+        rs.MatchDir("Library", @"\Games\g\Library", @"D:\Games\g\Library", 2L << 30, old, false, Now, () => ["assets", "projectsettings", "packages"])!.Rule.Id.Should().Be("unity-library");
+        rs.MatchDir("Library", @"\Books\Library", @"D:\Books\Library", 2L << 30, old, false, Now, () => ["책"]).Should().BeNull("Unity 프로젝트가 아니면 아니다");
+        rs.MatchDir("Intermediate", @"\u\g\Intermediate", @"D:\u\g\Intermediate", 1L << 30, old, false, Now, () => ["g.uproject"])!.Rule.Id.Should().Be("unreal-intermediate");
+        rs.MatchDir("Saved", @"\u\g\Saved", @"D:\u\g\Saved", 1L << 30, old, false, Now, () => ["g.uproject"]).Should().BeNull("Unreal Saved는 설정·자동 저장이라 제안하지 않는다");
+        rs.MatchDir("build", @"\f\app\build", @"D:\f\app\build", 50 << 20, old, false, Now, () => ["pubspec.yaml"])!.Rule.Id.Should().Be("dart-build");
+        rs.MatchDir("cmake-build-debug", @"\c\cmake-build-debug", @"D:\c\cmake-build-debug", 50 << 20, old, false, Now, () => ["cmakelists.txt"])!.Rule.Id.Should().Be("cmake-ide-build");
+        rs.MatchDir("cache2", @"\Users\me\AppData\Local\Mozilla\Firefox\Profiles\ab.default\cache2", @"C:\Users\me\AppData\Local\Mozilla\Firefox\Profiles\ab.default\cache2", 500 << 20, old, false, Now, () => [])!.Rule.Id.Should().Be("browser-cache");
+        rs.MatchDir("go-build", @"\Users\me\AppData\Local\go-build", @"C:\Users\me\AppData\Local\go-build", 1L << 30, old, false, Now, () => [])!.Suggest.Should().BeTrue();
+        rs.MatchFile("big.iso.crdownload", "crdownload", @"\Users\me\Downloads\big.iso.crdownload", @"C:\Users\me\Downloads\big.iso.crdownload", 50 << 20, Now - (20 * Day), false, Now)!.Id.Should().Be("partial-downloads");
+        rs.MatchFile("big.iso.crdownload", "crdownload", @"\Users\me\Downloads\big.iso.crdownload", @"C:\Users\me\Downloads\big.iso.crdownload", 50 << 20, Now - (2 * Day), false, Now).Should().BeNull("받는 중일 수 있다");
+    }
+
     [Theory]
     [InlineData(@"C:\Windows")]
     [InlineData(@"C:\Windows\Temp")]

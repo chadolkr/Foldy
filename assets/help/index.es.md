@@ -249,14 +249,21 @@ Elige **Análisis de carpetas** (en el menú Buscar, "análisis de carpetas" en 
 | Cachés de front-end | `.next`, `.nuxt`, `.parcel-cache`, `.turbo`, `.angular`, `.svelte-kit` (junto a `package.json`) | 14 días, 10 MB |
 | Cachés de Python | `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox` | 30 días, 1 MB |
 | Caché de Visual Studio | `.vs` | 30 días, 100 MB |
+| Caché de proyectos de Unity | `Library` (junto a `ProjectSettings`) | 30 días, 100 MB |
+| Archivos intermedios y caché de Unreal | `Intermediate`, `DerivedDataCache` (junto a `*.uproject`; `Saved` no se toca) | 30 días, 100 MB |
+| Compilación Flutter/Dart | `.dart_tool`, `build` (junto a `pubspec.yaml`) | 14 días, 10 MB |
+| Compilación CMake (CLion) | `cmake-build-*` (junto a `CMakeLists.txt`) | 14 días, 10 MB |
+| Otras salidas de compilación | `.cxx`, `.stack-work`, `dist-newstyle`, `_build`, `.zig-cache` (junto al archivo de proyecto de esa herramienta) | 14 días, 10 MB |
+| Caché de medios de Adobe | `%APPDATA%\Adobe\Common\Media Cache Files`, `Media Cache` | 14 días, 500 MB |
 | Temporales del usuario | `%LOCALAPPDATA%\Temp` | 7 días, 50 MB |
 | Carpetas temp/tmp | `temp`, `tmp` | 30 días, 100 MB |
-| Cachés del navegador | `Cache`, `Code Cache` en perfiles de Chrome y Edge | 100 MB |
-| Cachés de gestores de paquetes | `npm-cache`, `pip\cache`, `Yarn\Cache`, `%USERPROFILE%\.gradle\caches` | 30 días, 500 MB |
+| Cachés del navegador | `Cache`, `Code Cache` en perfiles de Chrome, Edge, Whale y Brave, `cache2` en perfiles de Firefox | 100 MB |
+| Cachés de gestores de paquetes | `npm-cache`, `pip\cache`, `Yarn\Cache`, `%USERPROFILE%\.gradle\caches`, `go-build`, `uv\cache`, `Composer`, `%USERPROFILE%\.bun\install\cache` | 30 días, 500 MB |
 | Caché de paquetes NuGet | `%USERPROFILE%\.nuget\packages` | 60 días, 1 GB |
 | Volcados de bloqueo | `*.dmp`, `*.hdmp`, `*.mdmp` | 14 días, 10 MB |
 | Carpeta de volcados | `%LOCALAPPDATA%\CrashDumps` (la carpeta predeterminada del Informe de errores de Windows) | 14 días, 10 MB |
 | Instaladores antiguos | `*.exe`, `*.msi`, `*.msix`, `*.iso` en Descargas | 90 días, 50 MB |
+| Descargas sin terminar | `*.crdownload`, `*.part` en Descargas | 14 días, 1 MB |
 
 `.git` se muestra pero nunca se sugiere. Las carpetas del sistema como Windows, Program Files y ProgramData nunca se sugieren, sean cuales sean las reglas.
 
@@ -342,7 +349,7 @@ Los archivos `*.log` que dejan los programas pueden acumular varios GB sin que t
 
 ![Buscar carpetas que se pueden borrar](images/es/rebuildable.png)
 
-Las carpetas de proyectos acumulan carpetas regenerables, a menudo de varios GB (node_modules, bin/obj, target, __pycache__, .venv, dist/build, __history de Delphi). Encuéntralas en Ordenar → **Buscar carpetas que se pueden borrar**, en **[Carpetas que se pueden borrar]** del análisis o con Ctrl+Space.
+Las carpetas de proyectos acumulan carpetas regenerables, a menudo de varios GB (node_modules, bin/obj, target, __pycache__, .venv, dist/build, __history de Delphi, Library de Unity, Intermediate de Unreal, cachés de compilación web como .next, cachés de Python como .pytest_cache y carpetas de compilación de Flutter, CMake, Haskell, Elixir y Zig). Encuéntralas en Ordenar → **Buscar carpetas que se pueden borrar**, en **[Carpetas que se pueden borrar]** del análisis o con Ctrl+Space.
 
 - Busca **solo dentro de la carpeta que estás viendo** y muestra primero las más grandes. Con el índice, los tamaños salen al momento.
 - Elige una carpeta **solo si hay un archivo de proyecto al lado**: node_modules junto a package.json, bin/obj junto a un .csproj, target junto a Cargo.toml. Una carpeta de fotos que se llama "build" no se toca.
@@ -353,10 +360,10 @@ Las carpetas de proyectos acumulan carpetas regenerables, a menudo de varios GB 
 
 #### Limpiar cachés de desarrollo
 
-Limpia las cachés descargadas por npm, NuGet, pip, Yarn y pnpm, y la caché de compilación de Docker. Ordenar → **Limpiar cachés de desarrollo**.
+Limpia las cachés descargadas por npm, NuGet, pip, Yarn, pnpm, uv, Bun y Composer, las cachés de compilación de Go y Docker, y los paquetes de conda que ningún entorno usa. Ordenar → **Limpiar cachés de desarrollo**.
 
 - Solo muestra las herramientas instaladas en este PC, con su tamaño y una nota de que se pueden volver a descargar.
-- Nunca borra carpetas directamente; solo ejecuta **el comando oficial de cada herramienta** (`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`).
+- Nunca borra carpetas directamente; solo ejecuta **el comando oficial de cada herramienta** (`npm cache clean --force`, `dotnet nuget locals all --clear`, `py -m pip cache purge`, `yarn cache clean`, `pnpm store prune`, `docker builder prune --force`, `go clean -cache`, `uv cache clean`, `conda clean --packages --tarballs --yes`, `bun pm cache rm`, `composer clear-cache`).
 - En Docker, **solo la caché de compilación**: no toca imágenes, contenedores ni volúmenes.
 - No pasa por la papelera y no se puede deshacer, así que Foldy muestra el tamaño y **pregunta una vez** antes. Lo necesario se vuelve a descargar en la siguiente compilación o instalación.
 

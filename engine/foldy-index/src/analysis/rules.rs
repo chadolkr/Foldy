@@ -467,4 +467,20 @@ mod tests {
         assert!(RuleSet::parse("{").is_err());
         assert!(RuleSet::parse(r#"{"rules":[{"id":"x","kind":"weird"}]}"#).is_err());
     }
+
+    #[test]
+    fn newer_rules_need_their_project_files() {
+        let rs = RuleSet::defaults();
+        let unity = dir("Library", r"\Games\g\Library", r"D:\Games\g\Library", 2 << 30, 60);
+        let sib = vec!["assets".to_string(), "projectsettings".to_string()];
+        assert_eq!(rs.match_dir(&unity, NOW, &mut || sib.clone()).unwrap().rule.id, "unity-library");
+        let books = vec!["책".to_string()];
+        assert!(rs.match_dir(&unity, NOW, &mut || books.clone()).is_none(), "Unity 프로젝트가 아니면 아니다");
+        let up = vec!["g.uproject".to_string()];
+        let saved = dir("Saved", r"\u\g\Saved", r"D:\u\g\Saved", 1 << 30, 60);
+        assert!(rs.match_dir(&saved, NOW, &mut || up.clone()).is_none(), "Unreal Saved는 제안하지 않는다");
+        let inter = dir("Intermediate", r"\u\g\Intermediate", r"D:\u\g\Intermediate", 1 << 30, 60);
+        assert_eq!(rs.match_dir(&inter, NOW, &mut || up.clone()).unwrap().rule.id, "unreal-intermediate");
+    }
+
 }

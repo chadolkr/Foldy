@@ -206,7 +206,7 @@ public static class DevCleanupFlows
             return;
         }
 
-        string Label(DevCache c) => $"{c.Kind.Name}  ·  {(c.Size >= 0 ? FileItem.FormatBytes(c.Size) : Foldy.Core.Localization.Loc.T("dev.dc.dockerSize"))}  ·  {c.Kind.Why}";
+        string Label(DevCache c) => $"{c.Kind.Name}  ·  {(c.Size >= 0 ? FileItem.FormatBytes(c.Size) : c.Kind.Id == "docker" ? Foldy.Core.Localization.Loc.T("dev.dc.dockerSize") : Foldy.Core.Localization.Loc.T("dev.dc.toolSize"))}  ·  {c.Kind.Why}";
         var (choice, picked) = await w.PickAsync(Foldy.Core.Localization.Loc.T("dev.dc.pick"), found.Select(c => (c, Label(c), c.Kind.Id != "docker")), c => c.Kind.Note,
             C("clean", Foldy.Core.Localization.Loc.T("dev.dc.go")), C("skip", Foldy.Core.Localization.Loc.T("cf.keep")));
         if (choice is "skip" or GuideWindow.ClosedChoice || picked.Count == 0)
