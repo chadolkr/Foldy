@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'Nuevo en la 1.9: la indexación de unidades lentas continúa donde se quedó',
-    eyebrow: 'Foldy 1.9',
+    badge: 'Nuevo en la 1.10: indexar unidades lentas es mucho más rápido',
+    eyebrow: 'Foldy 1.10',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
-      { icon: 'search', title: 'La indexación continúa y lee menos', text: 'En unidades grandes y lentas, como las de trabajo, de red o USB, si cierras o actualizas Foldy durante la primera indexación, la próxima vez sigue desde donde se quedó. Al volver a reunir la lista solo lee las carpetas que cambiaron, y ahora también encuentra archivos dentro de carpetas ocultas. Las fechas se ven más cortas, como "11-23".' },
-      { icon: 'update', title: 'Indexa cuando quieras', text: 'Haz clic derecho en una unidad de red, USB o Google Drive → [Indexar ahora] para recopilar su lista de archivos al momento. También puedes elegir cada cuánto se repite: cada hora, cada 6 horas o una vez al día.' },
-      { icon: 'undo', title: 'Retoma donde lo dejaste', text: 'Foldy guarda tu plan para ordenar y tus marcas. Aunque cierres la ventana o apagues el PC, [Continuar] lo abre al instante. Al pulsar [Ordenar], los archivos que cambiaron o desaparecieron desde entonces no se mueven y Foldy te lo indica.' },
-      { icon: 'eye', title: 'Ve dónde están los duplicados y elige cuál conservar', text: 'Al ordenar una carpeta, Foldy muestra la ruta completa de cada archivo idéntico y con [Conservar] eliges cuál se queda. Solo los demás van a "_Posibles duplicados", y no se borra nada. [Mostrar solo este panel] deja que un panel use toda la ventana.' },
+      { icon: 'turtle', title: 'Indexación rápida, también en unidades lentas', text: 'Las unidades lentas, como las de trabajo o de red, se recopilan mucho más rápido: pausas más cortas, varias carpetas y unidades a la vez y primero tus carpetas favoritas. Los archivos que guardan otros programas aparecen en la carpeta en un segundo.' },
+      { icon: 'disk', title: 'Encuentra más carpetas que se pueden borrar', text: 'Más carpetas que los programas vuelven a crear solos, como cachés de Unity, Unreal, Flutter y frameworks web. Solo cuando el archivo del proyecto está al lado, y nunca carpetas con ajustes.' },
+      { icon: 'panes', title: '19 plantillas', text: 'Se añadieron métodos de carpetas muy conocidos: GTD, ACE, clasificación por funciones (ISO 15489), TIER, Cookiecutter Data Science y BIDS. Si investigas, elige tu tipo de investigación y verás primero la plantilla adecuada.' },
+      { icon: 'update', title: 'Cambiar nombres como en el Explorador', text: 'Haz clic otra vez, despacio, en un archivo seleccionado para editar su nombre. En unidades de red, los nombres cambiados, las carpetas nuevas y lo borrado se ven en la lista al momento.' },
     ],
     link: 'Ver todos los cambios',
   },
