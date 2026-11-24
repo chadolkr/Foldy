@@ -91,15 +91,18 @@ public sealed class CrawlPaceTests
     public void Reading_gives_way_to_other_programs_and_returns_to_normal_after()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows 전용");
-        var inside = -1;
+        int before = -1, inside = -1, after = -1;
         var t = new Thread(() =>
         {
+            before = IoPriority();
             GiveWay.Run(() => inside = IoPriority());
-            inside = inside * 10 + IoPriority();
+            after = IoPriority();
         });
         t.Start();
         t.Join();
-        Assert.Equal((0 * 10) + 2, inside); // 안에서는 아주 낮음(0), 끝나면 보통(2)
+        Assert.Equal(0, inside); // 안에서는 아주 낮음(0)
+        Assert.True(before > 0, "양보하기 전부터 아주 낮으면 시험할 수 없다");
+        Assert.Equal(before, after); // 끝나면 원래대로 (보통은 2, CI 실행기는 1)
     }
 
     [Fact]
@@ -125,9 +128,10 @@ public sealed class CrawlPaceTests
     public void Giving_way_ends_even_when_reading_fails()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows 전용");
-        var after = -1;
+        int before = -1, after = -1;
         var t = new Thread(() =>
         {
+            before = IoPriority();
             try
             {
                 GiveWay.Run(() => throw new IOException("끊김"));
@@ -139,7 +143,8 @@ public sealed class CrawlPaceTests
         });
         t.Start();
         t.Join();
-        Assert.Equal(2, after);
+        Assert.True(before > 0);
+        Assert.Equal(before, after);
     }
 
     private static int IoPriority()
