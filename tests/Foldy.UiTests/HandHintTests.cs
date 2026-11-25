@@ -51,7 +51,7 @@ public sealed class HandHintTests
             Mouse.MoveTo(new Point(target.X + 3, target.Y + 3)); // 놓을 곳 위에서 한 번 더 움직여 DragOver를 받게
             var hint = Retry.WhileNull(() => FindHint(app), TimeSpan.FromSeconds(10), ignoreException: true).Result;
 
-            hint.Should().NotBeNull("놓을 수 없는 이유가 커서 아래에 보여야 한다");
+            hint.Should().NotBeNull("놓을 수 없는 이유가 커서 아래에 보여야 한다. 진단: " + Describe(app));
             hint!.Name.Should().Be("이미 이 폴더에 있어요");
 
             // 커서 바로 아래: 커서보다 아래이고, 너무 멀지 않다
@@ -125,5 +125,22 @@ public sealed class HandHintTests
         }
 
         return null;
+    }
+
+    /// <summary>시험이 실패했을 때 무엇이 보였는지 (Foldy의 창들과 그 안 글 몇 개).</summary>
+    private static string Describe(FoldyApp app)
+    {
+        try
+        {
+            var windows = app.Automation.GetDesktop().FindAllChildren(app.By.ByProcessId(app.App.ProcessId));
+            return string.Join(" | ", windows.Select(w =>
+                $"[{w.ControlType} '{w.Name}' {w.ClassName} {w.BoundingRectangle}] " +
+                string.Join(", ", w.FindAllDescendants(app.By.ByControlType(FlaUI.Core.Definitions.ControlType.Text)).Take(6).Select(t => t.Name))))
+                + $" · 마우스 {Mouse.Position}";
+        }
+        catch (Exception ex)
+        {
+            return "진단 실패: " + ex.Message;
+        }
     }
 }

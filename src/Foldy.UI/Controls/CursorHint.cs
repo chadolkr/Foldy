@@ -3,6 +3,7 @@ using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -26,6 +27,14 @@ public static class CursorHint
     private static Popup? _popup;
     private static TextBlock? _title;
     private static TextBlock? _tip;
+    private static Border? _border;
+
+    /// <summary>
+    /// 글자 크기: 잘 보이게 본문(12.5)보다 크게 (사용자 2026-11-25 "메세지 폰트는 잘보이는 폰트 사이즈로").
+    /// 화면 크기 배율(설정)도 따른다.
+    /// </summary>
+    private const double TitleSize = 16;
+    private const double TipSize = 14.5;
     private static DispatcherTimer? _timer;
     private static bool _watchingInput;
 
@@ -102,6 +111,10 @@ public static class CursorHint
     private static void Place(UIElement over, double x, double y, string title, string? tip)
     {
         var popup = _popup ??= Create();
+        // 팝업은 창 밖이라 창의 화면 크기 배율이 닿지 않으므로 같은 배율을 직접 준다
+        _border!.LayoutTransform = Window.GetWindow(over)?.Content is FrameworkElement { LayoutTransform: { } scale } && !scale.Value.IsIdentity
+            ? scale
+            : System.Windows.Media.Transform.Identity;
         _title!.Text = title;
         _title.FontWeight = string.IsNullOrEmpty(tip) ? FontWeights.Normal : FontWeights.SemiBold; // 한 줄짜리 안내는 굵지 않게
         _tip!.Text = tip ?? "";
@@ -168,23 +181,24 @@ public static class CursorHint
 
     private static Popup Create()
     {
-        _title = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        _title = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = TitleSize };
         _title.SetResourceReference(TextBlock.ForegroundProperty, "Brush.Text");
-        _tip = new TextBlock { Margin = new Thickness(0, 2, 0, 0), TextWrapping = TextWrapping.Wrap };
+        _tip = new TextBlock { Margin = new Thickness(0, 3, 0, 0), TextWrapping = TextWrapping.Wrap, FontSize = TipSize };
         _tip.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextSecondary");
         var stack = new StackPanel();
         stack.Children.Add(_title);
         stack.Children.Add(_tip);
-        var border = new Border
+        var border = _border = new Border
         {
             Child = stack,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(10, 6, 10, 7),
-            MaxWidth = 360,
+            Padding = new Thickness(12, 8, 12, 9),
+            MaxWidth = 420,
             Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 8, ShadowDepth = 2, Opacity = 0.25 },
             Margin = new Thickness(0, 0, 8, 8), // 그림자 자리
         };
+        border.SetResourceReference(TextElement.FontFamilyProperty, "Font.UI");
         border.SetResourceReference(Border.BackgroundProperty, "Brush.Surface");
         border.SetResourceReference(Border.BorderBrushProperty, "Brush.BorderStrong");
         AutomationProperties.SetAutomationId(_title, "CursorHint"); // 시험·화면 읽기 (Border는 자동화 트리에 없다)
