@@ -1360,6 +1360,7 @@ public partial class PaneView : UserControl
         {
             _dragSourceFolder = null;
             _dragSourcePane = null;
+            Foldy.UI.Controls.CursorHint.Hide(); // Esc로 그만두거나 Foldy 밖에 놓았을 때
         }
 
         // 다른 곳으로 옮겨졌으면 목록 갱신
@@ -1373,26 +1374,58 @@ public partial class PaneView : UserControl
 
     private void OnListDragOver(object sender, DragEventArgs e)
     {
-        e.Effects = DropEffectFor(e);
+        e.Effects = DropEffectFor(e, out var why);
+        if (why is { } reason)
+        {
+            // 디자인 원칙 "안내는 손이 있는 자리에": 끄는 동안 눈은 커서에 있으므로 이유를 커서 바로 아래에 보여 준다
+            Foldy.UI.Controls.CursorHint.Show(this, e.GetPosition(this), Foldy.Core.Localization.Loc.T(reason + ".title"), Foldy.Core.Localization.Loc.T(reason + ".tip"));
+        }
+        else
+        {
+            Foldy.UI.Controls.CursorHint.Hide();
+        }
+
         e.Handled = true;
     }
 
-    private DragDropEffects DropEffectFor(DragEventArgs e)
+    private void OnListDragLeave(object sender, DragEventArgs e)
     {
+        // 안쪽 칸 사이를 지날 때도 DragLeave가 오므로, 정말 이 목록 밖으로 나갔을 때만 닫는다 (깜빡임 방지)
+        if (sender is FrameworkElement layer && e.GetPosition(layer) is var p && p.X >= 0 && p.Y >= 0 && p.X < layer.ActualWidth && p.Y < layer.ActualHeight)
+        {
+            return;
+        }
+
+        Foldy.UI.Controls.CursorHint.Hide();
+    }
+
+    private DragDropEffects DropEffectFor(DragEventArgs e) => DropEffectFor(e, out _);
+
+    /// <summary>놓으면 무엇을 할지. 안 되는데 이유를 알려야 하면 <paramref name="why"/>에 안내 글 키(앞부분)를 준다.</summary>
+    private DragDropEffects DropEffectFor(DragEventArgs e, out string? why)
+    {
+        why = null;
         if (_tab is null || !e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             return DragDropEffects.None;
         }
 
         var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+        if (Foldy.Presentation.Navigation.DropRules.IntoItself(files, _tab.Path))
+        {
+            // 폴더를 자기 안(또는 그 아래 폴더)에 놓으면 복사·이동이 끝나지 않는다
+            why = "pane.dropHint.intoItself";
+            return DragDropEffects.None;
+        }
+
         if (Foldy.Presentation.Navigation.DropRules.AllAlreadyIn(files, _dragSourceFolder, _tab.Path))
         {
             // 같은 폴더에 놓기는 아무것도 하지 않는다 (탐색기와 같음).
             // 다만 반대쪽 창이 같은 폴더를 보고 있으면 금지 표시만으로는 왜 안 되는지 모르므로 쉬운 말로 알려 준다.
             // 끌기를 막 시작한 자기 창 위에서는 알리지 않는다.
-            if (_dragSourcePane != this && _host is not null)
+            if (_dragSourcePane != this)
             {
-                _host.Shell.Status = Foldy.Core.Localization.Loc.T("pane.dropSameFolder");
+                why = "pane.dropHint.sameFolder";
             }
 
             return DragDropEffects.None;
@@ -1416,6 +1449,7 @@ public partial class PaneView : UserControl
 
     private async void OnListDrop(object sender, DragEventArgs e)
     {
+        Foldy.UI.Controls.CursorHint.Hide();
         var effect = DropEffectFor(e);
         if (effect == DragDropEffects.None || _tab is null || _host is null || e.Data.GetData(DataFormats.FileDrop) is not string[] files)
         {

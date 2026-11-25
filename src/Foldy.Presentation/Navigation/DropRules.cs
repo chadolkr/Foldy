@@ -17,7 +17,28 @@ public static class DropRules
         return files is { Count: > 0 } && files.All(f => PathUtil.Parent(f) is { } parent && Same(parent, target));
     }
 
+    /// <summary>
+    /// 놓을 곳이 끌어 온 폴더 자신이거나 그 안쪽이면 true (폴더를 자기 안에 복사·이동하면 끝나지 않는다).
+    /// </summary>
+    public static bool IntoItself(IReadOnlyList<string>? files, string target)
+    {
+        if (files is not { Count: > 0 })
+        {
+            return false;
+        }
+
+        var t = Trim(target);
+        return files.Any(f =>
+        {
+            var folder = Trim(f);
+            return folder.Length > 0 && (string.Equals(t, folder, StringComparison.OrdinalIgnoreCase)
+                || (t.Length > folder.Length && t.StartsWith(folder, StringComparison.OrdinalIgnoreCase) && t[folder.Length] is '\\' or '/'));
+        });
+    }
+
+    private static string Trim(string p) => (PathUtil.Normalize(p) ?? p).TrimEnd('\\', '/');
+
     private static bool Same(string? a, string? b) =>
         a is not null && b is not null &&
-        string.Equals((PathUtil.Normalize(a) ?? a).TrimEnd('\\', '/'), (PathUtil.Normalize(b) ?? b).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+        string.Equals(Trim(a), Trim(b), StringComparison.OrdinalIgnoreCase);
 }

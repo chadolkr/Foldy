@@ -25,4 +25,21 @@ public class DropRulesTests
         DropRules.AllAlreadyIn([@"K:\a\x.txt"], @"K:\a", @"C:\a").Should().BeFalse();
         DropRules.AllAlreadyIn([], null, @"C:\a").Should().BeFalse();
     }
+
+    [Fact]
+    public void A_folder_cannot_go_inside_itself()
+    {
+        DropRules.IntoItself([@"C:\work\프로젝트"], @"C:\work\프로젝트").Should().BeTrue();
+        DropRules.IntoItself([@"C:\work\프로젝트"], @"c:\work\프로젝트\보관\2026").Should().BeTrue();
+        DropRules.IntoItself([@"C:\work\a.txt", @"C:\work\프로젝트\"], @"C:\work\프로젝트\보관").Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_folder_with_a_similar_name_is_not_inside()
+    {
+        DropRules.IntoItself([@"C:\work\프로젝트"], @"C:\work\프로젝트2").Should().BeFalse();
+        DropRules.IntoItself([@"C:\work\프로젝트"], @"C:\work").Should().BeFalse();
+        DropRules.IntoItself([], @"C:\work").Should().BeFalse();
+        DropRules.IntoItself(null, @"C:\work").Should().BeFalse();
+    }
 }
