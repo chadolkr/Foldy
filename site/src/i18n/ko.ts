@@ -247,7 +247,7 @@ const ko = {
     uninstall: '지울 때는 Windows 설정 → 앱 → 설치된 앱 → Foldy → 제거. 색인 서비스도 함께 지워져요.',
     allReleases: '이전 버전과 바뀐 내용 보기',
     store: 'Microsoft Store에서 받기',
-    storeNote: 'Store 판은 Store가 알아서 업데이트해요. 다만 네트워크·USB 드라이브 빠른 목록, Foldy가 꺼져 있을 때 Ctrl+Space, 창 닫고 계속 모으기는 설치 파일(MSI) 판에만 있어요.',
+    storeNote: 'Store 판은 Store가 알아서 업데이트해요. 다만 드라이브 전체를 미리 읽어 두고 빨리 찾기, Foldy가 꺼져 있을 때 Ctrl+Space, 창 닫고 계속 모으기는 설치 파일(MSI) 판에만 있어요.',
   },
   faq: {
     title: '묻고 답하기',

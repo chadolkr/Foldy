@@ -246,7 +246,7 @@ const ja: Dictionary = {
     uninstall: '削除するときは Windows の設定 → アプリ → インストールされているアプリ → Foldy → アンインストール。インデックスサービスも一緒に消えます。',
     allReleases: '以前のバージョンと変更内容',
     store: 'Microsoft Store から入手',
-    storeNote: 'Store 版は Microsoft Store が更新します。ネットワーク・USB ドライブの高速リスト、Foldy を閉じているときの Ctrl+Space、ウィンドウを閉じたあとの収集の継続は、インストーラー (MSI) 版だけの機能です。',
+    storeNote: 'Store 版は Microsoft Store が更新します。ドライブ全体を前もって読み込んでおく高速検索、Foldy を閉じているときの Ctrl+Space、ウィンドウを閉じたあとの収集の継続は、インストーラー (MSI) 版だけの機能です。',
   },
   faq: {
     title: 'よくある質問',

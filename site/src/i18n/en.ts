@@ -246,7 +246,7 @@ const en: Dictionary = {
     uninstall: 'To remove it: Windows Settings → Apps → Installed apps → Foldy → Uninstall. The index service is removed too.',
     allReleases: 'Older versions and release notes',
     store: 'Get it from Microsoft Store',
-    storeNote: 'The Store edition is updated by Microsoft Store. Fast lists for network and USB drives, Ctrl+Space while Foldy is closed, and gathering after you close the window are only in the installer (MSI) edition.',
+    storeNote: 'The Store edition is updated by Microsoft Store. Fast search that reads whole drives ahead of time, Ctrl+Space while Foldy is closed, and gathering after you close the window are only in the installer (MSI) edition.',
   },
   faq: {
     title: 'Questions',

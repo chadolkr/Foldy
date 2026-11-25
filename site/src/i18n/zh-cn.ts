@@ -246,7 +246,7 @@ const zhCN: Dictionary = {
     uninstall: '卸载方法：Windows 设置 → 应用 → 已安装的应用 → Foldy → 卸载。索引服务也会一起删除。',
     allReleases: '历史版本和更新内容',
     store: '从 Microsoft Store 获取',
-    storeNote: 'Store 版由 Microsoft Store 负责更新。网络和 USB 驱动器的快速列表、Foldy 关闭时按 Ctrl+Space、关闭窗口后继续收集，只有安装程序（MSI）版才有。',
+    storeNote: 'Store 版由 Microsoft Store 负责更新。预先读取整个驱动器的快速搜索、Foldy 关闭时按 Ctrl+Space、关闭窗口后继续收集，只有安装程序（MSI）版才有。',
   },
   faq: {
     title: '常见问题',

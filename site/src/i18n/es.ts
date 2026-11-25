@@ -246,7 +246,7 @@ const es: Dictionary = {
     uninstall: 'Para quitarlo: Configuración de Windows → Aplicaciones → Aplicaciones instaladas → Foldy → Desinstalar. El servicio de índice también se quita.',
     allReleases: 'Versiones anteriores y novedades',
     store: 'Obtenerlo en Microsoft Store',
-    storeNote: 'La edición de Store la actualiza Microsoft Store. Las listas rápidas de unidades de red y USB, Ctrl+Espacio con Foldy cerrado y seguir reuniendo archivos tras cerrar la ventana solo están en la edición del instalador (MSI).',
+    storeNote: 'La edición de Store la actualiza Microsoft Store. La búsqueda rápida que lee unidades enteras por adelantado, Ctrl+Espacio con Foldy cerrado y seguir reuniendo archivos tras cerrar la ventana solo están en la edición del instalador (MSI).',
   },
   faq: {
     title: 'Preguntas',
