@@ -801,7 +801,7 @@ Delete는 휴지통으로 보냅니다(사이드바 휴지통에서 열기). Shi
 ## Code signing policy
 
 지금 GitHub Releases의 실행 파일과 MSI는 **Authenticode 서명이 없습니다** (그래서 Windows가 "PC 보호" 경고를 띄울 수 있어요). 무료 오픈소스 서명(SignPath Foundation)은 2026-11에 "아직 인지도가 부족하다"는 이유로 보류됐고, 프로젝트가 알려지면 다시 신청합니다.
-경고 없이 설치하려면 [Microsoft Store 판(Foldy File Manager)](https://apps.microsoft.com/detail/9NS1PWL5QGP6)을 쓰세요. Microsoft가 서명하므로 경고가 뜨지 않습니다 ([docs/store.md](docs/store.md)).
+그동안은 Microsoft Store 판을 준비합니다. Store 판은 Microsoft가 서명하므로 경고 없이 설치됩니다 ([docs/store.md](docs/store.md)).
 
 서명을 하게 되면 실행 파일(`Foldy.exe`, `Foldy.*.dll`, `foldy-index.exe`, `foldy-update.exe`)과 MSI는 이 저장소의 소스에서 GitHub Actions([release.yml](.github/workflows/release.yml))로만 빌드하고, 릴리스마다 승인자가 직접 승인한 뒤에 서명합니다.
 업데이트 정보(`update.json`)는 지금도 Ed25519로 서명됩니다 ([docs/release-signing.md](docs/release-signing.md)).
