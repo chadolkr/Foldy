@@ -46,7 +46,16 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           if ($env:TAG -notmatch '^v\d+\.\d+\.\d+$') { throw "태그 형식이 v1.2.3이 아님: $env:TAG" }
-          $id = gh run list --repo $env:GITHUB_REPOSITORY --workflow release.yml --branch $env:TAG --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+          # Release가 끝나면서 이 워크플로를 부르므로, 그 Release 실행이 끝나 성공으로 바뀔 때까지 기다린다 (최대 20분)
+          $id = $null
+          foreach ($i in 1..40) {
+            $id = gh run list --repo $env:GITHUB_REPOSITORY --workflow release.yml --branch $env:TAG --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+            if ($id) { break }
+            $busy = gh run list --repo $env:GITHUB_REPOSITORY --workflow release.yml --branch $env:TAG --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length'
+            if ($busy -eq '0') { break }
+            Write-Host "Release 실행이 끝나기를 기다리는 중 ($i)"
+            Start-Sleep -Seconds 30
+          }
           if (-not $id) { throw "$env:TAG 의 성공한 Release 실행을 찾지 못함" }
           gh run download $id --repo $env:GITHUB_REPOSITORY --name foldy-store-msix --dir store-msix
           if ($LASTEXITCODE -ne 0) { throw 'foldy-store-msix를 받지 못함' }

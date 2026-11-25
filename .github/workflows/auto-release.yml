@@ -1,0 +1,62 @@
+name: Auto release
+
+# 사람 손 없이 배포 (사용자 2026-11-25: "내 확인을 최소화해주고 바로 배포되도록 해보자").
+# main에 들어온 커밋의 CI(빌드·시험·화면 점검)가 통과하고, Directory.Build.props의 <Version>에 맞는 태그가
+# 아직 없으면 그 커밋에 vX.Y.Z 태그를 만들고 Release를 돌린다. Release가 끝나면 Store 제출까지 이어진다(release.yml).
+# 안전장치:
+#   - main에 push된 커밋의 CI가 성공했을 때만 (실패·취소면 아무것도 안 함)
+#   - 버전이 지금 최신 릴리스보다 높을 때만 (실수로 낮추거나 같은 버전을 다시 내지 않음)
+#   - 이미 있는 태그는 건드리지 않음
+#   - 저장소 변수 AUTO_RELEASE를 false로 두면 멈춤 (Settings → Secrets and variables → Actions → Variables)
+# GITHUB_TOKEN으로 만든 태그는 release.yml의 'push: tags'를 깨우지 못해서(GitHub 규칙) 여기서 직접 실행한다.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write   # 태그 만들기
+  actions: write    # release.yml 실행
+
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      vars.AUTO_RELEASE != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Tag and release if the version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          v=$(sed -n 's:.*<Version>\([^<]*\)</Version>.*:\1:p' Directory.Build.props | head -1)
+          if ! echo "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "버전 형식이 1.2.3이 아님: '$v' (베타 버전은 손으로 태그)"; exit 0
+          fi
+          tag="v$v"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "$tag 태그가 이미 있어요. 할 일 없음"; exit 0
+          fi
+          latest=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || echo v0.0.0)
+          newest=$(printf '%s\n%s\n' "${latest#v}" "$v" | sort -V | tail -1)
+          if [ "$newest" != "$v" ] || [ "${latest#v}" = "$v" ]; then
+            echo "$v 는 최신 릴리스 $latest 보다 높지 않아요. 태그를 만들지 않음"; exit 0
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$SHA" >/dev/null
+          echo "$tag 태그를 ${SHA:0:7} 에 만들었어요 (최신이던 $latest 다음)"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
+          echo "Release 실행을 시작했어요"
