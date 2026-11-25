@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Text.Json;
 using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Definitions;
 using FlaUI.Core.Input;
 using FlaUI.Core.Tools;
 using FlaUI.Core.WindowsAPI;
@@ -24,6 +25,10 @@ public sealed class HandHintTests
             var pane = new { tabs = new[] { tab }, activeIndex = 0 };
             File.WriteAllText(Path.Combine(a.DataDir, "session.json"), JsonSerializer.Serialize(new { schemaVersion = 1, left = pane, right = pane, active = "left" }));
         });
+
+        // 시험 PC 화면은 작아서 창 일부가 화면 밖에 있을 수 있다: 최대화해 두 목록이 모두 화면 안에 오게
+        app.Main.Patterns.Window.Pattern.SetWindowVisualState(WindowVisualState.Maximized);
+        Thread.Sleep(500);
 
         AutomationElement[] Lists() => app.Main.FindAllDescendants(app.By.ByClassName("FastFileList")).OrderBy(l => l.BoundingRectangle.Left).ToArray();
         Retry.WhileFalse(() => Lists().Length == 2, TimeSpan.FromSeconds(15), ignoreException: true);
