@@ -1383,7 +1383,7 @@ public partial class PaneView : UserControl
         e.Effects = DropEffectFor(e, out var why);
         if (why is { } reason)
         {
-            // 디자인 원칙 "안내는 손이 있는 자리에": 끄는 동안 눈은 커서에 있으므로 이유를 커서 바로 아래에 보여 준다
+            // 디자인 원칙 "안내는 시선이 있는 곳에 (마우스 포인터 바로 아래)": 끄는 동안 눈은 커서에 있으므로 이유를 커서 바로 아래에 보여 준다
             Foldy.UI.Controls.CursorHint.Show(this, e, Foldy.Core.Localization.Loc.T(reason + ".title"), Foldy.Core.Localization.Loc.T(reason + ".tip"));
         }
         else

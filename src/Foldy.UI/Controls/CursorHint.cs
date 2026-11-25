@@ -9,13 +9,13 @@ using System.Windows.Threading;
 namespace Foldy.UI.Controls;
 
 /// <summary>
-/// 손이 있는 자리에 뜨는 짧은 안내 (디자인 원칙 11 "안내는 손이 있는 자리에").
+/// 마우스 포인터 바로 아래에 뜨는 짧은 안내 (디자인 원칙 11 "안내는 시선이 있는 곳에 (마우스 포인터 바로 아래)").
 /// 아래 상태 칸은 누르거나 끄는 동안 눈이 가지 않으므로, 안 되는 이유를 그 자리에 보여 준다.
 /// <list type="bullet">
 /// <item>끄는 중: <see cref="Show"/>로 커서 바로 아래 (끌기가 끝나면 <see cref="Hide"/>)</item>
-/// <item>누른 뒤: <see cref="ShowNearHands"/> — 마우스로 눌렀으면 커서 아래, 키보드면 고른 줄(칸) 바로 아래. 잠시 뒤나 다음에 누르면 사라진다</item>
+/// <item>누른 뒤: <see cref="ShowAtPointer"/> — 포인터 바로 아래 (포인터가 창 밖이면 고른 줄 아래). 잠시 뒤나 다음에 누르면 사라진다</item>
 /// </list>
-/// 한 번에 하나만 있으면 되므로 모든 창이 함께 쓴다. 커서·고른 줄보다 아래에 두어 누를 곳을 가리지 않는다.
+/// 한 번에 하나만 있으면 되므로 모든 창이 함께 쓴다. 포인터보다 아래에 두어 누를 곳을 가리지 않는다.
 /// </summary>
 public static class CursorHint
 {
@@ -45,10 +45,10 @@ public static class CursorHint
     }
 
     /// <summary>
-    /// 누른 뒤의 안내 (안 되는 이유·다음 할 일). 마우스로 눌렀으면 커서 바로 아래, 키보드로 했으면 포커스가 있는 줄(칸) 바로 아래.
+    /// 누른 뒤의 안내 (안 되는 이유·다음 할 일). 마우스 포인터 바로 아래 (키보드로 했어도). 포인터가 창 밖이면 포커스가 있는 줄(칸) 바로 아래.
     /// 글 길이에 맞춰 몇 초 보이고, 그 전에 다른 곳을 누르거나 키를 치면 사라진다. 보일 곳이 없으면 false (부르는 쪽이 상태 칸에 쓴다).
     /// </summary>
-    public static bool ShowNearHands(string text, Window? fallbackWindow = null)
+    public static bool ShowAtPointer(string text, Window? fallbackWindow = null)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -61,18 +61,17 @@ public static class CursorHint
             return false;
         }
 
-        if (InputManager.Current.MostRecentInputDevice is MouseDevice or StylusDevice or TouchDevice)
+        // 시선은 마우스 포인터에 있다: 키보드로 했어도 포인터가 이 창 위에 있으면 포인터 바로 아래 (사용자 2026-11-25)
+        // 위치는 창 기준으로 잰다 (창 안 내용은 화면 크기 배율로 늘어날 수 있다)
+        var pointer = Mouse.GetPosition(win);
+        if (pointer.X >= 0 && pointer.Y >= 0 && pointer.X <= win.ActualWidth && pointer.Y <= win.ActualHeight)
         {
-            // 위치는 창 기준으로 잰다 (창 안 내용은 화면 크기 배율로 늘어날 수 있다)
-            var at = Mouse.GetPosition(win);
-            if (at.X >= 0 && at.Y >= 0 && at.X <= win.ActualWidth && at.Y <= win.ActualHeight)
-            {
-                Place(win, at.X + OffsetX, at.Y + OffsetY, text, null);
-                StartAutoHide(text);
-                return true;
-            }
+            Place(win, pointer.X + OffsetX, pointer.Y + OffsetY, text, null);
+            StartAutoHide(text);
+            return true;
         }
 
+        // 포인터가 창 밖이면 포커스가 있는 곳 아래
         if (Keyboard.FocusedElement is FrameworkElement { IsVisible: true } focused && Window.GetWindow(focused) == win)
         {
             // 파일 목록이면 고른 줄 바로 아래, 큰 칸이면 맨 윗줄 아래, 작은 칸(단추·글 칸)이면 그 바로 아래

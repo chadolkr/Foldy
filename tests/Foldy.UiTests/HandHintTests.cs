@@ -81,7 +81,7 @@ public sealed class HandHintTests
             .FirstOrDefault(h => h is not null);
 
     /// <summary>
-    /// 이름을 바꾸다 안 되면(쓸 수 없는 글자) 이유가 아래 상태 칸이 아니라 이름을 바꾸던 줄 바로 아래에 보인다 (키보드로 했을 때).
+    /// 이름을 바꾸다 안 되면(쓸 수 없는 글자) 이유가 아래 상태 칸이 아니라 마우스 포인터 바로 아래에 보인다 (키보드로 했어도 시선은 포인터에).
     /// </summary>
     [Fact]
     public void Why_a_rename_failed_shows_right_under_the_row()
