@@ -1724,6 +1724,7 @@
   "sw.drv.preparing": "検索の準備中",
   "sw.drv.ready": "検索の準備完了",
   "sw.drv.soon": "まもなく検索の準備を始めます",
+  "sw.drv.speed": "1 分あたり {0:N0} 件 · 読んだフォルダー {1:N0} 個 · フォルダー 1 つの応答 {2:N0}ms · 同時に {3} 個 · 休み {4:P0}",
   "sw.drv.unreadable": "準備できません · このドライブを読めませんでした",
   "sw.drv.waiting": "順番待ち · {0} の次",
   "sw.git.busy": "別の Git 操作を実行中です",

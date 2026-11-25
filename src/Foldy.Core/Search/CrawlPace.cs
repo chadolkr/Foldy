@@ -41,6 +41,9 @@ internal sealed class CrawlPace(bool near, TimeSpan minPause)
     private TimeSpan _owed;
     private TimeSpan _asked;
 
+    /// <summary>폴더 하나 목록을 묻는 데 평소 걸리는 시간(ms, 아직 모르면 0).</summary>
+    public double AskMs => Math.Max(0, _baseline);
+
     /// <summary>같이 읽을 폴더 수.</summary>
     public int Width { get; private set; } = 1;
 

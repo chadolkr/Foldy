@@ -89,6 +89,11 @@ public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null
 
     public bool HasIndexText => !string.IsNullOrEmpty(IndexText);
 
+    /// <summary>모으는 중 빠르기 (마우스를 올렸을 때만 보인다). 모르면 null.</summary>
+    public string? IndexDetail { get; init; }
+
+    public bool HasIndexDetail => !string.IsNullOrEmpty(IndexDetail);
+
     /// <summary>[지금 색인하기]를 쓸 수 있는 드라이브 (색인 서비스가 다루지 않아 Foldy가 모으는 드라이브).</summary>
     public bool CanIndexNow { get; init; }
 

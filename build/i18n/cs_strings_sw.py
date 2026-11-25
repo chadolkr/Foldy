@@ -155,6 +155,7 @@ SW = [
     ('sw.drv.indexing', '찾기 준비 중 {0}%', 'Getting ready to search {0}%', 'Preparando la búsqueda {0}%', '検索の準備中 {0}%', '正在准备查找 {0}%'),
     ('sw.drv.crawling', '파일 목록 만드는 중 · {0:N0}개 (천천히)', 'Building the search list · {0:N0} (slowly)', 'Preparando la lista de búsqueda · {0:N0} (despacio)', '検索リストを作成中 · {0:N0} 件 (ゆっくり)', '正在建立搜索列表 · {0:N0} 个（慢速）'),
     ('sw.drv.paused', '작업이 끝나면 이어서 만들어요 · {0:N0}개', 'Continues after the current task · {0:N0}', 'Sigue al acabar la tarea · {0:N0}', '作業が終わったら続けます · {0:N0} 件', '任务完成后继续 · {0:N0} 个'),
+    ('sw.drv.speed', '1분에 {0:N0}개 · 읽은 폴더 {1:N0}개 · 폴더 하나 답 {2:N0}ms · 같이 {3}개 · 쉬는 시간 {4:P0}', '{0:N0} a minute · {1:N0} folders read · {2:N0} ms per folder · {3} at once · resting {4:P0}', '{0:N0} por minuto · {1:N0} carpetas leídas · {2:N0} ms por carpeta · {3} a la vez · descanso {4:P0}', '1 分あたり {0:N0} 件 · 読んだフォルダー {1:N0} 個 · フォルダー 1 つの応答 {2:N0}ms · 同時に {3} 個 · 休み {4:P0}', '每分钟 {0:N0} 个 · 已读文件夹 {1:N0} 个 · 每个文件夹响应 {2:N0}ms · 同时 {3} 个 · 休息 {4:P0}'),
     ('sw.drv.crawled', '찾기 준비 끝 · 파일 {0:N0}개', 'Ready to search · {0:N0} files', 'Lista para buscar · {0:N0} archivos', '検索の準備完了 · {0:N0} 件', '可以查找 · {0:N0} 个文件'),
     ('sw.drv.waiting', '차례 기다리는 중 · {0} 다음에 준비해요', 'Waiting for its turn · after {0}', 'Esperando turno · después de {0}', '順番待ち · {0} の次', '排队等待 · 在 {0} 之后'),
     ('sw.jobs.running', '작업 {0}개 진행 중', '{0} jobs running', '{0} tareas en curso', 'ジョブ {0} 件を実行中', '{0} 个任务进行中'),

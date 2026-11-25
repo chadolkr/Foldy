@@ -1724,6 +1724,7 @@
   "sw.drv.preparing": "Preparando la búsqueda",
   "sw.drv.ready": "Lista para buscar",
   "sw.drv.soon": "Pronto empezará a prepararse",
+  "sw.drv.speed": "{0:N0} por minuto · {1:N0} carpetas leídas · {2:N0} ms por carpeta · {3} a la vez · descanso {4:P0}",
   "sw.drv.unreadable": "No se pudo preparar · no se pudo leer esta unidad",
   "sw.drv.waiting": "Esperando turno · después de {0}",
   "sw.git.busy": "Hay otra operación de Git en curso",

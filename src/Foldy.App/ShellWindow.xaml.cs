@@ -924,9 +924,12 @@ public partial class ShellWindow : Window, IPaneHost
             foreach (var d in pane.Drives.ToList())
             {
                 var text = DriveIndexText(st, d);
-                if (text != d.IndexText)
+                var detail = _crawler?.StatusOf(d.Root) is { Running: true, Speed: { } sp }
+                    ? Foldy.Core.Localization.Loc.F("sw.drv.speed", sp.PerMinute, sp.Folders, sp.AskMs, sp.Width, sp.RestShare)
+                    : null;
+                if (text != d.IndexText || detail != d.IndexDetail)
                 {
-                    pane.UpdateDrive(d with { IndexText = text });
+                    pane.UpdateDrive(d with { IndexText = text, IndexDetail = detail });
                 }
             }
         }

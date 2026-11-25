@@ -1724,6 +1724,7 @@
   "sw.drv.preparing": "Getting ready to search",
   "sw.drv.ready": "Ready to search",
   "sw.drv.soon": "Getting ready to search soon",
+  "sw.drv.speed": "{0:N0} a minute · {1:N0} folders read · {2:N0} ms per folder · {3} at once · resting {4:P0}",
   "sw.drv.unreadable": "Couldn't get ready · this drive couldn't be read",
   "sw.drv.waiting": "Waiting for its turn · after {0}",
   "sw.git.busy": "Another Git operation is in progress",

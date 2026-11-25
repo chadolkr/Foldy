@@ -229,6 +229,8 @@
                         <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding SpaceText}" />
                         <TextBlock Text="{Binding IndexText}" />
+                        <!-- 모으는 중 빠르기: 느린 드라이브의 까닭을 알아보려고 (사용자 2026-11-25 "K: 너무 느림") -->
+                        <TextBlock Text="{Binding IndexDetail}" Visibility="{Binding HasIndexDetail, Converter={StaticResource BoolToVis}}" />
                       </StackPanel>
                     </Button.ToolTip>
                     <Button.ContextMenu>
