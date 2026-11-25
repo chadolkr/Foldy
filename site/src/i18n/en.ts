@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'New in 1.13: drive lists stay up to date even when Foldy is closed',
-    eyebrow: 'Foldy 1.13',
+    badge: "New in 1.14: when something can't be done, the reason appears right where you're looking",
+    eyebrow: 'Foldy 1.14',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
+      { icon: 'pointer', title: "Help right where you're looking", text: "When you can't drop a file there or type a character names can't use, the reason now appears right under the mouse pointer instead of the status bar at the bottom. With the keyboard, it appears right below where you were typing or the selected row. It disappears on its own after a few seconds." },
       { icon: 'update', title: 'Up-to-date lists, even when closed', text: 'Lists for work, network, cloud and USB drives are refreshed on the schedule you choose (every hour, 6 hours or day), even when Foldy is closed. A tiny shortcut helper starts Foldy briefly without a window; it reads only folders that changed, then closes. Nothing to set up or register.' },
       { icon: 'info', title: 'Plain words on every screen', text: 'Over 340 labels were rewritten so a first-time user gets them at once: no more jargon like “index” or “panel”. Searching with the old words still works.' },
       { icon: 'turtle', title: 'Memory cards, USB and Google Drive, much faster', text: '180,000 files on a memory card are gathered in seconds instead of about six minutes, and 26,000 on Google Drive in 8 seconds instead of 61. When another program uses the same drive, Foldy steps aside.' },
-      { icon: 'search', title: 'Ctrl+Space, even when Foldy is closed', text: 'A tiny helper waits for the shortcut from the moment you start your PC. Press Ctrl+Space to search without keeping Foldy open, and a file you pick opens in its own program.' },
     ],
     link: 'See everything that changed',
   },
