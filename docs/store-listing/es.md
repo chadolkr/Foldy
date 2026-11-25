@@ -42,7 +42,13 @@ Conviene saber: la edición de Store no incluye el servicio que indexa unidades 
 
 ## Novedades de esta versión
 
-Foldy llega a Microsoft Store. Buscar lo que sea (Ctrl+Espacio), liberar espacio, ordenar el Escritorio y Descargas, crear carpetas con plantillas y conectar tu IA, en cinco idiomas.
+Mejoras desde la 1.3.0:
+• Ordenar carpetas grandes: el plan se hace rápido incluso con cientos de miles de archivos y puedes seguir más tarde. Ve dónde están los archivos idénticos y elige cuál conservar.
+• Buscar lo que sea: muestra cuántos resultados hay y carga más al bajar.
+• Buscar carpetas que se pueden borrar: muestra el progreso, se puede detener y encuentra más tipos.
+• Seis plantillas de carpetas nuevas.
+• Haz clic despacio otra vez en un nombre seleccionado para cambiarlo.
+• Textos más sencillos en toda la aplicación.
 
 ## Características del producto (una por línea)
 
