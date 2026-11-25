@@ -242,7 +242,7 @@ public sealed partial class MainWindowTests
 
         var hit = Retry.WhileNull(Selected, TimeSpan.FromSeconds(8), ignoreException: true).Result;
         // 좁은 화면(CI 등)에서 트리가 접혀 있으면 패널마다 트리 단추로 펴 본다 (펴는 순간 따라가야 한다)
-        foreach (var toggle in hit is null ? app.Main.FindAllDescendants(app.By.ByName("폴더 트리 보이기/숨기기")) : [])
+        foreach (var toggle in hit is null ? app.Main.FindAllDescendants(app.By.ByName("왼쪽 폴더 목록 보이기/숨기기")) : [])
         {
             toggle.AsButton().Invoke();
             hit = Retry.WhileNull(Selected, TimeSpan.FromSeconds(8), ignoreException: true).Result;
@@ -336,11 +336,11 @@ public sealed partial class MainWindowTests
         {
             using var app = FoldyApp.Start(openPath: empty);
             var button = Retry.WhileNull(() => app.Main.FindFirstDescendant(app.By.ByAutomationId("EmptyTemplateButton")), TimeSpan.FromSeconds(15), ignoreException: true).Result;
-            button.Should().NotBeNull("빈 폴더에 [템플릿으로 폴더 만들기]가 보여야 한다");
+            button.Should().NotBeNull("빈 폴더에 [폴더 틀로 한 번에 만들기]가 보여야 한다");
             button!.IsOffscreen.Should().BeFalse();
             app.Main.FindFirstDescendant(app.By.ByAutomationId("EmptyTip")).Should().NotBeNull("끌어 놓기·F7 안내 한 줄");
             button.AsButton().Invoke();
-            app.FindWindow("템플릿으로 만들기", 15).Should().NotBeNull("누르면 템플릿 고르기 창이 열린다");
+            app.FindWindow("폴더 틀로 만들기", 15).Should().NotBeNull("누르면 템플릿 고르기 창이 열린다");
         }
         finally
         {
@@ -426,7 +426,7 @@ public sealed partial class MainWindowTests
                 () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName("이 폴더 정리하기…").And(app.By.ByControlType(ControlType.MenuItem))),
                 TimeSpan.FromSeconds(10), ignoreException: true).Result!.AsMenuItem().Invoke();
             var win = app.FindWindow("폴더 정리", 15);
-            app.Find("하위 폴더 안까지 정리", win).AsCheckBox().IsChecked = true;
+            app.Find("안쪽 폴더까지 정리", win).AsCheckBox().IsChecked = true;
             app.Find("계획 만들기", win).AsButton().Invoke();
 
             // 계획이 다 되어야 탭 이름에 묶음 수가 붙는다 (그 전에 탭을 고르면 계획이 끝날 때 첫 탭으로 돌아간다)

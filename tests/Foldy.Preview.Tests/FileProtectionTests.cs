@@ -164,7 +164,7 @@ public class PreviewProtectionTests
             await vm.ShowAsync(For(p));
             vm.Status.Should().Be(PreviewStatus.Protected);
             vm.StatusText.Should().Be(PreviewMessages.For(FileProtection.Drm));
-            vm.StatusText.Should().Contain("DRM");
+            vm.StatusText.Should().Contain("복사 방지");
             vm.Content.Should().BeNull(); // 처리기를 부르지 않았다
         }
         finally

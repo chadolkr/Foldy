@@ -157,6 +157,6 @@ B3 = [
     ("del.orMore", " 이상", " or more", " o más", " 以上", " 以上"),
     ("del.moreThan", "{0:N0}개 넘게", "more than {0:N0} files", "más de {0:N0} archivos", "{0:N0} 個以上", "超过 {0:N0} 个"),
     ("del.nFiles", "{0:N0}개", "{0:N0} files", "{0:N0} archivos", "{0:N0} 個", "{0:N0} 个"),
-    ("del.nItems", "고른 {0:N0}개 항목", "the {0:N0} selected items", "los {0:N0} elementos elegidos", "選んだ {0:N0} 個の項目", "所选的 {0:N0} 个项目"),
+    ("del.nItems", '고른 {0:N0}개', "the {0:N0} selected items", "los {0:N0} elementos elegidos", "選んだ {0:N0} 個の項目", "所选的 {0:N0} 个项目"),
     ("del.summary", "{0} 안에 파일이 {1} 있어요 ({2}{3}).", "{0} contain {1} ({2}{3}).", "{0} contienen {1} ({2}{3}).", "{0} の中にファイルが {1} あります ({2}{3})。", "{0} 中有 {1} 文件（{2}{3}）。"),
 ]

@@ -273,7 +273,7 @@ public class GitTabViewModelTests
         git.FailNext = GitResult.Fail(GitFailure.NothingToCommit, "nothing to commit");
         await vm.CommitAsync();
         vm.CommitMessage.Should().Be("msg");
-        vm.ErrorText.Should().Contain("커밋할 변경이 없습니다");
+        vm.ErrorText.Should().Contain("커밋할 변경이 없어요");
     }
 
     [Fact]
@@ -491,7 +491,7 @@ public class GitTabViewModelTests
 
     [Theory]
     [InlineData(GitFailure.GitNotFound, "Git for Windows")]
-    [InlineData(GitFailure.AuthenticationFailed, "인증")]
+    [InlineData(GitFailure.AuthenticationFailed, "로그인")]
     [InlineData(GitFailure.MergeConflict, "충돌")]
     [InlineData(GitFailure.NotARepository, "저장소가 아닙니다")]
     [InlineData(GitFailure.Other, "boom")]
@@ -511,7 +511,7 @@ public class GitTabViewModelTests
         var (vm, git) = Make(g => g.Files = [new GitFileEntry("a.txt", null, GitChange.Conflicted, GitChange.Conflicted)]);
         git.FailNext = GitResult.Fail(GitFailure.MergeConflict, "CONFLICT (content)", 1);
         await vm.PullMergeAsync();
-        vm.ErrorText.Should().Contain("병합 충돌");
+        vm.ErrorText.Should().Contain("충돌이 났어요");
         vm.Unstaged.Should().ContainSingle().Which.Change.Should().Be(GitChange.Conflicted);
     }
 

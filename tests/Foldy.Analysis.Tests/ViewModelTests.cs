@@ -50,7 +50,7 @@ public class ViewModelTests
         vm.ErrorText.Should().BeEmpty();
         vm.HasSnapshot.Should().BeTrue();
         svc.Builds.Should().Be(0, "스냅샷이 있으면 새로 분석하지 않는다");
-        vm.ScanText.Should().Contain("색인 서비스");
+        vm.ScanText.Should().Contain("빠른 찾기 도우미");
         vm.TopFiles[0].Name.Should().Be("movie.mp4");
         vm.TopFolders.Should().NotBeEmpty();
         vm.Groups.Select(g => g.Label).Should().Contain("동영상");
@@ -108,7 +108,7 @@ public class ViewModelTests
         await vm.OpenLatestAsync(); // 스냅샷이 없으므로 폴백 스캐너로 바로 분석
         vm.ErrorText.Should().BeEmpty();
         vm.HasSnapshot.Should().BeTrue();
-        vm.ScanText.Should().Contain("직접 열거");
+        vm.ScanText.Should().Contain("폴더를 하나씩 읽음");
         var item = vm.Candidates.Should().ContainSingle().Subject;
         item.Path.Should().Be(Path.Combine(tree.Path, "p", "node_modules"));
 
@@ -126,7 +126,7 @@ public class ViewModelTests
         vm.Candidates.Should().ContainSingle();
         vm.MarkRecycled(item);
         vm.Candidates.Should().BeEmpty();
-        vm.ReclaimText.Should().Contain("찾지 못했습니다");
+        vm.ReclaimText.Should().Contain("찾지 못했어요");
 
         vm.OpenCommand.Execute(vm.TopFiles[0]);
         opened.Should().ContainSingle().Which.Path.Should().Be(big);
@@ -146,7 +146,7 @@ public class ViewModelTests
         await vm.AnalyzeAsync();
         svc.Builds.Should().Be(1);
         vm.HasSnapshot.Should().BeTrue();
-        vm.ScanText.Should().Contain("직접 열거");
+        vm.ScanText.Should().Contain("폴더를 하나씩 읽음");
 
         var broken = new FakeService(() => new SnapshotSet(new SnapshotRef(Path.Combine(tmp.Path, "none.db"), TestData.Now), [], true));
         var vm2 = new AnalysisTabViewModel(new AnalysisCoordinator(broken, CleanupRules.Default, tmp.Path), @"D:\");

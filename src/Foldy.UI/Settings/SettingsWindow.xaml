@@ -121,15 +121,26 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="CheckBox">
-            <StackPanel Orientation="Horizontal" Background="Transparent">
-              <Border x:Name="Box" Width="18" Height="18" CornerRadius="4" BorderThickness="1"
+            <!-- 글이 길면 줄을 바꾼다 (언어마다 길이가 달라 칸 밖으로 밀려 잘리지 않게, CutTextTests) -->
+            <Grid Background="Transparent">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Border x:Name="Box" Width="18" Height="18" CornerRadius="4" BorderThickness="1" VerticalAlignment="Top" Margin="0,1,0,0"
                       Background="{DynamicResource Brush.SurfaceAlt}" BorderBrush="{DynamicResource Brush.BorderStrong}">
                 <TextBlock x:Name="Mark" Text="&#xE73E;" FontFamily="{DynamicResource Font.Icon}" FontSize="12"
                            Foreground="{DynamicResource Brush.AccentText}" HorizontalAlignment="Center"
                            VerticalAlignment="Center" Visibility="Collapsed" />
               </Border>
-              <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center" TextElement.FontSize="13" />
-            </StackPanel>
+              <ContentPresenter Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" TextElement.FontSize="13">
+                <ContentPresenter.Resources>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                  </Style>
+                </ContentPresenter.Resources>
+              </ContentPresenter>
+            </Grid>
             <ControlTemplate.Triggers>
               <Trigger Property="IsChecked" Value="True">
                 <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.Accent}" />

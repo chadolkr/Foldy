@@ -2,7 +2,7 @@
 
 **Un gestor de archivos rápido e inteligente, también sin conexión.** <small>Conéctalo a la IA y será aún más cómodo.</small>
 
-Foldy es un gestor de archivos de doble panel para Windows, rápido y que nunca se bloquea. Puedes abrir esta guía cuando quieras con **F1** o con el botón **? Ayuda** de la parte inferior de la barra lateral.
+Foldy es un gestor de archivos de doble panel para Windows, rápido y que nunca se bloquea. Puedes abrir esta guía cuando quieras con **F1** o con el botón **? Ayuda** de la parte inferior del menú izquierdo.
 
 | | |
 | --- | --- |
@@ -14,7 +14,7 @@ Foldy es un gestor de archivos de doble panel para Windows, rápido y que nunca 
 - [Fácil para todos](#fácil-para-todos)
 - [Primer inicio](#primer-inicio)
 - [Un paseo por la pantalla](#un-paseo-por-la-pantalla)
-- [La barra lateral](#la-barra-lateral)
+- [El menú izquierdo](#el-menú-izquierdo)
 - [Pestañas](#pestañas)
 - [Los niños juegan al baloncesto](#los-niños-juegan-al-baloncesto)
 - [Operaciones con archivos](#operaciones-con-archivos)
@@ -54,7 +54,7 @@ La primera vez, Foldy te ayuda a dejar la vista cómoda.
 1. **Tamaño del texto**: Normal, Grande, Más grande y Máximo, mostrados sobre una lista de archivos real. Los cambios se aplican al pulsar, así que elige mientras miras.
 2. **Brillo**: Claro, Oscuro o Según Windows.
 3. **Atajo de búsqueda rápida**: comprueba si Ctrl+Space choca con otro programa y, si es así, te deja elegir otra tecla en ese momento.
-4. **Presentación breve**: como un vídeo corto vertical, la pantalla real de Foldy se mueve mientras una línea cada vez muestra las funciones principales (búsqueda rápida con Ctrl+Space — archivos, ajustes de Windows, cálculos y órdenes; arrastrar para copiar; análisis de carpetas; orden del escritorio; orden de carpetas; notas bloqueadas; plantillas de carpetas; Git). Avanza sola; haz clic a la derecha para seguir, a la izquierda para volver y en [Omitir] cuando quieras. Las escenas que ya viste no vuelven a aparecer al reinstalar o actualizar; si una actualización añade una función nueva, solo se muestra esa escena una vez. Puedes volver a verla entera desde el botón **?** de la parte inferior de la barra lateral → "Presentación breve".
+4. **Presentación breve**: como un vídeo corto vertical, la pantalla real de Foldy se mueve mientras una línea cada vez muestra las funciones principales (búsqueda rápida con Ctrl+Space — archivos, ajustes de Windows, cálculos y órdenes; arrastrar para copiar; análisis de carpetas; orden del escritorio; orden de carpetas; notas bloqueadas; plantillas de carpetas; Git). Avanza sola; haz clic a la derecha para seguir, a la izquierda para volver y en [Omitir] cuando quieras. Las escenas que ya viste no vuelven a aparecer al reinstalar o actualizar; si una actualización añade una función nueva, solo se muestra esa escena una vez. Puedes volver a verla entera desde el botón **?** de la parte inferior del menú izquierdo → "Presentación breve".
 
    ![Presentación breve](images/es/tour.png)
 
@@ -64,7 +64,7 @@ Al actualizar, tu configuración se mantiene, así que Foldy no vuelve a pregunt
 
 ![Ventana principal de Foldy](images/es/main.png)
 
-A la izquierda del todo está la **barra lateral** (carpetas fijadas, unidades, herramientas, configuración) y a su derecha los **paneles izquierdo y derecho**. El panel en el que trabajas (el panel activo) muestra una línea del color de acento bajo sus pestañas. Pulsa **Tab** para cambiar al otro panel.
+A la izquierda del todo está el **menú izquierdo** (carpetas fijadas, unidades, herramientas, configuración) y a su derecha los **paneles izquierdo y derecho**. El panel en el que trabajas (el panel activo) muestra una línea del color de acento bajo sus pestañas. Pulsa **Tab** para cambiar al otro panel.
 
 De arriba abajo, cada panel tiene:
 
@@ -78,7 +78,7 @@ Abajo están el **panel de tareas** (progreso de copias y movimientos), los **bo
 
 Solo se ejecuta un Foldy a la vez. Si lo vuelves a abrir mientras está en marcha (un acceso directo, abrir una carpeta con Foldy, etc.), **la ventana abierta pasa al frente** en lugar de abrir otra, y la carpeta que le pasaste se abre en una pestaña nueva.
 
-## La barra lateral
+## El menú izquierdo
 
 La franja de la izquierda reúne las funciones que usas desde cualquier panel. Contráela con el botón de panel de arriba (o **Ctrl+Shift+B**) para dejar solo los iconos; vuelve a pulsarlo para expandirla. Se parece al botón del árbol de carpetas y muestra un fondo pulsado cuando está expandida. También puedes arrastrar su borde derecho para cambiar el ancho (muy estrecha muestra solo iconos).
 
@@ -122,7 +122,7 @@ Saben 15 movimientos: crossover, por detrás de la espalda, entre las piernas, g
 - Copiar y mover: uno pasa, el otro avanza botando según progresa la tarea y, al final, **¡encesta un triple** y chocan los cinco!
 - Borrar: tiran el balón a la papelera. En el borrado definitivo el balón sale volando de la pista.
 - Búsquedas y esperas de red: los dos buscan el balón con la mirada.
-- Indexación y análisis: uno practica el bote y el otro toma notas.
+- Preparar la búsqueda y análisis: uno practica el bote y el otro toma notas.
 - Pausa o nombre repetido: un niño espera con el balón en brazos. Si algo falla, el tiro rebota en el aro.
 
 Puedes desactivarlo con "Usar animaciones" en Configuración → General, y se detiene (sin gastar CPU) cuando la ventana está minimizada o tapada.
@@ -156,7 +156,7 @@ El panel se cierra solo al ir a otra carpeta, unidad o pestaña (vuelve a abrirl
 
 - Los archivos que solo están en la nube no se leen, así que no se descarga nada.
 - Las unidades de red y SFTP no se leen automáticamente (para no ralentizar); solo al pulsar **[Vista previa]**.
-- Lo mismo vale para la unidad de Google Drive para escritorio (normalmente G:). Aparece en la barra lateral con un icono de nube como "Google Drive", y las miniaturas, iconos y vistas previas nunca descargan por sí solos los archivos solo en línea. Un archivo se descarga solo cuando lo abres o lo copias.
+- Lo mismo vale para la unidad de Google Drive para escritorio (normalmente G:). Aparece en el menú izquierdo con un icono de nube como "Google Drive", y las miniaturas, iconos y vistas previas nunca descargan por sí solos los archivos solo en línea. Un archivo se descarga solo cuando lo abres o lo copias.
 - **Los archivos protegidos con DRM o contraseña** muestran "Este archivo está protegido con DRM, así que no se puede previsualizar" (o "…tiene contraseña…") en lugar de un error. Ábrelo para verlo en la app que permita tu software de seguridad. Foldy los reconoce cuando el inicio del archivo no coincide con su formato (Office, Hangul, PDF, imágenes) y parece cifrado.
 
 ## Visor de Markdown
@@ -187,7 +187,7 @@ Las unidades que tardan mucho en abrir carpetas, como las unidades de seguridad 
 | **F3** | Mostrar u ocultar la vista previa |
 | **Ctrl+,** | Configuración |
 | **Ctrl+B** | Mostrar u ocultar el árbol de carpetas |
-| **Ctrl+Shift+B** | Contraer o expandir la barra lateral |
+| **Ctrl+Shift+B** | Contraer o expandir el menú izquierdo |
 | **Ctrl+Shift+I** | Solo imágenes |
 | **Ctrl+Shift+N** | Carpeta nueva desde plantilla |
 | **Ctrl+Shift+O** | Conectar a un servidor SFTP |
@@ -196,7 +196,7 @@ Las unidades que tardan mucho en abrir carpetas, como las unidades de seguridad 
 
 ## 🔍 Buscar
 
-Funciones para encontrar archivos y ver qué ocupa espacio. Están en **Buscar** de la barra lateral.
+Funciones para encontrar archivos y ver qué ocupa espacio. Están en **Buscar** del menú izquierdo.
 
 ### Búsqueda rápida (Ctrl+Space)
 
@@ -204,7 +204,7 @@ Uses el programa que uses, pulsa **Ctrl+Space** y aparece un gran cuadro de bús
 
 ![Búsqueda rápida](images/es/quicksearch.png)
 
-- **Archivos y carpetas**: busca en todas las unidades si está instalado el servicio de índice; si no, dentro de la carpeta actual. A la derecha aparece una vista previa (imagen, inicio del texto, tamaño, fecha).
+- **Archivos y carpetas**: busca en todas las unidades si está instalado el asistente de búsqueda rápida; si no, dentro de la carpeta actual. A la derecha aparece una vista previa (imagen, inicio del texto, tamaño, fecha).
 - **Apps**: encuentra programas del menú Inicio por su nombre y los abre.
 - **Ajustes de Windows y Panel de control**: escribe algo como "pantalla", "wifi", "tamaño del texto" o "impresora" para abrir esa página de ajustes. También encuentra los nombres clásicos del Panel de control y de las herramientas, como "panel de control", "agregar o quitar programas", "administrador de dispositivos", "administrador de tareas" o "variables de entorno", y palabras cotidianas como "controlador" o "no responde".
 - **Carpetas fijadas y recientes** aparecen arriba.
@@ -216,7 +216,7 @@ La **mejor coincidencia** aparece en grande arriba y el resto, agrupado por tipo
 
 Cuando encuentra archivos, un **sabueso de buen olfato** olfatea el suelo, corre con las orejas al viento y te los trae: "¡Snif! 1.284 encontrados en 0,03 s". Si no encuentra nada, ladea la cabeza. Desactiva "Usar animaciones" en la configuración para ver solo texto.
 
-**¿Hasta dónde busca?** El índice se crea para las unidades NTFS de este PC (C:, etc.). Bajo cada unidad de la barra lateral verás "Indexado" o "Indexando 62%". Las unidades sin índice (unidades de empresa, Google Drive, USB, tarjetas SD, etc.) se **recopilan con calma** en segundo plano mientras Foldy está abierto: de una en una, descansando más si la unidad se ralentiza y pausando durante tareas como copiar. La unidad muestra "Indexando · 12.345" y luego "Indexado". Mientras se recopila otra unidad indica a qué espera, como "Esperando turno · después de G:". Al recopilar de nuevo solo se leen las carpetas cambiadas (Google Drive se lee entera cada vez, porque la hora de sus carpetas no siempre cambia), y los archivos nuevos o borrados se reflejan al momento. **Indexar periódicamente**: en Configuración → General → Búsqueda rápida elige cada hora (predeterminado), cada 6 horas, una vez al día o solo cuando lo pidas. Cuenta desde la última vez que terminó, mientras Foldy está abierto. **Indexar ahora**: haz clic derecho en una unidad → **Indexar ahora**, o elige "Indexar ahora" en el menú **Buscar** o en Ctrl+Space (todas esas unidades) para leer todas las carpetas desde el principio; así también se corrigen los archivos que solo cambiaron de tamaño. Si se está recopilando otra unidad, empieza después. La hora en que terminó aparece junto a "Indexado". Puedes buscar en lo ya recopilado, y la carpeta abierta siempre se recorre directamente. Desactívalo en Configuración → General → Búsqueda rápida.
+**¿Hasta dónde busca?** La lista de búsqueda se crea para las unidades NTFS de este PC (C:, etc.). Bajo cada unidad del menú izquierdo verás "Lista para buscar" o "Preparando la búsqueda 62%". Las otras unidades (unidades de empresa, Google Drive, USB, tarjetas SD, etc.) se **recopilan con calma** en segundo plano mientras Foldy está abierto: de una en una, descansando más si la unidad se ralentiza y pausando durante tareas como copiar. La unidad muestra "Preparando la lista de búsqueda · 12.345" y luego "Lista para buscar". Mientras se recopila otra unidad indica a qué espera, como "Esperando turno · después de G:". Al recopilar de nuevo solo se leen las carpetas cambiadas (Google Drive se lee entera cada vez, porque la hora de sus carpetas no siempre cambia), y los archivos nuevos o borrados se reflejan al momento. **Actualizar la lista de búsqueda automáticamente**: en Configuración → General → Búsqueda rápida elige cada hora (predeterminado), cada 6 horas, una vez al día o solo cuando lo pidas. Cuenta desde la última vez que terminó, mientras Foldy está abierto. **Actualizar la lista de búsqueda ahora**: haz clic derecho en una unidad → **Actualizar la lista de búsqueda ahora**, o elige "Actualizar la lista de búsqueda ahora" en el menú **Buscar** o en Ctrl+Space (todas esas unidades) para leer todas las carpetas desde el principio; así también se corrigen los archivos que solo cambiaron de tamaño. Si se está recopilando otra unidad, empieza después. La hora en que terminó aparece junto a "Lista para buscar". Puedes buscar en lo ya recopilado, y la carpeta abierta siempre se recorre directamente. Desactívalo en Configuración → General → Búsqueda rápida.
 
 **¿Y si el atajo choca?** Si otro programa ya usa Ctrl+Space, o hay un método de entrada chino o japonés (donde Ctrl+Space cambia el idioma de escritura), Foldy te avisa en la primera configuración y te deja elegir una tecla libre (como Ctrl+Shift+Space) o pulsar la tuya. También puedes elegir "Usar solo dentro de Foldy". Tras actualizar no vuelve a preguntar salvo que falle el registro. Cámbialo cuando quieras en Configuración → Atajos.
 
@@ -224,13 +224,13 @@ Cuando encuentra archivos, un **sabueso de buen olfato** olfatea el suelo, corre
 
 Pulsa **Ctrl+F**, escribe parte del nombre en el cuadro de búsqueda y pulsa Enter para abrir una pestaña de resultados.
 
-- Con el **servicio de índice** instalado, se busca en todas las unidades al instante (milisegundos incluso con millones de archivos). La barra de estado muestra "Búsqueda: indexado".
+- Con el **asistente de búsqueda rápida** instalado, se busca en todas las unidades al instante (milisegundos incluso con millones de archivos). La barra de estado muestra "Búsqueda: lista".
 - Sin el servicio, se recorre directamente la carpeta actual y las de debajo (hasta 20.000 elementos).
 - Abrir una carpeta de los resultados abre una pestaña nueva; los archivos se abren directamente. Esc cancela la búsqueda.
 
 ### Análisis de carpetas
 
-Elige **Análisis de carpetas** (en el menú Buscar, "análisis de carpetas" en Ctrl+Space o la lista de comandos) y **Foldy pregunta primero qué analizar.** Hay un botón por disco con su espacio libre, la carpeta actual y [Elegir otra carpeta…]. Tu elección abre una pestaña de análisis. Botón derecho en una unidad de la barra lateral → Analizar abre esa unidad directamente.
+Elige **Análisis de carpetas** (en el menú Buscar, "análisis de carpetas" en Ctrl+Space o la lista de comandos) y **Foldy pregunta primero qué analizar.** Hay un botón por disco con su espacio libre, la carpeta actual y [Elegir otra carpeta…]. Tu elección abre una pestaña de análisis. Botón derecho en una unidad del menú izquierdo → Analizar abre esa unidad directamente.
 
 - **Mapa de árbol**: las carpetas más grandes tienen cajas más grandes. Haz clic en una caja para entrar; Retroceso, el botón derecho o el botón atrás del ratón suben un nivel.
 - **Listas**: las carpetas y archivos más grandes, y las carpetas que más crecieron desde el último análisis.
@@ -271,7 +271,7 @@ Elige **Análisis de carpetas** (en el menú Buscar, "análisis de carpetas" en 
 - Archivos de Windows Update, de Optimización de distribución, la caché de miniaturas y la instalación anterior de Windows (Windows.old): los usa el sistema, así que es más seguro que los quite Windows. Pulsa **[Abrir recomendaciones de limpieza de Windows]** sobre las sugerencias para abrir la página de limpieza en Configuración de Windows (Liberador de espacio en Windows 10).
 - Copias de actualización y cuarentena de los antivirus: no encontramos indicaciones oficiales de los fabricantes de que sea seguro borrarlas, y la cuarentena sirve para recuperar archivos desinfectados por error, así que no se incluyen. Límpialas desde el menú del propio antivirus.
 
-Con el servicio de índice, el análisis tarda unos segundos sin volver a leer el disco. Sin él, el disco se recorre directamente con baja prioridad.
+Con el asistente de búsqueda rápida, el análisis tarda unos segundos sin volver a leer el disco. Sin él, el disco se recorre directamente con baja prioridad.
 
 ### Comparar y sincronizar ambos paneles
 
@@ -285,7 +285,7 @@ Con el servicio de índice, el análisis tarda unos segundos sin volver a leer e
 
 ### Solo imágenes
 
-Pulsa **Ctrl+Shift+I** o Buscar → Solo imágenes en la barra lateral para ver solo las imágenes de la carpeta actual como cuadrícula de miniaturas. Los demás archivos solo se ocultan, nunca se mueven.
+Pulsa **Ctrl+Shift+I** o Buscar → Solo imágenes en el menú izquierdo para ver solo las imágenes de la carpeta actual como cuadrícula de miniaturas. Los demás archivos solo se ocultan, nunca se mueven.
 
 Mientras está activo, una línea justo encima de la lista dice "Solo imágenes · N imágenes" (o "esta carpeta no tiene imágenes"), y **[Mostrar todos los archivos]** en el mismo sitio lo desactiva.
 
@@ -295,11 +295,11 @@ Mientras está activo, una línea justo encima de la lista dice "Solo imágenes 
 
 ## 🧹 Ordenar
 
-Funciones para ordenar carpetas como quien ordena una habitación. Están en **Ordenar** de la barra lateral. Nada se tira por su cuenta: primero lo ves, y se puede deshacer.
+Funciones para ordenar carpetas como quien ordena una habitación. Están en **Ordenar** del menú izquierdo. Nada se tira por su cuenta: primero lo ves, y se puede deshacer.
 
 ### Herramientas de orden
 
-Foldy ordena tu ordenador como quien ordena una habitación. Pulsa **Ordenar** en la barra lateral para elegir el orden del escritorio, de Descargas o de los registros (también en la lista de comandos). Cada herramienta te guía paso a paso: qué encontró, por qué conviene ordenar y qué pasa al pulsar, y luego te deja elegir **[Limpiar así] [Ver detalles] [Más tarde]**. Tómate tu tiempo.
+Foldy ordena tu ordenador como quien ordena una habitación. Pulsa **Ordenar** en el menú izquierdo para elegir el orden del escritorio, de Descargas o de los registros (también en la lista de comandos). Cada herramienta te guía paso a paso: qué encontró, por qué conviene ordenar y qué pasa al pulsar, y luego te deja elegir **[Limpiar así] [Ver detalles] [Más tarde]**. Tómate tu tiempo.
 
 ![Una ventana que ordena conversando](images/es/guide.png)
 
@@ -339,7 +339,7 @@ La carpeta Descargas no para de llenarse. Foldy encuentra archivos que conviene 
 
 Los archivos `*.log` que dejan los programas pueden acumular varios GB sin que te des cuenta. Foldy comprime los registros antiguos en **zips mensuales** en la misma carpeta. Los registros de texto suelen reducirse más de un 85%.
 
-- **Objetivo**: archivos `*.log` sin cambios desde hace más de 7 días (toda la unidad actual; con el servicio de índice se encuentran al instante)
+- **Objetivo**: archivos `*.log` sin cambios desde hace más de 7 días (toda la unidad actual; con el asistente de búsqueda rápida se encuentran al instante)
 - **No se tocan**: registros en uso por un programa, la carpeta `Windows`, la papelera, System Volume Information
 - **Qué crea**: `logs-año-mes.zip` en la carpeta donde estaban los registros
 - Los originales van a la papelera solo después de reabrir el zip y comprobar que coincide exactamente (SHA-256). Si la comprobación falla, los originales se quedan.
@@ -351,7 +351,7 @@ Los archivos `*.log` que dejan los programas pueden acumular varios GB sin que t
 
 Las carpetas de proyectos acumulan carpetas regenerables, a menudo de varios GB (node_modules, bin/obj, target, __pycache__, .venv, dist/build, __history de Delphi, Library de Unity, Intermediate de Unreal, cachés de compilación web como .next, cachés de Python como .pytest_cache y carpetas de compilación de Flutter, CMake, Haskell, Elixir y Zig). Encuéntralas en Ordenar → **Buscar carpetas que se pueden borrar**, en **[Carpetas que se pueden borrar]** del análisis o con Ctrl+Space.
 
-- Busca **solo dentro de la carpeta que estás viendo** y muestra primero las más grandes. Con el índice, los tamaños salen al momento.
+- Busca **solo dentro de la carpeta que estás viendo** y muestra primero las más grandes. En las unidades listas para buscar, los tamaños salen al momento.
 - Elige una carpeta **solo si hay un archivo de proyecto al lado**: node_modules junto a package.json, bin/obj junto a un .csproj, target junto a Cargo.toml. Una carpeta de fotos que se llama "build" no se toca.
 - Lo usado en los últimos 30 días no se marca de antemano.
 - **.git nunca se marca de antemano.** Borrarlo pierde el historial de Git, así que Foldy avisa en rojo y, si se usó hace poco, dice "No lo borres si sigues trabajando en el proyecto". Si es una copia de respaldo cuyo original existe en otro sitio, puedes elegirlo tú (Foldy vuelve a preguntar).
@@ -417,7 +417,7 @@ Para que no tengas que buscar funciones, Foldy muestra una línea arriba sugirie
 
 Como es fácil pasarlo por alto, Foldy echa un vistazo ligero de vez en cuando y, solo si hay mucho que ordenar, lo menciona en una línea abajo de la ventana. Como mucho una vez por semana, y nunca ordena por su cuenta.
 
-- Registros: cuando lo que podrías ahorrar supera 1 GB o el 5% del espacio libre de la unidad (solo se comprueba con el servicio de índice)
+- Registros: cuando lo que podrías ahorrar supera 1 GB o el 5% del espacio libre de la unidad (solo se comprueba con el asistente de búsqueda rápida)
 - Descargas: cuando los archivos que conviene ordenar superan 1 GB
 - Escritorio: cuando hay más de 50 archivos que archivar
 - Para desactivarlo: Configuración → General → **Avisos de orden**
@@ -463,7 +463,7 @@ Las carpetas se nombran en el idioma de la app en el momento de crearlas. Las qu
 
 ### Plantillas, asistente y orden de carpetas
 
-Ábrelos desde las herramientas de la barra lateral o la lista de comandos (**Ctrl+Shift+P**).
+Ábrelos desde las herramientas del menú izquierdo o la lista de comandos (**Ctrl+Shift+P**).
 
 - **Carpeta nueva desde plantilla** (**Ctrl+Shift+N**): crea de una vez las estructuras de abajo. Previsualiza el árbol a la derecha y desmarca las carpetas que no necesites. Las carpetas existentes no se tocan; solo se crean las que faltan. También puedes leer el **Cómo se usa** de cada estilo.
   - **Personal y trabajo**: PARA, Johnny.Decimal, Números y fechas (con bandeja de entrada), proyectos de cliente, etapas del documento (borrador → revisión → final → distribución), investigación y estudio (bibliografía, datos, análisis, manuscrito, presentaciones), documentos del hogar (finanzas, salud, hogar, vehículo, pasaporte, seguros)
@@ -481,7 +481,7 @@ Las carpetas se nombran en el idioma de la app en el momento de crearlas. Las qu
 
 ## 🔒 Proteger
 
-Funciones para proteger tus archivos importantes. Están en **Proteger** de la barra lateral.
+Funciones para proteger tus archivos importantes. Están en **Proteger** del menú izquierdo.
 
 ### Notas (.md · .textpack)
 
@@ -505,7 +505,7 @@ Cuando una copia o un movimiento con Foldy **sobrescribe** un archivo del mismo 
 
 La contraseña del wifi, el código de la puerta: cosas que debes recordar pero no quieres apuntar en cualquier sitio. Guárdalas en una **nota bloqueada**. Pide la contraseña cada vez que la abres, y puedes leerla y editarla dentro de Foldy.
 
-- **Crear**: barra lateral **Proteger** → **🔒 Escribir una nota bloqueada**. Aparece `Nueva nota.memo.foldylock` en la carpeta actual (en Documentos si la carpeta actual no está en este PC) y se abre el editor. Cambia el nombre con F2. Después Foldy selecciona el archivo nuevo en la lista y muestra dónde se guardó arriba de la ventana de la nota.
+- **Crear**: menú izquierdo **Proteger** → **🔒 Escribir una nota bloqueada**. Aparece `Nueva nota.memo.foldylock` en la carpeta actual (en Documentos si la carpeta actual no está en este PC) y se abre el editor. Cambia el nombre con F2. Después Foldy selecciona el archivo nuevo en la lista y muestra dónde se guardó arriba de la ventana de la nota.
 - **Abrir**: doble clic, escribe la contraseña y se abre el editor. Texto a la izquierda, vista previa a la derecha (Markdown).
 - **Imágenes**: captura la pantalla y pega con **Ctrl+V**, o arrastra un archivo de imagen, y queda guardado dentro de la nota.
 ![Editor de notas bloqueadas](images/es/memo.png)
@@ -516,14 +516,14 @@ La contraseña del wifi, el código de la puerta: cosas que debes recordar pero 
 
 ### Bloquear un archivo
 
-Puedes bloquear un archivo existente, como un contrato. Botón derecho en el archivo → **🔒 Bloquear (contraseña)…**, o en la barra lateral **Proteger** → **🔒 Bloquear un archivo** (si no hay ninguno seleccionado, se abre una ventana para elegirlo). Aparece `contrato.pdf.foldylock` en la misma carpeta; tras comprobar que se descifra bien, Foldy pregunta "¿Envío el original a la papelera?".
+Puedes bloquear un archivo existente, como un contrato. Botón derecho en el archivo → **🔒 Bloquear (contraseña)…**, o en el menú izquierdo **Proteger** → **🔒 Bloquear un archivo** (si no hay ninguno seleccionado, se abre una ventana para elegirlo). Aparece `contrato.pdf.foldylock` en la misma carpeta; tras comprobar que se descifra bien, Foldy pregunta "¿Envío el original a la papelera?".
 
 - Doble clic para escribir la contraseña; las imágenes y el texto se muestran dentro de Foldy. Para otros archivos, Foldy dice "Ábrelo con su programa habitual" y **[Descifrar y abrir]** lo convierte de nuevo en el archivo original y lo abre.
 - Recuperas exactamente lo que bloqueaste. No cambia ni un byte.
 
 ### Caja fuerte
 
-Guarda una carpeta importante entera en una caja fuerte. Botón derecho en la carpeta → **🔒 Guardar en la caja fuerte…**, o en la barra lateral **Proteger** → **🔒 Guardar una carpeta en una caja fuerte** (si no hay ninguna seleccionada, se abre una ventana para elegirla). Aparece un único archivo `nombredecarpeta.foldyvault`; tras comprobar cada archivo descifrándolo, Foldy pregunta si envía la carpeta original a la papelera.
+Guarda una carpeta importante entera en una caja fuerte. Botón derecho en la carpeta → **🔒 Guardar en la caja fuerte…**, o en el menú izquierdo **Proteger** → **🔒 Guardar una carpeta en una caja fuerte** (si no hay ninguna seleccionada, se abre una ventana para elegirla). Aparece un único archivo `nombredecarpeta.foldyvault`; tras comprobar cada archivo descifrándolo, Foldy pregunta si envía la carpeta original a la papelera.
 
 - **No hay límite de tamaño.** Los archivos de más de 4 GB entran y salen sin problema. Eso sí, Foldy conserva los originales hasta terminar, así que necesita ese espacio libre extra, y una memoria USB antigua en FAT32 no puede guardar una caja fuerte de más de 4 GB. Foldy lo comprueba **antes** de pedir la contraseña, te avisa enseguida si falta espacio y te ofrece [Liberar espacio] para hacer sitio.
 - Doble clic para escribir la contraseña y ver la lista de archivos de dentro. Elige archivos para **previsualizar** (solo en memoria), **extraer** o **extraer todo**. Los archivos que saques van sin contraseña a una carpeta con el mismo nombre junto a la caja fuerte, y también se quedan dentro.
@@ -552,15 +552,15 @@ Al borrar una carpeta con **más de 5.000 archivos**, como `node_modules`, Foldy
 
 ### Papelera
 
-La línea **Papelera** de la barra lateral muestra cuánto se ha acumulado (p. ej. Papelera · 38 GB). Haz clic para abrir la papelera de Windows; pulsa **Vaciar** a la derecha para vaciar la papelera de todas las unidades tras una confirmación (no se puede deshacer).
+La línea **Papelera** del menú izquierdo muestra cuánto se ha acumulado (p. ej. Papelera · 38 GB). Haz clic para abrir la papelera de Windows; pulsa **Vaciar** a la derecha para vaciar la papelera de todas las unidades tras una confirmación (no se puede deshacer).
 
 ## 🔗 Conectar
 
-Funciones para conectarte a servidores, Git y la terminal. Están en **Conectar** de la barra lateral.
+Funciones para conectarte a servidores, Git y la terminal. Están en **Conectar** del menú izquierdo.
 
 ### SFTP y SSH
 
-Conéctate a un servidor con el botón **SFTP** al final de los botones de unidad de la barra de pestañas, con **Ctrl+Shift+O** o con Conectar → SFTP en la barra lateral, y la carpeta SFTP se abre como pestaña en ese panel. El árbol de la izquierda pasa a ser el del servidor, con la carpeta abierta y la raíz del servidor (/) desplegadas un nivel para que veas las carpetas al momento.
+Conéctate a un servidor con el botón **SFTP** al final de los botones de unidad de la barra de pestañas, con **Ctrl+Shift+O** o con Conectar → SFTP en el menú izquierdo, y la carpeta SFTP se abre como pestaña en ese panel. El árbol de la izquierda pasa a ser el del servidor, con la carpeta abierta y la raíz del servidor (/) desplegadas un nivel para que veas las carpetas al momento.
 
 - Autentícate con contraseña o archivo de clave. Con "Guardar esta conexión" activado, la contraseña se guarda cifrada con DPAPI de Windows.
 - Las entradas Host de `~/.ssh/config` también aparecen en "Conexiones guardadas". Al elegir archivo de clave se rellena automáticamente una clave predeterminada como `~/.ssh/id_ed25519`.
@@ -643,11 +643,11 @@ Cada app es un poco distinta. En Claude Code, Gemini CLI y la línea de comandos
 - "Dime qué hay en mi carpeta Descargas": mirar dentro de una carpeta
 - "Lee la descripción de esta carpeta de proyecto": descripciones de carpeta guardadas en Foldy
 - "¿Qué archivos de la carpeta de informes siguen en revisión?": etiquetas de estado de archivo
-- "Dime el espacio libre y el estado del índice de mis unidades": estado de las unidades
+- "Dime el espacio libre y el si mis unidades están listas para buscar": estado de las unidades
 
 Si hay una app de IA instalada en este PC pero aún no está conectada, Foldy lo menciona en una línea arriba de la ventana al iniciar, por ejemplo: Pregunta a Claude Desktop "busca los presupuestos del año pasado" y Foldy lo encuentra en tu PC [Conectar] [Más tarde] [No volver a preguntar] (el ejemplo cambia cada vez). Si la ignoras, desaparece; para volver a verla, actívala en Configuración → General → Conexión con IA.
 
-- Lo que puede usar la IA: buscar archivos (incluidas unidades de empresa y Google Drive), mirar dentro de carpetas, tamaños de carpetas, descripciones de carpetas, etiquetas de estado de archivo, estado de unidades e índice. **Todo de solo lectura.** No hay mover ni borrar.
+- Lo que puede usar la IA: buscar archivos (incluidas unidades de empresa y Google Drive), mirar dentro de carpetas, tamaños de carpetas, descripciones de carpetas, etiquetas de estado de archivo, estado de unidades y de la búsqueda. **Todo de solo lectura.** No hay mover ni borrar.
 - Solo ve lo que puede ver tu cuenta. No se abre nada a internet; Foldy solo habla con la app de IA dentro de tu PC (cómo usa la app de IA los resultados depende de su propia política).
 - Está desactivado por defecto. Desactívalo cuando quieras con "Activar la conexión con IA" en esa ventana, donde también puedes ver la lista de herramientas (nombres, descripciones, parámetros).
 - Para otras apps de IA, copia la configuración de "Añadir a mano" abajo (`Foldy.exe --mcp`). ChatGPT solo se puede conectar por internet, así que por seguridad no es compatible.
@@ -656,13 +656,13 @@ Si hay una app de IA instalada en este PC pero aún no está conectada, Foldy lo
 
 **Si el texto es pequeño, agranda la pantalla.** Por defecto Foldy sigue a Windows: aumenta Configuración de Windows → Accesibilidad → **Tamaño del texto** y Foldy crece con él (también sigue la escala de pantalla). Para agrandar solo Foldy, pulsa **Ctrl+=** para ampliar, **Ctrl+-** para reducir y **Ctrl+0** para volver a seguir a Windows. También puedes elegir "Tamaño de pantalla" en el menú Más. El texto y los botones crecen juntos, y los diálogos y la ventana de notas se abren al mismo tamaño.
 
-Abre la ventana de configuración con **Ctrl+,** o **Configuración** en la barra lateral. Tiene las páginas General, Apariencia, Lista, Terminal, Copia, Actualizaciones y Atajos.
+Abre la ventana de configuración con **Ctrl+,** o **Configuración** en el menú izquierdo. Tiene las páginas General, Apariencia, Lista, Terminal, Copia, Actualizaciones y Atajos.
 
 - **Idioma**: Según Windows, o elige 한국어, English, Español, 日本語 o 简体中文 en Configuración → Apariencia → Idioma.
 - **Color de acento**: naranja Foldy, o seguir el color de acento de Windows
 - **Atajos**: haz clic en un cuadro y pulsa una combinación nueva (Esc cancela, Retroceso borra). Los atajos que chocan se marcan con un aviso. Solo se guarda lo que cambias, en `%LOCALAPPDATA%\Foldy\keymap.json`.
 
-Los ajustes habituales también se cambian directamente desde el menú **Más** de la barra lateral.
+Los ajustes habituales también se cambian directamente desde el menú **Más** del menú izquierdo.
 
 - **Tema**: Según el sistema (claro/oscuro automático) · Claro · Oscuro · Retro
 - **Espaciado de la lista**: Compacto · Normal · Amplio
@@ -671,13 +671,13 @@ Los ajustes habituales también se cambian directamente desde el menú **Más** 
 
 ## Actualizaciones
 
-Foldy busca una versión nueva en GitHub Releases 5 segundos después de arrancar y cada 6 horas. Una versión nueva solo se instala después de verificar su firma (Ed25519) y su hash, y en la parte derecha de la barra de estado aparece **"Foldy x.y.z · reiniciar y actualizar"**. Pulsa [Reiniciar y actualizar] y Foldy se cierra mientras una ventana pequeña muestra "instalando → volviendo a abrir". Durante la instalación los dos niños botan y se pasan el balón en la pista y, al final, uno recibe el pase del otro, encesta una bandeja de dos puntos y chocan los cinco (solo texto si las animaciones están desactivadas). Se cierra sola cuando se abre el nuevo Foldy. Si hay otra ventana de Foldy abierta, te pide cerrarla, y si algo falla te dice por qué. Detrás de un proxy de empresa (PAC, o un proxy sin autenticación) se usa tal cual la configuración de proxy del usuario de Windows. Si el servicio de índice (que se ejecuta como SYSTEM) no puede comprobarlo, Foldy lo comprueba directamente con tu cuenta, y entonces la instalación necesita una confirmación de administrador. Si pulsas "reiniciar y actualizar" durante una tarea como una copia, la actualización se programa sin interrumpir la tarea, se instala sola cuando todo termina y Foldy se reinicia (vuelve a pulsar mientras está programada para cancelar). **… (Más) → Buscar actualizaciones…** en la parte inferior de la barra lateral comprueba al momento y pregunta si instalar una versión nueva. Si la comprobación falla, muestra por qué.
+Foldy busca una versión nueva en GitHub Releases 5 segundos después de arrancar y cada 6 horas. Una versión nueva solo se instala después de verificar su firma (Ed25519) y su hash, y en la parte derecha de la barra de estado aparece **"Foldy x.y.z · reiniciar y actualizar"**. Pulsa [Reiniciar y actualizar] y Foldy se cierra mientras una ventana pequeña muestra "instalando → volviendo a abrir". Durante la instalación los dos niños botan y se pasan el balón en la pista y, al final, uno recibe el pase del otro, encesta una bandeja de dos puntos y chocan los cinco (solo texto si las animaciones están desactivadas). Se cierra sola cuando se abre el nuevo Foldy. Si hay otra ventana de Foldy abierta, te pide cerrarla, y si algo falla te dice por qué. Detrás de un proxy de empresa (PAC, o un proxy sin autenticación) se usa tal cual la configuración de proxy del usuario de Windows. Si el asistente de búsqueda rápida (que se ejecuta como SYSTEM) no puede comprobarlo, Foldy lo comprueba directamente con tu cuenta, y entonces la instalación necesita una confirmación de administrador. Si pulsas "reiniciar y actualizar" durante una tarea como una copia, la actualización se programa sin interrumpir la tarea, se instala sola cuando todo termina y Foldy se reinicia (vuelve a pulsar mientras está programada para cancelar). **… (Más) → Buscar actualizaciones…** en la parte inferior del menú izquierdo comprueba al momento y pregunta si instalar una versión nueva. Si la comprobación falla, muestra por qué.
 
 ![Ventana de progreso de la actualización](images/update-progress.png)
 
 ## Informar de errores
 
-El botón **Informar de un error** de la parte inferior de la barra lateral (o Más → Informar de un error…, o la ventana Acerca de) abre una página de GitHub con una issue rellenada con las versiones de la app y de Windows y los registros recientes.
+El botón **Informar de un error** de la parte inferior del menú izquierdo (o Más → Informar de un error…, o la ventana Acerca de) abre una página de GitHub con una issue rellenada con las versiones de la app y de Windows y los registros recientes.
 
 Foldy recopila los errores automáticamente: no solo los cierres inesperados, sino también los errores que ocurrieron y pasaron, registrando cada tipo una sola vez. La primera vez pregunta si enviarlos.
 
@@ -688,7 +688,7 @@ Los informes solo incluyen las versiones de la app y de Windows, el error y los 
 
 ### Modo de diagnóstico
 
-Para problemas que solo ocurren en ciertas situaciones (por ejemplo, una unidad de red que se ve vacía), **⋯ (Más) → Activar o desactivar el modo de diagnóstico** en la parte inferior de la barra lateral (o la lista de comandos) registra información detallada.
+Para problemas que solo ocurren en ciertas situaciones (por ejemplo, una unidad de red que se ve vacía), **⋯ (Más) → Activar o desactivar el modo de diagnóstico** en la parte inferior del menú izquierdo (o la lista de comandos) registra información detallada.
 
 1. Activa el modo de diagnóstico y aparecerá **Diagnosticando** a la derecha de la barra de estado.
 2. Reproduce el problema.
@@ -699,7 +699,7 @@ Se desactiva solo a las 24 horas. Si una unidad no se puede abrir, Foldy registr
 ## Preguntas frecuentes
 
 **La búsqueda solo encuentra archivos en la carpeta actual.**
-El servicio de índice no está instalado o aún se está preparando. Pulsa **Más** en la barra lateral → **Instalar servicio de índice (admin)…**. El primer índice tarda unas decenas de segundos según el tamaño de la unidad.
+El asistente de búsqueda rápida no está instalado o aún se está preparando. Pulsa **Más** en el menú izquierdo → **Instalar el asistente de búsqueda rápida…**. La primera preparación tarda unas decenas de segundos según el tamaño de la unidad.
 
 **¿Una unidad de red desconectada lo ralentiza todo?**
 No. Cada unidad trabaja por separado, así que las demás pestañas y paneles siguen funcionando aunque una unidad no responda. Pulsa **Esc** en esa pestaña para cancelar la carga.
@@ -711,10 +711,10 @@ Como el Explorador, solo se oculta el atributo "oculto" (desde la 0.3.5). Las ca
 No. Si ya está abierto, esa ventana pasa al frente, y la carpeta que le pasaste se abre en una pestaña nueva.
 
 **Las actualizaciones no funcionan (red de empresa).**
-Pulsa **… (Más) → Buscar actualizaciones** en la parte inferior de la barra lateral. Aunque el servicio no pueda salir, Foldy vuelve a comprobarlo a través de tu proxy de usuario. Si sigue fallando, se muestra el motivo; pégalo en un [informe de error](#informar-de-errores).
+Pulsa **… (Más) → Buscar actualizaciones** en la parte inferior del menú izquierdo. Aunque el servicio no pueda salir, Foldy vuelve a comprobarlo a través de tu proxy de usuario. Si sigue fallando, se muestra el motivo; pégalo en un [informe de error](#informar-de-errores).
 
 **¿Dónde están la configuración y los registros?**
-`%LOCALAPPDATA%\Foldy` (settings.json, session.json, logs). Los datos del índice están en `%ProgramData%\Foldy`.
+`%LOCALAPPDATA%\Foldy` (settings.json, session.json, logs). Las listas de búsqueda están en `%ProgramData%\Foldy`.
 
 **¿Código fuente y licencia?**
 Foldy es software libre bajo GPL-3.0-or-later. https://github.com/chadolkr/Foldy

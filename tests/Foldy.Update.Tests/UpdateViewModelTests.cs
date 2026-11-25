@@ -80,7 +80,7 @@ public class UpdateViewModelTests
     public void Initial_state_shows_not_checked_and_no_last_check()
     {
         var vm = Create(new FakeUpdateService());
-        vm.StatusText.Should().Be("아직 확인하지 않았습니다");
+        vm.StatusText.Should().Be("아직 확인하지 않았어요");
         vm.LastCheckText.Should().Be("마지막 확인: 없음");
         vm.Mode.Should().Be(UpdateMode.Auto);
         vm.Channel.Should().Be(UpdateChannel.Stable);
@@ -108,7 +108,7 @@ public class UpdateViewModelTests
         await vm.CheckNowCommand.ExecuteAsync(null);
 
         svc.Calls.Should().Equal("check");
-        vm.StatusText.Should().Be("최신 버전입니다 (1.0.0)");
+        vm.StatusText.Should().Be("최신 버전이에요 (1.0.0)");
         vm.LastCheckText.Should().Be("마지막 확인: 2026-11-18 08:30");
         vm.IsBusy.Should().BeFalse();
         changed.Should().Contain([nameof(UpdateViewModel.StatusText), nameof(UpdateViewModel.LastCheckText)]);
@@ -129,7 +129,7 @@ public class UpdateViewModelTests
         await vm.InstallCommand.ExecuteAsync(null);
         svc.Calls.Should().Equal("status", "install");
         vm.Status.Phase.Should().Be(UpdatePhase.InstallScheduled);
-        vm.StatusText.Should().Be("작업이 끝나면 1.2.3을(를) 설치합니다");
+        vm.StatusText.Should().Be("작업이 끝나면 1.2.3을(를) 설치해요");
         vm.InstallCommand.CanExecute(null).Should().BeFalse();
     }
 
@@ -142,7 +142,7 @@ public class UpdateViewModelTests
         vm.CanSkip.Should().BeTrue();
         await vm.SkipCommand.ExecuteAsync(null);
         svc.Calls.Should().Contain("skip 1.2.3");
-        vm.StatusText.Should().Be("1.2.3 버전을 건너뛰었습니다");
+        vm.StatusText.Should().Be("1.2.3 버전은 건너뛰었어요");
 
         svc.Status = new UpdateStatus(UpdatePhase.ReadyToInstall, "1.0.0", "1.3.0", Mandatory: true);
         await vm.RefreshAsync();
@@ -184,7 +184,7 @@ public class UpdateViewModelTests
 
         await vm.CheckNowCommand.ExecuteAsync(null);
         vm.ServiceAvailable.Should().BeFalse();
-        vm.StatusText.Should().Be("업데이트 서비스를 사용할 수 없습니다");
+        vm.StatusText.Should().Be("지금은 업데이트를 확인할 수 없어요");
         vm.IsBusy.Should().BeFalse();
         vm.CheckNowCommand.CanExecute(null).Should().BeFalse();
 
@@ -193,7 +193,7 @@ public class UpdateViewModelTests
         await vm.RefreshAsync();
         vm.ServiceAvailable.Should().BeTrue();
         vm.CheckNowCommand.CanExecute(null).Should().BeTrue();
-        vm.StatusText.Should().Be("최신 버전입니다 (1.0.0)");
+        vm.StatusText.Should().Be("최신 버전이에요 (1.0.0)");
     }
 
     [Fact]

@@ -15,7 +15,7 @@ public sealed class FoldyApp : IDisposable
 {
     private readonly string _data = Path.Combine(Path.GetTempPath(), "foldy-ui-" + Guid.NewGuid().ToString("N"));
 
-    private FoldyApp(bool skipTour, string? openPath, string language)
+    private FoldyApp(bool skipTour, string? openPath, string language, bool reportCutText)
     {
         Directory.CreateDirectory(_data);
         Sample = Path.Combine(_data, "sample");
@@ -29,6 +29,11 @@ public sealed class FoldyApp : IDisposable
         var psi = new ProcessStartInfo(Exe!) { UseShellExecute = false };
         psi.Environment["FOLDY_DATA_DIR"] = _data;
         psi.Environment["FOLDY_LANGUAGE"] = language; // 시험은 한국어 화면 기준 (CI는 영어 Windows). 언어별 시험만 다른 언어
+        if (reportCutText)
+        {
+            psi.Environment["FOLDY_CUT_TEXT_REPORT"] = CutTextReport; // 잘린 화면 글을 이 파일에 적는다 (CutTextTests)
+        }
+
         psi.ArgumentList.Add(openPath ?? Sample);
         App = Application.Launch(psi);
         Automation = new UIA3Automation();
@@ -44,15 +49,18 @@ public sealed class FoldyApp : IDisposable
 
     public string Sample { get; }
 
+    /// <summary>Foldy가 잘린 화면 글을 적는 파일 (reportCutText로 띄웠을 때).</summary>
+    public string CutTextReport => Path.Combine(_data, "cut-text.txt");
+
     public ConditionFactory By => Automation.ConditionFactory;
 
     /// <summary>빌드된 Foldy.exe (솔루션 빌드 출력). 없으면 null → 테스트를 건너뛴다.</summary>
     public static string? Exe { get; } = FindExe();
 
-    public static FoldyApp Start(bool skipTour = true, string? openPath = null, string language = "ko")
+    public static FoldyApp Start(bool skipTour = true, string? openPath = null, string language = "ko", bool reportCutText = false)
     {
         Assert.SkipWhen(Exe is null, "Foldy.exe가 없습니다 (dotnet build Foldy.slnx -c Release 먼저)");
-        return new FoldyApp(skipTour, openPath, language);
+        return new FoldyApp(skipTour, openPath, language, reportCutText);
     }
 
     /// <summary>이름(화면 낭독기 이름)으로 요소를 찾는다. 창 전체에서, 기다리며.</summary>
