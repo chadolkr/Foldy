@@ -2,9 +2,11 @@ name: Release
 
 # v1.2.3 형식 태그를 푸시하면 빌드 → 테스트 → 포터블 zip → update.json 서명 → GitHub Release (설계서 10.5).
 # 서명 비밀키 FOLDY_UPDATE_SIGNING_KEY는 Environment `release`(태그 v*.*.*만) 시크릿으로 둔다 (docs/release-signing.md, 보안 리뷰 V3).
+# auto-release.yml이 main의 CI 통과 뒤 태그를 만들고 이 워크플로를 태그 위에서 직접 실행한다(workflow_dispatch).
 on:
   push:
     tags: ['v*.*.*']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -315,3 +317,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run pages.yml --ref main
+
+      # Microsoft Store에도 이어서 제출 (사용자 2026-11-25 "바로 배포되도록"). Store 인증은 Microsoft가 하고
+      # 통과하면 바로 공개된다. 저장소 변수 STORE_AUTO_SUBMIT을 false로 두면 하지 않는다. 실패해도 릴리스는 그대로 둔다.
+      # "새로운 기능" 글은 docs/store-listing/*.md를 쓰므로, 버전 PR에서 함께 고쳐 둔다.
+      - name: Submit to Microsoft Store
+        if: steps.ver.outputs.prerelease != 'true' && vars.STORE_AUTO_SUBMIT != 'false'
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run store.yml --ref main -f tag='${{ github.ref_name }}' -f mode=submit
