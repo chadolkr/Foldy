@@ -368,6 +368,68 @@ public sealed class SlowCrawlerTests : IDisposable
         Assert.Equal(["1.txt", "2.txt"], entries.Select(e => Path.GetFileName(e.Path)).Order()); // "."과 ".."는 목록에 넣지 않는다
     }
 
+    /// <summary>Windows 목록 읽기(WinDirList)는 .NET 폴더 읽기와 같은 목록을 준다: 크기·시각·폴더 여부, 숨김+시스템 파일 빼기, 긴 위치.</summary>
+    [Fact]
+    public void Windows_listing_matches_dotnet_listing()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Windows 전용");
+        }
+
+        Make(@"a\작은.txt");
+        File.WriteAllText(Path.Combine(_root, "a", "큰.bin"), new string('x', 70_000));
+        Directory.CreateDirectory(Path.Combine(_root, "a", "하위"));
+        var hidden = Path.Combine(_root, "a", "desktop.ini");
+        File.WriteAllText(hidden, "x");
+        File.SetAttributes(hidden, FileAttributes.Hidden | FileAttributes.System);
+        var dir = Path.Combine(_root, "a");
+
+        var win = SlowCrawler.List(dir, out var winTime);
+        var net = SlowCrawler.ListPortable(dir, out var netTime);
+        Assert.Equal(netTime, winTime);
+        Assert.Equal(
+            net.OrderBy(e => e.Path, StringComparer.Ordinal).Select(e => (e.Path, e.IsFolder, e.Size, e.ModifiedUtc)),
+            win.OrderBy(e => e.Path, StringComparer.Ordinal).Select(e => (e.Path, e.IsFolder, e.Size, e.ModifiedUtc)));
+        Assert.Equal(["작은.txt", "큰.bin", "하위"], win.Select(e => Path.GetFileName(e.Path)).Order(StringComparer.Ordinal));
+
+        // 260자보다 긴 위치
+        var deep = _root;
+        while (deep.Length < 300)
+        {
+            deep = Path.Combine(deep, "아주긴폴더이름_" + new string('d', 20));
+        }
+
+        Directory.CreateDirectory(deep);
+        File.WriteAllText(Path.Combine(deep, "끝.txt"), "x");
+        Assert.Single(SlowCrawler.List(deep, out _));
+        Assert.Throws<DirectoryNotFoundException>(() => SlowCrawler.List(Path.Combine(_root, "없는폴더"), out _));
+    }
+
+    /// <summary>정션(링크 폴더)은 들어가지 않는다: 목록의 재분석 태그로 알고, 그 폴더를 따로 열지 않는다.</summary>
+    [Fact]
+    public void Junction_is_skipped_from_the_listing_tag()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Windows 전용");
+        }
+
+        Make(@"진짜.txt");
+        var link = Path.Combine(_root, "링크");
+        using (var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{Path.Combine(_root, "진짜")}\"") { CreateNoWindow = true, UseShellExecute = false })!)
+        {
+            p.WaitForExit();
+        }
+
+        Assert.True(Directory.Exists(link), "정션을 만들지 못함");
+        var names = SlowCrawler.List(_root, out _).Select(e => Path.GetFileName(e.Path)).ToList();
+        Assert.Contains("진짜", names);
+        Assert.DoesNotContain("링크", names);
+        Assert.True(WinDirList.IsLinkTag(0xA0000003) && WinDirList.IsLinkTag(0xA000000C));
+        Assert.False(WinDirList.IsLinkTag(0x9000001A), "클라우드 파일 폴더는 진짜 폴더");
+    }
+
     private static void WaitFor(Func<bool> ok)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -494,24 +556,38 @@ public sealed class SlowCrawlerTests : IDisposable
         Assert.Contains(_root, c.KnownDrives);
     }
 
+    /// <summary>
+    /// 변경 알림이 넘치거나 끊겨도(Error) 주기보다 자주 다시 모으지 않는다 (2026-11-25 K: 다 만든 지 7분 만에 1시간 넘는 다시 모으기).
+    /// 주기가 되면 "바뀐 것 없어 보임"으로 건너뛰지 않고 꼭 모으고, 까닭을 알린다.
+    /// </summary>
     [Fact]
-    public void Overflowed_drive_is_rescanned_soon_even_right_after_a_crawl()
+    public void Overflowed_drive_waits_for_the_interval_but_is_not_skipped_as_quiet()
     {
-        // 변경 알림이 넘치면(Error) 1시간을 기다리지 않고 곧 다시 모은다
         Make(@"a\처음.txt");
-        using var c = new SlowCrawler(_store, () => [_root]);
-        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
-        Make(@"a\알림놓침.txt");
-        c.MarkDirty(_root);
-        Assert.True(c.IsDirty(_root));
-        c.Start();
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        while (!c.StoreFor(_root).Search("알림놓침", 10).Any() && sw.Elapsed < TimeSpan.FromSeconds(20))
+        using (var first = new SlowCrawler(_store, () => [_root]) { FreeSpaceOf = _ => 123 })
         {
-            Thread.Sleep(50);
+            first.CrawlOnce(_root, TestContext.Current.CancellationToken);
         }
 
-        Assert.Single(c.StoreFor(_root).Search("알림놓침", 10));
+        var started = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        using (var soon = new SlowCrawler(_store, () => [_root]) { RescanEvery = TimeSpan.FromHours(1), FreeSpaceOf = _ => 123 })
+        {
+            soon.Starting += (_, why) => started.Enqueue(why);
+            soon.MarkDirty(_root);
+            soon.Start();
+            WaitFor(() => soon.IdlePasses > 0);
+            Assert.Empty(started); // 방금 다 모았다: 알림이 끊겼어도 주기까지 기다린다
+            Assert.True(soon.IsDirty(_root));
+        }
+
+        Make(@"a\알림놓침.txt"); // 맨 위 폴더 시각·남은 공간은 그대로라 보통은 건너뛸 정기 색인
+        using var c = new SlowCrawler(_store, () => [_root]) { RescanEvery = TimeSpan.FromHours(1), FreeSpaceOf = _ => 123 };
+        c.Starting += (_, why) => started.Enqueue(why);
+        File.SetLastWriteTimeUtc(c.StoreFor(_root).FilePath, DateTime.UtcNow.AddHours(-2));
+        c.MarkDirty(_root);
+        c.Start();
+        WaitFor(() => c.StoreFor(_root).Search("알림놓침", 10).Any());
         Assert.False(c.IsDirty(_root));
+        Assert.Contains("주기 (변경 알림이 끊겼음)", started);
     }
 }
