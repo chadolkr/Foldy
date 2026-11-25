@@ -1054,7 +1054,9 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>창을 닫아도 모으기를 이어 가는 중 (창은 숨기고, 다 모으면 스스로 끝난다).</summary>
     private bool _gatheringHidden;
 
-    /// <summary>정말로 끝낸다: 숨겨서 모으기를 건너뛴다 (다 모았을 때, Windows 끄기·로그아웃).</summary>
+    private DateTime _gatherHiddenSince;
+
+    /// <summary>정말로 끝낸다: 숨겨서 모으기를 건너뛴다 (다 모았을 때, Windows 끄기·로그아웃, 업데이트 설치).</summary>
     private bool _reallyClose;
 
     private System.Windows.Threading.DispatcherTimer? _gatherWatch;
@@ -1072,10 +1074,13 @@ public partial class ShellWindow : Window, IPaneHost
 
         try
         {
-            return _crawler.Current() is not null || CrawlDrives().Any(d =>
+            // 한 번도 다 모으지 못한 드라이브는 저절로 모으는 설정일 때만 기다린다 ("직접 누를 때만"이면 모으기가 시작되지 않는다)
+            var auto = _crawler.RescanEvery is not null;
+            // KnownDrives는 모으기 스레드가 마지막으로 살펴본 목록: 화면 스레드에서 끊긴 네트워크 드라이브를 건드려 멈추지 않는다
+            return _crawler.Current() is not null || _crawler.KnownDrives.Any(d =>
                 _crawler.IsRequested(d)
                 || _crawler.HasUnfinished(d)
-                || (!_crawler.StoreFor(d).Exists && _crawler.StatusOf(d)?.Error is null));
+                || (auto && !_crawler.StoreFor(d).Exists && _crawler.StatusOf(d)?.Error is null));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
@@ -1101,6 +1106,7 @@ public partial class ShellWindow : Window, IPaneHost
         if (!_gatheringHidden)
         {
             _gatheringHidden = true;
+            _gatherHiddenSince = DateTime.UtcNow;
             Log.Information("창을 닫았지만 드라이브 목록을 다 모을 때까지 뒤에서 이어서 합니다");
             TrayNotice.Show(Foldy.Core.Localization.Loc.T("sw.bg.gather.title"), Foldy.Core.Localization.Loc.T("sw.bg.gather.text"), () => Dispatcher.BeginInvoke(BringToFront));
         }
@@ -1114,10 +1120,11 @@ public partial class ShellWindow : Window, IPaneHost
                 return;
             }
 
-            if (!GatheringLeft() && !Shell.Jobs.Any(j => !j.IsFinished))
+            var tooLong = DateTime.UtcNow - _gatherHiddenSince >= GatherOnlyAtMost; // 남은 것은 다음에 끊긴 곳부터 이어서 한다
+            if ((tooLong || !GatheringLeft()) && !Shell.Jobs.Any(j => !j.IsFinished))
             {
                 _gatherWatch?.Stop();
-                Log.Information("드라이브 목록을 다 모아 Foldy를 끝냅니다");
+                Log.Information(tooLong ? "창을 닫고 모은 지 오래되어 끝냅니다. 남은 것은 다음에 이어서 합니다" : "드라이브 목록을 다 모아 Foldy를 끝냅니다");
                 _reallyClose = true;
                 Close();
             }
@@ -2129,6 +2136,7 @@ public partial class ShellWindow : Window, IPaneHost
                 UpdateProgressWindow.Show(version, _settings.Animations ? UpdateProgressWindow.RenderFrames() : null);
             }
 
+            _reallyClose = true; // 업데이트는 Foldy가 정말 꺼져야 설치된다: 숨겨서 모으기를 하지 않는다
             Close(); // 세션 저장 후 종료, 설치가 끝나면 Foldy를 다시 띄운다
         }
         else
