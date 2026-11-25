@@ -82,13 +82,10 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ## Novedades de esta versión
 
-Mejoras desde la 1.3.0:
-• Ordenar carpetas grandes: el plan se hace rápido incluso con cientos de miles de archivos y puedes seguir más tarde. Ve dónde están los archivos idénticos y elige cuál conservar.
-• Buscar lo que sea: muestra cuántos resultados hay y carga más al bajar.
-• Buscar carpetas que se pueden borrar: muestra el progreso, se puede detener y encuentra más tipos.
-• Seis plantillas de carpetas nuevas.
-• Haz clic despacio otra vez en un nombre seleccionado para cambiarlo.
-• Textos más sencillos en toda la aplicación.
+1.14.0
+• Cuando algo no se puede hacer, el motivo aparece donde estás mirando: justo debajo del puntero, o debajo de la fila elegida si usaste el teclado. Usa letra más grande y desaparece a los pocos segundos o al hacer clic en otro sitio. Antes salía pequeño al pie de la ventana y era fácil no verlo.
+• Si no se puede soltar un archivo (los dos paneles muestran la misma carpeta, o una carpeta dentro de sí misma), el motivo aparece justo debajo del ratón.
+• Puedes abrir la página web de Foldy desde la ventana Acerca de y el botón ? abajo a la izquierda.
 
 ## Características del producto (una por línea)
 

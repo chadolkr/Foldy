@@ -82,13 +82,10 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
-Improvements since 1.3.0:
-• Tidying big folders: plans are made quickly even for hundreds of thousands of files, and you can continue later. See where identical files are and pick the one to keep.
-• Find anything: shows how many results there are, and keeps loading as you scroll.
-• Find folders safe to delete: shows progress, can be stopped, and finds more kinds.
-• Six new folder templates.
-• Slowly click a selected name once more to rename it.
-• Simpler wording throughout.
+1.14.0
+• When something can't be done, the reason now appears where you are looking: right below the mouse pointer, or below the selected row if you used the keyboard. It uses larger text and goes away after a few seconds or when you click elsewhere. Before, it showed up small at the bottom of the window and was easy to miss.
+• When a file can't be dropped (both panes show the same folder, or a folder onto itself), the reason appears right below the mouse.
+• You can open the Foldy website from the About window and the ? button at the bottom left.
 
 ## Product features (one per line)
 
