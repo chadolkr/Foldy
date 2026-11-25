@@ -212,6 +212,27 @@ Object.keys(files).forEach(img);
     </div>
   </section>
 
+  <section id="easy" class="section principles">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">{t.principles.eyebrow}</p>
+        <h2>{t.principles.title}</h2>
+        <p class="section-lead">{t.principles.lead}</p>
+      </header>
+      <ul class="principle-grid">
+        {t.principles.items.map((p) => (
+          <li class="card principle">
+            <span class="card-icon"><Icon name={p.icon} /></span>
+            <h3>{p.title}</h3>
+            <p class="principle-pain">{p.pain}</p>
+            <p>{p.text}</p>
+          </li>
+        ))}
+      </ul>
+      <p class="center principle-link"><a class="link" href={`${repoUrl}/blob/main/docs/DESIGN-PRINCIPLES.md`}>{t.principles.link} →</a></p>
+    </div>
+  </section>
+
   <section id="ai" class="section">
     <div class="wrap feature flip">
       <div class="feature-text">

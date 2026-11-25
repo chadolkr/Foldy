@@ -172,6 +172,16 @@ kbd { font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text
 .card p { margin-top: 8px; color: var(--text-2); font-size: 16px; }
 @media (max-width: 1000px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .card-grid { grid-template-columns: 1fr; } }
+
+/* 누구나 쉽게: 불편함 → Foldy가 하는 일 (앞뒤 칸과 구별되게 따뜻한 바탕) */
+.principles { background: color-mix(in srgb, var(--accent-soft) 55%, var(--bg)); }
+.principle-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.principle { display: flex; flex-direction: column; }
+.card p.principle-pain { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--bg-tint); border-radius: 0 8px 8px 0; color: var(--text-2); font-size: 15px; }
+.card p.principle-pain + p { margin-top: 12px; color: var(--text); }
+.principle-link { margin-top: 32px; }
+@media (max-width: 1000px) { .principle-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .principle-grid { grid-template-columns: 1fr; } }
 #safety .center { margin-top: 32px; }
 
 /* 안전한가요? 근거 */

@@ -21,6 +21,7 @@ Claude Code, Codex, Copilot 같은 AI 도구로 Foldy를 고칠 때 먼저 읽�
 4. **결정은 기록**: 설계를 정하거나 바꾸면 [docs/DECISIONS.md](docs/DECISIONS.md)에 이유와 함께 적어요.
 5. **버전**: [유의적 버전](docs/versioning.md)을 따라요.
 6. **라이선스**: GPL-3.0-or-later. 새 의존 패키지는 GPL-3.0과 호환되는 것만.
+7. **소개 페이지와 Store 글은 함께**: 소개 페이지(`site/src/i18n/*.ts`)의 기능·약속 설명을 바꾸면 Microsoft Store 글([docs/store-listing/](docs/store-listing/), 5개 언어)도 같은 PR에서 맞춰요. 반대도 같아요. Store 판에 없는 기능(빠른 찾기 도우미, 자체 업데이트 등)은 Store 글에 쓰지 않아요. Store에 올리는 것은 사람이 Actions → Store → `text-draft` → `text-submit`으로 해요.
 
 ## 보안 문제
 
