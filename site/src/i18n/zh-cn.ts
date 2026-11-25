@@ -38,15 +38,15 @@ const zhCN: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: '1.11 新功能：Foldy 关闭时也能用 Ctrl+Space',
-    eyebrow: 'Foldy 1.11',
+    badge: '1.12 新功能：界面文字更通俗易懂',
+    eyebrow: 'Foldy 1.12',
     title: '最近的变化',
     lead: '1.0 正式版之后，我们仍在天天使用、不断打磨。如果你已经在用 Foldy，它会自动更新到最新版本。',
     items: [
-      { icon: 'search', title: 'Foldy 关闭时也能用 Ctrl+Space', text: '开机后会有一个小助手等待快捷键。无需一直开着 Foldy，按 Ctrl+Space 即可搜索，选中的文件会用对应程序打开。不使用时 Foldy 会自动退出并释放内存。' },
-      { icon: 'turtle', title: '慢速驱动器也能快速索引', text: '公司驱动器、网络驱动器等慢速驱动器的收集快多了：休息时间更短，多个文件夹和多个驱动器同时读取，并从常用文件夹开始。其他程序保存的文件也会在 1 秒内出现在文件夹视图中。' },
+      { icon: 'info', title: '界面文字更通俗', text: '把“索引”这类难懂的词改成第一次用也能马上看懂的说法，共改了 340 多处。用旧说法搜索也照样能找到。' },
+      { icon: 'turtle', title: '存储卡、U 盘和 Google Drive 快多了', text: '存储卡上的 18 万个文件从约 6 分钟缩短到几秒，Google Drive 上的 2.6 万个从 61 秒缩短到 8 秒。其他程序使用同一驱动器时，Foldy 会主动让路。' },
+      { icon: 'search', title: 'Foldy 关闭时也能用 Ctrl+Space', text: '开机后会有一个小助手等待快捷键。无需一直开着 Foldy，按 Ctrl+Space 即可搜索，选中的文件会用对应程序打开。' },
       { icon: 'disk', title: '找到更多可以删除的文件夹', text: '找到更多程序会自己重建的文件夹，例如 Unity、Unreal、Flutter 和 Web 框架缓存。只在项目文件就在旁边时才选，含设置的文件夹不会动。' },
-      { icon: 'panes', title: '模板增至 19 种', text: '新增 GTD、ACE、业务分类体系（ISO 15489）、TIER、Cookiecutter Data Science、BIDS 等知名的文件夹整理方法。做研究时，选择研究类型即可先看到合适的模板。' },
     ],
     link: '查看全部变化',
   },

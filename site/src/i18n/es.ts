@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'Nuevo en la 1.11: Ctrl+Espacio funciona aunque Foldy esté cerrado',
-    eyebrow: 'Foldy 1.11',
+    badge: 'Nuevo en la 1.12: palabras más sencillas en todas las pantallas',
+    eyebrow: 'Foldy 1.12',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
-      { icon: 'search', title: 'Ctrl+Espacio, aunque Foldy esté cerrado', text: 'Un pequeño ayudante espera el atajo desde que enciendes el PC. Pulsa Ctrl+Espacio para buscar sin dejar Foldy abierto, y el archivo que elijas se abre en su programa. Si no lo usas, Foldy se cierra solo y libera la memoria.' },
-      { icon: 'turtle', title: 'Indexación rápida, también en unidades lentas', text: 'Las unidades lentas, como las de trabajo o de red, se recopilan mucho más rápido: pausas más cortas, varias carpetas y unidades a la vez y primero tus carpetas favoritas. Los archivos que guardan otros programas aparecen en la carpeta en un segundo.' },
+      { icon: 'info', title: 'Palabras sencillas en todas las pantallas', text: 'Más de 340 textos se reescribieron para que se entiendan a la primera, sin tecnicismos como “índice” o “panel”. Buscar con las palabras antiguas sigue funcionando.' },
+      { icon: 'turtle', title: 'Tarjetas de memoria, USB y Google Drive, mucho más rápido', text: '180 000 archivos de una tarjeta se recopilan en segundos en lugar de unos seis minutos, y 26 000 de Google Drive en 8 segundos en lugar de 61. Si otro programa usa la misma unidad, Foldy se aparta.' },
+      { icon: 'search', title: 'Ctrl+Espacio, aunque Foldy esté cerrado', text: 'Un pequeño ayudante espera el atajo desde que enciendes el PC. Pulsa Ctrl+Espacio para buscar sin dejar Foldy abierto, y el archivo que elijas se abre en su programa.' },
       { icon: 'disk', title: 'Encuentra más carpetas que se pueden borrar', text: 'Más carpetas que los programas vuelven a crear solos, como cachés de Unity, Unreal, Flutter y frameworks web. Solo cuando el archivo del proyecto está al lado, y nunca carpetas con ajustes.' },
-      { icon: 'panes', title: '19 plantillas', text: 'Se añadieron métodos de carpetas muy conocidos: GTD, ACE, clasificación por funciones (ISO 15489), TIER, Cookiecutter Data Science y BIDS. Si investigas, elige tu tipo de investigación y verás primero la plantilla adecuada.' },
     ],
     link: 'Ver todos los cambios',
   },
