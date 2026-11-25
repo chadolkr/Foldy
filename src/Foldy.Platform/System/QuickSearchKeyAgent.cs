@@ -9,12 +9,19 @@ namespace Foldy.Platform.SystemInfo;
 /// Foldy는 키를 확인한 뒤 설정 파일에 적고 도우미를 (다시) 띄운다. 도우미가 키를 쥐고 있는 동안 Foldy는 키를 등록하지 않는다
 /// (둘이 같은 키를 등록할 수 없다). 도우미는 메시지 전용 창(클래스 <see cref="WindowClass"/>)을 하나 두고, 그 창으로 켜졌는지 보고 끈다.
 /// 로그인 때 시작: MSI는 HKLM Run에 넣고, 그 밖의 설치(압축 파일 설치 등)는 Foldy가 사용자 Run에 넣는다.
+/// 1.13.0부터 느린 드라이브 목록 주기 모으기도 한다: 주기를 <see cref="GatherFileName"/>에 적어 두면, Foldy가 꺼져 있을 때
+/// 도우미가 주기마다 <c>Foldy.exe --gather</c>를 창 없이 띄운다. 단축키를 쓰지 않아도 모으기가 켜져 있으면 도우미는 남아 있다
+/// (이때 창 이름이 비어 있어 <see cref="HoldsKey"/>는 false). 작업 스케줄러는 쓰지 않는다 (사용자 2026-11-25).
 /// </summary>
 public static partial class QuickSearchKeyAgent
 {
     public const string ExeName = "foldy-hotkey.exe";
     public const string WindowClass = "FoldyQuickSearchKey";
     public const string ConfigFileName = "quick-search-key.txt";
+    public const string GatherFileName = "gather-every.txt";
+
+    /// <summary>단축키를 쥐고 있는 도우미 창의 이름 (도우미 KEY_WINDOW_NAME과 같아야 한다).</summary>
+    public const string KeyWindowName = "key";
     public const string RunValueName = "Foldy Quick Search";
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
@@ -27,8 +34,52 @@ public static partial class QuickSearchKeyAgent
     /// <summary>Run 값: 경로에 빈칸이 있어도 되게 따옴표로 감싼다.</summary>
     public static string RunCommand(string exePath) => "\"" + exePath + "\"";
 
-    /// <summary>지금 도우미가 켜져 단축키를 쥐고 있나 (같은 로그온 세션).</summary>
+    /// <summary>지금 도우미가 켜져 있나 (같은 로그온 세션). 단축키 없이 모으기만 하는 도우미도 포함.</summary>
     public static bool IsRunning => Find() != IntPtr.Zero;
+
+    /// <summary>도우미가 단축키를 쥐고 있나.</summary>
+    public static bool HoldsKey => FindWindowExW(HwndMessage, IntPtr.Zero, WindowClass, KeyWindowName) != IntPtr.Zero;
+
+    /// <summary>주기 모으기 설정 파일 한 줄 (도우미 parse_gather와 같은 형식): 몇 시간마다, 또는 off.</summary>
+    public static string GatherLine(TimeSpan? every) =>
+        every is { } e && e > TimeSpan.Zero
+            ? Math.Clamp((int)Math.Round(e.TotalHours), 1, 168).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : Off;
+
+    /// <summary>파일 내용이 다를 때만 쓴다. 바꿨으면 true.</summary>
+    public static bool WriteIfChanged(string path, string line)
+    {
+        try
+        {
+            if (File.Exists(path) && File.ReadAllText(path).Trim() == line)
+            {
+                return false;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+
+        WriteConfig(path, line);
+        return true;
+    }
+
+    /// <summary>도우미가 꺼져 있으면 띄운다 (단축키는 설정 파일대로, 주기 모으기만 할 수도 있다).</summary>
+    public static void EnsureRunning(string exePath)
+    {
+        if (IsRunning)
+        {
+            return;
+        }
+
+        try
+        {
+            using var p = Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(exePath) ?? "" });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
+        {
+        }
+    }
 
     /// <summary>도우미를 끈다 (있으면). 키를 바꾸거나 Foldy가 직접 키를 확인하기 전에 부른다.</summary>
     public static async Task StopAsync(TimeSpan? wait = null)
@@ -54,9 +105,14 @@ public static partial class QuickSearchKeyAgent
     public static async Task<bool> StartAsync(string exePath, string configPath, uint mods, uint vk, TimeSpan? wait = null)
     {
         WriteConfig(configPath, FormatKey(mods, vk));
-        if (IsRunning)
+        if (HoldsKey)
         {
             return true;
+        }
+
+        if (IsRunning)
+        {
+            await StopAsync().ConfigureAwait(true); // 모으기만 하던 도우미: 키를 다시 읽게 새로 띄운다
         }
 
         try
@@ -71,7 +127,7 @@ public static partial class QuickSearchKeyAgent
         var until = DateTime.UtcNow + (wait ?? TimeSpan.FromSeconds(3));
         while (DateTime.UtcNow < until)
         {
-            if (IsRunning)
+            if (HoldsKey)
             {
                 return true;
             }
@@ -79,7 +135,7 @@ public static partial class QuickSearchKeyAgent
             await Task.Delay(30).ConfigureAwait(true);
         }
 
-        return IsRunning;
+        return HoldsKey;
     }
 
     public static void WriteConfig(string configPath, string line)

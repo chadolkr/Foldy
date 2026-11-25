@@ -45,6 +45,14 @@ public sealed record AppOptions
     public bool QuickSearch { get; init; }
 
     public const string QuickSearchArg = "--quick-search";
+
+    /// <summary>
+    /// 단축키 도우미가 주기마다 띄운 실행 (1.13.0): 창 없이 느린 드라이브(네트워크·클라우드·USB) 목록을 다시 모으고 스스로 끝난다.
+    /// 이미 Foldy가 켜져 있으면 그 Foldy가 모으므로 넘겨받아도 아무것도 하지 않는다.
+    /// </summary>
+    public bool Gather { get; init; }
+
+    public const string GatherArg = "--gather";
     public Foldy.UI.Theming.FoldyTheme Theme { get; init; } = Foldy.UI.Theming.FoldyTheme.System;
 
     public bool IsBench => BenchList || BenchShell || BenchFolder is not null;
@@ -71,6 +79,7 @@ public sealed record AppOptions
                 "--doc-screenshots" => o with { DocShots = Next() },
                 "--doc-root" => o with { DocRoot = Next() },
                 QuickSearchArg => o with { QuickSearch = true },
+                GatherArg => o with { Gather = true },
                 "--theme" => o with { Theme = Enum.Parse<Foldy.UI.Theming.FoldyTheme>(Next(), ignoreCase: true), ThemeGiven = true },
                 var a when !a.StartsWith("--", StringComparison.Ordinal) => o with { OpenPath = a },
                 _ => o,

@@ -2,6 +2,7 @@
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
+- 2026-11-25 (1.13.0 준비): Foldy가 꺼져 있을 때 주기 모으기를 단축키 도우미가 한다(`gather-every.txt`, `Foldy.exe --gather`, `ShellWindow.StartForGather`, `SlowCrawler.IdlePasses`, `QuickSearchKeyAgent.HoldsKey`·`GatherLine`). 작업 스케줄러는 쓰지 않음(사용자). 회사 PC에서 Foldy를 끄고 1시간 뒤 로그 "창 없이 드라이브 목록만 다시 모읍니다"·"다 모아 Foldy를 끝냅니다"로 확인 남음.
 - 2026-11-25 (1.12.3 준비): 먼 드라이브는 같이 읽는 수 4·8·16을 재서 가장 빠른 수(`CrawlPace.Tries`, `Trial`, `Tried`), 같이 읽기는 LongRunning 스레드, `SlowCrawler.MaxWidth` 16. 회사 PC 로그 "재 본 결과"로 확인 남음.
 - 2026-11-25 (1.12.2 준비): K: 1.12.1 실측 1분에 약 2,000개(10:52 146,000 → 10:53 148,000). 까닭을 보려고 드라이브 말풍선에 빠르기(`CrawlStatus.Speed`, `sw.drv.speed`: 1분에 몇 개·읽은 폴더·폴더 하나 답 ms·같이 읽는 수·쉬는 몫). 숫자를 보고 같이 읽는 최대 수(4) 늘리기를 정한다.
 - 2026-11-25 (1.12.1 준비): 느린 드라이브 모으기에서 묶음 끝 기다리지 않기(SlowCrawler 읽는 중 목록 `reading`, 끝나는 대로 기록), CrawlPace가 폴더 하나에 실제로 든 시간으로 느려짐을 보고 넓혀서 빨라질 때만 넓힘, 작업 때문에 쉬면 `CrawlStatus.Paused` → `sw.drv.paused`. 회사 PC 실측 남음. DECISIONS.md 같은 날짜 항목.

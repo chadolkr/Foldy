@@ -379,6 +379,19 @@ public sealed class SlowCrawlerTests : IDisposable
         Assert.True(ok(), "20초 안에 되어야 한다");
     }
 
+    /// <summary>창 없이 뜬 Foldy(--gather, 1.13.0)는 쉬고 지나간 차례가 생기면 다 모은 것으로 보고 끝난다.</summary>
+    [Fact]
+    public void Idle_pass_is_counted_only_after_the_drive_is_gathered()
+    {
+        Make(@"a\b\c.txt");
+        using var c = new SlowCrawler(_store, () => [_root]) { RescanEvery = TimeSpan.FromHours(1) };
+        Assert.Equal(0, c.IdlePasses);
+        c.Start();
+        WaitFor(() => c.IdlePasses > 0);
+        Assert.True(CrawlStatus_Complete(c), "쉬고 지나가기 전에 다 모았어야 한다");
+        Assert.Single(c.StoreFor(_root).Search("c.txt", 10));
+    }
+
     [Fact]
     public void Request_gathers_now_even_right_after_a_crawl_and_rereads_every_folder()
     {

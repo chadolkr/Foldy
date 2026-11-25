@@ -65,6 +65,21 @@ public sealed partial class QuickSearchKeyAgentTests : IDisposable
         QuickSearchKeyAgent.IsRunning.Should().BeFalse();
     }
 
+    /// <summary>1.13.0: 단축키를 쓰지 않아도 주기 모으기가 켜져 있으면 남아 있다 (키는 쥐지 않는다).</summary>
+    [Fact]
+    public async Task Helper_stays_for_gathering_without_holding_a_key()
+    {
+        Prepare();
+        QuickSearchKeyAgent.WriteConfig(Path.Combine(_localAppData, "Foldy", QuickSearchKeyAgent.GatherFileName), "1");
+        var p = StartAgent(QuickSearchKeyAgent.Off);
+        (await WaitUntilAsync(() => QuickSearchKeyAgent.IsRunning, TimeSpan.FromSeconds(5))).Should().BeTrue("주기 모으기를 하려고 남는다");
+        QuickSearchKeyAgent.HoldsKey.Should().BeFalse("단축키는 꺼 두었다");
+        p.HasExited.Should().BeFalse();
+
+        await QuickSearchKeyAgent.StopAsync(TimeSpan.FromSeconds(5));
+        (await WaitUntilAsync(() => p.HasExited, TimeSpan.FromSeconds(5))).Should().BeTrue();
+    }
+
     [Fact]
     public async Task Key_press_reaches_running_Foldy_and_stop_ends_the_helper()
     {
@@ -80,6 +95,7 @@ public sealed partial class QuickSearchKeyAgentTests : IDisposable
 
         var p = StartAgent(QuickSearchKeyAgent.FormatKey(TestMods, VkF24));
         (await WaitUntilAsync(() => QuickSearchKeyAgent.IsRunning, TimeSpan.FromSeconds(5))).Should().BeTrue("키를 쥐면 도우미 창이 생긴다");
+        QuickSearchKeyAgent.HoldsKey.Should().BeTrue("키를 쥔 도우미 창은 이름이 key");
 
         PressTestKey();
         var args = await got.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);

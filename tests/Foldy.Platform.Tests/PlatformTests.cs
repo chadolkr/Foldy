@@ -253,6 +253,19 @@ public class QuickSearchKeyAgentFormatTests
         QuickSearchKeyAgent.Off.Should().Be("off");
     }
 
+    /// <summary>주기 모으기 설정 한 줄: 도우미 parse_gather 시험과 같은 형식 (몇 시간마다, 또는 off).</summary>
+    [Fact]
+    public void Gather_line_is_hours_or_off()
+    {
+        QuickSearchKeyAgent.GatherLine(TimeSpan.FromHours(1)).Should().Be("1");
+        QuickSearchKeyAgent.GatherLine(TimeSpan.FromHours(6)).Should().Be("6");
+        QuickSearchKeyAgent.GatherLine(TimeSpan.FromDays(1)).Should().Be("24");
+        QuickSearchKeyAgent.GatherLine(TimeSpan.FromMinutes(10)).Should().Be("1", "1시간보다 짧게는 띄우지 않는다");
+        QuickSearchKeyAgent.GatherLine(null).Should().Be("off");
+        QuickSearchKeyAgent.KeyWindowName.Should().Be("key", "도우미 KEY_WINDOW_NAME과 같아야 한다");
+        QuickSearchKeyAgent.GatherFileName.Should().Be("gather-every.txt");
+    }
+
     [Fact]
     public void Run_command_survives_spaces_in_the_path() =>
         QuickSearchKeyAgent.RunCommand(@"C:\Program Files\Foldy\foldy-hotkey.exe").Should().Be(@"""C:\Program Files\Foldy\foldy-hotkey.exe""");

@@ -7,6 +7,12 @@
 //!
 //! 키와 켜고 끄기는 Foldy가 `%LOCALAPPDATA%\Foldy\quick-search-key.txt`에 적는다. 키를 바꾸면 Foldy가 이 도우미를 끄고 다시 띄운다.
 //! 키를 다른 프로그램이 이미 쓰면 조용히 끝난다: 그때는 Foldy가 켜질 때 알리고 다른 키를 고르게 한다(기존 흐름).
+//!
+//! 1.13.0: 느린 드라이브 목록 주기 모으기도 한다 (`gather-every.txt`). 1분마다 설정을 다시 읽고, 때가 되면
+//! Foldy가 꺼져 있을 때만 `Foldy.exe --gather`를 띄운다 (Foldy가 켜져 있으면 그 Foldy가 모은다).
+//! 단축키를 쓰지 않아도(꺼짐·겹침) 주기 모으기가 켜져 있으면 남아 있고, 둘 다 꺼지면 끝난다.
+//! 작업 스케줄러는 쓰지 않는다 (사용자 2026-11-25 "작업 스케쥴러는 안하고 싶다", "관리가 쉬운 방법으로"):
+//! 새로 등록할 것도, 지울 때 따로 지울 것도 없다.
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
 #[cfg(not(windows))]
@@ -22,29 +28,35 @@ mod win {
     use std::io::{Read, Write};
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::time::Duration;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use foldy_hotkey::{
-        Config, MOD_CONTROL, QUICK_SEARCH_ARG, VK_SPACE, WINDOW_CLASS, activate_pipe_path,
-        encode_args, layouts_conflict_with_ctrl_space, parse_config,
+        Config, GATHER_ARG, GATHER_FILE, KEY_WINDOW_NAME, MOD_CONTROL, QUICK_SEARCH_ARG, VK_SPACE,
+        WINDOW_CLASS, activate_pipe_path, encode_args, gather_due, instance_event_name,
+        layouts_conflict_with_ctrl_space, parse_config, parse_gather,
     };
     use windows_sys::Win32::Foundation::{
         CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HWND, LPARAM, LRESULT, WPARAM,
     };
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows_sys::Win32::System::RemoteDesktop::ProcessIdToSessionId;
-    use windows_sys::Win32::System::Threading::{CreateMutexW, GetCurrentProcessId};
+    use windows_sys::Win32::System::Threading::{
+        CreateMutexW, GetCurrentProcessId, OpenEventW, SYNCHRONIZATION_SYNCHRONIZE,
+    };
     use windows_sys::Win32::System::WindowsProgramming::GetUserNameW;
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
         GetKeyboardLayoutList, MOD_NOREPEAT, RegisterHotKey, UnregisterHotKey,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         AllowSetForegroundWindow, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
-        GetMessageW, HWND_MESSAGE, MSG, PostQuitMessage, RegisterClassW, WM_CLOSE, WM_DESTROY,
-        WM_HOTKEY, WNDCLASSW,
+        GetMessageW, HWND_MESSAGE, KillTimer, MSG, PostQuitMessage, RegisterClassW, SetTimer,
+        WM_CLOSE, WM_DESTROY, WM_HOTKEY, WM_TIMER, WNDCLASSW,
     };
 
     const HOTKEY_ID: i32 = 0xF01D;
+    const GATHER_TIMER: usize = 0xF01E;
+    /// 주기 모으기 설정을 다시 읽는 간격.
+    const GATHER_CHECK_MS: u32 = 60_000;
     const ASFW_ANY: u32 = u32::MAX;
 
     /// 단축키를 짧게 여러 번 눌러도 요청은 하나씩만 (앞 요청이 끝나기 전 누른 것은 버린다).
@@ -64,25 +76,65 @@ mod win {
             return 0;
         }
 
-        let (mods, vk) = match parse_config(&read_config()) {
-            Config::Off => return 0,
-            Config::Key { mods, vk } => (mods, vk),
-            Config::Default if layouts_conflict_with_ctrl_space(&keyboard_layouts()) => return 3, // 입력기 전환 키를 빼앗지 않는다
-            Config::Default => (MOD_CONTROL, VK_SPACE),
+        let key = match parse_config(&read_file(foldy_hotkey::CONFIG_FILE)) {
+            Config::Off => Err(0),
+            Config::Key { mods, vk } => Ok((mods, vk)),
+            Config::Default if layouts_conflict_with_ctrl_space(&keyboard_layouts()) => Err(3), // 입력기 전환 키를 빼앗지 않는다
+            Config::Default => Ok((MOD_CONTROL, VK_SPACE)),
         };
 
-        // 창 없이(스레드 메시지로) 먼저 등록한다: 실패하면 Foldy가 도우미 창을 찾지 못해 스스로 등록·안내한다
-        // SAFETY: hwnd null = 이 스레드의 메시지 큐로 WM_HOTKEY가 온다.
-        if unsafe { RegisterHotKey(std::ptr::null_mut(), HOTKEY_ID, mods | MOD_NOREPEAT, vk) } == 0
+        // 창 없이(스레드 메시지로) 먼저 등록한다: 실패하면 Foldy가 키를 받는 도우미 창(이름 "key")을 찾지 못해 스스로 등록·안내한다
+        let holds_key = match key {
+            Ok((mods, vk)) => {
+                // SAFETY: hwnd null = 이 스레드의 메시지 큐로 WM_HOTKEY가 온다.
+                if unsafe {
+                    RegisterHotKey(std::ptr::null_mut(), HOTKEY_ID, mods | MOD_NOREPEAT, vk)
+                } == 0
+                {
+                    Err(2)
+                } else {
+                    Ok(())
+                }
+            }
+            Err(code) => Err(code),
+        };
+        if let Err(code) = holds_key
+            && gather_hours().is_none()
         {
-            return 2;
+            return code; // 단축키도 주기 모으기도 쓰지 않는다
         }
+        let holds_key = holds_key.is_ok();
 
-        let hwnd = create_message_window();
+        let hwnd = create_message_window(holds_key);
+        // SAFETY: 이 스레드의 창에 1분 타이머 (WM_TIMER는 아래 메시지 루프에서 받는다).
+        unsafe { SetTimer(hwnd, GATHER_TIMER, GATHER_CHECK_MS, None) };
+        let started = now_secs();
+        let mut last_gather: Option<u64> = None;
         // SAFETY: MSG는 0으로 채워도 되는 C 구조체.
         let mut msg: MSG = unsafe { std::mem::zeroed() };
         // SAFETY: 이 스레드의 메시지 루프. msg는 유효한 MSG.
         while unsafe { GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) } > 0 {
+            if msg.message == WM_TIMER && msg.wParam == GATHER_TIMER {
+                match gather_hours() {
+                    None if !holds_key => {
+                        // 주기 모으기를 껐고 단축키도 쓰지 않는다: 남아 있을 까닭이 없다
+                        // SAFETY: 메시지 루프를 끝낸다.
+                        unsafe { PostQuitMessage(0) };
+                    }
+                    None => {}
+                    Some(hours) => {
+                        let now = now_secs();
+                        if gather_due(now, started, last_gather, hours) {
+                            last_gather = Some(now);
+                            if !foldy_running() {
+                                std::thread::spawn(|| launch_foldy(GATHER_ARG));
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+
             if msg.message == WM_HOTKEY && msg.wParam == HOTKEY_ID as usize {
                 if !BUSY.swap(true, Ordering::AcqRel) {
                     // 누른 순간 이 프로세스가 앞으로 나올 권한을 받는다: 띄울 Foldy·실행 중인 Foldy에 넘긴다
@@ -100,9 +152,12 @@ mod win {
             unsafe { DispatchMessageW(&msg) };
         }
 
-        // SAFETY: 위에서 등록한 키와 만든 창·뮤텍스를 정리한다.
+        // SAFETY: 위에서 등록한 키·타이머와 만든 창·뮤텍스를 정리한다.
         unsafe {
-            UnregisterHotKey(std::ptr::null_mut(), HOTKEY_ID);
+            if holds_key {
+                UnregisterHotKey(std::ptr::null_mut(), HOTKEY_ID);
+            }
+            KillTimer(hwnd, GATHER_TIMER);
             if !hwnd.is_null() {
                 DestroyWindow(hwnd);
             }
@@ -111,15 +166,37 @@ mod win {
         0
     }
 
-    fn read_config() -> String {
+    fn read_file(name: &str) -> String {
         std::env::var_os("LOCALAPPDATA")
-            .map(|d| {
-                PathBuf::from(d)
-                    .join("Foldy")
-                    .join(foldy_hotkey::CONFIG_FILE)
-            })
+            .map(|d| PathBuf::from(d).join("Foldy").join(name))
             .and_then(|p| std::fs::read_to_string(p).ok())
             .unwrap_or_default()
+    }
+
+    fn gather_hours() -> Option<u32> {
+        parse_gather(&read_file(GATHER_FILE))
+    }
+
+    fn now_secs() -> u64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs())
+    }
+
+    /// 이 사용자의 Foldy가 켜져 있나 (첫 Foldy가 만들어 둔 이벤트가 있나). 찾기 창만 떠 있는 Foldy도 켜진 것으로 본다.
+    fn foldy_running() -> bool {
+        let Some((session, user)) = session_and_user() else {
+            return false;
+        };
+        let name = wide(&instance_event_name(session, &user));
+        // SAFETY: 이름은 0으로 끝나는 UTF-16. 열리면 바로 닫는다.
+        let h = unsafe { OpenEventW(SYNCHRONIZATION_SYNCHRONIZE, 0, name.as_ptr()) };
+        if h.is_null() {
+            return false;
+        }
+        // SAFETY: 위에서 연 핸들.
+        unsafe { CloseHandle(h) };
+        true
     }
 
     fn keyboard_layouts() -> Vec<usize> {
@@ -136,8 +213,9 @@ mod win {
     }
 
     /// Foldy가 FindWindowEx(HWND_MESSAGE, 클래스)로 찾아 WM_CLOSE를 보낼 수 있는 메시지 전용 창.
-    fn create_message_window() -> HWND {
+    fn create_message_window(holds_key: bool) -> HWND {
         let class = wide(WINDOW_CLASS);
+        let name = wide(if holds_key { KEY_WINDOW_NAME } else { "" });
         // SAFETY: 클래스·창 만들기. 이름 버퍼는 이 함수 안에서 살아 있고, 창 프로시저는 'static 함수.
         unsafe {
             let instance = GetModuleHandleW(std::ptr::null());
@@ -149,7 +227,7 @@ mod win {
             CreateWindowExW(
                 0,
                 class.as_ptr(),
-                std::ptr::null(),
+                name.as_ptr(),
                 0,
                 0,
                 0,
@@ -187,7 +265,7 @@ mod win {
 
     fn open_quick_search() {
         if !send_to_running_foldy() {
-            launch_foldy();
+            launch_foldy(QUICK_SEARCH_ARG);
         }
     }
 
@@ -237,6 +315,10 @@ mod win {
     }
 
     fn pipe_path() -> Option<String> {
+        session_and_user().map(|(session, user)| activate_pipe_path(session, &user))
+    }
+
+    fn session_and_user() -> Option<(u32, String)> {
         let mut session = 0u32;
         // SAFETY: 이 프로세스의 세션 번호를 묻는다.
         if unsafe { ProcessIdToSessionId(GetCurrentProcessId(), &mut session) } == 0 {
@@ -249,18 +331,16 @@ mod win {
             return None;
         }
         let user = String::from_utf16_lossy(&buf[..(len as usize - 1)]);
-        Some(activate_pipe_path(session, &user))
+        Some((session, user))
     }
 
-    fn launch_foldy() {
+    fn launch_foldy(arg: &str) {
         let Some(exe) = std::env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|d| d.join("Foldy.exe")))
         else {
             return;
         };
-        let _ = std::process::Command::new(exe)
-            .arg(QUICK_SEARCH_ARG)
-            .spawn();
+        let _ = std::process::Command::new(exe).arg(arg).spawn();
     }
 }

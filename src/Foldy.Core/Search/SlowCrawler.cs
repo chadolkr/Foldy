@@ -569,6 +569,14 @@ public sealed class SlowCrawler : IDisposable
         }
     }
 
+    private int _idlePasses;
+
+    /// <summary>
+    /// 모을 것이 없어 쉬고 지나간 횟수 (모든 드라이브를 살펴봤는데 시작한 것도, 모으는 중인 것도 없음).
+    /// 창 없이 뜬 Foldy(--gather)는 이 값이 늘면 할 일을 다 한 것으로 보고 끝난다.
+    /// </summary>
+    public int IdlePasses => Volatile.Read(ref _idlePasses);
+
     private void Loop()
     {
         while (!_cts.IsCancellationRequested)
@@ -646,6 +654,11 @@ public sealed class SlowCrawler : IDisposable
                 }
 
                 did |= TryStart(d, full: false);
+            }
+
+            if (!did && Current() is null)
+            {
+                Interlocked.Increment(ref _idlePasses);
             }
 
             if (WaitHandle.WaitAny([_cts.Token.WaitHandle, _kick], did ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1)) == 0)
