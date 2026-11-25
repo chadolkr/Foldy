@@ -154,7 +154,7 @@ const en: Dictionary = {
     lead: "We believe design should start by fixing what makes things hard for people. So Foldy is made for everyone, grandparents included, to use without a manual.",
     link: "Read all design principles (in Korean)",
     items: [
-      { icon: "pointer", title: "Help appears where your hands are", pain: "As we get older, we take in less of the screen at a glance. A message at the bottom of the window is easy to miss.", text: "When something can't be done, Foldy tells you why right under the mouse pointer or next to what you just clicked. No need to look elsewhere." },
+      { icon: "pointer", title: "Help appears where you're looking", pain: "As we get older, we take in less of the screen at a glance. A message at the bottom of the window is easy to miss.", text: "When something can't be done, Foldy tells you why right under the mouse pointer, where your eyes already are. No need to look elsewhere." },
       { icon: "speech", title: "Plain words, not jargon", pain: "Words like \"index\" or \"file extension\" can leave you lost the first time.", text: "Foldy says \"file list\" and \"file type\" instead, words anyone knows. In a friendly tone, too." },
       { icon: "ask", title: "Asks only when it matters", pain: "When confirmation boxes pop up all the time, you end up clicking \"Yes\" without reading.", text: "Anything that can be undone just happens. Foldy asks again only before things that can't be brought back, like deleting for good." },
       { icon: "heart", title: "Ready without learning", pain: "If you need a manual to use it, it is already too hard.", text: "Big buttons, the same moves as File Explorer, and on/off always in the same place. Usable the moment you see it." },

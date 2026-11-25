@@ -21,7 +21,7 @@ Capturas de pantalla, una guía completa y las novedades de cada versión.
 
 
 💛 Fácil para todos: empieza por lo que incomoda
-• Los avisos, donde está tu mano: con los años abarcamos menos pantalla de un vistazo. Por eso, cuando algo no se puede hacer, Foldy te dice por qué justo debajo del puntero o al lado de lo que acabas de pulsar.
+• Los avisos, donde miras: con los años abarcamos menos pantalla de un vistazo. Por eso, cuando algo no se puede hacer, Foldy te dice por qué justo debajo del puntero, donde ya tienes la vista.
 • Palabras sencillas, sin jerga: «lista de archivos» en vez de «índice», «tipo de archivo» en vez de «extensión».
 • Solo pregunta cuando importa: lo que se puede deshacer se hace al momento. Solo vuelve a preguntar antes de algo que no tiene vuelta atrás.
 • Listo sin aprender: botones grandes, los mismos gestos que el Explorador de archivos y activar y desactivar siempre en el mismo sitio.
