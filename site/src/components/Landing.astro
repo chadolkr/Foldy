@@ -38,6 +38,9 @@ const proofLinks: Record<string, string> = {
   network: `${localeHref(locale.path)}privacy/`,
 };
 // 공식 주소: 가짜 사이트와 구별하도록 글자 그대로 보여 준다 (SECURITY.md와 같게)
+// Microsoft Store 판 (Store ID 9NS1PWL5QGP6, 이름 Foldy File Manager)
+const STORE_URL = 'https://apps.microsoft.com/detail/9NS1PWL5QGP6';
+
 const OFFICIAL = [
   { label: 'github.com/chadolkr/Foldy', href: repoUrl },
   { label: 'chadolkr.github.io/Foldy', href: 'https://chadolkr.github.io/Foldy/' },
@@ -276,7 +279,7 @@ Object.keys(files).forEach(img);
           <ul>
             {OFFICIAL.map((u) => <li><a href={u.href}><code>{u.label}</code></a></li>)}
           </ul>
-          <p class="muted">{t.safety.fake.store}</p>
+          <p class="muted"><a href={STORE_URL} rel="noopener">{t.safety.fake.store}</a></p>
         </div>
         <ul class="fake-points">
           {t.safety.fake.points.map((x) => <li><Icon name="info" />{x}</li>)}
@@ -339,6 +342,8 @@ Object.keys(files).forEach(img);
         <p class="warn"><Icon name="shield" />{t.install.warning}</p>
         <p class="muted">{t.install.uninstall}</p>
         <a class="link" href={`${repoUrl}/releases`}>{t.install.allReleases} →</a>
+        <a class="link" href={STORE_URL} rel="noopener">{t.install.store} →</a>
+        <p class="muted">{t.install.storeNote}</p>
       </div>
     </div>
   </section>
