@@ -934,8 +934,14 @@ public partial class PaneView : UserControl
             return;
         }
 
+        var typing = box.IsKeyboardFocusWithin; // Enter로 마쳤으면 (다른 곳을 눌러 마친 게 아니면)
         _renameBox = null;
         Overlay.Children.Remove(box);
+        if (typing)
+        {
+            List.Focus(); // 안 되는 이유가 이름을 바꾸던 줄 바로 아래에 보이게 (CursorHint)
+        }
+
         var item = (FileItem)box.Tag;
         await _host.Shell.RenameAsync(_tab, item, box.Text);
         List.Focus();
@@ -1298,7 +1304,7 @@ public partial class PaneView : UserControl
         }
         catch (System.Runtime.InteropServices.ExternalException ex)
         {
-            _host!.Shell.Status = Foldy.Core.Localization.Loc.T("pane.clipWrite") + ex.Message;
+            _host!.Shell.Hint(Foldy.Core.Localization.Loc.T("pane.clipWrite") + ex.Message);
         }
     }
 
@@ -1326,7 +1332,7 @@ public partial class PaneView : UserControl
         }
         catch (System.Runtime.InteropServices.ExternalException ex)
         {
-            _host.Shell.Status = Foldy.Core.Localization.Loc.T("pane.clipRead") + ex.Message;
+            _host.Shell.Hint(Foldy.Core.Localization.Loc.T("pane.clipRead") + ex.Message);
         }
     }
 
@@ -1378,7 +1384,7 @@ public partial class PaneView : UserControl
         if (why is { } reason)
         {
             // 디자인 원칙 "안내는 손이 있는 자리에": 끄는 동안 눈은 커서에 있으므로 이유를 커서 바로 아래에 보여 준다
-            Foldy.UI.Controls.CursorHint.Show(this, e.GetPosition(this), Foldy.Core.Localization.Loc.T(reason + ".title"), Foldy.Core.Localization.Loc.T(reason + ".tip"));
+            Foldy.UI.Controls.CursorHint.Show(this, e, Foldy.Core.Localization.Loc.T(reason + ".title"), Foldy.Core.Localization.Loc.T(reason + ".tip"));
         }
         else
         {

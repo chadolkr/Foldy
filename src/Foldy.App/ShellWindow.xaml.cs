@@ -166,6 +166,7 @@ public partial class ShellWindow : Window, IPaneHost
         RestorePlacement(session);
         LeftPane.Attach(this, Shell.Left);
         RightPane.Attach(this, Shell.Right);
+        Shell.ShowHint = text => Foldy.UI.Controls.CursorHint.ShowNearHands(text, this); // 안 되는 이유는 손이 있는 자리에 (디자인 원칙 11)
         InitSinglePane();
         // 두 패널 모두 왼쪽에 폴더 트리, 오른쪽에 파일 목록 (Ctrl+B로 숨기기, 가운데 선을 끌어 너비 조절)
         LeftPane.TreeWidth = session.LeftTreeWidth;
@@ -279,7 +280,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (_gitBarBusy)
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.git.busy");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.git.busy"));
             return;
         }
 
@@ -302,7 +303,15 @@ public partial class ShellWindow : Window, IPaneHost
                 if (ahead > 0) done += Foldy.Core.Localization.Loc.F("sw.git.commits", ahead);
             }
 
-            Shell.Status = r.Success ? done : Foldy.Core.Localization.Loc.F("sw.git.failed", label, Foldy.Presentation.Git.GitErrorText.Describe(r).Split('\n')[0]);
+            if (r.Success)
+            {
+                Shell.Status = done;
+            }
+            else
+            {
+                Shell.Status = ""; // "하는 중"을 지우고 이유는 손이 있는 자리에
+                Shell.Hint(Foldy.Core.Localization.Loc.F("sw.git.failed", label, Foldy.Presentation.Git.GitErrorText.Describe(r).Split('\n')[0]));
+            }
         }
         finally
         {
@@ -330,7 +339,7 @@ public partial class ShellWindow : Window, IPaneHost
         var pane = Shell.ActivePane;
         if (pane.ActiveFolder is not { Git: { } g } folder)
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.git.pickInRepo");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.git.pickInRepo"));
             return;
         }
 
@@ -338,14 +347,14 @@ public partial class ShellWindow : Window, IPaneHost
             ?? folder.Items.OfType<Foldy.Presentation.Files.FileItem>().FirstOrDefault(i => !i.IsFolder && i.Name == folder.FocusName);
         if (file is null)
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.git.pickBlame");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.git.pickBlame"));
             return;
         }
 
         var root = g.RepoRoot.TrimEnd('\\', '/');
         if (!file.FullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.git.outside");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.git.outside"));
             return;
         }
 
@@ -868,21 +877,27 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (_crawler is not { } crawler)
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idxnow.off");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.idxnow.off"));
             return;
         }
 
         if (roots.Count == 0)
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idxnow.nothing");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.idxnow.nothing"));
             return;
         }
 
         var busy = crawler.Current();
         var names = string.Join(", ", roots.Select(r => r.TrimEnd('\\')));
         var started = roots.Count(crawler.RequestNow);
-        Shell.Status = started == 0 ? Foldy.Core.Localization.Loc.F("sw.idxnow.already", names)
-            : busy is not null ? Foldy.Core.Localization.Loc.F("sw.idxnow.queued", names, busy.Drive.TrimEnd('\\'))
+        if (started == 0)
+        {
+            Shell.Hint(Foldy.Core.Localization.Loc.F("sw.idxnow.already", names));
+            UpdateIndexText();
+            return;
+        }
+
+        Shell.Status = busy is not null ? Foldy.Core.Localization.Loc.F("sw.idxnow.queued", names, busy.Drive.TrimEnd('\\'))
             : Foldy.Core.Localization.Loc.F("sw.idxnow.started", names);
         UpdateIndexText();
     }
@@ -1392,7 +1407,7 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.notRepo");
+                Shell.Hint(Foldy.Core.Localization.Loc.T("sw.c.notRepo"));
             }
         });
         Add("git.blame", Foldy.Core.Localization.Loc.T("cmd.blame"), GitBlameFocusedFile);
@@ -1427,7 +1442,7 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.compareNeed");
+                Shell.Hint(Foldy.Core.Localization.Loc.T("sw.c.compareNeed"));
             }
         });
         Add("cleanup.logs", Foldy.Core.Localization.Loc.T("sw.c.logCleanup"), () => OpenLogCleanup(null));
@@ -1489,7 +1504,7 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.versionsNeed");
+                Shell.Hint(Foldy.Core.Localization.Loc.T("sw.c.versionsNeed"));
             }
         });
         Add("tag.done", Foldy.Core.Localization.Loc.T("sw.c.done"), () => ActiveView.ToggleTag(Foldy.Core.Tags.FileTags.Default), gesture: "Ctrl+D");
@@ -1506,7 +1521,7 @@ public partial class ShellWindow : Window, IPaneHost
             }
             else
             {
-                Shell.Status = Foldy.Core.Localization.Loc.T("sw.c.methodNeed");
+                Shell.Hint(Foldy.Core.Localization.Loc.T("sw.c.methodNeed"));
             }
         });
         Add("view.preview", Foldy.Core.Localization.Loc.T("cmd.preview"), () => ActiveView.TogglePreview(), Key.F3);
@@ -2126,21 +2141,21 @@ public partial class ShellWindow : Window, IPaneHost
         if (install && Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
         {
             // Store 판에는 SYSTEM 서비스를 넣지 않는다 (docs/store.md)
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idx.storeOnly");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.idx.storeOnly"));
             return;
         }
 
         var exe = Path.Combine(AppContext.BaseDirectory, "foldy-index.exe");
         if (install && !File.Exists(exe))
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idx.noExe");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.idx.noExe"));
             return;
         }
 
         if (install && !Foldy.Platform.SystemInfo.IndexerService.IsProtectedLocation(exe))
         {
             // SYSTEM 서비스 exe가 사용자 폴더에 있으면 바꿔치기로 권한을 빼앗길 수 있다
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.idx.needInstall");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.idx.needInstall"));
             return;
         }
 
@@ -2163,7 +2178,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
         catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.uacCancelled");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.uacCancelled"));
         }
     }
 
@@ -3000,7 +3015,7 @@ public partial class ShellWindow : Window, IPaneHost
         var path = target ?? pane.ActiveFolder?.Path;
         if (string.IsNullOrEmpty(path) || path.Length < 2 || path[1] != ':')
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.analysis.localOnly");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.analysis.localOnly"));
             return;
         }
 
@@ -3019,7 +3034,7 @@ public partial class ShellWindow : Window, IPaneHost
             else if (BusyBrowser(e.Paths) is { } browser)
             {
                 // 브라우저 캐시는 브라우저가 켜져 있으면 파일을 쓰고 있어 못 옮긴다: 닫고 다시 하라고 알린다 (사용자 제보 2026-11-23)
-                Shell.Status = Foldy.Core.Localization.Loc.F("an.browserBusy", browser);
+                Shell.Hint(Foldy.Core.Localization.Loc.F("an.browserBusy", browser));
             }
             foreach (var item in e.Items)
             {
@@ -3146,7 +3161,7 @@ public partial class ShellWindow : Window, IPaneHost
         folder ??= CleanupPaths.Downloads();
         if (folder is null)
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.noDownloads");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.noDownloads"));
             return;
         }
 
@@ -3160,7 +3175,7 @@ public partial class ShellWindow : Window, IPaneHost
     {
         if (string.IsNullOrEmpty(folder) || Foldy.Presentation.Navigation.PathUtil.IsSftp(folder) || !Directory.Exists(folder))
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.openFolderFirst");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.openFolderFirst"));
             return;
         }
 
@@ -3717,7 +3732,7 @@ public partial class ShellWindow : Window, IPaneHost
         var path = Shell.ActivePane.ActiveFolder?.Path;
         if (string.IsNullOrEmpty(path))
         {
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.pin.none");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.pin.none"));
             return;
         }
 
@@ -3733,7 +3748,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
         else
         {
-            Shell.Status = Foldy.Core.Localization.Loc.F("sw.pin.max", QuickAccess.MaxPinned);
+            Shell.Hint(Foldy.Core.Localization.Loc.F("sw.pin.max", QuickAccess.MaxPinned));
         }
     }
 
@@ -3882,7 +3897,15 @@ public partial class ShellWindow : Window, IPaneHost
         var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
         Shell.Status = Foldy.Core.Localization.Loc.T("sw.bin.emptying");
         var ok = await Task.Run(() => Foldy.Platform.Shell.RecycleBin.Empty(hwnd));
-        Shell.Status = ok ? Foldy.Core.Localization.Loc.F("sw.bin.emptied", Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes)) : Foldy.Core.Localization.Loc.T("sw.bin.emptyFailed");
+        if (ok)
+        {
+            Shell.Status = Foldy.Core.Localization.Loc.F("sw.bin.emptied", Foldy.Presentation.Files.FileItem.FormatBytes(i.Bytes));
+        }
+        else
+        {
+            Shell.Status = ""; // "하는 중"을 지우고 이유는 손이 있는 자리에
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.bin.emptyFailed"));
+        }
         UpdateRecycleBinInfo();
     }
 
@@ -3895,7 +3918,7 @@ public partial class ShellWindow : Window, IPaneHost
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
             Log.Warning(ex, "휴지통 열기 실패");
-            Shell.Status = Foldy.Core.Localization.Loc.T("sw.bin.openFailed");
+            Shell.Hint(Foldy.Core.Localization.Loc.T("sw.bin.openFailed"));
         }
     }
 

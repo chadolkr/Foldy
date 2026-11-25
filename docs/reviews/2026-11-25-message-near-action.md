@@ -4,7 +4,13 @@
 
 끌어 놓기 안내(1.10.1)를 아래 상태 칸에서 마우스 커서 바로 아래로 옮기면서, 같은 원칙에 어긋나는 다른 안내를 찾았다.
 `Shell.Status`(주 창 아래 상태 칸)에 쓰는 곳 약 70곳을 보고, **누른 곳과 상태 칸이 멀리 떨어진 것**만 골랐다.
-아직 고치지 않았다(목록만). 고칠 때는 `Foldy.UI.Controls.CursorHint`(커서 아래 말풍선) 또는 누른 단추 바로 아래 말풍선을 쓴다.
+사용자 결정(2026-11-25 "동일한 원칙으로 모두 변경해서 하나로 반영하자")으로 아래 목록을 모두 같은 PR에서 고쳤다.
+
+**공통 방법** `Shell.Hint(글)` → `CursorHint.ShowNearHands`:
+- 마우스로 눌렀으면 커서 바로 아래(26px 아래)
+- 키보드로 했으면 포커스가 있는 곳 바로 아래 (파일 목록이면 고른 줄 아래, 단추·글 칸이면 그 아래)
+- 글 길이에 맞춰 3~9초 보이고, 그 전에 다른 곳을 누르거나 키를 치면 사라진다
+- 창이 안 보이는 등 보일 곳이 없을 때만 상태 칸에 쓴다
 
 ## 고친 것 (이번 PR)
 
@@ -13,24 +19,25 @@
 | 이미 이 폴더에 있어요 (두 창이 같은 폴더) | 파일을 끄는 마우스 | 커서 바로 아래 |
 | 폴더를 자기 안에 넣을 수 없어요 (새로 더함) | 파일을 끄는 마우스 | 커서 바로 아래 |
 
-## 고칠 것 (먼저 할수록 위)
+## 같은 방법으로 고친 것 (모두 이번 PR)
 
-| # | 안내 (키) | 누르는 곳 | 어디에 보이면 좋은가 |
+| # | 안내 (키) | 누르는 곳 | 이제 보이는 곳 |
 | --- | --- | --- | --- |
-| 1 | 이름에 쓸 수 없는 글자, 이름을 바꿀 수 없어요 (`ops.badName`, `ops.cantRename`) | 목록 안 이름 칸 (F2) | 이름 칸 바로 아래 말풍선 (탐색기와 같음) |
-| 2 | 폴더를 만들 수 없어요 (`ops.cantCreateFolder`) | 목록 안 새 폴더 (F7) | 새 폴더 이름 칸 아래 |
-| 3 | 열 수 없어요 (`ops.cantOpen`) | 목록에서 두 번 누름 | 누른 줄 아래 |
-| 4 | 모든 명령 창에서 고른 명령이 안 될 때 (`sw.c.notRepo`, `sw.c.compareNeed`, `sw.c.versionsNeed`, `sw.c.methodNeed`) | 화면 위 모든 명령 창 | 명령 창을 닫지 말고 그 안에 한 줄 |
-| 5 | 빠른 찾기 도우미 설치 안 됨·Windows 허락 거절 (`sw.idx.storeOnly`, `sw.idx.noExe`, `sw.idx.needInstall`, `sw.uacCancelled`) | 모든 명령 창·설정 | 누른 단추 아래 |
-| 6 | 지금 목록 새로 만들기가 안 될 때 (`sw.idxnow.off`, `sw.idxnow.nothing`, `sw.idxnow.already`) | 왼쪽 메뉴 드라이브 | 그 드라이브 줄 아래 말풍선 |
-| 7 | 왼쪽 메뉴 맨 위 단추가 안 될 때 (`sw.openFolderFirst`, `sw.noDownloads`, `sw.analysis.localOnly`) | 왼쪽 메뉴 맨 위 | 누른 단추 옆 말풍선 |
-| 8 | 고정할 폴더가 없어요·더 고정할 수 없어요 (`sw.pin.none`, `sw.pin.max`) | 왼쪽 메뉴 자주 쓰는 폴더 | 고정 단추 옆 |
-| 9 | 휴지통을 비우지·열지 못했어요 (`sw.bin.emptyFailed`, `sw.bin.openFailed`) | 왼쪽 아래 휴지통 | 휴지통 단추 옆 |
-| 10 | Git 줄 단추 안내 (`sw.git.busy`, `sw.git.failed`, `sw.git.pickInRepo`, `sw.git.pickBlame`, `sw.git.outside`) | 창 위 Git 줄 | Git 줄 단추 아래 |
-| 11 | 브라우저를 닫아 주세요 (`an.browserBusy`) | 폴더 분석 [휴지통으로] | 폴더 분석 화면 안 |
+| 1 | 이름에 쓸 수 없는 글자, 이름을 바꿀 수 없어요 (`ops.badName`, `ops.cantRename`) | 목록 안 이름 칸 (F2) | Enter로 마치면 그 줄 바로 아래, 다른 곳을 눌러 마치면 커서 아래 |
+| 2 | 폴더를 만들 수 없어요 (`ops.cantCreateFolder`) | 목록 안 새 폴더 (F7) | 고른 줄 아래 (F7) 또는 커서 아래 |
+| 3 | 열 수 없어요 (`ops.cantOpen`) | 목록에서 두 번 누름 | 커서 아래 (Enter면 고른 줄 아래) |
+| 4 | 모든 명령 창에서 고른 명령이 안 될 때 (`sw.c.notRepo`, `sw.c.compareNeed`, `sw.c.versionsNeed`, `sw.c.methodNeed`) | 화면 위 모든 명령 창 | 명령 창이 닫힌 뒤 포커스가 있는 줄(칸) 아래, 마우스로 골랐으면 커서 아래 |
+| 5 | 빠른 찾기 도우미 설치 안 됨·Windows 허락 거절 (`sw.idx.storeOnly`, `sw.idx.noExe`, `sw.idx.needInstall`, `sw.uacCancelled`) | 모든 명령 창·설정 | 누른 곳 (커서 아래) |
+| 6 | 지금 목록 새로 만들기가 안 될 때 (`sw.idxnow.off`, `sw.idxnow.nothing`, `sw.idxnow.already`) | 왼쪽 메뉴 드라이브 | 누른 드라이브 위 커서 아래 |
+| 7 | 왼쪽 메뉴 맨 위 단추가 안 될 때 (`sw.openFolderFirst`, `sw.noDownloads`, `sw.analysis.localOnly`) | 왼쪽 메뉴 맨 위 | 커서 아래 |
+| 8 | 고정할 폴더가 없어요·더 고정할 수 없어요 (`sw.pin.none`, `sw.pin.max`) | 왼쪽 메뉴 자주 쓰는 폴더 | 커서 아래 (단축키면 고른 줄 아래) |
+| 9 | 휴지통을 비우지·열지 못했어요 (`sw.bin.emptyFailed`, `sw.bin.openFailed`) | 왼쪽 아래 휴지통 | 커서 아래 |
+| 10 | Git 줄 단추 안내 (`sw.git.busy`, `sw.git.failed`, `sw.git.pickInRepo`, `sw.git.pickBlame`, `sw.git.outside`) | 창 위 Git 줄 | 커서 아래 |
+| 11 | 브라우저를 닫아 주세요 (`an.browserBusy`) | 폴더 분석 [휴지통으로] | [휴지통으로]를 누른 커서 아래 |
 
-## 그대로 둬도 되는 것
+같은 방법으로 함께 고친 것: 먼저 파일을 골라 주세요·반대쪽 창에 열린 폴더가 없어요 (`ops.selectFirst`, `ops.noOtherFolder`, F5·F6을 키보드로 누르면 눈이 목록에 있다), 터미널을 열 수 없어요·Windows 허락 거절 (`ops.cantOpenTerminal`, `ops.adminCancelled`), 복사·붙여 넣기 실패 (`pane.clipWrite`, `pane.clipRead`).
 
-- **상태 칸 바로 위 단추**: 먼저 파일을 골라 주세요·반대쪽 창에 열린 폴더가 없어요 (`ops.selectFirst`, `ops.noOtherFolder`)는 F5·F6 단추 바로 아래라 눈에 들어온다. 다만 키보드(F5)로 눌렀을 때는 목록에 눈이 있으므로, 1번을 고칠 때 함께 본다.
+## 그대로 둔 것 (상태 칸이 맞는 것)
+
 - **잘 된 일 알림·진행 알림**: 복사해 둠, 고정했어요, 휴지통으로 옮겼어요, 업데이트 확인 중, 목록 읽는 중 등. 알아서 사라지고 놓쳐도 문제가 없다.
 - **키 결과**: 숨김 파일 보이기(Ctrl+H), 화면 크기. 화면이 바로 바뀌어 결과가 보인다.

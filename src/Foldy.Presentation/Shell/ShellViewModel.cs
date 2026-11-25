@@ -22,6 +22,21 @@ public sealed partial class ShellViewModel : ObservableObject
     private PaneViewModel _activePane;
 
     [ObservableProperty]
+    /// <summary>
+    /// 안 될 때의 이유를 손이 있는 자리(커서 아래·고른 줄 아래)에 보여 주는 방법 (UI가 연결, 디자인 원칙 11).
+    /// 보여 주지 못하면 false를 돌려주고, 그때는 상태 칸에 쓴다.
+    /// </summary>
+    public Func<string, bool>? ShowHint { get; set; }
+
+    /// <summary>안 되는 이유·다음 할 일을 손이 있는 자리에 알린다 (못 하면 상태 칸).</summary>
+    public void Hint(string text)
+    {
+        if (ShowHint?.Invoke(text) != true)
+        {
+            Status = text;
+        }
+    }
+
     private string _status = "";
 
     public ShellViewModel(TabEnvironment env, ShellServices services)
@@ -246,7 +261,7 @@ public sealed partial class ShellViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or InvalidOperationException)
         {
-            Status = Foldy.Core.Localization.Loc.F("ops.cantOpen", ex.Message);
+            Hint(Foldy.Core.Localization.Loc.F("ops.cantOpen", ex.Message));
         }
     }
 
@@ -281,7 +296,7 @@ public sealed partial class ShellViewModel : ObservableObject
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or InvalidOperationException)
         {
             // 관리자 UAC 창에서 [아니요]를 누르면 Win32Exception(1223)
-            Status = ex is System.ComponentModel.Win32Exception { NativeErrorCode: 1223 } ? Foldy.Core.Localization.Loc.T("ops.adminCancelled") : Foldy.Core.Localization.Loc.F("ops.cantOpenTerminal", ex.Message);
+            Hint(ex is System.ComponentModel.Win32Exception { NativeErrorCode: 1223 } ? Foldy.Core.Localization.Loc.T("ops.adminCancelled") : Foldy.Core.Localization.Loc.F("ops.cantOpenTerminal", ex.Message));
         }
     }
 
@@ -300,7 +315,7 @@ public sealed partial class ShellViewModel : ObservableObject
         var dest = OtherPane.ActiveFolder?.Path;
         if (src.Count == 0 || dest is null)
         {
-            Status = src.Count == 0 ? Foldy.Core.Localization.Loc.T("ops.selectFirst") : Foldy.Core.Localization.Loc.T("ops.noOtherFolder");
+            Hint(src.Count == 0 ? Foldy.Core.Localization.Loc.T("ops.selectFirst") : Foldy.Core.Localization.Loc.T("ops.noOtherFolder"));
             return;
         }
 
@@ -465,14 +480,18 @@ public sealed partial class ShellViewModel : ObservableObject
 
         if (newName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         {
-            Status = Foldy.Core.Localization.Loc.T("ops.badName");
+            Hint(Foldy.Core.Localization.Loc.T("ops.badName"));
             return false;
         }
 
         var r = await _services.FileOps.RenameAsync(item.FullPath, newName, CancellationToken.None);
         if (!r.Succeeded)
         {
-            Status = r.Aborted ? "" : Foldy.Core.Localization.Loc.F("ops.cantRename", r.Error);
+            if (!r.Aborted)
+            {
+                Hint(Foldy.Core.Localization.Loc.F("ops.cantRename", r.Error));
+            }
+
             return false;
         }
 
@@ -494,7 +513,11 @@ public sealed partial class ShellViewModel : ObservableObject
         var r = await _services.FileOps.NewFolderAsync(tab.Path, name, CancellationToken.None);
         if (!r.Succeeded)
         {
-            Status = r.Aborted ? "" : Foldy.Core.Localization.Loc.F("ops.cantCreateFolder", r.Error);
+            if (!r.Aborted)
+            {
+                Hint(Foldy.Core.Localization.Loc.F("ops.cantCreateFolder", r.Error));
+            }
+
             return null;
         }
 

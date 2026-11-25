@@ -12,7 +12,7 @@ namespace Foldy.UiTests;
 /// 두 창이 같은 폴더일 때 파일을 반대쪽 창으로 끌면, 놓을 수 없는 이유가 아래 상태 칸이 아니라 커서 바로 아래에 보인다.
 /// </summary>
 [Collection("ui")]
-public sealed class DropHintTests
+public sealed class HandHintTests
 {
     [Fact]
     public void Dragging_onto_the_same_folder_shows_why_right_under_the_cursor()
@@ -31,19 +31,7 @@ public sealed class DropHintTests
         lists.Should().HaveCount(2, "두 창에 파일 목록이 있다");
         var (left, right) = (lists[0], lists[1]);
 
-        // 왼쪽 목록의 첫 줄(메모.txt)을 찾는다: 머리글 아래를 눌러 보며 목록이 알리는 이름으로 확인 (화면 배율과 상관없이)
-        Point? row = null;
-        for (var y = 20; y <= 90 && row is null; y += 5)
-        {
-            var p = new Point(left.BoundingRectangle.Left + 60, left.BoundingRectangle.Top + y);
-            Mouse.Click(p);
-            Wait.UntilInputIsProcessed();
-            if (Retry.WhileFalse(() => left.Name.Contains("메모.txt", StringComparison.Ordinal), TimeSpan.FromMilliseconds(400), ignoreException: true).Result)
-            {
-                row = p;
-            }
-        }
-
+        var row = ClickFirstRow(left);
         row.Should().NotBeNull("왼쪽 창에서 메모.txt 줄을 찾아야 한다");
 
         // 끌기 시작 → 오른쪽 창 가운데로
@@ -89,4 +77,51 @@ public sealed class DropHintTests
         app.Automation.GetDesktop().FindAllChildren(app.By.ByProcessId(app.App.ProcessId))
             .Select(w => w.FindFirstDescendant(app.By.ByAutomationId("CursorHint")))
             .FirstOrDefault(h => h is not null);
+
+    /// <summary>
+    /// 이름을 바꾸다 안 되면(쓸 수 없는 글자) 이유가 아래 상태 칸이 아니라 이름을 바꾸던 줄 바로 아래에 보인다 (키보드로 했을 때).
+    /// </summary>
+    [Fact]
+    public void Why_a_rename_failed_shows_right_under_the_row()
+    {
+        using var app = FoldyApp.Start();
+        var list = Retry.WhileNull(() => app.Main.FindAllDescendants(app.By.ByClassName("FastFileList")).OrderBy(l => l.BoundingRectangle.Left).FirstOrDefault(),
+            TimeSpan.FromSeconds(15), ignoreException: true).Result;
+        list.Should().NotBeNull();
+        var row = ClickFirstRow(list!);
+        row.Should().NotBeNull("메모.txt 줄을 찾아야 한다");
+
+        Keyboard.Press(VirtualKeyShort.F2);
+        Thread.Sleep(300);
+        Keyboard.Type("a/b");
+        Keyboard.Press(VirtualKeyShort.ENTER);
+
+        var hint = Retry.WhileNull(() => FindHint(app), TimeSpan.FromSeconds(10), ignoreException: true).Result;
+        hint.Should().NotBeNull("안 되는 이유가 이름을 바꾸던 자리에 보여야 한다");
+        hint!.Name.Should().Contain("이름에는", "쓸 수 없는 글자 안내");
+        var box = hint.BoundingRectangle;
+        box.Top.Should().BeGreaterThan(row!.Value.Y, "그 줄 아래에");
+        (box.Top - row.Value.Y).Should().BeLessThan(80, "그 줄 바로 아래");
+        File.Exists(Path.Combine(app.Sample, "메모.txt")).Should().BeTrue("이름은 그대로");
+
+        Keyboard.Press(VirtualKeyShort.DOWN); // 다음에 키를 누르면 사라진다
+        Retry.WhileFalse(() => FindHint(app) is null, TimeSpan.FromSeconds(5), ignoreException: true).Result.Should().BeTrue("다음 키를 누르면 안내가 사라져야 한다");
+    }
+
+    /// <summary>목록의 첫 줄(메모.txt)을 눌러 고른다: 머리글 아래를 눌러 보며 목록이 알리는 이름으로 확인 (화면 배율과 상관없이). 누른 자리를 돌려준다.</summary>
+    private static Point? ClickFirstRow(AutomationElement list)
+    {
+        for (var y = 20; y <= 90; y += 5)
+        {
+            var p = new Point(list.BoundingRectangle.Left + 60, list.BoundingRectangle.Top + y);
+            Mouse.Click(p);
+            Wait.UntilInputIsProcessed();
+            if (Retry.WhileFalse(() => list.Name.Contains("메모.txt", StringComparison.Ordinal), TimeSpan.FromMilliseconds(400), ignoreException: true).Result)
+            {
+                return p;
+            }
+        }
+
+        return null;
+    }
 }
