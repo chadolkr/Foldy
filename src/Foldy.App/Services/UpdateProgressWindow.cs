@@ -64,7 +64,11 @@ internal static class UpdateProgressWindow
     }
 
     /// <summary>진행 창을 띄운다. 실패해도 업데이트에는 영향이 없다 (창만 안 보인다).</summary>
-    public static void Show(string version, string? animDir = null)
+    /// <param name="direct">
+    /// 서비스 없이 관리자 확인으로 설치할 때(회사망처럼 Foldy가 직접 받은 업데이트): 읽을 서비스 기록이 없으므로
+    /// Foldy가 꺼지면 "설치하고 있어요"로 바꾸고, 새로 뜬 Foldy의 버전을 보고 됐는지 안 됐는지 알린다 (사용자 2026-11-25 "농구하는 화면이 안나온다").
+    /// </param>
+    public static void Show(string version, string? animDir = null, bool direct = false)
     {
         // Foldy 테마 색 그대로 (밝게·어둡게·레트로, 강조색). 사용자: "확인 창·진행 창 디자인이 본 프로그램과 다르다"
         string Hex(string key, string fallback) =>
@@ -90,7 +94,7 @@ internal static class UpdateProgressWindow
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            foreach (var a in (string[])["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script, "-Version", version, "-Log", LogPath, "-Since", since.ToString(System.Globalization.CultureInfo.InvariantCulture), "-OldPid", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), "-Exe", Environment.ProcessPath ?? "", "-Anim", animDir ?? "", .. colors])
+            foreach (var a in (string[])["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script, "-Direct", direct ? "1" : "0", "-Version", version, "-Log", LogPath, "-Since", since.ToString(System.Globalization.CultureInfo.InvariantCulture), "-OldPid", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), "-Exe", Environment.ProcessPath ?? "", "-Anim", animDir ?? "", .. colors])
             {
                 psi.ArgumentList.Add(a);
             }
@@ -171,7 +175,7 @@ internal static class UpdateProgressWindow
     private const string Script = """
         param([string]$Version, [string]$Log, [long]$Since, [int]$OldPid, [string]$Exe = "", [string]$Anim = "",
               [string]$Bg = "#FFFFFF", [string]$Surface = "#F7F7F8", [string]$Fg = "#1C1C1F", [string]$Fg2 = "#6B6B73",
-              [string]$Accent = "#F28C1B", [string]$AccentText = "#FFFFFF", [string]$Border = "#CFCFD4", [string]$Dark = "0")
+              [string]$Accent = "#F28C1B", [string]$AccentText = "#FFFFFF", [string]$Border = "#CFCFD4", [string]$Dark = "0", [string]$Direct = "0")
         Add-Type -AssemblyName System.Windows.Forms
         Add-Type -AssemblyName System.Drawing
         Add-Type -Namespace FoldyUp -Name Dwm -MemberDefinition '[DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr h, int a, ref int v, int s);'
@@ -249,7 +253,11 @@ internal static class UpdateProgressWindow
         $timer.Interval = 1000
         $timer.Add_Tick({
             $done = $false; $failed = $false
-            if (Test-Path $Log) {
+            if ($Direct -eq "1") {
+                # 관리자 확인으로 설치: Foldy가 꺼졌으면 설치하는 중
+                if (-not (Get-Process -Id $OldPid -ErrorAction SilentlyContinue)) { $msg.Text = "설치하고 있어요… 보통 1분 안에 끝나요." }
+            }
+            elseif (Test-Path $Log) {
                 $lines = Get-Content -Path $Log -Encoding UTF8 -Tail 40 -ErrorAction SilentlyContinue
                 foreach ($l in $lines) {
                     $ts = 0L
@@ -265,7 +273,19 @@ internal static class UpdateProgressWindow
             }
             # 새 Foldy가 떠 있으면 끝
             $new = Get-Process -Name Foldy -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $OldPid -and $_.StartTime -gt $start }
-            if ($new) { $done = $true }
+            # AI 앱이 띄운 창 없는 Foldy(--mcp)는 세지 않는다 (예전 버전이 잠깐 떠도 실패로 보지 않게)
+            if ($Direct -eq "1") { $new = $new | Where-Object { $_.MainWindowHandle -ne 0 } }
+            if ($new) {
+                $done = $true
+                if ($Direct -eq "1") {
+                    # 설치가 안 되면 예전 Foldy가 다시 뜬다: 버전을 보고 알린다
+                    $np = @($new)[0].Path
+                    if ($np -and ((Get-Item -LiteralPath $np).VersionInfo.FileVersion -notlike "$Version*")) {
+                        $done = $false; $failed = $true
+                        $msg.Text = "업데이트를 설치하지 못했어요. 지금 쓰던 버전은 그대로예요. Foldy를 다시 열고 [업데이트]를 한 번 더 눌러 주세요."
+                    }
+                }
+            }
             # 설치는 끝났는데 15초가 지나도 Foldy가 안 뜨면 이 창이 직접 연다 (2026-11-21: 서비스가 다시 띄우지 않아 창이 계속 기다린 일)
             if (-not $done -and $script:installedAt -and ((Get-Date) - $script:installedAt).TotalSeconds -gt 15 -and $Exe -and (Test-Path $Exe)) {
                 Start-Process -FilePath $Exe; $done = $true

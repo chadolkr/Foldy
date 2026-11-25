@@ -223,7 +223,7 @@
             <ItemsControl x:Name="SideDrives" Focusable="False">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type svc:DriveItem}">
-                  <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideDrive" Tag="{Binding}" Padding="10,4" AutomationProperties.Name="{Binding Display}">
+                  <Button Style="{DynamicResource Foldy.SideItem}" HorizontalContentAlignment="Stretch" Click="OnSideDrive" Tag="{Binding}" Padding="10,4" AutomationProperties.Name="{Binding Display}">
                     <Button.ToolTip>
                       <StackPanel>
                         <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
@@ -249,13 +249,13 @@
                         <ColumnDefinition Width="*" />
                       </Grid.ColumnDefinitions>
                       <TextBlock x:Name="DriveIcon" Style="{StaticResource SideIcon}" VerticalAlignment="Top" Margin="0,2,0,0" />
-                      <StackPanel Grid.Column="1" Style="{StaticResource SideLabel}" Margin="10,0,0,0" Width="150">
+                      <StackPanel Grid.Column="1" Style="{StaticResource SideLabel}" Margin="10,0,0,0">
                         <TextBlock Text="{Binding Display}" TextTrimming="CharacterEllipsis" />
                         <ProgressBar x:Name="Bar" Height="5" Margin="0,4,0,3" Minimum="0" Maximum="1" Value="{Binding UsedFraction, Mode=OneWay}"
                                      Foreground="{DynamicResource Brush.Progress}" Background="{DynamicResource Brush.Border}" BorderThickness="0" />
                         <TextBlock Text="{Binding SpaceText}" FontSize="11.5" Foreground="{DynamicResource Brush.TextSecondary}" TextTrimming="CharacterEllipsis" />
-                        <!-- 빠른 찾기(색인) 상태: 드라이브마다 한눈에 (사용자 2026-11-21) -->
-                        <TextBlock x:Name="IndexLine" Text="{Binding IndexText}" FontSize="11.5" Foreground="{DynamicResource Brush.TextSecondary}" TextTrimming="CharacterEllipsis"
+                        <!-- 빠른 찾기(색인) 상태: 드라이브마다 한눈에 (사용자 2026-11-21). 파일 개수는 다음 줄, 긴 글은 줄을 바꾼다 (2026-11-25 "줄이 길어서 안보임") -->
+                        <TextBlock x:Name="IndexLine" Text="{Binding IndexText}" FontSize="11.5" Foreground="{DynamicResource Brush.TextSecondary}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
                                    Visibility="{Binding HasIndexText, Converter={StaticResource BoolToVis}}" />
                       </StackPanel>
                     </Grid>

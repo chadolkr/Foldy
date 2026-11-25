@@ -98,7 +98,7 @@ public sealed record DriveItem(string Root, DriveKind Kind, string? Label = null
     public bool CanIndexNow { get; init; }
 
     /// <summary>화면 낭독기가 읽는 이름 (사이드바 드라이브 항목): 레코드 기본 ToString은 속성을 모두 읽어 버린다.</summary>
-    public override string ToString() => string.Join(" · ", new[] { Display, SpaceText, IndexText }.Where(s => !string.IsNullOrEmpty(s)));
+    public override string ToString() => string.Join(" · ", new[] { Display, SpaceText, IndexText?.Replace('\n', ' ') }.Where(s => !string.IsNullOrEmpty(s)));
 }
 
 /// <summary>터미널 열기 (설계서: 현재 패널 경로에서 시작, 관리자는 UAC 경유).</summary>

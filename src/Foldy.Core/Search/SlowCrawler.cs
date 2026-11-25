@@ -370,7 +370,7 @@ public sealed class SlowCrawler : IDisposable
 
     public event Action<CrawlStatus>? Changed;
 
-    /// <summary>드라이브 하나를 모으기 시작했다 (드라이브, 까닭: 처음·주기·끊긴 곳부터 이어서·직접 누름 등). 모으기 스레드에서 불린다. 로그용.</summary>
+    /// <summary>드라이브 하나를 모으기 시작했다 (드라이브, 까닭: 처음·주기·끊긴 곳부터 이어서·직접 누름 등). 모으기 스레드에서 불린다. 시험용 (로그에는 남기지 않는다).</summary>
     public event Action<string, string>? Starting;
 
     private readonly Dictionary<string, CrawlStore> _stores = new(StringComparer.OrdinalIgnoreCase);
