@@ -21,7 +21,6 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty]
     private PaneViewModel _activePane;
 
-    [ObservableProperty]
     /// <summary>
     /// 안 될 때의 이유를 손이 있는 자리(커서 아래·고른 줄 아래)에 보여 주는 방법 (UI가 연결, 디자인 원칙 11).
     /// 보여 주지 못하면 false를 돌려주고, 그때는 상태 칸에 쓴다.
@@ -37,6 +36,7 @@ public sealed partial class ShellViewModel : ObservableObject
         }
     }
 
+    [ObservableProperty]
     private string _status = "";
 
     public ShellViewModel(TabEnvironment env, ShellServices services)
