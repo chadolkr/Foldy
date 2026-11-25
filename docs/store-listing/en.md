@@ -21,7 +21,7 @@ See screenshots, a full guide and what changed in each version.
 
 
 💛 Easy for everyone: it starts with what makes things hard
-• Help appears where you're looking: as we get older, we take in less of the screen at a glance. So when something can't be done, Foldy tells you why right under the mouse pointer, where your eyes already are.
+• Help appears where you're looking: as we get older, we take in less of the screen at a glance. So when something can't be done, Foldy tells you why where you're already looking: right under the mouse pointer, or next to where you're typing or what you selected.
 • Plain words, not jargon: "file list" instead of "index", "file type" instead of "file extension".
 • Asks only when it matters: anything that can be undone just happens. Foldy asks again only before things that can't be brought back.
 • Ready without learning: big buttons, the same moves as File Explorer, and on/off always in the same place.
