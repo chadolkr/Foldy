@@ -809,13 +809,7 @@ public partial class ShellWindow : Window, IPaneHost
                 }
             },
         };
-        _crawler.Changed += s =>
-        {
-            LogSpeed(s);
-            Dispatcher.BeginInvoke(UpdateIndexText);
-        };
-        // 왜 다시 모으는지 남긴다 (드라이브 글자와 까닭만, 폴더 이름은 남기지 않는다)
-        _crawler.Starting += (drive, why) => Log.Information("모으기 시작 {Drive} ({Why})", drive.TrimEnd('\\'), why);
+        _crawler.Changed += _ => Dispatcher.BeginInvoke(UpdateIndexText);
         _search.Crawler = _crawler;
         _search.CrawlDrives = CrawlDrives;
         _crawler.Start();
@@ -898,35 +892,6 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>
     /// 상태 줄의 색인 상태: 만드는 중이면 몇 %, 끝났으면 몇 개. 마우스를 올리면 드라이브마다 (사용자 2026-11-21: "색인이 어느 정도 됐는지 알 수 있니?").
     /// </summary>
-    private readonly Dictionary<string, DateTime> _speedLogged = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// 모으는 빠르기를 1분에 한 번 로그에 남긴다 (사용자 2026-11-25: "로그로 저장하면 로그 내용을 알려줄께").
-    /// 드라이브 글자와 숫자만 남기고, 폴더·파일 이름은 남기지 않는다.
-    /// </summary>
-    private void LogSpeed(Foldy.Core.Search.CrawlStatus s)
-    {
-        if (s.Speed is not { } sp)
-        {
-            return;
-        }
-
-        lock (_speedLogged)
-        {
-            var now = DateTime.UtcNow;
-            if (_speedLogged.TryGetValue(s.Drive, out var last) && now - last < TimeSpan.FromMinutes(1))
-            {
-                return;
-            }
-
-            _speedLogged[s.Drive] = now;
-        }
-
-        Log.Information(
-            "모으기 빠르기 {Drive} 모은 {Found}개, 1분에 {PerMinute:F0}개, 읽은 폴더 {Folders}개, 폴더 하나 답 {AskMs:F0}ms, 같이 {Width}개, 쉰 몫 {Rest:P0}, 재 본 결과 {Tried}",
-            s.Drive.TrimEnd('\\'), s.Found, sp.PerMinute, sp.Folders, sp.AskMs, sp.Width, sp.RestShare, sp.Tried ?? "아직");
-    }
-
     private void UpdateIndexText()
     {
         MarkIndexNowDrives();
@@ -2130,12 +2095,15 @@ public partial class ShellWindow : Window, IPaneHost
     private void InstallNow()
     {
         var version = _updater.ReadyVersion;
+        // 관리자 확인으로 설치할 때는 확인하자마자 설치가 시작되므로, 그림을 먼저 그려 둔다 (그리는 동안 Foldy가 켜져 있으면 파일이 사용 중이 된다)
+        var direct = _updater is not ServiceUpdater;
+        var frames = direct && version is not null && _settings.Animations ? UpdateProgressWindow.RenderFrames() : null;
         if (_updater.LaunchInstaller())
         {
-            if (_updater is ServiceUpdater && version is not null)
+            if (version is not null)
             {
                 // Foldy가 닫혀 있는 동안 단계를 보여 주는 작은 창 (새 Foldy가 뜨면 닫힘). 애니메이션을 켰으면 연주·우진도 함께
-                UpdateProgressWindow.Show(version, _settings.Animations ? UpdateProgressWindow.RenderFrames() : null);
+                UpdateProgressWindow.Show(version, direct ? frames : _settings.Animations ? UpdateProgressWindow.RenderFrames() : null, direct);
             }
 
             _reallyClose = true; // 업데이트는 Foldy가 정말 꺼져야 설치된다: 숨겨서 모으기를 하지 않는다

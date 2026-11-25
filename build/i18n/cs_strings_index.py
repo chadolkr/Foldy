@@ -4,7 +4,7 @@
 INDEX = [
     ("shell.indexNow", '지금 목록 새로 만들기', 'Update search list now', 'Actualizar la lista de búsqueda ahora', '今すぐ検索リストを更新', '立即更新搜索列表'),
     ("sw.c.indexNow", '지금 목록 새로 만들기 (네트워크·USB·Google Drive 등)', 'Update search list now (network, USB, Google Drive, etc.)', 'Actualizar la lista de búsqueda ahora (red, USB, Google Drive, etc.)', '今すぐ検索リストを更新 (ネットワーク・USB・Google ドライブなど)', '立即更新搜索列表（网络、USB、Google 云端硬盘等）'),
-    ("sw.drv.crawledAt", '찾기 준비 끝 · 파일 {0:N0}개 · {1}', 'Ready to search · {0:N0} files · {1}', 'Lista para buscar · {0:N0} archivos · {1}', '検索の準備完了 · {0:N0} 件 · {1}', '可以查找 · {0:N0} 个文件 · {1}'),
+    ("sw.drv.crawledAt", '찾기 준비 끝\n파일 {0:N0}개 · {1}', 'Ready to search\n{0:N0} files · {1}', 'Lista para buscar\n{0:N0} archivos · {1}', '検索の準備完了\n{0:N0} 件 · {1}', '可以查找\n{0:N0} 个文件 · {1}'),
     # 다 읽었는데 하나도 못 읽었거나 드라이브를 읽지 못함 (사용자 2026-11-23: K: 드라이브 "색인 완료 · 0개")
     ("sw.drv.unreadable", '준비 못 함 · 이 드라이브를 읽지 못했어요', "Couldn't get ready · this drive couldn't be read", 'No se pudo preparar · no se pudo leer esta unidad', '準備できません · このドライブを読めませんでした', '无法准备 · 读取不了这个驱动器'),
     ("sw.idxnow.started", '{0} 목록을 만들기 시작했어요. 뒤에서 살살 모으니 다른 일을 하셔도 돼요.', 'Started building the search list for {0}. It runs gently in the background, so you can keep working.', 'Se empezó a preparar la lista de búsqueda de {0}. Va despacio en segundo plano, puedes seguir trabajando.', '{0} の一覧を作り始めました。裏でゆっくり集めるので、ほかの作業を続けられます。', '已开始为 {0} 建立搜索列表。会在后台慢慢进行，你可以继续做别的事。'),
