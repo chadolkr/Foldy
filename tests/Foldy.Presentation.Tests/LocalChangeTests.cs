@@ -125,7 +125,7 @@ public class LocalChangeTests
         Names(tab).Should().Equal("b.txt");
     }
 
-    /// <summary>디자인 원칙 11 "안내는 시선이 있는 곳에 (마우스 포인터 바로 아래)": 안 되는 이유는 화면이 마우스 포인터 바로 아래에 보여 주고, 못 보여 줄 때만 상태 칸에 쓴다.</summary>
+    /// <summary>디자인 원칙 11 "안내는 눈길이 머무는 곳에": 안 되는 이유는 화면이 마우스 포인터 바로 아래에 보여 주고, 못 보여 줄 때만 상태 칸에 쓴다.</summary>
     [Fact]
     public async Task Why_a_rename_failed_is_shown_where_the_hands_are()
     {

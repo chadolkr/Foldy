@@ -166,7 +166,7 @@ public partial class ShellWindow : Window, IPaneHost
         RestorePlacement(session);
         LeftPane.Attach(this, Shell.Left);
         RightPane.Attach(this, Shell.Right);
-        Shell.ShowHint = text => Foldy.UI.Controls.CursorHint.ShowAtPointer(text, this); // 안 되는 이유는 마우스 포인터 바로 아래에 (디자인 원칙 11)
+        Shell.ShowHint = text => Foldy.UI.Controls.CursorHint.ShowWhereLooking(text, this); // 안 되는 이유는 마우스 포인터 바로 아래에 (디자인 원칙 11)
         InitSinglePane();
         // 두 패널 모두 왼쪽에 폴더 트리, 오른쪽에 파일 목록 (Ctrl+B로 숨기기, 가운데 선을 끌어 너비 조절)
         LeftPane.TreeWidth = session.LeftTreeWidth;

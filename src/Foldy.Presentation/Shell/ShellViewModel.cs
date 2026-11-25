@@ -22,7 +22,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private PaneViewModel _activePane;
 
     /// <summary>
-    /// 안 될 때의 이유를 마우스 포인터 바로 아래(시선이 있는 곳)에 보여 주는 방법 (UI가 연결, 디자인 원칙 11).
+    /// 안 될 때의 이유를 눈길이 머무는 곳(마우스면 포인터 아래, 키보드면 대상 아래)에 보여 주는 방법 (UI가 연결, 디자인 원칙 11).
     /// 보여 주지 못하면 false를 돌려주고, 그때는 상태 칸에 쓴다.
     /// </summary>
     public Func<string, bool>? ShowHint { get; set; }
