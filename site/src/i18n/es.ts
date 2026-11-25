@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'Nuevo en la 1.12: palabras más sencillas en todas las pantallas',
-    eyebrow: 'Foldy 1.12',
+    badge: 'Nuevo en la 1.13: las listas de unidades se actualizan aunque Foldy esté cerrado',
+    eyebrow: 'Foldy 1.13',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
+      { icon: 'update', title: 'Listas al día, aunque esté cerrado', text: 'Las listas de unidades del trabajo, de red, en la nube y USB se actualizan cada cierto tiempo (cada hora, 6 horas o día), aunque Foldy esté cerrado. Un pequeño ayudante del atajo abre Foldy un momento sin ventana; solo lee las carpetas que cambiaron y se cierra. No hay nada que configurar ni registrar.' },
       { icon: 'info', title: 'Palabras sencillas en todas las pantallas', text: 'Más de 340 textos se reescribieron para que se entiendan a la primera, sin tecnicismos como “índice” o “panel”. Buscar con las palabras antiguas sigue funcionando.' },
       { icon: 'turtle', title: 'Tarjetas de memoria, USB y Google Drive, mucho más rápido', text: '180 000 archivos de una tarjeta se recopilan en segundos en lugar de unos seis minutos, y 26 000 de Google Drive en 8 segundos en lugar de 61. Si otro programa usa la misma unidad, Foldy se aparta.' },
       { icon: 'search', title: 'Ctrl+Espacio, aunque Foldy esté cerrado', text: 'Un pequeño ayudante espera el atajo desde que enciendes el PC. Pulsa Ctrl+Espacio para buscar sin dejar Foldy abierto, y el archivo que elijas se abre en su programa.' },
-      { icon: 'disk', title: 'Encuentra más carpetas que se pueden borrar', text: 'Más carpetas que los programas vuelven a crear solos, como cachés de Unity, Unreal, Flutter y frameworks web. Solo cuando el archivo del proyecto está al lado, y nunca carpetas con ajustes.' },
     ],
     link: 'Ver todos los cambios',
   },
@@ -67,7 +67,7 @@ const es: Dictionary = {
           { title: 'Aplicaciones, ajustes de Windows y Panel de control', text: 'Escribe "wifi", "tamaño de texto" o "impresora" para ir directo a ese ajuste. También aparecen el Panel de control y las herramientas administrativas, como "Administrador de dispositivos" o "variables de entorno", y las aplicaciones del menú Inicio se abren por su nombre.' },
           { title: 'Dilo con tus palabras', text: 'Escribe "ordena mis descargas" o "vacía la papelera" y Foldy encuentra la herramienta adecuada y te pregunta: "¿Lo hago?"' },
           { title: 'Cálculos y conversiones', text: 'Escribe 12*3+4, 200*15% o 5 km to mi y verás la respuesta al momento. Pulsa Intro para copiarla.' },
-          { title: 'Unidades de red, NAS y USB', text: 'Las unidades sin índice se recorren poco a poco en segundo plano mientras Foldy está abierto. Va más despacio si la unidad está ocupada y se detiene mientras copias.' },
+          { title: 'Unidades de red, NAS y USB', text: 'Las unidades sin índice se recorren poco a poco en segundo plano y se actualizan cada cierto tiempo aunque Foldy esté cerrado. Va más despacio si la unidad está ocupada y se detiene mientras copias.' },
         ],
         note: 'No busca en internet. Lo que escribes nunca sale de tu PC.',
         img: 'quicksearch',
