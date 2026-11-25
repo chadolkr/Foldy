@@ -1,0 +1,72 @@
+name: Store
+
+# Microsoft Store에 새 버전을 낸다. 사람이 누를 때만 돈다 (휴대폰: GitHub → Actions → Store → Run workflow).
+# 기본은 초안만 만들고 인증에는 내지 않는다. 준비할 것과 순서는 docs/store.md "PC 없이 제출".
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '올릴 릴리스 태그 (예: v1.13.2)'
+        required: true
+        type: string
+      mode:
+        description: 'draft = 초안만, submit = 인증에 내기'
+        required: true
+        type: choice
+        options: [draft, submit]
+        default: draft
+
+permissions:
+  contents: read
+  actions: read   # 릴리스 실행의 foldy-store-msix 아티팩트 받기
+
+concurrency:
+  group: store
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    # 시크릿을 읽는 작업이므로 main의 워크플로로만 돈다
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    environment: store
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Store package from the release run
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ($env:TAG -notmatch '^v\d+\.\d+\.\d+$') { throw "태그 형식이 v1.2.3이 아님: $env:TAG" }
+          $id = gh run list --repo $env:GITHUB_REPOSITORY --workflow release.yml --branch $env:TAG --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+          if (-not $id) { throw "$env:TAG 의 성공한 Release 실행을 찾지 못함" }
+          gh run download $id --repo $env:GITHUB_REPOSITORY --name foldy-store-msix --dir store-msix
+          if ($LASTEXITCODE -ne 0) { throw 'foldy-store-msix를 받지 못함' }
+          $msix = @(Get-ChildItem store-msix -Filter *.msix -Recurse)
+          if ($msix.Count -ne 1) { throw "msix가 하나가 아님: $($msix.Count)개" }
+          "MSIX=$($msix[0].FullName)" >> $env:GITHUB_ENV
+          "VERSION=$($env:TAG.Substring(1))" >> $env:GITHUB_ENV
+
+      # Microsoft Store CLI는 .NET 9 데스크톱 런타임이 필요하다
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 9.0.x
+
+      - uses: microsoft/setup-msstore-cli@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0 # v1.4
+        with:
+          version: v0.4.4
+
+      - name: Submit
+        shell: pwsh
+        env:
+          MODE: ${{ inputs.mode }}
+          STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+          STORE_SELLER_ID: ${{ secrets.STORE_SELLER_ID }}
+          STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
+          STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
+        run: ./build/store/submit.ps1 -Msix $env:MSIX -Version $env:VERSION -Mode $env:MODE

@@ -42,7 +42,13 @@ Good to know: the Store edition does not include the service that indexes whole 
 
 ## What's new in this version
 
-Foldy is now on the Microsoft Store. Find anything (Ctrl+Space), free up space, tidy your Desktop and Downloads, create folders from templates and connect your AI, in five languages.
+Improvements since 1.3.0:
+• Tidying big folders: plans are made quickly even for hundreds of thousands of files, and you can continue later. See where identical files are and pick the one to keep.
+• Find anything: shows how many results there are, and keeps loading as you scroll.
+• Find folders safe to delete: shows progress, can be stopped, and finds more kinds.
+• Six new folder templates.
+• Slowly click a selected name once more to rename it.
+• Simpler wording throughout.
 
 ## Product features (one per line)
 

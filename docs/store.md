@@ -12,6 +12,24 @@
 - Store 제품 (2026-11-21 예약): 이름 **Foldy File Manager** ("Foldy"는 선점됨), Store ID `9NS1PWL5QGP6`, Identity `DavidCHA.FoldyFileManager`, Publisher `CN=2AAA454A-54B0-4C55-B5E3-99DD3024FB14`, 표시 이름 `David CHA`, PFN `DavidCHA.FoldyFileManager_2mprgqxmdw8d8`. make-msix.ps1의 기본값이다. 시작 메뉴·Store에는 "Foldy File Manager", 앱 안에서는 Foldy.
 - 로컬 시험: `./build/setup/make-setup.ps1` 다음 `./build/store/make-msix.ps1 -Version x.y.z -TestCert`.
 
+## PC 없이 제출 (사용자 요청 2026-11-25)
+
+휴대폰에서 **GitHub → Actions → Store → Run workflow**를 누르면 그 태그의 Store 패키지를 Partner Center에 올린다(`.github/workflows/store.yml`, `build/store/submit.ps1`).
+
+- `draft`(기본): 패키지를 올리고 5개 언어의 "이 버전의 새로운 기능"을 `docs/store-listing` 글로 바꾼 초안만 만든다. 인증에는 내지 않는다.
+- `submit`: 위에 이어 인증에 낸다. 글을 바꾸지 못하면 내지 않는다.
+- 사람이 누를 때만 돌고, main에서만 시크릿을 읽는다. 열려 있던 초안은 마지막으로 공개된 제출에서 새로 만들어져 사라진다.
+- **아직 실제로 제출해 보지 못했다** (인증 값이 없음). 처음에는 꼭 `draft`로 하고 Partner Center에서 확인한다.
+
+처음 한 번 준비 (값은 사용자가 직접 넣는다. 대화나 저장소에 적지 않는다):
+
+1. Partner Center → 계정 설정 → 테넌트: Microsoft Entra 테넌트를 연결하거나 새로 만든다. (개인 개발자 계정에서 되는지 문서에 없다. 메뉴가 없으면 이 방법은 쓸 수 없다.)
+2. 그 테넌트에 앱을 하나 등록하고, Partner Center → 사용자 관리 → Microsoft Entra applications에서 그 앱을 **관리자(Manager)** 역할로 더한다.
+3. GitHub 저장소 → Settings → Environments → **store**를 만들고(배포 브랜치는 main만, 검토자로 자신을 넣으면 실행 전에 한 번 더 확인), 그 안의 시크릿에 `STORE_TENANT_ID`, `STORE_SELLER_ID`, `STORE_CLIENT_ID`, `STORE_CLIENT_SECRET`을 넣는다.
+4. client secret은 기한이 있다. 끝나면 새로 만들어 바꾼다.
+
+출처: [msstore 명령](https://learn.microsoft.com/en-us/windows/apps/publish/msstore-dev-cli/commands), [GitHub Actions로 올리기](https://learn.microsoft.com/en-us/windows/apps/publish/msstore-dev-cli/github-actions) (앱이 이미 공개돼 있어야 하고, 무료 앱만 된다고 적혀 있다).
+
 ## Certum 서명 (설치본)
 
 1. shop.certum.eu → **Open Source Code Signing in the Cloud** (€49) 구매.
