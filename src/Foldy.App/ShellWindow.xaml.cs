@@ -801,7 +801,11 @@ public partial class ShellWindow : Window, IPaneHost
                 }
             },
         };
-        _crawler.Changed += _ => Dispatcher.BeginInvoke(UpdateIndexText);
+        _crawler.Changed += s =>
+        {
+            LogSpeed(s);
+            Dispatcher.BeginInvoke(UpdateIndexText);
+        };
         _search.Crawler = _crawler;
         _search.CrawlDrives = CrawlDrives;
         _crawler.Start();
@@ -884,6 +888,35 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>
     /// 상태 줄의 색인 상태: 만드는 중이면 몇 %, 끝났으면 몇 개. 마우스를 올리면 드라이브마다 (사용자 2026-11-21: "색인이 어느 정도 됐는지 알 수 있니?").
     /// </summary>
+    private readonly Dictionary<string, DateTime> _speedLogged = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 모으는 빠르기를 1분에 한 번 로그에 남긴다 (사용자 2026-11-25: "로그로 저장하면 로그 내용을 알려줄께").
+    /// 드라이브 글자와 숫자만 남기고, 폴더·파일 이름은 남기지 않는다.
+    /// </summary>
+    private void LogSpeed(Foldy.Core.Search.CrawlStatus s)
+    {
+        if (s.Speed is not { } sp)
+        {
+            return;
+        }
+
+        lock (_speedLogged)
+        {
+            var now = DateTime.UtcNow;
+            if (_speedLogged.TryGetValue(s.Drive, out var last) && now - last < TimeSpan.FromMinutes(1))
+            {
+                return;
+            }
+
+            _speedLogged[s.Drive] = now;
+        }
+
+        Log.Information(
+            "모으기 빠르기 {Drive} 모은 {Found}개, 1분에 {PerMinute:F0}개, 읽은 폴더 {Folders}개, 폴더 하나 답 {AskMs:F0}ms, 같이 {Width}개, 쉰 몫 {Rest:P0}",
+            s.Drive.TrimEnd('\\'), s.Found, sp.PerMinute, sp.Folders, sp.AskMs, sp.Width, sp.RestShare);
+    }
+
     private void UpdateIndexText()
     {
         MarkIndexNowDrives();
@@ -924,9 +957,12 @@ public partial class ShellWindow : Window, IPaneHost
             foreach (var d in pane.Drives.ToList())
             {
                 var text = DriveIndexText(st, d);
-                if (text != d.IndexText)
+                var detail = _crawler?.StatusOf(d.Root) is { Running: true, Speed: { } sp }
+                    ? Foldy.Core.Localization.Loc.F("sw.drv.speed", sp.PerMinute, sp.Folders, sp.AskMs, sp.Width, sp.RestShare)
+                    : null;
+                if (text != d.IndexText || detail != d.IndexDetail)
                 {
-                    pane.UpdateDrive(d with { IndexText = text });
+                    pane.UpdateDrive(d with { IndexText = text, IndexDetail = detail });
                 }
             }
         }

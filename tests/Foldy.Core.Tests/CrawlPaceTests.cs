@@ -29,8 +29,9 @@ public sealed class CrawlPaceTests
             pace.After(Ms(1), 1, Ms(1));
         }
 
+        // 한두 번 늦은 것은 넘기고, 늦은 답이 이어지면(1초어치씩 두 번) 쉰다
         var rested = TimeSpan.Zero;
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 40; i++)
         {
             rested += pace.After(Ms(60), 1, Ms(60));
         }
@@ -102,6 +103,26 @@ public sealed class CrawlPaceTests
 
         Assert.True(widths.Skip(100).Average() < 1.5, $"평균 {widths.Skip(100).Average()}개씩 같이 읽음");
     }
+
+    [Fact]
+    public void Uneven_folders_do_not_make_a_far_drive_read_fewer_at_once()
+    {
+        // 큰 폴더가 섞여 폴더마다 시간이 들쭉날쭉해도, 몇 개 늦은 것만 보고 같이 읽는 수를 줄이지 않는다
+        var pace = new CrawlPace(near: false, minPause: Ms(5));
+        var rnd = new Random(1);
+        var widths = new List<int>();
+        for (var i = 0; i < 3000; i++)
+        {
+            var w = pace.Width;
+            var times = Enumerable.Range(0, w).Select(_ => Math.Exp(4.4 + NextGaussian(rnd))).ToList();
+            pace.After(Ms(times.Max()), w, Ms(times.Average()));
+            widths.Add(pace.Width);
+        }
+
+        Assert.True(widths.Skip(500).Average() > 2.0, $"평균 {widths.Skip(500).Average()}개씩만 같이 읽음");
+    }
+
+    private static double NextGaussian(Random rnd) => Math.Sqrt(-2 * Math.Log(1 - rnd.NextDouble())) * Math.Cos(2 * Math.PI * rnd.NextDouble());
 
     [Fact]
     public void Each_ask_waiting_its_turn_is_not_taken_for_a_slow_drive_when_the_whole_gets_faster()

@@ -1724,6 +1724,7 @@
   "sw.drv.preparing": "正在准备查找",
   "sw.drv.ready": "可以查找",
   "sw.drv.soon": "即将开始准备查找",
+  "sw.drv.speed": "每分钟 {0:N0} 个 · 已读文件夹 {1:N0} 个 · 每个文件夹响应 {2:N0}ms · 同时 {3} 个 · 休息 {4:P0}",
   "sw.drv.unreadable": "无法准备 · 读取不了这个驱动器",
   "sw.drv.waiting": "排队等待 · 在 {0} 之后",
   "sw.git.busy": "另一个 Git 操作正在进行",

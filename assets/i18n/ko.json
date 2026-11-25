@@ -1724,6 +1724,7 @@
   "sw.drv.preparing": "찾기 준비 중",
   "sw.drv.ready": "찾기 준비 끝",
   "sw.drv.soon": "곧 찾기 준비를 시작해요",
+  "sw.drv.speed": "1분에 {0:N0}개 · 읽은 폴더 {1:N0}개 · 폴더 하나 답 {2:N0}ms · 같이 {3}개 · 쉬는 시간 {4:P0}",
   "sw.drv.unreadable": "준비 못 함 · 이 드라이브를 읽지 못했어요",
   "sw.drv.waiting": "차례 기다리는 중 · {0} 다음에 준비해요",
   "sw.git.busy": "다른 Git 작업을 하고 있어요",

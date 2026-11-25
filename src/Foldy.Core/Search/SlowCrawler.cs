@@ -273,7 +273,13 @@ public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Co
 {
     /// <summary>복사 같은 작업이 끝나기를 기다리며 쉬는 중.</summary>
     public bool Paused { get; init; }
+
+    /// <summary>모으는 중의 빠르기 (드라이브에 마우스를 올리면 보인다: 느린 까닭을 찾으려고).</summary>
+    public CrawlSpeed? Speed { get; init; }
 }
+
+/// <summary>모으는 빠르기: 이번에 1분에 몇 개, 읽은 폴더 수, 폴더 하나 답에 걸린 시간, 같이 읽는 수, 쉰 시간의 몫(0~1).</summary>
+public sealed record CrawlSpeed(double PerMinute, long Folders, double AskMs, int Width, double RestShare);
 
 /// <summary>
 /// 색인 없는 드라이브를 "살살" 모은다 (사용자 2026-11-21: "회사 드라이브도 부하 주지 않게 살살 수집해 줘").
@@ -914,19 +920,37 @@ public sealed class SlowCrawler : IDisposable
         var pace = new CrawlPace(near, IsNetwork(root) ? MinNetworkPause : MinPause);
         var preferred = PreferFirst?.Invoke() ?? [];
 
+        var running = Stopwatch.StartNew();
+        var rested = TimeSpan.Zero;
+        var foundAtStart = found;
+        var foldersAtStart = listed + reused;
+
         void Breathe(TimeSpan batch, int folders, TimeSpan perAsk)
         {
             var pause = pace.After(batch, folders, perAsk);
             if (pause > TimeSpan.Zero)
             {
                 var slept = Stopwatch.StartNew();
-                if (ct.WaitHandle.WaitOne(pause))
+                try
                 {
-                    ct.ThrowIfCancellationRequested();
+                    if (ct.WaitHandle.WaitOne(pause))
+                    {
+                        ct.ThrowIfCancellationRequested();
+                    }
+                }
+                finally
+                {
+                    rested += slept.Elapsed;
                 }
 
                 pace.Slept(slept.Elapsed);
             }
+        }
+
+        CrawlSpeed SpeedNow()
+        {
+            var min = Math.Max(running.Elapsed.TotalMinutes, 1.0 / 60);
+            return new CrawlSpeed((found - foundAtStart) / min, listed + reused - foldersAtStart, pace.AskMs, pace.Width, rested / running.Elapsed);
         }
 
         try
@@ -1091,7 +1115,7 @@ public sealed class SlowCrawler : IDisposable
                         if (lastReport.Elapsed > TimeSpan.FromSeconds(1))
                         {
                             data.Flush(); // 모으는 중에도 찾을 수 있게
-                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc));
+                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Speed = SpeedNow() });
                             lastReport.Restart();
                         }
 
