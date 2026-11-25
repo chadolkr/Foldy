@@ -123,4 +123,10 @@ public sealed class HandHintTests
             return "진단 실패: " + ex.Message;
         }
     }
+
+    /// <summary>안내는 Foldy가 띄운 작은 팝업 창 안에 있다 (주 창 밖).</summary>
+    private static AutomationElement? FindHint(FoldyApp app) =>
+        app.Automation.GetDesktop().FindAllChildren(app.By.ByProcessId(app.App.ProcessId))
+            .Select(w => w.FindFirstDescendant(app.By.ByAutomationId("CursorHint")))
+            .FirstOrDefault(h => h is not null);
 }
