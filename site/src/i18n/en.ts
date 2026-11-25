@@ -195,9 +195,9 @@ const en: Dictionary = {
     },
     fake: {
       title: "Watch out for fake Foldy",
-      lead: "Fake sites sometimes copy popular free programs to spread malware. Only download Foldy from the two places below.",
+      lead: "Fake sites sometimes copy popular free programs to spread malware. Only download Foldy from the two addresses below or from Microsoft Store.",
       officialTitle: "These are the only official addresses",
-      store: "On the Microsoft Store: \"Foldy File Manager\" by David CHA (coming soon)",
+      store: "On the Microsoft Store: \"Foldy File Manager\" by David CHA",
       points: [
         "Foldy is free. Anything asking for payment, sign-up or a \"license key\" is fake.",
         "Foldy updates itself. An e-mail or window asking you to download an \"update file\" is fake.",
@@ -245,6 +245,8 @@ const en: Dictionary = {
       'Foldy is not code-signed yet, so Windows may show a “Windows protected your PC” screen. Click [More info], then [Run anyway].',
     uninstall: 'To remove it: Windows Settings → Apps → Installed apps → Foldy → Uninstall. The index service is removed too.',
     allReleases: 'Older versions and release notes',
+    store: 'Get it from Microsoft Store',
+    storeNote: 'The Store edition is updated by Microsoft Store. Fast search that reads whole drives ahead of time, Ctrl+Space while Foldy is closed, and gathering after you close the window are only in the installer (MSI) edition.',
   },
   faq: {
     title: 'Questions',

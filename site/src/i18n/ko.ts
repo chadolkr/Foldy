@@ -196,9 +196,9 @@ const ko = {
     },
     fake: {
       title: "가짜 Foldy를 조심하세요",
-      lead: "유명한 무료 프로그램을 흉내 낸 가짜 사이트가 나쁜 프로그램을 퍼뜨리는 일이 있어요. Foldy는 아래 두 곳에서만 받으세요.",
-      officialTitle: "공식 주소는 이 두 곳뿐이에요",
-      store: "Microsoft Store에서는 \"Foldy File Manager\" (게시자 David CHA, 곧 나와요)",
+      lead: "유명한 무료 프로그램을 흉내 낸 가짜 사이트가 나쁜 프로그램을 퍼뜨리는 일이 있어요. Foldy는 아래 두 곳과 Microsoft Store에서만 받으세요.",
+      officialTitle: "공식 주소는 이곳뿐이에요",
+      store: "Microsoft Store에서는 \"Foldy File Manager\" (게시자 David CHA)",
       points: [
         "Foldy는 돈을 받지 않아요. 결제, 회원 가입, \"정품 키\"를 달라고 하면 가짜예요.",
         "업데이트는 Foldy가 알아서 받아요. \"업데이트 파일을 받으세요\"라는 메일이나 창은 가짜예요.",
@@ -246,6 +246,8 @@ const ko = {
       '아직 코드 서명이 없어서 Windows가 "PC 보호" 창을 띄울 수 있어요. 그럴 때는 [추가 정보]를 누르고 [실행]을 누르세요.',
     uninstall: '지울 때는 Windows 설정 → 앱 → 설치된 앱 → Foldy → 제거. 색인 서비스도 함께 지워져요.',
     allReleases: '이전 버전과 바뀐 내용 보기',
+    store: 'Microsoft Store에서 받기',
+    storeNote: 'Store 판은 Store가 알아서 업데이트해요. 다만 드라이브 전체를 미리 읽어 두고 빨리 찾기, Foldy가 꺼져 있을 때 Ctrl+Space, 창 닫고 계속 모으기는 설치 파일(MSI) 판에만 있어요.',
   },
   faq: {
     title: '묻고 답하기',

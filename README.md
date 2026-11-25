@@ -22,7 +22,7 @@
 
 *(이 문서의 모든 화면은 가짜 샘플 폴더로 찍은 실제 Foldy 화면입니다. 개인 정보는 들어 있지 않습니다.)*
 
-**[⬇ 최신 버전 내려받기 (MSI)](https://github.com/chadolkr/Foldy/releases/latest)** · Windows 10/11 x64 · 무료 오픈소스 (GPL-3.0) · [소개 사이트](https://chadolkr.github.io/Foldy/)
+**[⬇ 최신 버전 내려받기 (MSI)](https://github.com/chadolkr/Foldy/releases/latest)** · [Microsoft Store](https://apps.microsoft.com/detail/9NS1PWL5QGP6) · Windows 10/11 x64 · 무료 오픈소스 (GPL-3.0) · [소개 사이트](https://chadolkr.github.io/Foldy/)
 
 ## 이런 게 좋아요
 
@@ -89,7 +89,7 @@
 
 [Releases](https://github.com/chadolkr/Foldy/releases)에서 받습니다.
 
-> **공식 주소는 https://github.com/chadolkr/Foldy 와 https://chadolkr.github.io/Foldy/ 두 곳뿐입니다.** 다른 곳에서 받은 Foldy는 가짜일 수 있어요. 받은 파일이 진짜인지 확인하는 방법(VirusTotal, SHA-256 지문, 빌드 출처 증명)과 Foldy가 인터넷에 연결하는 경우는 [SECURITY.md](SECURITY.md)에 있습니다.
+> **공식 주소는 https://github.com/chadolkr/Foldy 와 https://chadolkr.github.io/Foldy/ 두 곳과 [Microsoft Store](https://apps.microsoft.com/detail/9NS1PWL5QGP6)뿐입니다.** 다른 곳에서 받은 Foldy는 가짜일 수 있어요. 받은 파일이 진짜인지 확인하는 방법(VirusTotal, SHA-256 지문, 빌드 출처 증명)과 Foldy가 인터넷에 연결하는 경우는 [SECURITY.md](SECURITY.md)에 있습니다.
 
 | 방법 | 파일 | 설명 |
 | --- | --- | --- |
@@ -801,7 +801,7 @@ Delete는 휴지통으로 보냅니다(사이드바 휴지통에서 열기). Shi
 ## Code signing policy
 
 지금 GitHub Releases의 실행 파일과 MSI는 **Authenticode 서명이 없습니다** (그래서 Windows가 "PC 보호" 경고를 띄울 수 있어요). 무료 오픈소스 서명(SignPath Foundation)은 2026-11에 "아직 인지도가 부족하다"는 이유로 보류됐고, 프로젝트가 알려지면 다시 신청합니다.
-그동안은 Microsoft Store 판을 준비합니다. Store 판은 Microsoft가 서명하므로 경고 없이 설치됩니다 ([docs/store.md](docs/store.md)).
+경고 없이 설치하려면 [Microsoft Store 판(Foldy File Manager)](https://apps.microsoft.com/detail/9NS1PWL5QGP6)을 쓰세요. Microsoft가 서명하므로 경고가 뜨지 않습니다 ([docs/store.md](docs/store.md)).
 
 서명을 하게 되면 실행 파일(`Foldy.exe`, `Foldy.*.dll`, `foldy-index.exe`, `foldy-update.exe`)과 MSI는 이 저장소의 소스에서 GitHub Actions([release.yml](.github/workflows/release.yml))로만 빌드하고, 릴리스마다 승인자가 직접 승인한 뒤에 서명합니다.
 업데이트 정보(`update.json`)는 지금도 Ed25519로 서명됩니다 ([docs/release-signing.md](docs/release-signing.md)).
