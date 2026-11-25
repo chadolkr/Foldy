@@ -61,8 +61,23 @@
 - B안: release.yml의 서명 단계를 Certum(SimplySign)용으로 바꾸고, Store 제출에는 GitHub Releases의 MSI 주소를 넣는다.
 - 공통: Store 소개 글·스크린샷·제출 칸별 값은 [store-listing/](store-listing/README.md), 개인정보 처리방침은 https://chadolkr.github.io/Foldy/privacy/.
 
+## PC 없이 제출 (휴대폰만으로, 2026-11-25)
+
+사용자 "모바일로 모든걸 해야하는 환경이야". `.github/workflows/store.yml`이 릴리스 실행의 `foldy-store-msix`를 받아 `build/store/submit-store.ps1`(Microsoft Store 제출 API)로 제출한다. Partner Center에서 하던 일과 같다: 새 제출 만들기(지난번 등록 정보·가격·시장 복사) → 예전 패키지 지우고 새 패키지 → `build/store/whats-new.json`으로 5개 언어 "이 버전의 새로운 기능" → 인증 제출. 진행 중인 제출이 이미 있으면 아무것도 바꾸지 않고 멈춘다.
+
+처음 한 번 (휴대폰 브라우저를 "데스크톱 사이트"로):
+1. Partner Center → 톱니바퀴 → 계정 설정 → **테넌트**: Microsoft Entra(옛 Azure AD)를 연결하거나 새로 만든다. (개인 개발자 계정에서 되는지는 문서에 없어 화면에서 확인.)
+2. 계정 설정 → **사용자 관리** → **Microsoft Entra 애플리케이션** → 새로 만들기. 이름 예: Foldy GitHub, 역할 **관리자(Manager)**.
+3. 만든 앱 화면의 **테넌트 ID**, **클라이언트 ID**를 복사하고, **새 키 추가**로 비밀 키를 만든다(한 번만 보인다).
+4. GitHub 저장소 → Settings → Secrets and variables → Actions → New repository secret: `STORE_TENANT_ID`, `STORE_CLIENT_ID`, `STORE_CLIENT_SECRET`. 이 값은 다른 곳(채팅·메모·저장소)에 적지 않는다.
+
+그다음부터: GitHub → Actions → **Store** → Run workflow → 버전(비우면 가장 최근 릴리스) → Run. 저장소 변수 `STORE_AUTO_SUBMIT`을 `true`로 두면 릴리스가 끝날 때마다 저절로 제출한다(처음 몇 번은 손으로 눌러 본 뒤).
+
+"이 버전의 새로운 기능"은 `build/store/whats-new.json`(ko·en·es·ja·zh-cn). 기능 변경판(둘째 자리)에서 바꾸고, Store 판에 없는 기능(빠른 찾기 도우미·단축키 도우미에 기대는 것)은 넣지 않는다.
+
 ## 출처
 
+- [Microsoft Store 제출 API](https://learn.microsoft.com/en-us/windows/uwp/monetize/create-and-manage-submissions-using-windows-store-services), [앱 제출 관리](https://learn.microsoft.com/en-us/windows/uwp/monetize/manage-app-submissions)
 - [개인 개발자 무료 등록 (Windows 블로그, 2025-09)](https://blogs.windows.com/windowsdeveloper/2025/09/10/free-developer-registration-for-individual-developers-on-microsoft-store/)
 - [개발자 계정 만들기](https://learn.microsoft.com/en-us/windows/apps/get-started/sign-up)
 - [MSI/EXE 제출](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/create-app-submission), [Win32 앱 Store 배포](https://learn.microsoft.com/en-us/windows/apps/distribute-through-store/how-to-distribute-your-win32-app-through-microsoft-store), [배포 경로 고르기](https://learn.microsoft.com/en-us/WINDOWS/APPS/package-and-deploy/choose-distribution-path)

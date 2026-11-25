@@ -1,0 +1,67 @@
+name: Store
+
+# Microsoft Store에 새 버전 제출 (사용자 2026-11-25: "모바일로 모든걸 해야하는 환경이야").
+# 휴대폰 GitHub 앱이나 브라우저: Actions → Store → Run workflow → (버전 비우면 가장 최근 릴리스) → Run.
+# 릴리스 실행이 만든 foldy-store-msix를 받아 build/store/submit-store.ps1로 제출한다. 설정 방법은 docs/store.md "PC 없이 제출".
+# 저장소 변수 STORE_AUTO_SUBMIT이 true면 Release가 끝날 때마다 저절로 제출한다 (처음에는 꺼 두고 손으로 눌러 본다).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '올릴 버전 태그 (예: v1.13.2). 비우면 가장 최근 릴리스'
+        required: false
+        default: ''
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read   # 릴리스 실행의 아티팩트 받기
+
+concurrency:
+  group: store
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (vars.STORE_AUTO_SUBMIT == 'true' && github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.head_branch, '-'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Find the release run
+        id: run
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_INPUT: ${{ inputs.tag }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          if ($env:RUN_ID) { "id=$env:RUN_ID" >> $env:GITHUB_OUTPUT; return }
+          $tag = $env:TAG_INPUT.Trim()
+          if (-not $tag) { $tag = (gh release view --repo '${{ github.repository }}' --json tagName | ConvertFrom-Json).tagName }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw "버전 태그 형식이 아니에요: $tag (예: v1.13.2)" }
+          $runs = gh run list --repo '${{ github.repository }}' --workflow release.yml --branch $tag --status success --limit 5 --json databaseId | ConvertFrom-Json
+          if (-not $runs) { throw "$tag 의 성공한 릴리스 실행이 없어요" }
+          Write-Host "$tag → 릴리스 실행 $($runs[0].databaseId)"
+          "id=$($runs[0].databaseId)" >> $env:GITHUB_OUTPUT
+
+      - name: Download Store package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download '${{ steps.run.outputs.id }}' --repo '${{ github.repository }}' --name foldy-store-msix --dir store-pkg
+
+      - name: Submit to Microsoft Store
+        shell: pwsh
+        env:
+          STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+          STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
+          STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
+        run: |
+          $msix = @(Get-ChildItem store-pkg -Filter *.msix -Recurse)
+          if ($msix.Count -ne 1) { throw "Store 패키지가 하나가 아니에요: $($msix.Count)개" }
+          ./build/store/submit-store.ps1 -Msix $msix[0].FullName
