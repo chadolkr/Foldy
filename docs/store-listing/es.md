@@ -20,6 +20,12 @@ Todo se explica con palabras sencillas, para que lo usen quienes empiezan y tamb
 Capturas de pantalla, una guía completa y las novedades de cada versión.
 
 
+💛 Fácil para todos: empieza por lo que incomoda
+• Los avisos, donde miras: con los años abarcamos menos pantalla de un vistazo. Por eso, cuando algo no se puede hacer, Foldy te dice por qué donde ya estás mirando: justo debajo del puntero o junto a donde escribes o a lo que elegiste.
+• Palabras sencillas, sin jerga: «lista de archivos» en vez de «índice», «tipo de archivo» en vez de «extensión».
+• Solo pregunta cuando importa: lo que se puede deshacer se hace al momento. Solo vuelve a preguntar antes de algo que no tiene vuelta atrás.
+• Listo sin aprender: botones grandes, los mismos gestos que el Explorador de archivos y activar y desactivar siempre en el mismo sitio.
+
 🔍 Buscar cualquier cosa (Ctrl+Espacio)
 • Con Foldy abierto, pulsa Ctrl+Espacio en cualquier ventana y aparece un cuadro de búsqueda grande.
 • Archivos, aplicaciones, configuración de Windows, Panel de control y cálculos, todo en un solo cuadro.

@@ -148,6 +148,18 @@ const es: Dictionary = {
       { icon: 'code', title: 'Extras para desarrolladores', text: 'El estado de Git aparece al entrar en un repositorio, los servidores SFTP y SSH se abren como pestañas y Foldy encuentra carpetas de compilación que se pueden borrar.' },
     ],
   },
+  principles: {
+    eyebrow: "Fácil para todos",
+    title: "Empieza por lo que incomoda",
+    lead: "Creemos que el diseño debe empezar por resolver lo que a la gente le resulta incómodo. Por eso Foldy está hecho para que cualquiera, también los abuelos, lo use sin manual.",
+    link: "Ver todos los principios de diseño (en coreano)",
+    items: [
+      { icon: "pointer", title: "Los avisos, donde miras", pain: "Con los años abarcamos menos pantalla de un vistazo. Un aviso al pie de la ventana pasa desapercibido.", text: "Cuando algo no se puede hacer, Foldy te dice por qué donde ya estás mirando: justo debajo del puntero o, si usas el teclado, junto a donde escribes o a lo que elegiste." },
+      { icon: "speech", title: "Palabras sencillas, sin jerga", pain: "Palabras como «índice» o «extensión» desorientan la primera vez.", text: "Foldy dice «lista de archivos» y «tipo de archivo», palabras que todo el mundo entiende. Y con un tono amable." },
+      { icon: "ask", title: "Solo pregunta cuando importa", pain: "Si las ventanas de confirmación salen a cada rato, acabas pulsando «Sí» sin leer.", text: "Lo que se puede deshacer se hace al momento. Foldy solo vuelve a preguntar antes de algo que no tiene vuelta atrás, como borrar para siempre." },
+      { icon: "heart", title: "Listo sin aprender", pain: "Si hace falta leer un manual para usarlo, ya es demasiado difícil.", text: "Botones grandes, los mismos gestos que el Explorador de archivos y activar y desactivar siempre en el mismo sitio. Se usa desde el primer momento." },
+    ],
+  },
   ai: {
     eyebrow: 'Una cosa más',
     title: 'Y aún mejor si lo conectas a tu IA',
