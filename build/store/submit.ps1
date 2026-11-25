@@ -104,21 +104,37 @@ if ($answer.StatusCode -ne 200) { throw "앱 $ProductId 을(를) 읽지 못함: 
 $pending = ($answer.Content | ConvertFrom-Json).pendingApplicationSubmission
 Write-Host "앱 확인: $ProductId, 열려 있는 초안 $(if ($pending) { '있음 (새로 만들면 지워져요)' } else { '없음' })"
 
-function Invoke-Store([string] $what, [scriptblock] $run) {
-    $out = & $run
-    if ($LASTEXITCODE -ne 0) { throw "$what 실패 (exit $LASTEXITCODE)" }
-    return $out
+# 공개 로그에 초안을 바꿀 수 있는 주소(FileUploadUrl의 SAS 서명)가 남지 않게 한다.
+# msstore의 submission get/update는 초안 JSON을 통째로 찍으므로 절대 그대로 내보내지 않는다
+function Hide-Secret([string] $line) {
+    if ($line -match 'FileUploadUrl|blob\.core\.windows\.net|[?&]sig=|skoid') { return '(가림: 올리기 주소)' }
+    return $line
 }
+function Invoke-Store([string] $what, [scriptblock] $run) {
+    $all = @(& $run 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        # 까닭을 볼 수 있게 끝의 짧은 줄만. 초안 JSON은 빼고 주소는 가린다
+        $text = @($all | ForEach-Object { "$_" })
+        if ($text -match 'FileUploadUrl') { $text = @('(초안 내용이 들어 있어 찍지 않음)') } # 줄이 나뉘어도 새지 않게
+        $text | Where-Object { $_ -notmatch '^\s*["{}\[\]]' } | Select-Object -Last 15 | ForEach-Object { Write-Host (Hide-Secret $_) }
+        throw "$what 실패 (exit $LASTEXITCODE)"
+    }
+    return @($all | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] } | ForEach-Object { "$_" }) # 오류 줄이 JSON에 섞이지 않게
+}
+function Show-Store([string[]] $lines) { $lines | ForEach-Object { Write-Host (Hide-Secret $_) } }
 
 # 2) 초안 만들기 (이미 열린 초안이 있으면 마지막으로 공개된 제출에서 새로 만든다)
 $null = Invoke-Store '인증 설정' { msstore reconfigure --tenantId $env:STORE_TENANT_ID --sellerId $env:STORE_SELLER_ID --clientId $env:STORE_CLIENT_ID --clientSecret $env:STORE_CLIENT_SECRET }
-Invoke-Store '패키지 올리기' { msstore publish $Msix -id $ProductId --noCommit } | Out-Host
+Show-Store (Invoke-Store '패키지 올리기' { msstore publish $Msix -id $ProductId --noCommit })
 
 # 3) 새로운 기능 글. 명령줄 길이 제한(약 32,000자)을 넘으면 글은 사람이 고치도록 초안으로 남긴다
 $raw = (Invoke-Store '초안 읽기' { msstore submission get $ProductId }) -join "`n"
 $start = $raw.IndexOf('{')
 if ($start -lt 0) { throw '초안 내용을 알아볼 수 없음. 초안은 남아 있으니 Partner Center에서 확인해 주세요' }
 $submission = $raw.Substring($start, $raw.LastIndexOf('}') - $start + 1) | ConvertFrom-Json -Depth 100
+if ($env:GITHUB_ACTIONS -and $submission.FileUploadUrl) { Write-Host "::add-mask::$($submission.FileUploadUrl)" }
+foreach ($package in $submission.ApplicationPackages) { Write-Host "패키지 $($package.FileName) : $($package.FileStatus)" }
+Write-Host "가격 $($submission.Pricing.PriceId), 분류 $($submission.ApplicationCategory), 언어 $(@($submission.Listings.PSObject.Properties.Name) -join ', ')"
 $missing = @()
 foreach ($lang in $notes.Keys) {
     $listing = $submission.Listings.PSObject.Properties | Where-Object { $_.Name -eq $lang } | Select-Object -First 1
@@ -129,7 +145,8 @@ $notesDone = $false
 if ($missing.Count -gt 0) { Write-Warning "등록 정보에 없는 언어: $($missing -join ', ')" }
 elseif ($json.Length -gt 30000) { Write-Warning "초안이 커서($($json.Length)자) 글을 자동으로 바꾸지 못함" }
 else {
-    Invoke-Store '글 바꾸기' { msstore submission update $ProductId $json } | Out-Host
+    $null = Invoke-Store '글 바꾸기' { msstore submission update $ProductId $json }
+    Write-Host '새로운 기능 글을 바꿈'
     $notesDone = $true
 }
 
@@ -138,11 +155,11 @@ if (-not $notesDone) { $summary += ' "이 버전의 새로운 기능" 글은 바
 
 # 4) 인증에 내기
 if ($Mode -eq 'submit' -and $notesDone) {
-    Invoke-Store '인증에 내기' { msstore submission publish $ProductId } | Out-Host
+    Show-Store (Invoke-Store '인증에 내기' { msstore submission publish $ProductId })
     $summary = "Foldy $Version 를 인증에 냈어요. 통과하면 Store에 공개돼요."
 }
 elseif ($Mode -eq 'submit') { $summary += ' 그래서 인증에 내지 않았어요.' }
-else { $summary += ' 초안만 만들었고 인증에 내지 않았어요. Partner Center에서 확인하고 제출하거나, mode를 submit으로 다시 실행해 주세요.' }
+else { $summary += ' 초안만 만들었고 인증에 내지 않았어요. Partner Center에서 보기만 하고(고치면 API로 제출할 수 없어요), 괜찮으면 mode를 submit으로 다시 실행해 주세요.' }
 Write-Host $summary
 if ($env:GITHUB_STEP_SUMMARY) { Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $summary -Encoding utf8 }
 if ($Mode -eq 'submit' -and -not $notesDone) { exit 1 }
