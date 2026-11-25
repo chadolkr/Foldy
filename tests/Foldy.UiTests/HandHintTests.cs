@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Text.Json;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 using FlaUI.Core.Input;
@@ -15,75 +14,51 @@ namespace Foldy.UiTests;
 [Collection("ui")]
 public sealed class HandHintTests
 {
+    /// <summary>
+    /// 마우스로 누른 단추가 안 될 때(파일을 고르지 않고 [F5 복사]) 이유가 아래 상태 칸이 아니라 마우스 포인터 바로 옆에 보인다.
+    /// 끌어 놓기도 같은 자리(CursorHint)를 쓴다. 시험 PC에서는 프로그램으로 흉내 낸 끌기가 Windows 끌기로 이어지지 않아,
+    /// 끌어 놓기 규칙은 DropRulesTests로, 자리는 이 시험으로 확인한다.
+    /// </summary>
     [Fact]
-    public void Dragging_onto_the_same_folder_shows_why_right_under_the_cursor()
+    public void Why_a_clicked_button_did_nothing_shows_right_next_to_the_pointer()
     {
-        using var app = FoldyApp.Start(prepare: a =>
-        {
-            // 두 창 모두 같은 샘플 폴더를 연 채로 시작한다
-            var tab = new { kind = "folder", path = a.Sample };
-            var pane = new { tabs = new[] { tab }, activeIndex = 0 };
-            File.WriteAllText(Path.Combine(a.DataDir, "session.json"), JsonSerializer.Serialize(new { schemaVersion = 1, left = pane, right = pane, active = "left" }));
-        });
-
-        // 시험 PC 화면은 작아서 창 일부가 화면 밖에 있을 수 있다: 최대화해 두 목록이 모두 화면 안에 오게
-        app.Main.Patterns.Window.Pattern.SetWindowVisualState(WindowVisualState.Maximized);
-        Thread.Sleep(500);
-
-        AutomationElement[] Lists() => app.Main.FindAllDescendants(app.By.ByClassName("FastFileList")).OrderBy(l => l.BoundingRectangle.Left).ToArray();
-        Retry.WhileFalse(() => Lists().Length == 2, TimeSpan.FromSeconds(15), ignoreException: true);
-        var lists = Lists();
-        lists.Should().HaveCount(2, "두 창에 파일 목록이 있다");
-        var (left, right) = (lists[0], lists[1]);
-
-        var row = ClickFirstRow(left);
-        row.Should().NotBeNull("왼쪽 창에서 메모.txt 줄을 찾아야 한다");
-
-        // 끌기 시작 → 오른쪽 창 가운데로
-        var target = new Point(right.BoundingRectangle.Left + right.BoundingRectangle.Width / 2, right.BoundingRectangle.Top + right.BoundingRectangle.Height / 2);
-        // 줄을 고른 클릭과 끌기 시작이 두 번 누르기(=파일 열기)로 합쳐지지 않게 두 번 누르기 시간보다 오래 기다린다
-        Thread.Sleep(1000); // Windows 기본 두 번 누르기 시간은 500ms
-        Mouse.MoveTo(row!.Value);
-        Mouse.Down(MouseButton.Left);
+        var empty = Path.Combine(Path.GetTempPath(), "foldy-hint-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(empty); // 빈 폴더: 고른 파일이 없다
         try
         {
-            for (var i = 1; i <= 20; i++)
-            {
-                Mouse.MoveTo(new Point(row.Value.X + (target.X - row.Value.X) * i / 20, row.Value.Y + (target.Y - row.Value.Y) * i / 20));
-                Thread.Sleep(30);
-            }
+            using var app = FoldyApp.Start(openPath: empty);
+            app.Main.Patterns.Window.Pattern.SetWindowVisualState(WindowVisualState.Maximized);
+            var copy = Retry.WhileNull(
+                () => app.Main.FindAllDescendants(app.By.ByControlType(ControlType.Button)).FirstOrDefault(b => b.Name.StartsWith("F5", StringComparison.Ordinal)),
+                TimeSpan.FromSeconds(15), ignoreException: true).Result;
+            copy.Should().NotBeNull("[F5 복사] 단추가 있다");
+            var point = copy!.GetClickablePoint();
+            Mouse.Click(point);
 
-            Mouse.MoveTo(new Point(target.X + 3, target.Y + 3)); // 놓을 곳 위에서 한 번 더 움직여 DragOver를 받게
             var hint = Retry.WhileNull(() => FindHint(app), TimeSpan.FromSeconds(10), ignoreException: true).Result;
+            hint.Should().NotBeNull("안 되는 이유가 누른 자리에 보여야 한다. 진단: " + Describe(app));
+            hint!.Name.Should().Be("먼저 파일을 골라 주세요");
 
-            hint.Should().NotBeNull("놓을 수 없는 이유가 커서 아래에 보여야 한다. 진단: " + Describe(app));
-            hint!.Name.Should().Be("이미 이 폴더에 있어요");
-
-            // 커서 바로 아래: 커서보다 아래이고, 너무 멀지 않다
-            var cursor = Mouse.Position;
+            // 포인터 바로 옆(아래, 화면 아래쪽이면 위)이고 포인터를 가리지 않는다
             var box = hint.BoundingRectangle;
-            box.Top.Should().BeGreaterThan(cursor.Y, "커서를 가리지 않게 아래에");
-            (box.Top - cursor.Y).Should().BeLessThan(120, "커서 바로 아래");
-            Math.Abs(box.Left - cursor.X).Should().BeLessThan(80, "커서 옆");
+            box.Contains(point).Should().BeFalse("포인터를 가리지 않게");
+            Math.Min(Math.Abs(box.Top - point.Y), Math.Abs(box.Bottom - point.Y)).Should().BeLessThan(60, "포인터 바로 옆");
+            Math.Abs(box.Left - point.X).Should().BeLessThan(120, "포인터 옆");
+
+            Mouse.Click(new Point(point.X, point.Y - 200)); // 다른 곳을 누르면 사라진다
+            Retry.WhileFalse(() => FindHint(app) is null, TimeSpan.FromSeconds(5), ignoreException: true).Result.Should().BeTrue("다른 곳을 누르면 안내가 사라져야 한다");
         }
         finally
         {
-            Keyboard.Press(VirtualKeyShort.ESCAPE); // 끌기 그만두기
-            Mouse.Up(MouseButton.Left);
+            try
+            {
+                Directory.Delete(empty, true);
+            }
+            catch (IOException)
+            {
+            }
         }
-
-        // 그만두면 안내가 사라진다
-        Retry.WhileFalse(
-            () => FindHint(app) is null,
-            TimeSpan.FromSeconds(5), ignoreException: true).Result.Should().BeTrue("끌기를 그만두면 안내가 사라져야 한다");
-        File.Exists(Path.Combine(app.Sample, "메모.txt")).Should().BeTrue("아무것도 옮기지 않는다");
     }
-
-    /// <summary>커서 안내는 Foldy가 띄운 작은 팝업 창 안에 있다 (주 창 밖).</summary>
-    private static AutomationElement? FindHint(FoldyApp app) =>
-        app.Automation.GetDesktop().FindAllChildren(app.By.ByProcessId(app.App.ProcessId))
-            .Select(w => w.FindFirstDescendant(app.By.ByAutomationId("CursorHint")))
-            .FirstOrDefault(h => h is not null);
 
     /// <summary>
     /// 이름을 바꾸다 안 되면(쓸 수 없는 글자) 이유가 아래 상태 칸이 아니라 대상(이름을 바꾸던 줄) 바로 아래에 보인다 (키보드로 했을 때).

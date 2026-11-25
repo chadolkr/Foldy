@@ -50,7 +50,7 @@ public static class CursorHint
         }
 
         var at = e.GetPosition(win);
-        Place(win, at.X + OffsetX, at.Y + OffsetY, title, tip);
+        Place(win, at.X + OffsetX, at.Y + OffsetY, at.Y - 6, title, tip);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public static class CursorHint
             var pointer = Mouse.GetPosition(win);
             if (pointer.X >= 0 && pointer.Y >= 0 && pointer.X <= win.ActualWidth && pointer.Y <= win.ActualHeight)
             {
-                Place(win, pointer.X + OffsetX, pointer.Y + OffsetY, text, null);
+                Place(win, pointer.X + OffsetX, pointer.Y + OffsetY, pointer.Y - 6, text, null);
                 StartAutoHide(text);
                 return true;
             }
@@ -90,8 +90,10 @@ public static class CursorHint
             var rect = focused is FastFileList list && list.FocusedRowRect is { } row
                 ? row
                 : new Rect(0, 0, focused.ActualWidth, Math.Min(focused.ActualHeight, 40));
-            var at = focused.TranslatePoint(new Point(Math.Min(rect.Left + 24, Math.Max(0, focused.ActualWidth - 40)), Math.Clamp(rect.Bottom, 0, focused.ActualHeight) + 2), win);
-            Place(win, at.X, at.Y, text, null);
+            var x = Math.Min(rect.Left + 24, Math.Max(0, focused.ActualWidth - 40));
+            var at = focused.TranslatePoint(new Point(x, Math.Clamp(rect.Bottom, 0, focused.ActualHeight) + 2), win);
+            var top = focused.TranslatePoint(new Point(x, Math.Clamp(rect.Top, 0, focused.ActualHeight) - 2), win);
+            Place(win, at.X, at.Y, top.Y, text, null);
             StartAutoHide(text);
             return true;
         }
@@ -108,11 +110,15 @@ public static class CursorHint
         }
     }
 
-    private static void Place(UIElement over, double x, double y, string title, string? tip)
+    /// <summary>
+    /// <paramref name="belowY"/>(포인터·대상 바로 아래)에 띄운다. 창 아래쪽이라 넘치면 <paramref name="aboveBottomY"/>(포인터·대상 바로 위)에 바닥을 맞춰 위로 띄운다
+    /// (Windows가 화면 안으로 밀어 올리다 포인터를 가리지 않게).
+    /// </summary>
+    private static void Place(Window over, double x, double belowY, double aboveBottomY, string title, string? tip)
     {
         var popup = _popup ??= Create();
         // 팝업은 창 밖이라 창의 화면 크기 배율이 닿지 않으므로 같은 배율을 직접 준다
-        _border!.LayoutTransform = Window.GetWindow(over)?.Content is FrameworkElement { LayoutTransform: { } scale } && !scale.Value.IsIdentity
+        _border!.LayoutTransform = over.Content is FrameworkElement { LayoutTransform: { } scale } && !scale.Value.IsIdentity
             ? scale
             : System.Windows.Media.Transform.Identity;
         _title!.Text = title;
@@ -125,7 +131,10 @@ public static class CursorHint
             popup.PlacementTarget = over;
         }
 
-        popup.HorizontalOffset = x;
+        _border!.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var size = _border.DesiredSize;
+        var y = belowY + size.Height > over.ActualHeight - 8 && aboveBottomY - size.Height >= 0 ? aboveBottomY - size.Height : belowY;
+        popup.HorizontalOffset = Math.Max(0, Math.Min(x, over.ActualWidth - size.Width - 8));
         popup.VerticalOffset = y;
         var wasOpen = popup.IsOpen;
         popup.IsOpen = true;
