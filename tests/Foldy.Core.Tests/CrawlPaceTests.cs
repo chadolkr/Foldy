@@ -88,6 +88,36 @@ public sealed class CrawlPaceTests
     }
 
     [Fact]
+    public void Far_drive_that_answers_one_at_a_time_is_not_asked_many_at_once()
+    {
+        // 요청을 하나씩만 받는 드라이브: 같이 읽어도 묶음 시간이 폴더 수만큼 늘 뿐이다. 넓혀 봐야 짐만 되니 하나씩 읽는다
+        var pace = new CrawlPace(near: false, minPause: Ms(1));
+        var widths = new List<int>();
+        for (var i = 0; i < 300; i++)
+        {
+            var w = pace.Width;
+            pace.After(Ms(100 * w), w, Ms(100 * (w + 1) / 2.0));
+            widths.Add(pace.Width);
+        }
+
+        Assert.True(widths.Skip(100).Average() < 1.5, $"평균 {widths.Skip(100).Average()}개씩 같이 읽음");
+    }
+
+    [Fact]
+    public void Each_ask_waiting_its_turn_is_not_taken_for_a_slow_drive_when_the_whole_gets_faster()
+    {
+        // 같이 읽으면 요청 하나하나는 늦게 끝나도(줄 서기) 폴더 하나에 드는 실제 시간은 준다: 느려졌다고 보고 줄이면 안 된다
+        var pace = new CrawlPace(near: false, minPause: Ms(1));
+        for (var i = 0; i < 100; i++)
+        {
+            var w = pace.Width;
+            pace.After(Ms(100 + (10 * w)), w, Ms(100 * w)); // 요청은 w배 늦지만 묶음은 거의 그대로
+        }
+
+        Assert.Equal(SlowCrawler.MaxWidth, pace.Width);
+    }
+
+    [Fact]
     public void Reading_gives_way_to_other_programs_and_returns_to_normal_after()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows 전용");

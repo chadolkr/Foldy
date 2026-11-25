@@ -1720,6 +1720,7 @@
   "sw.drv.idle": "検索リストの作成を休止中",
   "sw.drv.indexing": "検索の準備中 {0}%",
   "sw.drv.none": "まだ準備していません · 開いたフォルダー内だけ探します",
+  "sw.drv.paused": "作業が終わったら続けます · {0:N0} 件",
   "sw.drv.preparing": "検索の準備中",
   "sw.drv.ready": "検索の準備完了",
   "sw.drv.soon": "まもなく検索の準備を始めます",
