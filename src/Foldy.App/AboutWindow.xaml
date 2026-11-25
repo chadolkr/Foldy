@@ -19,6 +19,10 @@
         <TextBlock x:Name="VersionText" Margin="0,2,0,8" />
         <TextBlock Text="{loc:T about.developer}" />
         <TextBlock Margin="0,2,0,0">
+          <Run Text="{loc:T about.site}" />
+          <Hyperlink x:Name="SiteLink" RequestNavigate="OnNavigate" AutomationProperties.Name="{loc:T about.site.name}"><Run x:Name="SiteText" /></Hyperlink>
+        </TextBlock>
+        <TextBlock Margin="0,2,0,0">
           <Run Text="{loc:T about.project}" />
           <Hyperlink NavigateUri="https://github.com/chadolkr/Foldy" RequestNavigate="OnNavigate">https://github.com/chadolkr/Foldy</Hyperlink>
         </TextBlock>

@@ -86,6 +86,7 @@
               <ContextMenu x:Name="HelpMenu">
                 <MenuItem Header="{loc:T shell.help.shorts}" Click="OnShorts" />
                 <MenuItem Header="{loc:T shell.help.manual}" InputGestureText="F1" Click="OnHelp" />
+                <MenuItem Header="{loc:T shell.help.site}" Click="OnProductSite" />
               </ContextMenu>
             </Button.ContextMenu>
           </Button>
@@ -117,6 +118,7 @@
               <MenuItem Header="{loc:T shell.settingsMenu}" InputGestureText="Ctrl+," Click="OnSettings" />
               <MenuItem Header="{loc:T shell.openSettingsFile}" Click="OnOpenSettings" />
               <MenuItem Header="{loc:T shell.help}" InputGestureText="F1" Click="OnHelp" />
+              <MenuItem Header="{loc:T shell.help.site}" Click="OnProductSite" />
               <MenuItem Header="{loc:T shell.checkUpdate}" Click="OnCheckUpdate" />
               <MenuItem Header="{loc:T shell.aiConnect}" Click="OnMcp" />
               <MenuItem Header="{loc:T shell.reportBug}" Click="OnReportBug" />

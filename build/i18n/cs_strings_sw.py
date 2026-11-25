@@ -66,6 +66,7 @@ SW = [
     ('sw.c.quickSearch', '빠른 검색 (기능·파일)', 'Quick search (features and files)', 'Búsqueda rápida (funciones y archivos)', 'クイック検索 (機能・ファイル)', '快速搜索（功能和文件）'),
     ('sw.c.help', '도움말 (사용 설명서)', 'Help (user guide)', 'Ayuda (guía de uso)', 'ヘルプ (使い方)', '帮助（用户指南）'),
     ('sw.c.tour', '둘러보기 (처음 안내 다시 보기)', 'Tour (show the welcome guide again)', 'Recorrido (ver de nuevo la guía inicial)', 'ツアー (最初の案内をもう一度)', '导览（重新查看入门指南）'),
+    ('sw.c.site', 'Foldy 소개 페이지 열기 (웹)', 'Open the Foldy website', 'Abrir el sitio web de Foldy', 'Foldy の紹介ページを開く (Web)', '打开 Foldy 介绍页面（网页）'),
     ('sw.c.settings', '설정…', 'Settings…', 'Configuración…', '設定…', '设置…'),
     ('sw.c.bug', '문제 알리기…', 'Report a bug…', 'Informar de un error…', 'バグを報告…', '报告错误…'),
     ('sw.c.emptyBin', '휴지통 비우기…', 'Empty Recycle Bin…', 'Vaciar la papelera…', 'ごみ箱を空にする…', '清空回收站…'),
