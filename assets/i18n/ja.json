@@ -1638,6 +1638,8 @@
   "sw.analysis.pick": "分析するフォルダーを選んでください",
   "sw.analysis.title": "フォルダー分析",
   "sw.analysis.where": "どこを分析しますか? 何が容量を使っているかを大きな四角の図でお見せします。",
+  "sw.bg.gather.text": "リストができたら自動で終了します。ここをクリックするとウィンドウが開きます。",
+  "sw.bg.gather.title": "Foldy はドライブのリスト作りを続けます",
   "sw.bin": "ごみ箱",
   "sw.bin.emptied": "ごみ箱を空にしました ({0} 解放)",
   "sw.bin.empty": "ごみ箱を空にする",

@@ -1638,6 +1638,8 @@
   "sw.analysis.pick": "选择要分析的文件夹",
   "sw.analysis.title": "文件夹分析",
   "sw.analysis.where": "要分析哪里？会用方块图展示是什么占用了空间。",
+  "sw.bg.gather.text": "列表建立完成后会自动退出。点击这里可重新打开窗口。",
+  "sw.bg.gather.title": "Foldy 会继续建立驱动器列表",
   "sw.bin": "回收站",
   "sw.bin.emptied": "已清空回收站（释放 {0}）",
   "sw.bin.empty": "清空回收站",

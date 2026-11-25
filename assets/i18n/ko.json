@@ -1638,6 +1638,8 @@
   "sw.analysis.pick": "분석할 폴더를 골라 주세요",
   "sw.analysis.title": "폴더 분석",
   "sw.analysis.where": "어디를 분석할까요? 무엇이 공간을 차지하는지 큰 상자 그림으로 보여 드려요.",
+  "sw.bg.gather.text": "창을 닫아도 다 모으면 저절로 꺼져요. 여기를 누르면 창이 다시 열려요.",
+  "sw.bg.gather.title": "Foldy가 드라이브 목록을 이어서 모아요",
   "sw.bin": "휴지통",
   "sw.bin.emptied": "휴지통을 비워서 {0}가 생겼어요",
   "sw.bin.empty": "휴지통 비우기",

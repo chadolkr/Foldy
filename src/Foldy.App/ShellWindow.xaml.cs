@@ -200,6 +200,13 @@ public partial class ShellWindow : Window, IPaneHost
         PreviewKeyDown += OnWindowKeyDown;
         Loaded += OnLoaded;
         Closing += OnClosing;
+        // Windows를 끄거나 로그아웃할 때, Foldy 전체를 끝낼 때는 숨기지 않고 정말 끝낸다
+        Application.Current.SessionEnding += (_, _) => _reallyClose = true;
+        Closed += (_, _) =>
+        {
+            _reallyClose = true;
+            OnClosing(this, new CancelEventArgs()); // 숨기기를 무시하고 닫혔으면(앱 전체 끝내기) 정리는 여기서
+        };
         SourceInitialized += (_, _) =>
         {
             _hwndSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
@@ -1043,6 +1050,81 @@ public partial class ShellWindow : Window, IPaneHost
 
     private bool _closedDown;
 
+    /// <summary>창을 닫아도 모으기를 이어 가는 중 (창은 숨기고, 다 모으면 스스로 끝난다).</summary>
+    private bool _gatheringHidden;
+
+    /// <summary>정말로 끝낸다: 숨겨서 모으기를 건너뛴다 (다 모았을 때, Windows 끄기·로그아웃).</summary>
+    private bool _reallyClose;
+
+    private System.Windows.Threading.DispatcherTimer? _gatherWatch;
+
+    /// <summary>
+    /// 아직 다 모으지 못한 드라이브가 있나: 모으는 중, 차례를 기다리는 중, 끊긴 곳이 남은 것, 한 번도 다 모으지 못한 것.
+    /// 읽을 수 없는 드라이브(오류)는 기다리지 않는다.
+    /// </summary>
+    private bool GatheringLeft()
+    {
+        if (_crawler is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return _crawler.Current() is not null || CrawlDrives().Any(d =>
+                _crawler.IsRequested(d)
+                || _crawler.HasUnfinished(d)
+                || (!_crawler.StoreFor(d).Exists && _crawler.StatusOf(d)?.Error is null));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 창을 닫았는데 느린 드라이브 목록을 아직 다 모으지 못했으면 창만 숨기고 이어서 모은다 (사용자 2026-11-25 "백그라운드로 수집하게 변경해줘").
+    /// 다 모으면 스스로 끝난다. 알림을 누르거나 Foldy를 다시 켜면 창이 다시 뜬다.
+    /// Windows 서비스(FoldyIndexer)는 시스템 계정이라 로그인한 사람의 네트워크·클라우드 드라이브를 못 보므로 서비스로 옮기지 않는다.
+    /// </summary>
+    private bool TryKeepGathering()
+    {
+        if (_reallyClose || !_shown || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 } || !GatheringLeft())
+        {
+            return false; // 시험용 실행(FOLDY_DATA_DIR)은 늘 바로 끝낸다
+        }
+
+        SaveSession(Shell.Capture(null, double.NaN));
+        SaveQuickAccess();
+        Hide();
+        if (!_gatheringHidden)
+        {
+            _gatheringHidden = true;
+            Log.Information("창을 닫았지만 드라이브 목록을 다 모을 때까지 뒤에서 이어서 합니다");
+            TrayNotice.Show(Foldy.Core.Localization.Loc.T("sw.bg.gather.title"), Foldy.Core.Localization.Loc.T("sw.bg.gather.text"), () => Dispatcher.BeginInvoke(BringToFront));
+        }
+
+        _gatherWatch ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(30), System.Windows.Threading.DispatcherPriority.Background, (_, _) =>
+        {
+            if (IsVisible)
+            {
+                _gatherWatch?.Stop(); // 다시 창을 열었다: 이제는 사용자가 닫을 때 다시 본다
+                _gatheringHidden = false;
+                return;
+            }
+
+            if (!GatheringLeft() && !Shell.Jobs.Any(j => !j.IsFinished))
+            {
+                _gatherWatch?.Stop();
+                Log.Information("드라이브 목록을 다 모아 Foldy를 끝냅니다");
+                _reallyClose = true;
+                Close();
+            }
+        }, Dispatcher);
+        _gatherWatch.Start();
+        return true;
+    }
+
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         if (_closedDown)
@@ -1050,7 +1132,14 @@ public partial class ShellWindow : Window, IPaneHost
             return;
         }
 
+        if (!e.Cancel && TryKeepGathering())
+        {
+            e.Cancel = true;
+            return;
+        }
+
         _closedDown = true;
+        _gatherWatch?.Stop();
         _crawler?.Dispose();
         SaveSession(Shell.Capture(null, double.NaN)); // 한 번도 보이지 않은 창(찾기 창만)은 SaveSession이 건너뛴다
         _quickSave.Stop();

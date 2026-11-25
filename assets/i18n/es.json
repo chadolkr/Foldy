@@ -1638,6 +1638,8 @@
   "sw.analysis.pick": "Elige la carpeta que quieres analizar",
   "sw.analysis.title": "Análisis de carpetas",
   "sw.analysis.where": "¿Qué analizo? Te mostraré qué ocupa espacio con un mapa de cajas.",
+  "sw.bg.gather.text": "Se cierra sola cuando termine la lista. Haz clic aquí para volver a abrir la ventana.",
+  "sw.bg.gather.title": "Foldy sigue preparando la lista de la unidad",
   "sw.bin": "Papelera",
   "sw.bin.emptied": "Papelera vaciada ({0} liberados)",
   "sw.bin.empty": "Vaciar la papelera",

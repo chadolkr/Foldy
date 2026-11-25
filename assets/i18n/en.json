@@ -1638,6 +1638,8 @@
   "sw.analysis.pick": "Choose a folder to analyze",
   "sw.analysis.title": "Folder analysis",
   "sw.analysis.where": "What should I analyze? I'll show what takes up space as a map of boxes.",
+  "sw.bg.gather.text": "It closes on its own when the list is done. Click here to open the window again.",
+  "sw.bg.gather.title": "Foldy keeps building the drive list",
   "sw.bin": "Recycle Bin",
   "sw.bin.emptied": "Emptied the Recycle Bin ({0} freed)",
   "sw.bin.empty": "Empty Recycle Bin",
