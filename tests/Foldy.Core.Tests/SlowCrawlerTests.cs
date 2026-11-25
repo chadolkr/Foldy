@@ -415,7 +415,7 @@ public sealed class SlowCrawlerTests : IDisposable
             Assert.Skip("Windows 전용");
         }
 
-        Make(@"진짜.txt");
+        Make(@"진짜\a.txt");
         var link = Path.Combine(_root, "링크");
         using (var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{Path.Combine(_root, "진짜")}\"") { CreateNoWindow = true, UseShellExecute = false })!)
         {
