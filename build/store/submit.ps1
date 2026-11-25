@@ -57,8 +57,52 @@ foreach ($lang in $languages.Keys) {
 if ($CheckOnly) { Write-Host '확인만 하고 끝냄'; return }
 
 foreach ($name in 'STORE_TENANT_ID', 'STORE_SELLER_ID', 'STORE_CLIENT_ID', 'STORE_CLIENT_SECRET') {
-    if (-not [Environment]::GetEnvironmentVariable($name)) { throw "$name 시크릿이 없음 (docs/store.md)" }
+    $value = [Environment]::GetEnvironmentVariable($name)
+    if (-not $value -or -not $value.Trim()) { throw "$name 시크릿이 없음 (docs/store.md)" }
+    $trimmed = $value.Trim()
+    if ($trimmed -cne $value) {
+        # 휴대폰에서 붙여 넣으면 빈칸·줄바꿈이 따라온다. 다듬은 값도 로그에서 가린다
+        Write-Host "$name 앞뒤의 빈칸을 빼고 써요"
+        if ($env:GITHUB_ACTIONS) { Write-Host "::add-mask::$trimmed" }
+        [Environment]::SetEnvironmentVariable($name, $trimmed)
+    }
 }
+
+# 값의 모양을 먼저 본다 (값은 절대 찍지 않는다). 비슷하게 생긴 다른 값을 넣기 쉽다
+$guid = '^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$'
+$wrong = @()
+if ($env:STORE_TENANT_ID -notmatch $guid) { $wrong += 'STORE_TENANT_ID: 디렉터리(테넌트) ID 모양이 아님' }
+if ($env:STORE_CLIENT_ID -notmatch $guid) { $wrong += 'STORE_CLIENT_ID: 애플리케이션(클라이언트) ID 모양이 아님' }
+if ($env:STORE_SELLER_ID -notmatch '^\d{1,9}$') { $wrong += 'STORE_SELLER_ID: 판매자 ID(숫자)가 아님' }
+if ($env:STORE_CLIENT_SECRET -match $guid) { $wrong += 'STORE_CLIENT_SECRET: "비밀 ID"로 보임. "값"을 넣어야 함' }
+if ($env:STORE_TENANT_ID -eq $env:STORE_CLIENT_ID) { $wrong += 'STORE_TENANT_ID와 STORE_CLIENT_ID가 같음' }
+if ($wrong.Count -gt 0) { throw "시크릿 값의 모양이 다름`n  $($wrong -join "`n  ")" }
+
+# 토큰을 직접 받아 본다. msstore는 까닭을 알려 주지 않아서 오류 번호(AADSTS…)만 골라 찍는다 (설명에는 ID가 들어 있다)
+$hints = @{
+    'AADSTS7000215' = 'STORE_CLIENT_SECRET이 맞지 않음 ("비밀 ID"가 아니라 "값"인지, 다른 앱의 값이 아닌지)'
+    'AADSTS7000222' = 'STORE_CLIENT_SECRET 기한이 지남 (새 비밀을 만들어 바꾸기)'
+    'AADSTS700016'  = 'STORE_CLIENT_ID의 앱이 STORE_TENANT_ID 테넌트에 없음 (개체 ID가 아니라 클라이언트 ID인지)'
+    'AADSTS90002'   = 'STORE_TENANT_ID의 테넌트가 없음'
+    'AADSTS500011'  = '테넌트에 이 API가 아직 없음 (앱 값의 문제는 아님)'
+}
+function Get-StoreToken([string] $resource) {
+    $answer = Invoke-WebRequest -Method Post -Uri "https://login.microsoftonline.com/$env:STORE_TENANT_ID/oauth2/v2.0/token" -SkipHttpErrorCheck -Body @{
+        grant_type = 'client_credentials'; client_id = $env:STORE_CLIENT_ID; client_secret = $env:STORE_CLIENT_SECRET; scope = "$resource/.default"
+    }
+    if ($answer.StatusCode -eq 200) { return ($answer.Content | ConvertFrom-Json).access_token }
+    $code = [regex]::Match([string] $answer.Content, 'AADSTS\d+').Value
+    throw "로그인 실패 ($resource): HTTP $($answer.StatusCode) $code $(if ($code -and $hints.ContainsKey($code)) { $hints[$code] })"
+}
+$token = Get-StoreToken 'https://manage.devcenter.microsoft.com'
+$null = Get-StoreToken 'https://api.store.microsoft.com'
+Write-Host '로그인 확인'
+
+# 이 앱을 볼 수 있는 권한인지 (읽기만, 아무것도 바꾸지 않는다)
+$answer = Invoke-WebRequest -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$ProductId" -Headers @{ Authorization = "Bearer $token" } -SkipHttpErrorCheck
+if ($answer.StatusCode -ne 200) { throw "앱 $ProductId 을(를) 읽지 못함: HTTP $($answer.StatusCode) (파트너 센터에서 이 앱의 역할이 관리자(Windows)인지)" }
+$pending = ($answer.Content | ConvertFrom-Json).pendingApplicationSubmission
+Write-Host "앱 확인: $ProductId, 열려 있는 초안 $(if ($pending) { '있음 (새로 만들면 지워져요)' } else { '없음' })"
 
 function Invoke-Store([string] $what, [scriptblock] $run) {
     $out = & $run
@@ -78,7 +122,7 @@ $submission = $raw.Substring($start, $raw.LastIndexOf('}') - $start + 1) | Conve
 $missing = @()
 foreach ($lang in $notes.Keys) {
     $listing = $submission.Listings.PSObject.Properties | Where-Object { $_.Name -eq $lang } | Select-Object -First 1
-    if ($listing) { $listing.Value.BaseListing.ReleaseNotes = $notes[$lang] } else { $missing += $lang }
+    if ($listing) { $listing.Value.BaseListing | Add-Member -NotePropertyName ReleaseNotes -NotePropertyValue $notes[$lang] -Force } else { $missing += $lang }
 }
 $json = $submission | ConvertTo-Json -Depth 100 -Compress
 $notesDone = $false

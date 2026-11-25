@@ -27,6 +27,7 @@
 2. 그 테넌트에 앱을 하나 등록하고, Partner Center → 사용자 관리 → Microsoft Entra applications에서 그 앱을 **관리자(Manager)** 역할로 더한다.
 3. GitHub 저장소 → Settings → Environments → **store**를 만들고(배포 브랜치는 main만, 검토자로 자신을 넣으면 실행 전에 한 번 더 확인), 그 안의 시크릿에 `STORE_TENANT_ID`, `STORE_SELLER_ID`, `STORE_CLIENT_ID`, `STORE_CLIENT_SECRET`을 넣는다.
 4. client secret은 기한이 있다. 끝나면 새로 만들어 바꾼다.
+5. 값이 맞지 않으면 "Submit" 단계에 어느 시크릿의 모양이 다른지, 로그인 오류 번호(AADSTS…)와 까닭이 나온다. 값은 찍지 않는다. 이 확인이 끝나기 전에는 Partner Center를 바꾸지 않는다.
 
 출처: [msstore 명령](https://learn.microsoft.com/en-us/windows/apps/publish/msstore-dev-cli/commands), [GitHub Actions로 올리기](https://learn.microsoft.com/en-us/windows/apps/publish/msstore-dev-cli/github-actions) (앱이 이미 공개돼 있어야 하고, 무료 앱만 된다고 적혀 있다).
 
