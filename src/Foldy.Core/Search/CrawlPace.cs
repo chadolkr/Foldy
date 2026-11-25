@@ -33,11 +33,21 @@ internal sealed class CrawlPace(bool near, TimeSpan minPause)
     /// <summary>한 칸 더 같이 읽어 폴더 하나에 드는 시간이 이만큼(90%)보다 줄어야 늘린 보람이 있다고 본다.</summary>
     private const double Helped = 0.9;
 
-    /// <summary>묶음을 한 칸 늘리기 전에 지금 넓이로 읽는 묶음 수 (재 볼 시간).</summary>
+    /// <summary>한 칸 늘리기 전에 지금 넓이로 하는 판단 수 (재 볼 시간).</summary>
     private const int Steady = 2;
 
-    /// <summary>넓혀도 보람이 없던 넓이를 다시 재 보기까지의 묶음 수.</summary>
-    private const int Retry = 100;
+    /// <summary>넓혀도 보람이 없던 넓이를 다시 재 보기까지의 판단 수.</summary>
+    private const int Retry = 20;
+
+    /// <summary>이만큼 폴더를 읽었거나 <see cref="JudgeTime"/>만큼 지나면 빠르기를 다시 고른다.</summary>
+    private const int JudgeFolders = 48;
+
+    private static readonly TimeSpan JudgeTime = TimeSpan.FromSeconds(1);
+
+    private TimeSpan _winTime;
+    private int _winFolders;
+    private int _winCalls;
+    private int _slowRuns;
     private TimeSpan _owed;
     private TimeSpan _asked;
 
@@ -57,58 +67,18 @@ internal sealed class CrawlPace(bool near, TimeSpan minPause)
     {
         if (perAsk > TimeSpan.Zero && folders > 0)
         {
-            // 느려졌는지는 "폴더 하나에 실제로 든 시간"(묶음 시간 ÷ 폴더 수)으로 본다.
-            // 같이 읽으면 요청 하나하나는 줄을 서서 늦게 끝나지만 전체는 빨라진다: 요청 시간으로 보면 같이 읽을 때마다 "느려졌다"고 잘못 보고
-            // 묶음을 반으로 줄이고 더 쉬었다 (2026-11-25 회사 드라이브가 너무 느리다는 제보).
             var ms = perAsk.TotalMilliseconds;
-            var wall = batch.TotalMilliseconds / folders;
-            var slow = _wallBase >= 0 && wall > 3 * Math.Max(_wallBase, 1);
             _baseline = _baseline < 0 ? ms : (0.9 * _baseline) + (0.1 * ms);
-            if (!slow)
-            {
-                _wallBase = _wallBase < 0 ? wall : (0.9 * _wallBase) + (0.1 * wall);
-            }
 
-            var w = Width;
-            _wallAt[w] = _wallAt[w] < 0 ? wall : (0.7 * _wallAt[w]) + (0.3 * wall);
-            if (slow)
+            // 폴더마다 걸리는 시간은 들쭉날쭉하다(큰 폴더, 서버 사정). 몇 개만 보고 "느려졌다"·"같이 읽어도 소용없다"고 정하면
+            // 덜 읽고 더 쉬게 된다 (2026-11-25 모의 실험: 들쭉날쭉한 드라이브에서 시간의 절반 넘게 쉬고 평균 1.3개만 같이 읽음).
+            // 그래서 폴더 여럿(또는 1초어치)을 모아 한 번에 판단한다
+            _winTime += batch;
+            _winFolders += folders;
+            _winCalls++;
+            if (_winFolders >= JudgeFolders || _winTime >= JudgeTime)
             {
-                _factor = Math.Min(MostFactor, Math.Max(SlowAgain, _factor * 1.5));
-                Width = Math.Max(1, Width / 2);
-            }
-            else
-            {
-                _factor *= 0.9;
-                if (Far)
-                {
-                    _factor = Math.Max(SlowAgain, _factor);
-                }
-                else if (_factor < 0.05)
-                {
-                    _factor = 0;
-                }
-
-                var most = !Far ? 1 : _baseline >= RemoteMs ? SlowCrawler.MaxWidth : 2;
-                var helped = w == 1 || _wallAt[w - 1] < 0 || _wallAt[w] < Helped * _wallAt[w - 1];
-                if (w > most)
-                {
-                    Width = most;
-                }
-                else if (!helped)
-                {
-                    // 같이 읽어도 빨라지지 않는 드라이브(요청을 하나씩만 받는 드라이브): 더 늘려도 짐만 되니 한 칸 줄인다
-                    Width = w - 1;
-                }
-                else if (w < most && ++_steady >= Steady)
-                {
-                    // 한 칸 더 넓혀 봤는데 보람이 없었으면 한동안은 그대로 둔다 (가끔 다시 재 본다: 드라이브 사정은 바뀐다)
-                    var worth = _wallAt[w + 1] < 0 || _wallAt[w + 1] < Helped * _wallAt[w] || _steady >= Retry;
-                    if (worth)
-                    {
-                        _steady = 0;
-                        Width = w + 1;
-                    }
-                }
+                Judge();
             }
         }
 
@@ -123,6 +93,61 @@ internal sealed class CrawlPace(bool near, TimeSpan minPause)
         _asked = _owed;
         _owed = TimeSpan.Zero;
         return _asked;
+    }
+
+    /// <summary>모은 폴더들로 빠르기를 고른다. 느려짐은 두 번 이어질 때만 믿는다.</summary>
+    private void Judge()
+    {
+        // 폴더 하나에 실제로 든 시간 (같이 읽으면 요청 하나하나는 줄을 서서 늦어도 전체는 빨라진다)
+        var wall = _winTime.TotalMilliseconds / _winFolders;
+        var calls = _winCalls;
+        (_winTime, _winFolders, _winCalls) = (TimeSpan.Zero, 0, 0);
+        var w = Width;
+        if (_wallBase >= 0 && wall > 3 * Math.Max(_wallBase, 1))
+        {
+            if (++_slowRuns >= 2)
+            {
+                _slowRuns = 0;
+                _factor = Math.Min(MostFactor, Math.Max(SlowAgain, _factor * 1.5));
+                Width = Math.Max(1, Width / 2);
+            }
+
+            return;
+        }
+
+        _slowRuns = 0;
+        _wallBase = _wallBase < 0 ? wall : (0.7 * _wallBase) + (0.3 * wall);
+        _wallAt[w] = _wallAt[w] < 0 ? wall : (0.5 * _wallAt[w]) + (0.5 * wall);
+        _factor *= Math.Pow(0.9, calls);
+        if (Far)
+        {
+            _factor = Math.Max(SlowAgain, _factor);
+        }
+        else if (_factor < 0.05)
+        {
+            _factor = 0;
+        }
+
+        var most = !Far ? 1 : _baseline >= RemoteMs ? SlowCrawler.MaxWidth : 2;
+        var helped = w == 1 || _wallAt[w - 1] < 0 || _wallAt[w] < Helped * _wallAt[w - 1];
+        if (w > most)
+        {
+            Width = most;
+        }
+        else if (!helped)
+        {
+            // 같이 읽어도 빨라지지 않는 드라이브(요청을 하나씩만 받는 드라이브): 더 늘려도 짐만 되니 한 칸 줄인다
+            Width = w - 1;
+        }
+        else if (w < most && ++_steady >= Steady)
+        {
+            // 한 칸 더 넓혀 봤는데 보람이 없었으면 한동안은 그대로 둔다 (가끔 다시 재 본다: 드라이브 사정은 바뀐다)
+            if (_wallAt[w + 1] < 0 || _wallAt[w + 1] < Helped * _wallAt[w] || _steady >= Retry)
+            {
+                _steady = 0;
+                Width = w + 1;
+            }
+        }
     }
 
     /// <summary>실제로 쉰 시간을 알린다: 부탁한 것보다 더 쉬었으면 다음에 덜 쉰다.</summary>
