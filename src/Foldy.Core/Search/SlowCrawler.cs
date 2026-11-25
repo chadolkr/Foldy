@@ -1019,7 +1019,12 @@ public sealed class SlowCrawler : IDisposable
                             reading.Add((job, pace.Width == 1 && reading.Count == 0 ? Task.FromResult(Fetch(job, root, readAll)) : Task.Run(() => Fetch(job, root, readAll), CancellationToken.None)));
                         }
 
-                        var at = Task.WaitAny(reading.Select(x => x.Task).ToArray(), ct); // 끊으면 읽는 중인 폴더는 다시 쌓아 다음에 읽는다
+                        // 다 읽은 것이 있으면 먼저 기록한다 (끊으라는 말이 와도 읽은 것은 남긴다). 기다리는 동안 끊으면 읽는 중인 폴더는 다시 쌓아 다음에 읽는다
+                        var at = reading.FindIndex(x => x.Task.IsCompleted);
+                        if (at < 0)
+                        {
+                            at = Task.WaitAny(reading.Select(x => x.Task).ToArray(), ct);
+                        }
                         var (doneJob, task) = reading[at];
                         reading.RemoveAt(at);
                         pending.RemoveAll(x => x.Dir == doneJob.Dir);
