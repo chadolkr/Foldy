@@ -913,8 +913,8 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         Log.Information(
-            "모으기 빠르기 {Drive} 모은 {Found}개, 1분에 {PerMinute:F0}개, 읽은 폴더 {Folders}개, 폴더 하나 답 {AskMs:F0}ms, 같이 {Width}개, 쉰 몫 {Rest:P0}",
-            s.Drive.TrimEnd('\\'), s.Found, sp.PerMinute, sp.Folders, sp.AskMs, sp.Width, sp.RestShare);
+            "모으기 빠르기 {Drive} 모은 {Found}개, 1분에 {PerMinute:F0}개, 읽은 폴더 {Folders}개, 폴더 하나 답 {AskMs:F0}ms, 같이 {Width}개, 쉰 몫 {Rest:P0}, 재 본 결과 {Tried}",
+            s.Drive.TrimEnd('\\'), s.Found, sp.PerMinute, sp.Folders, sp.AskMs, sp.Width, sp.RestShare, sp.Tried ?? "아직");
     }
 
     private void UpdateIndexText()
