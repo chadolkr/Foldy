@@ -278,8 +278,8 @@ public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Co
     public CrawlSpeed? Speed { get; init; }
 }
 
-/// <summary>모으는 빠르기: 이번에 1분에 몇 개, 읽은 폴더 수, 폴더 하나 답에 걸린 시간, 같이 읽는 수, 쉰 시간의 몫(0~1).</summary>
-public sealed record CrawlSpeed(double PerMinute, long Folders, double AskMs, int Width, double RestShare);
+/// <summary>모으는 빠르기: 이번에 1분에 몇 개, 읽은 폴더 수, 폴더 하나 답에 걸린 시간, 같이 읽는 수, 쉰 시간의 몫(0~1), 같이 읽는 수를 재 본 결과.</summary>
+public sealed record CrawlSpeed(double PerMinute, long Folders, double AskMs, int Width, double RestShare, string? Tried = null);
 
 /// <summary>
 /// 색인 없는 드라이브를 "살살" 모은다 (사용자 2026-11-21: "회사 드라이브도 부하 주지 않게 살살 수집해 줘").
@@ -301,11 +301,8 @@ public sealed class SlowCrawler : IDisposable
     /// <summary>다 모은 뒤 다시 모으기까지 (다시 모을 때는 바뀐 폴더만 읽어서 가볍다).</summary>
     public static TimeSpan RescanAfter { get; set; } = TimeSpan.FromHours(1);
 
-    /// <summary>
-    /// 한 드라이브에서 같이 읽는 폴더 수의 최대 (응답이 느린 네트워크·클라우드 드라이브). 가까운 드라이브는 하나씩.
-    /// 한 칸씩 늘리며 실제로 빨라질 때만 여기까지 간다 (<see cref="CrawlPace"/>).
-    /// </summary>
-    public const int MaxWidth = 4;
+    /// <summary>한 드라이브에서 같이 읽는 폴더 수의 최대 (먼 드라이브에서 4·8·16개를 재 보고 가장 빠른 수로, <see cref="CrawlPace.Tries"/>). 가까운 드라이브는 하나씩.</summary>
+    public static int MaxWidth => CrawlPace.Tries[^1];
 
     /// <summary>먼저 모을 폴더 (자주 쓰는 폴더·최근 폴더). 그 폴더로 가는 길을 먼저 읽어 찾기에 빨리 나온다.</summary>
     public Func<IReadOnlyList<string>>? PreferFirst { get; set; }
@@ -950,7 +947,7 @@ public sealed class SlowCrawler : IDisposable
         CrawlSpeed SpeedNow()
         {
             var min = Math.Max(running.Elapsed.TotalMinutes, 1.0 / 60);
-            return new CrawlSpeed((found - foundAtStart) / min, listed + reused - foldersAtStart, pace.AskMs, pace.Width, rested / running.Elapsed);
+            return new CrawlSpeed((found - foundAtStart) / min, listed + reused - foldersAtStart, pace.AskMs, pace.Width, rested / running.Elapsed, pace.Tried);
         }
 
         try
@@ -1039,8 +1036,9 @@ public sealed class SlowCrawler : IDisposable
                             var job = new FetchJob(p.Dir, p.Time, before, before is not null && oldData is not null ? ReadBlock(oldData, before) : null);
                             pending.Add(p);
 
-                            // 하나씩 읽을 때는 이 스레드에서 (가까운 드라이브는 이 스레드가 남에게 비켜 주며 읽는다)
-                            reading.Add((job, pace.Width == 1 && reading.Count == 0 ? Task.FromResult(Fetch(job, root, readAll)) : Task.Run(() => Fetch(job, root, readAll), CancellationToken.None)));
+                            // 하나씩 읽을 때는 이 스레드에서 (가까운 드라이브는 이 스레드가 남에게 비켜 주며 읽는다).
+                            // 같이 읽을 때는 폴더마다 제 스레드: 기다리는 읽기 16개가 공용 스레드를 차지하면 Windows가 스레드를 천천히 늘려 재는 값이 틀어진다
+                            reading.Add((job, pace.Width == 1 && reading.Count == 0 ? Task.FromResult(Fetch(job, root, readAll)) : Task.Factory.StartNew(() => Fetch(job, root, readAll), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)));
                         }
 
                         // 다 읽은 것이 있으면 먼저 기록한다 (끊으라는 말이 와도 읽은 것은 남긴다). 기다리는 동안 끊으면 읽는 중인 폴더는 다시 쌓아 다음에 읽는다

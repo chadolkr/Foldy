@@ -75,8 +75,9 @@ public sealed class CrawlPaceTests
     }
 
     [Fact]
-    public void Far_drive_rests_a_fifth_of_reading_time_and_reads_up_to_four_at_once()
+    public void Far_drive_rests_a_fifth_of_reading_time_and_reads_as_many_at_once_as_helps()
     {
+        // 같이 읽는 수와 상관없이 한 묶음이 100ms: 많이 같이 읽을수록 빠르다 → 16개
         var pace = new CrawlPace(near: false, minPause: Ms(1));
         var total = TimeSpan.Zero;
         for (var i = 0; i < 200; i++)
@@ -91,7 +92,7 @@ public sealed class CrawlPaceTests
     [Fact]
     public void Far_drive_that_answers_one_at_a_time_is_not_asked_many_at_once()
     {
-        // 요청을 하나씩만 받는 드라이브: 같이 읽어도 묶음 시간이 폴더 수만큼 늘 뿐이다. 넓혀 봐야 짐만 되니 하나씩 읽는다
+        // 요청을 하나씩만 받는 드라이브: 같이 읽어도 묶음 시간이 폴더 수만큼 늘 뿐이다. 넓혀 봐야 짐만 되니 재 본 것 중 가장 적은 수
         var pace = new CrawlPace(near: false, minPause: Ms(1));
         var widths = new List<int>();
         for (var i = 0; i < 300; i++)
@@ -101,7 +102,22 @@ public sealed class CrawlPaceTests
             widths.Add(pace.Width);
         }
 
-        Assert.True(widths.Skip(100).Average() < 1.5, $"평균 {widths.Skip(100).Average()}개씩 같이 읽음");
+        Assert.Equal(CrawlPace.Tries[0], pace.Width); // 4·8·16이 다 같으면 가장 적은 4개 (짐을 덜 준다)
+    }
+
+    [Fact]
+    public void Far_drive_that_answers_eight_at_a_time_reads_eight_at_once()
+    {
+        // 8개까지 한꺼번에 답하는 드라이브: 16개는 8개와 빠르기가 같으니 8개 (사용자 2026-11-25: 4·8·16개로 재서 가장 빠른 수)
+        var pace = new CrawlPace(near: false, minPause: Ms(5));
+        for (var i = 0; i < 200; i++)
+        {
+            var w = pace.Width;
+            pace.After(Ms(200 * Math.Ceiling(w / 8.0)), w, Ms(200));
+        }
+
+        Assert.Equal(8, pace.Width);
+        Assert.Contains("→ 8개", pace.Tried, StringComparison.Ordinal);
     }
 
     [Fact]
