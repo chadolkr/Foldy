@@ -32,8 +32,9 @@ internal sealed class CrawlPace(bool near, TimeSpan minPause)
     /// <summary>먼 드라이브에서 재 보는 같이 읽는 수.</summary>
     public static readonly int[] Tries = [4, 8, 16];
 
-    /// <summary>가장 빠른 것보다 이만큼(10%) 안쪽이면 더 적은 수를 고른다 (드라이브에 짐을 덜 주게).</summary>
-    private const double CloseEnough = 1.1;
+    /// <summary>가장 빠른 것보다 이만큼(25%) 안쪽이면 더 적은 수를 고른다 (드라이브에 짐을 덜 주게).
+    /// 2026-11-25 K: 실측: 재 볼 때마다 8·16이 엎치락뒤치락했고(8개 38ms·16개 46ms, 8개 42ms·16개 36ms), 16개로 읽을 때 폴더 하나 답이 0.3~0.6초에서 0.8~0.9초로 길어져 1초에 읽은 폴더는 늘지 않았다. 10%로는 흔들림에 16개를 골랐다.</summary>
+    private const double CloseEnough = 1.25;
 
     /// <summary>한 수마다 재는 판단 수 (첫 판단은 앞 수의 읽기가 섞여 버린다).</summary>
     private const int TrialJudges = 2;
