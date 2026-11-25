@@ -971,7 +971,8 @@ public partial class ShellWindow : Window, IPaneHost
 
         if (_crawler?.StatusOf(d.Root) is { } c && (c.Running || !_crawler.IsRequested(d.Root))) // 누르고 차례를 기다리면 아래의 "차례 기다리는 중"
         {
-            return c.Running
+            return c.Running && c.Paused ? Foldy.Core.Localization.Loc.F("sw.drv.paused", Math.Max(0, c.Found)) // 작업 창의 작업이 끝나기를 기다리는 중: "만드는 중"이면 멈춘 것처럼 보인다
+                : c.Running
                 ? Foldy.Core.Localization.Loc.F("sw.drv.crawling", Math.Max(0, c.Found))
                 : c.Error is not null && (!c.Complete || c.Found <= 0) ? Foldy.Core.Localization.Loc.T("sw.drv.unreadable") // "완료 · 0개" 대신 쉬운 말로 (사용자 2026-11-23)
                 : !c.Complete ? Foldy.Core.Localization.Loc.T("sw.drv.idle")

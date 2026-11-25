@@ -154,6 +154,7 @@ SW = [
     ('sw.vol.none', '{0} 아직 준비 안 됨 ({1}) · 그 폴더를 열면 안을 직접 살펴봐요', '{0} not ready ({1}) · looked through directly when you open that folder', '{0} sin preparar ({1}) · se revisa al abrir esa carpeta', '{0} 未準備 ({1}) · そのフォルダーを開くと直接見ます', '{0} 尚未准备（{1}）· 打开该文件夹时直接查看'),
     ('sw.drv.indexing', '찾기 준비 중 {0}%', 'Getting ready to search {0}%', 'Preparando la búsqueda {0}%', '検索の準備中 {0}%', '正在准备查找 {0}%'),
     ('sw.drv.crawling', '파일 목록 만드는 중 · {0:N0}개 (천천히)', 'Building the search list · {0:N0} (slowly)', 'Preparando la lista de búsqueda · {0:N0} (despacio)', '検索リストを作成中 · {0:N0} 件 (ゆっくり)', '正在建立搜索列表 · {0:N0} 个（慢速）'),
+    ('sw.drv.paused', '작업이 끝나면 이어서 만들어요 · {0:N0}개', 'Continues after the current task · {0:N0}', 'Sigue al acabar la tarea · {0:N0}', '作業が終わったら続けます · {0:N0} 件', '任务完成后继续 · {0:N0} 个'),
     ('sw.drv.crawled', '찾기 준비 끝 · 파일 {0:N0}개', 'Ready to search · {0:N0} files', 'Lista para buscar · {0:N0} archivos', '検索の準備完了 · {0:N0} 件', '可以查找 · {0:N0} 个文件'),
     ('sw.drv.waiting', '차례 기다리는 중 · {0} 다음에 준비해요', 'Waiting for its turn · after {0}', 'Esperando turno · después de {0}', '順番待ち · {0} の次', '排队等待 · 在 {0} 之后'),
     ('sw.jobs.running', '작업 {0}개 진행 중', '{0} jobs running', '{0} tareas en curso', 'ジョブ {0} 件を実行中', '{0} 个任务进行中'),

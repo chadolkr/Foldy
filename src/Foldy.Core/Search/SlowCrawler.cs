@@ -269,7 +269,11 @@ public sealed class CrawlStore(string file)
 }
 
 /// <summary>모으는 상태 (사이드바 한 줄).</summary>
-public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Complete, DateTime? CompletedUtc, string? Error = null);
+public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Complete, DateTime? CompletedUtc, string? Error = null)
+{
+    /// <summary>복사 같은 작업이 끝나기를 기다리며 쉬는 중.</summary>
+    public bool Paused { get; init; }
+}
 
 /// <summary>
 /// 색인 없는 드라이브를 "살살" 모은다 (사용자 2026-11-21: "회사 드라이브도 부하 주지 않게 살살 수집해 줘").
@@ -291,7 +295,10 @@ public sealed class SlowCrawler : IDisposable
     /// <summary>다 모은 뒤 다시 모으기까지 (다시 모을 때는 바뀐 폴더만 읽어서 가볍다).</summary>
     public static TimeSpan RescanAfter { get; set; } = TimeSpan.FromHours(1);
 
-    /// <summary>한 드라이브에서 같이 읽는 폴더 수의 최대 (응답이 느린 네트워크·클라우드 드라이브). 가까운 드라이브는 하나씩.</summary>
+    /// <summary>
+    /// 한 드라이브에서 같이 읽는 폴더 수의 최대 (응답이 느린 네트워크·클라우드 드라이브). 가까운 드라이브는 하나씩.
+    /// 한 칸씩 늘리며 실제로 빨라질 때만 여기까지 간다 (<see cref="CrawlPace"/>).
+    /// </summary>
     public const int MaxWidth = 4;
 
     /// <summary>먼저 모을 폴더 (자주 쓰는 폴더·최근 폴더). 그 폴더로 가는 길을 먼저 읽어 찾기에 빨리 나온다.</summary>
@@ -963,64 +970,67 @@ public sealed class SlowCrawler : IDisposable
                     stack.Push((root, 0));
                 }
 
+                // 읽고 있지만 아직 기록하지 않은 폴더들 (끊기면 다시 쌓아 다음에 이어서 한다)
+                List<(string Dir, long Time)> pending = [];
                 void SaveProgress()
                 {
                     data.Flush(flushToDisk: true);
                     marksOut.Flush();
-                    SaveCheckpoint(resumePath, new Checkpoint(pass, readAll, found, data.Length, marksOut.BaseStream.Length, checks, misses, listed, reused, skipped, DateTime.UtcNow, [.. stack]));
+                    // 읽는 중인 폴더도 아직 안 남겼으니 맨 위에 넣어 둔다 (다음에 그것부터)
+                    SaveCheckpoint(resumePath, new Checkpoint(pass, readAll, found, data.Length, marksOut.BaseStream.Length, checks, misses, listed, reused, skipped, DateTime.UtcNow, [.. pending, .. stack]));
                 }
 
-                // 끊길 때 아직 기록하지 않은 폴더들 (다시 쌓아 다음에 이어서 한다)
-                List<(string Dir, long Time)> pending = [];
+                var reading = new List<(FetchJob Job, Task<Fetched> Task)>();
                 try
                 {
                     var lastReport = Stopwatch.StartNew();
                     var lastSave = Stopwatch.StartNew();
-                    while (stack.Count > 0)
+                    var window = Stopwatch.StartNew();
+                    int done = 0, asked = 0;
+                    var askedTime = TimeSpan.Zero;
+                    while (stack.Count > 0 || reading.Count > 0)
                     {
                         ct.ThrowIfCancellationRequested();
-                        while (ShouldPause?.Invoke() == true)
+                        if (reading.Count == 0 && ShouldPause?.Invoke() == true)
                         {
-                            if (ct.WaitHandle.WaitOne(TimeSpan.FromSeconds(2)))
+                            // 복사 같은 작업 중엔 쉰다. 화면에 "작업이 끝나면 이어서 해요"라고 보이게 알린다
+                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Paused = true });
+                            while (ShouldPause?.Invoke() == true)
                             {
-                                ct.ThrowIfCancellationRequested();
+                                if (ct.WaitHandle.WaitOne(TimeSpan.FromSeconds(2)))
+                                {
+                                    ct.ThrowIfCancellationRequested();
+                                }
                             }
+
+                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc));
+                            window.Restart();
                         }
 
-                        // 폴더 몇 개를 한꺼번에 꺼내 같이 읽는다 (응답을 기다리는 시간이 겹친다). 기록은 꺼낸 차례대로 하나씩
-                        pending = [];
-                        while (pending.Count < pace.Width && stack.Count > 0)
+                        // 자리가 비는 대로 다음 폴더를 읽기 시작한다: 묶음이 다 끝나기를 기다리면 느린 폴더 하나 때문에 나머지 자리가 논다
+                        while (reading.Count < pace.Width && stack.Count > 0 && (reading.Count == 0 || ShouldPause?.Invoke() != true))
                         {
-                            pending.Add(stack.Pop());
-                        }
-
-                        var jobs = pending.Select(p =>
-                        {
+                            var p = stack.Pop();
                             var before = old.TryGetValue(p.Dir, out var o) ? o : null;
-                            return new FetchJob(p.Dir, p.Time, before, before is not null && oldData is not null ? ReadBlock(oldData, before) : null);
-                        }).ToList();
-                        var wall = Stopwatch.StartNew();
-                        var results = new Fetched[jobs.Count];
-                        if (jobs.Count == 1)
-                        {
-                            results[0] = Fetch(jobs[0], root, readAll);
-                        }
-                        else
-                        {
-                            Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = jobs.Count }, i => results[i] = Fetch(jobs[i], root, readAll));
+                            var job = new FetchJob(p.Dir, p.Time, before, before is not null && oldData is not null ? ReadBlock(oldData, before) : null);
+                            pending.Add(p);
+
+                            // 하나씩 읽을 때는 이 스레드에서 (가까운 드라이브는 이 스레드가 남에게 비켜 주며 읽는다)
+                            reading.Add((job, pace.Width == 1 && reading.Count == 0 ? Task.FromResult(Fetch(job, root, readAll)) : Task.Run(() => Fetch(job, root, readAll), CancellationToken.None)));
                         }
 
-                        var batchTook = wall.Elapsed;
-                        var asked = 0;
-                        TimeSpan askedTime = TimeSpan.Zero;
+                        var at = Task.WaitAny(reading.Select(x => x.Task).ToArray(), ct); // 끊으면 읽는 중인 폴더는 다시 쌓아 다음에 읽는다
+                        var (doneJob, task) = reading[at];
+                        reading.RemoveAt(at);
+                        pending.RemoveAll(x => x.Dir == doneJob.Dir);
+                        var got = task.Result;
+                        var results = new[] { got };
+                        var jobs = new[] { doneJob };
 
-                        // 여기서부터 이 묶음을 다 기록할 때까지는 끊기지 않는다 (남기는 기록이 늘 맞게)
-                        foreach (var r in results)
+                        // 여기서부터 이 폴더를 다 기록할 때까지는 끊기지 않는다 (남기는 기록이 늘 맞게)
+                        if (got.RootError is { } rootError)
                         {
-                            if (r.RootError is { } rootError)
-                            {
-                                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(rootError).Throw();
-                            }
+                            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(rootError).Throw();
                         }
 
                         var newChildren = new List<(string Dir, long Time)>();
@@ -1072,7 +1082,7 @@ public sealed class SlowCrawler : IDisposable
                             stack.Push(c);
                         }
 
-                        pending = [];
+                        done++;
                         if (lastReport.Elapsed > TimeSpan.FromSeconds(1))
                         {
                             data.Flush(); // 모으는 중에도 찾을 수 있게
@@ -1086,7 +1096,13 @@ public sealed class SlowCrawler : IDisposable
                             lastSave.Restart();
                         }
 
-                        Breathe(batchTook, results.Length, asked == 0 ? TimeSpan.Zero : askedTime / asked);
+                        // 같이 읽는 수만큼 끝날 때마다 빠르기를 고른다: 그동안 걸린 시간(쉰 시간 빼고) ÷ 끝난 폴더 수가 폴더 하나에 든 실제 시간
+                        if (done >= pace.Width || (stack.Count == 0 && reading.Count == 0))
+                        {
+                            Breathe(window.Elapsed, done, asked == 0 ? TimeSpan.Zero : askedTime / asked);
+                            window.Restart();
+                            (done, asked, askedTime) = (0, 0, TimeSpan.Zero);
+                        }
                     }
                 }
                 catch (OperationCanceledException)
@@ -1096,6 +1112,7 @@ public sealed class SlowCrawler : IDisposable
                         stack.Push(pending[i]);
                     }
 
+                    pending = [];
                     SaveProgress();
                     throw;
                 }

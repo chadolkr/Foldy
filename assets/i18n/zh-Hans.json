@@ -1720,6 +1720,7 @@
   "sw.drv.idle": "搜索列表暂停中",
   "sw.drv.indexing": "正在准备查找 {0}%",
   "sw.drv.none": "尚未准备 · 只在打开的文件夹内查找",
+  "sw.drv.paused": "任务完成后继续 · {0:N0} 个",
   "sw.drv.preparing": "正在准备查找",
   "sw.drv.ready": "可以查找",
   "sw.drv.soon": "即将开始准备查找",

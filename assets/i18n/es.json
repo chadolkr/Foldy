@@ -1720,6 +1720,7 @@
   "sw.drv.idle": "Lista de búsqueda en pausa",
   "sw.drv.indexing": "Preparando la búsqueda {0}%",
   "sw.drv.none": "Aún no está lista · solo busca dentro de la carpeta abierta",
+  "sw.drv.paused": "Sigue al acabar la tarea · {0:N0}",
   "sw.drv.preparing": "Preparando la búsqueda",
   "sw.drv.ready": "Lista para buscar",
   "sw.drv.soon": "Pronto empezará a prepararse",
