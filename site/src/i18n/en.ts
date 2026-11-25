@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'New in 1.11: Ctrl+Space works even when Foldy is closed',
-    eyebrow: 'Foldy 1.11',
+    badge: 'New in 1.12: plainer words on every screen',
+    eyebrow: 'Foldy 1.12',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
-      { icon: 'search', title: 'Ctrl+Space, even when Foldy is closed', text: 'A tiny helper waits for the shortcut from the moment you start your PC. Press Ctrl+Space to search without keeping Foldy open, and a file you pick opens in its own program. When idle, Foldy closes itself and gives the memory back.' },
-      { icon: 'turtle', title: 'Fast indexing, even on slow drives', text: 'Slow drives like work and network drives are gathered much faster: shorter pauses, several folders and drives read together, and your favorite folders first. Files saved by other programs show up in the folder view within a second.' },
+      { icon: 'info', title: 'Plain words on every screen', text: 'Over 340 labels were rewritten so a first-time user gets them at once: no more jargon like “index” or “panel”. Searching with the old words still works.' },
+      { icon: 'turtle', title: 'Memory cards, USB and Google Drive, much faster', text: '180,000 files on a memory card are gathered in seconds instead of about six minutes, and 26,000 on Google Drive in 8 seconds instead of 61. When another program uses the same drive, Foldy steps aside.' },
+      { icon: 'search', title: 'Ctrl+Space, even when Foldy is closed', text: 'A tiny helper waits for the shortcut from the moment you start your PC. Press Ctrl+Space to search without keeping Foldy open, and a file you pick opens in its own program.' },
       { icon: 'disk', title: 'Finds more folders you can delete', text: 'More folders that programs rebuild by themselves, like Unity, Unreal, Flutter and web framework caches. Only when the project file sits next to them, and folders holding settings are left alone.' },
-      { icon: 'panes', title: '19 templates', text: 'Added well-known folder methods: GTD, ACE, function-based classification (ISO 15489), TIER, Cookiecutter Data Science and BIDS. For research, pick your kind of research and the right template comes first.' },
     ],
     link: 'See everything that changed',
   },
