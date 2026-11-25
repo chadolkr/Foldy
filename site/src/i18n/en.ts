@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: 'New in 1.12: plainer words on every screen',
-    eyebrow: 'Foldy 1.12',
+    badge: 'New in 1.13: drive lists stay up to date even when Foldy is closed',
+    eyebrow: 'Foldy 1.13',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
+      { icon: 'update', title: 'Up-to-date lists, even when closed', text: 'Lists for work, network, cloud and USB drives are refreshed on the schedule you choose (every hour, 6 hours or day), even when Foldy is closed. A tiny shortcut helper starts Foldy briefly without a window; it reads only folders that changed, then closes. Nothing to set up or register.' },
       { icon: 'info', title: 'Plain words on every screen', text: 'Over 340 labels were rewritten so a first-time user gets them at once: no more jargon like “index” or “panel”. Searching with the old words still works.' },
       { icon: 'turtle', title: 'Memory cards, USB and Google Drive, much faster', text: '180,000 files on a memory card are gathered in seconds instead of about six minutes, and 26,000 on Google Drive in 8 seconds instead of 61. When another program uses the same drive, Foldy steps aside.' },
       { icon: 'search', title: 'Ctrl+Space, even when Foldy is closed', text: 'A tiny helper waits for the shortcut from the moment you start your PC. Press Ctrl+Space to search without keeping Foldy open, and a file you pick opens in its own program.' },
-      { icon: 'disk', title: 'Finds more folders you can delete', text: 'More folders that programs rebuild by themselves, like Unity, Unreal, Flutter and web framework caches. Only when the project file sits next to them, and folders holding settings are left alone.' },
     ],
     link: 'See everything that changed',
   },
@@ -67,7 +67,7 @@ const en: Dictionary = {
           { title: 'Apps, Windows settings and Control Panel', text: 'Type "Wi-Fi", "text size" or "printer" to jump straight to that settings page. Control Panel and admin tools like "Device Manager" or "environment variables" show up too, and Start-menu apps launch by name.' },
           { title: 'Just say what you want', text: 'Type "clean up my downloads" or "empty the recycle bin" and Foldy finds the right tool and asks, "Want me to do this?"' },
           { title: 'Math and unit conversions', text: 'Type 12*3+4, 200*15% or 5 km to mi and the answer appears right away. Press Enter to copy it.' },
-          { title: 'Network drives, NAS and USB too', text: 'Drives without an index are gathered quietly in the background while Foldy runs. It slows down when a drive is busy and pauses while you copy.' },
+          { title: 'Network drives, NAS and USB too', text: 'Drives without an index are gathered quietly in the background, and refreshed on schedule even when Foldy is closed. It slows down when a drive is busy and pauses while you copy.' },
         ],
         note: 'No web search. What you type never leaves your PC.',
         img: 'quicksearch',
