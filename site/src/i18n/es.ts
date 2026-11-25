@@ -195,9 +195,9 @@ const es: Dictionary = {
     },
     fake: {
       title: "Cuidado con los Foldy falsos",
-      lead: "A veces aparecen sitios falsos que imitan programas gratuitos conocidos para repartir programas dañinos. Descarga Foldy solo de estos dos sitios.",
+      lead: "A veces aparecen sitios falsos que imitan programas gratuitos conocidos para repartir programas dañinos. Descarga Foldy solo de estas dos direcciones o de Microsoft Store.",
       officialTitle: "Estas son las únicas direcciones oficiales",
-      store: "En Microsoft Store: \"Foldy File Manager\", de David CHA (muy pronto)",
+      store: "En Microsoft Store: \"Foldy File Manager\", de David CHA",
       points: [
         "Foldy es gratis. Si te piden un pago, un registro o una \"clave de licencia\", es falso.",
         "Foldy se actualiza solo. Un correo o una ventana que te pida descargar un \"archivo de actualización\" es falso.",
@@ -245,6 +245,8 @@ const es: Dictionary = {
       'Foldy aún no tiene firma de código, así que Windows puede mostrar «Windows protegió su PC». Haz clic en [Más información] y luego en [Ejecutar de todas formas].',
     uninstall: 'Para quitarlo: Configuración de Windows → Aplicaciones → Aplicaciones instaladas → Foldy → Desinstalar. El servicio de índice también se quita.',
     allReleases: 'Versiones anteriores y novedades',
+    store: 'Obtenerlo en Microsoft Store',
+    storeNote: 'La edición de Store la actualiza Microsoft Store. La búsqueda rápida que lee unidades enteras por adelantado, Ctrl+Espacio con Foldy cerrado y seguir reuniendo archivos tras cerrar la ventana solo están en la edición del instalador (MSI). Donde Microsoft Store esté bloqueado, como en algunas empresas, usa el instalador (MSI) de arriba.',
   },
   faq: {
     title: 'Preguntas',

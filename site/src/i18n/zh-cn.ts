@@ -195,9 +195,9 @@ const zhCN: Dictionary = {
     },
     fake: {
       title: "小心假冒的 Foldy",
-      lead: "有些假网站会冒充有名的免费软件来传播恶意程序。请只从下面两个地方下载 Foldy。",
-      officialTitle: "官方地址只有这两个",
-      store: "在 Microsoft Store 上是“Foldy File Manager”（发布者 David CHA，即将上线）",
+      lead: "有些假网站会冒充有名的免费软件来传播恶意程序。请只从下面两个地址或 Microsoft Store 下载 Foldy。",
+      officialTitle: "官方地址只有这些",
+      store: "在 Microsoft Store 上是“Foldy File Manager”（发布者 David CHA）",
       points: [
         "Foldy 是免费的。要求付款、注册或“正版密钥”的都是假的。",
         "Foldy 会自己更新。要你下载“更新文件”的邮件或窗口都是假的。",
@@ -245,6 +245,8 @@ const zhCN: Dictionary = {
       'Foldy 暂时还没有代码签名，Windows 可能会显示"Windows 已保护你的电脑"。请点击［更多信息］，再点击［仍要运行］。',
     uninstall: '卸载方法：Windows 设置 → 应用 → 已安装的应用 → Foldy → 卸载。索引服务也会一起删除。',
     allReleases: '历史版本和更新内容',
+    store: '从 Microsoft Store 获取',
+    storeNote: 'Store 版由 Microsoft Store 负责更新。预先读取整个驱动器的快速搜索、Foldy 关闭时按 Ctrl+Space、关闭窗口后继续收集，只有安装程序（MSI）版才有。如果公司等环境无法使用 Microsoft Store，请下载上面的安装程序（MSI）。',
   },
   faq: {
     title: '常见问题',

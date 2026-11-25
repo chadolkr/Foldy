@@ -195,9 +195,9 @@ const ja: Dictionary = {
     },
     fake: {
       title: "偽の Foldy に気をつけて",
-      lead: "有名な無料ソフトをまねた偽サイトが、悪いプログラムを配ることがあります。Foldy は次の 2 か所だけから入手してください。",
-      officialTitle: "公式の場所はこの 2 つだけです",
-      store: "Microsoft Store では「Foldy File Manager」（発行元 David CHA、近日公開）",
+      lead: "有名な無料ソフトをまねた偽サイトが、悪いプログラムを配ることがあります。Foldy は次の 2 か所と Microsoft Store だけから入手してください。",
+      officialTitle: "公式の場所はここだけです",
+      store: "Microsoft Store では「Foldy File Manager」（発行元 David CHA）",
       points: [
         "Foldy は無料です。支払い・会員登録・「ライセンスキー」を求めるものは偽物です。",
         "更新は Foldy が自動で受け取ります。「更新ファイルをダウンロードして」というメールや画面は偽物です。",
@@ -245,6 +245,8 @@ const ja: Dictionary = {
       'まだコード署名がないため、Windows が「Windows によって PC が保護されました」を表示することがあります。［詳細情報］を押してから［実行］を押してください。',
     uninstall: '削除するときは Windows の設定 → アプリ → インストールされているアプリ → Foldy → アンインストール。インデックスサービスも一緒に消えます。',
     allReleases: '以前のバージョンと変更内容',
+    store: 'Microsoft Store から入手',
+    storeNote: 'Store 版は Microsoft Store が更新します。ドライブ全体を前もって読み込んでおく高速検索、Foldy を閉じているときの Ctrl+Space、ウィンドウを閉じたあとの収集の継続は、インストーラー (MSI) 版だけの機能です。会社などで Microsoft Store を使えない場合は、上のインストーラー (MSI) をお使いください。',
   },
   faq: {
     title: 'よくある質問',
