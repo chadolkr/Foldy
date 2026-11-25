@@ -215,7 +215,12 @@ public partial class App : Application
         else
         {
             var main = new ShellWindow();
-            if (Options.QuickSearch && !Options.BenchShell)
+            if (Options.Gather && !Options.BenchShell)
+            {
+                // 단축키 도우미가 주기마다 띄웠다: 창 없이 느린 드라이브 목록만 다시 모으고 끝난다
+                main.StartForGather();
+            }
+            else if (Options.QuickSearch && !Options.BenchShell)
             {
                 // 단축키 도우미가 띄웠다: 찾기 창만. 주 창은 사용자가 Foldy에서 열기를 고를 때 처음 보인다
                 main.StartForQuickSearch();
@@ -230,7 +235,7 @@ public partial class App : Application
                 _ = main.RunBenchAsync(Options);
             }
             _instance?.StartServer(args => Dispatcher.BeginInvoke(() => main.ActivateFromOtherInstance(args)));
-            if (!Options.QuickSearch || Options.BenchShell)
+            if (!(Options.QuickSearch || Options.Gather) || Options.BenchShell)
             {
                 CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
             }

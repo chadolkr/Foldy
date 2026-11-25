@@ -765,6 +765,7 @@ public partial class ShellWindow : Window, IPaneHost
     /// </summary>
     private void StartSlowCrawl()
     {
+        EnsureGatherHelper(); // 꺼져 있을 때의 주기 모으기도 같은 설정을 따른다
         if (!_settings.SlowCrawl || App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null
             || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 })
         {
@@ -1140,6 +1141,7 @@ public partial class ShellWindow : Window, IPaneHost
 
         _closedDown = true;
         _gatherWatch?.Stop();
+        _gatherOnly?.Stop();
         _crawler?.Dispose();
         SaveSession(Shell.Capture(null, double.NaN)); // 한 번도 보이지 않은 창(찾기 창만)은 SaveSession이 건너뛴다
         _quickSave.Stop();
@@ -2320,6 +2322,53 @@ public partial class ShellWindow : Window, IPaneHost
         });
     }
 
+    /// <summary>창 없이 모으는 Foldy(--gather)가 아무리 길어도 이만큼 지나면 끝난다. 남은 것은 다음 차례에 끊긴 곳부터 이어서 모은다.</summary>
+    private static readonly TimeSpan GatherOnlyAtMost = TimeSpan.FromHours(12);
+
+    private DispatcherTimer? _gatherOnly;
+
+    /// <summary>
+    /// 단축키 도우미가 주기마다 띄운 Foldy (--gather, 1.13.0): 창 없이 색인 서비스에 연결해 느린 드라이브 목록을 모으고,
+    /// 모을 것이 없어지면(주기가 아직 안 됐으면 바로) 스스로 끝난다. 그동안 사용자가 Foldy를 켜면 이 Foldy의 창이 뜬다.
+    /// </summary>
+    public void StartForGather()
+    {
+        Log.Information("단축키 도우미가 띄움: 창 없이 드라이브 목록만 다시 모읍니다");
+        var started = DateTime.UtcNow;
+        _ = Dispatcher.InvokeAsync(async () =>
+        {
+            await ProbeEnginesAsync();
+            _gatherOnly ??= new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Background, (_, _) =>
+            {
+                if (_shown)
+                {
+                    _gatherOnly?.Stop(); // 사용자가 Foldy를 열었다: 이제 보통 Foldy
+                    return;
+                }
+
+                if (_quickSearch is not null || Shell.Jobs.Any(j => !j.IsFinished))
+                {
+                    return;
+                }
+
+                var age = DateTime.UtcNow - started;
+                var done = _crawler is null
+                    ? age >= TimeSpan.FromMinutes(1) // 색인 서비스가 없거나 모으기를 껐다
+                    : _crawler.IdlePasses > 0 && !GatheringLeft();
+                if (!done && age < GatherOnlyAtMost)
+                {
+                    return;
+                }
+
+                _gatherOnly?.Stop();
+                Log.Information(done ? "드라이브 목록을 다 모아 Foldy를 끝냅니다 (창 없이 모으기)" : "창 없이 모은 지 오래되어 끝냅니다. 남은 것은 다음에 이어서 합니다");
+                OnClosing(this, new CancelEventArgs()); // 한 번도 보이지 않은 창은 닫기 처리가 불리지 않을 수 있어 직접 정리한다
+                Application.Current.Shutdown(0);
+            }, Dispatcher);
+            _gatherOnly.Start();
+        });
+    }
+
     private void ArmQuietExit()
     {
         _quietExit ??= new DispatcherTimer(QuietExitAfter, DispatcherPriority.Background, (_, _) =>
@@ -2568,6 +2617,63 @@ public partial class ShellWindow : Window, IPaneHost
     /// </summary>
     private async Task EnsureQuickSearchHotkeyAsync(GuideWindow? w)
     {
+        // 키를 확인하는 동안에는 도우미를 띄우지 않는다: 도우미가 예전 키를 먼저 쥐면 Foldy가 "다른 프로그램이 쓴다"고 잘못 안다
+        _keyFlows++;
+        try
+        {
+            await EnsureQuickSearchHotkeyCoreAsync(w);
+        }
+        finally
+        {
+            _keyFlows--;
+            _keyFlowDone = true;
+        }
+
+        EnsureGatherHelper();
+    }
+
+    private int _keyFlows;
+    private bool _keyFlowDone;
+
+    private static string GatherConfigPath => Path.Combine(App.DataDir, Foldy.Platform.SystemInfo.QuickSearchKeyAgent.GatherFileName);
+
+    /// <summary>
+    /// 느린 드라이브 목록을 Foldy가 꺼져 있을 때도 주기마다 모을 수 있나 (1.13.0, 단축키 도우미가 띄운다).
+    /// 설정에서 모으기를 껐거나 "직접 누를 때만"이면, 또 Store 판(도우미 없음)·시험 실행이면 하지 않는다.
+    /// </summary>
+    private bool GatherWanted =>
+        _settings.SlowCrawl && Foldy.Presentation.Persistence.AppSettings.CrawlInterval(_settings.CrawlEvery) is not null
+        && !Foldy.Platform.SystemInfo.AppPackage.IsPackaged && File.Exists(QuickSearchKeyExe);
+
+    /// <summary>
+    /// 주기 모으기 설정을 도우미에게 알리고(설정 파일), 필요하면 도우미를 띄운다.
+    /// 도우미는 1분마다 이 파일을 다시 읽고, off이고 단축키도 쓰지 않으면 스스로 끝난다.
+    /// </summary>
+    private void EnsureGatherHelper()
+    {
+        if (App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null
+            || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 } || Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
+        {
+            return;
+        }
+
+        var want = GatherWanted;
+        _ = Foldy.Platform.SystemInfo.QuickSearchKeyAgent.WriteIfChanged(GatherConfigPath,
+            Foldy.Platform.SystemInfo.QuickSearchKeyAgent.GatherLine(want ? Foldy.Presentation.Persistence.AppSettings.CrawlInterval(_settings.CrawlEvery) : null));
+        if (_keyFlows > 0 || !_keyFlowDone)
+        {
+            return; // 키 확인이 끝나면 다시 불린다
+        }
+
+        if (want)
+        {
+            Foldy.Platform.SystemInfo.QuickSearchKeyAgent.EnsureRunning(QuickSearchKeyExe);
+            Foldy.Platform.SystemInfo.QuickSearchKeyAgent.SetAutostart(QuickSearchKeyExe, on: true);
+        }
+    }
+
+    private async Task EnsureQuickSearchHotkeyCoreAsync(GuideWindow? w)
+    {
         const string id = "app.quickSearch";
         var hwnd = OwnerHandle;
         if (_hotkeyAsking || hwnd == IntPtr.Zero || App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null
@@ -2591,7 +2697,7 @@ public partial class ShellWindow : Window, IPaneHost
         var g = _keyMap.GetGesture(id);
         if (!_settings.QuickSearchGlobal || g is null)
         {
-            TurnOffQuickSearchAgent();
+            await TurnOffQuickSearchAgentAsync();
             return;
         }
 
@@ -2616,7 +2722,7 @@ public partial class ShellWindow : Window, IPaneHost
             if (ch.Gesture is null)
             {
                 ShowStatus(Foldy.Core.Localization.Loc.F("sw.qs.hotkeyTaken", g));
-                TurnOffQuickSearchAgent();
+                await TurnOffQuickSearchAgentAsync();
                 return;
             }
 
@@ -2624,7 +2730,7 @@ public partial class ShellWindow : Window, IPaneHost
             {
                 _settings = _settings with { QuickSearchGlobal = false };
                 SaveSettings();
-                TurnOffQuickSearchAgent();
+                await TurnOffQuickSearchAgentAsync();
                 return;
             }
 
@@ -2676,7 +2782,7 @@ public partial class ShellWindow : Window, IPaneHost
         if (!_settings.QuickSearchAlways || Foldy.Platform.SystemInfo.AppPackage.IsPackaged || !File.Exists(exe)
             || !GlobalHotkey.TryNative(gesture, out var mods, out var vk))
         {
-            TurnOffQuickSearchAgent();
+            await TurnOffQuickSearchAgentAsync();
             return;
         }
 
@@ -2692,11 +2798,14 @@ public partial class ShellWindow : Window, IPaneHost
         GlobalHotkey.Register(hwnd, GlobalHotkey.QuickSearchId, gesture);
     }
 
-    /// <summary>도우미를 쉬게 한다: 설정 파일에 off를 적어 로그인 때 떠도 바로 끝나게 하고, 사용자 시작 등록을 지운다.</summary>
-    private static void TurnOffQuickSearchAgent()
+    /// <summary>
+    /// 도우미가 단축키를 받지 않게 한다: 설정 파일에 off를 적어 로그인 때 떠도 키를 잡지 않게 하고, 사용자 시작 등록을 지운다.
+    /// 주기 모으기가 켜져 있으면 키 확인이 끝난 뒤 <see cref="EnsureGatherHelper"/>가 도우미를 (키 없이) 다시 띄우고 시작 등록을 되살린다.
+    /// </summary>
+    private static async Task TurnOffQuickSearchAgentAsync()
     {
         Foldy.Platform.SystemInfo.QuickSearchKeyAgent.WriteConfig(QuickSearchKeyConfigPath, Foldy.Platform.SystemInfo.QuickSearchKeyAgent.Off);
-        _ = Foldy.Platform.SystemInfo.QuickSearchKeyAgent.StopAsync();
+        await Foldy.Platform.SystemInfo.QuickSearchKeyAgent.StopAsync();
         Foldy.Platform.SystemInfo.QuickSearchKeyAgent.SetAutostart(QuickSearchKeyExe, on: false);
     }
 
@@ -3814,6 +3923,11 @@ public partial class ShellWindow : Window, IPaneHost
     public void ActivateFromOtherInstance(string[] args)
     {
         var options = AppOptions.Parse(args);
+        if (options.Gather && options.OpenPath is null)
+        {
+            return; // 단축키 도우미의 주기 모으기: 켜져 있는 이 Foldy가 이미 주기마다 모은다
+        }
+
         if (options.QuickSearch && options.OpenPath is null)
         {
             ShowQuickSearch(); // 단축키 도우미: 주 창은 그대로 두고 찾기 창만

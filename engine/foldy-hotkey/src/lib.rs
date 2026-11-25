@@ -3,6 +3,10 @@
 //! 설정 파일 `%LOCALAPPDATA%\Foldy\quick-search-key.txt`는 Foldy가 쓴다 (`QuickSearchKeyAgent.cs`).
 //! 한 줄: `off`(쓰지 않음) 또는 `<수식 키 비트> <가상 키 코드>` (RegisterHotKey 값 그대로, 예: Ctrl+Space = `2 32`).
 //! 파일이 없으면(Foldy를 아직 한 번도 켜지 않음) 기본 Ctrl+Space.
+//!
+//! 1.13.0부터 느린 드라이브(네트워크·클라우드·USB) 목록을 주기마다 다시 모으는 일도 한다: Foldy가 꺼져 있으면
+//! `Foldy.exe --gather`를 창 없이 띄우고, Foldy는 바뀐 폴더만 읽은 뒤 스스로 끝난다 (사용자 2026-11-25 "단축키 도우미가 하도록 하자").
+//! 주기는 Foldy가 `%LOCALAPPDATA%\Foldy\gather-every.txt`에 적는다: 몇 시간마다(`1`·`6`·`24`) 또는 `off`.
 
 /// RegisterHotKey 수식 키 비트 (MOD_ALT·MOD_CONTROL·MOD_SHIFT·MOD_WIN).
 pub const MOD_ALT: u32 = 0x1;
@@ -22,6 +26,34 @@ pub const WINDOW_CLASS: &str = "FoldyQuickSearchKey";
 
 /// 설정 파일 이름 (`%LOCALAPPDATA%\Foldy\` 아래).
 pub const CONFIG_FILE: &str = "quick-search-key.txt";
+
+/// 주기 모으기 설정 파일 이름 (`%LOCALAPPDATA%\Foldy\` 아래).
+pub const GATHER_FILE: &str = "gather-every.txt";
+
+/// Foldy에 넘기는 인자: 창 없이 느린 드라이브 목록만 다시 모으고 끝난다.
+pub const GATHER_ARG: &str = "--gather";
+
+/// 단축키를 쥐고 있을 때 도우미 창의 이름. 모으기만 하는 도우미(단축키 꺼짐·겹침)는 이름이 없다:
+/// Foldy는 이 이름으로 "도우미가 키를 받는 중"인지 본다.
+pub const KEY_WINDOW_NAME: &str = "key";
+
+/// 로그인한 뒤 처음 모으기까지 기다리는 시간 (로그인 직후 컴퓨터가 바쁠 때를 피한다).
+pub const FIRST_GATHER_AFTER_SECS: u64 = 10 * 60;
+
+/// 주기 모으기 설정을 읽는다: 몇 시간마다 (1~168). 없거나 `off`거나 알아볼 수 없으면 None (모으지 않음).
+pub fn parse_gather(text: &str) -> Option<u32> {
+    let line = text.lines().map(str::trim).find(|l| !l.is_empty())?;
+    line.parse::<u32>().ok().filter(|h| (1..=168).contains(h))
+}
+
+/// 지금 Foldy를 띄워 모을 때인가 (초 단위 벽시계). 처음은 도우미가 뜬 뒤 10분, 그다음은 지난번 뒤 주기만큼.
+/// 시계가 거꾸로 갔으면(시각을 고침) 바로 한 번 한다.
+pub fn gather_due(now: u64, started: u64, last: Option<u64>, hours: u32) -> bool {
+    match last {
+        None => now >= started.saturating_add(FIRST_GATHER_AFTER_SECS) || now < started,
+        Some(l) => now < l || now - l >= u64::from(hours) * 3600,
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Config {
@@ -80,6 +112,11 @@ pub fn user_hash(user: &str) -> u32 {
 /// 실행 중인 Foldy가 "앞으로 와 달라" 요청을 받는 파이프 이름 (Foldy `SingleInstance.Acquire("Foldy")`와 같은 규칙).
 pub fn activate_pipe_path(session: u32, user: &str) -> String {
     format!(r"\\.\pipe\Foldy.{session}.{:08x}.activate", user_hash(user))
+}
+
+/// 첫 Foldy가 만들어 두는 이벤트 이름 (Foldy `SingleInstance.Acquire`와 같은 규칙). 있으면 Foldy가 켜져 있다.
+pub fn instance_event_name(session: u32, user: &str) -> String {
+    format!(r"Local\Foldy.{session}.{:08x}.instance", user_hash(user))
 }
 
 /// 파이프로 보내는 요청: 인자 개수(int32 LE) 뒤에 인자마다 길이(int32 LE)와 UTF-8 바이트.
@@ -157,6 +194,43 @@ mod tests {
         assert_eq!(
             activate_pipe_path(1, "David"),
             r"\\.\pipe\Foldy.1.73d6ce3d.activate"
+        );
+    }
+
+    #[test]
+    fn gather_setting_reads_hours_or_off() {
+        assert_eq!(parse_gather("1"), Some(1));
+        assert_eq!(parse_gather("\n 6 \r\n"), Some(6));
+        assert_eq!(parse_gather("24"), Some(24));
+        assert_eq!(parse_gather("off"), None);
+        assert_eq!(parse_gather(""), None);
+        assert_eq!(parse_gather("0"), None);
+        assert_eq!(parse_gather("1000"), None);
+        assert_eq!(parse_gather("1h"), None);
+    }
+
+    #[test]
+    fn gather_waits_ten_minutes_then_the_interval() {
+        let start = 1_000_000;
+        assert!(!gather_due(start, start, None, 1));
+        assert!(!gather_due(start + 599, start, None, 1));
+        assert!(gather_due(start + 600, start, None, 1));
+        let last = start + 600;
+        assert!(!gather_due(last + 3599, start, Some(last), 1));
+        assert!(gather_due(last + 3600, start, Some(last), 1));
+        assert!(!gather_due(last + 5 * 3600, start, Some(last), 6));
+        assert!(gather_due(last + 6 * 3600, start, Some(last), 6));
+        assert!(
+            gather_due(last - 10, start, Some(last), 6),
+            "시계가 거꾸로 감"
+        );
+    }
+
+    #[test]
+    fn instance_event_matches_foldy() {
+        assert_eq!(
+            instance_event_name(1, "David"),
+            r"Local\Foldy.1.73d6ce3d.instance"
         );
     }
 
