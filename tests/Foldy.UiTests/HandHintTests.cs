@@ -36,6 +36,8 @@ public sealed class HandHintTests
 
         // 끌기 시작 → 오른쪽 창 가운데로
         var target = new Point(right.BoundingRectangle.Left + right.BoundingRectangle.Width / 2, right.BoundingRectangle.Top + right.BoundingRectangle.Height / 2);
+        // 줄을 고른 클릭과 끌기 시작이 두 번 누르기(=파일 열기)로 합쳐지지 않게 두 번 누르기 시간보다 오래 기다린다
+        Thread.Sleep(1000); // Windows 기본 두 번 누르기 시간은 500ms
         Mouse.MoveTo(row!.Value);
         Mouse.Down(MouseButton.Left);
         try
@@ -111,7 +113,7 @@ public sealed class HandHintTests
     /// <summary>목록의 첫 줄(메모.txt)을 눌러 고른다: 머리글 아래를 눌러 보며 목록이 알리는 이름으로 확인 (화면 배율과 상관없이). 누른 자리를 돌려준다.</summary>
     private static Point? ClickFirstRow(AutomationElement list)
     {
-        for (var y = 20; y <= 90; y += 5)
+        for (var y = 20; y <= 90; y += 7) // 7px씩: 두 번 누르기로 묶이는 범위(4px)보다 멀리
         {
             var p = new Point(list.BoundingRectangle.Left + 60, list.BoundingRectangle.Top + y);
             Mouse.Click(p);
