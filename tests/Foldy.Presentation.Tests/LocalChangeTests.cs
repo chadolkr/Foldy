@@ -125,6 +125,31 @@ public class LocalChangeTests
         Names(tab).Should().Equal("b.txt");
     }
 
+    /// <summary>디자인 원칙 11 "안내는 눈길이 머무는 곳에": 안 되는 이유는 화면이 마우스 포인터 바로 아래에 보여 주고, 못 보여 줄 때만 상태 칸에 쓴다.</summary>
+    [Fact]
+    public async Task Why_a_rename_failed_is_shown_where_the_hands_are()
+    {
+        var p = new ListingProvider { Listing = [E("old.txt")] };
+        var env = new TabEnvironment(p, new InlineDispatcher());
+        var shell = new ShellViewModel(env, new ShellServices(new FakeOps(), null!, null!));
+        var tab = shell.Left.NewFolderTab(Dir);
+        await tab.NavigateAsync(Dir);
+
+        var shown = new List<string>();
+        shell.ShowHint = t =>
+        {
+            shown.Add(t);
+            return true;
+        };
+        (await shell.RenameAsync(tab, tab.Items[0], "a/b.txt")).Should().BeFalse();
+        shown.Should().ContainSingle().Which.Should().Be(Foldy.Core.Localization.Loc.T("ops.badName"));
+        shell.Status.Should().BeEmpty("아래 상태 칸에는 쓰지 않는다");
+
+        shell.ShowHint = _ => false; // 보일 곳이 없으면(창이 안 보일 때) 상태 칸에
+        (await shell.RenameAsync(tab, tab.Items[0], "a/b.txt")).Should().BeFalse();
+        shell.Status.Should().Be(Foldy.Core.Localization.Loc.T("ops.badName"));
+    }
+
     [Fact]
     public async Task Rename_and_new_folder_do_not_wait_for_a_slow_refresh()
     {

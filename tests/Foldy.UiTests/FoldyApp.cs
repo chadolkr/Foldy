@@ -15,12 +15,13 @@ public sealed class FoldyApp : IDisposable
 {
     private readonly string _data = Path.Combine(Path.GetTempPath(), "foldy-ui-" + Guid.NewGuid().ToString("N"));
 
-    private FoldyApp(bool skipTour, string? openPath, string language, bool reportCutText)
+    private FoldyApp(bool skipTour, string? openPath, string language, bool reportCutText, Action<FoldyApp>? prepare)
     {
         Directory.CreateDirectory(_data);
         Sample = Path.Combine(_data, "sample");
         Directory.CreateDirectory(Sample);
         File.WriteAllText(Path.Combine(Sample, "메모.txt"), "시험");
+        prepare?.Invoke(this);
         if (skipTour)
         {
             File.WriteAllText(Path.Combine(_data, "tour-shown.txt"), "always"); // 시험: 짧은 소개를 띄우지 않는다
@@ -49,6 +50,9 @@ public sealed class FoldyApp : IDisposable
 
     public string Sample { get; }
 
+    /// <summary>시험용 데이터 폴더 (FOLDY_DATA_DIR). 띄우기 전에 session.json 등을 미리 둘 수 있다.</summary>
+    public string DataDir => _data;
+
     /// <summary>Foldy가 잘린 화면 글을 적는 파일 (reportCutText로 띄웠을 때).</summary>
     public string CutTextReport => Path.Combine(_data, "cut-text.txt");
 
@@ -57,10 +61,10 @@ public sealed class FoldyApp : IDisposable
     /// <summary>빌드된 Foldy.exe (솔루션 빌드 출력). 없으면 null → 테스트를 건너뛴다.</summary>
     public static string? Exe { get; } = FindExe();
 
-    public static FoldyApp Start(bool skipTour = true, string? openPath = null, string language = "ko", bool reportCutText = false)
+    public static FoldyApp Start(bool skipTour = true, string? openPath = null, string language = "ko", bool reportCutText = false, Action<FoldyApp>? prepare = null)
     {
         Assert.SkipWhen(Exe is null, "Foldy.exe가 없습니다 (dotnet build Foldy.slnx -c Release 먼저)");
-        return new FoldyApp(skipTour, openPath, language, reportCutText);
+        return new FoldyApp(skipTour, openPath, language, reportCutText, prepare);
     }
 
     /// <summary>이름(화면 낭독기 이름)으로 요소를 찾는다. 창 전체에서, 기다리며.</summary>

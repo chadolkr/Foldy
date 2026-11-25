@@ -1,0 +1,225 @@
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Threading;
+
+namespace Foldy.UI.Controls;
+
+/// <summary>
+/// 눈길이 머무는 곳에 뜨는 짧은 안내 (디자인 원칙 11 "안내는 눈길이 머무는 곳에").
+/// 아래 상태 칸은 누르거나 끄는 동안 눈이 가지 않으므로, 안 되는 이유를 그 자리에 보여 준다.
+/// <list type="bullet">
+/// <item>끄는 중: <see cref="Show"/>로 커서 바로 아래 (끌기가 끝나면 <see cref="Hide"/>)</item>
+/// <item>누른 뒤: <see cref="ShowWhereLooking"/> — 마우스면 포인터 바로 아래, 키보드면 입력하던 곳·대상 바로 아래. 잠시 뒤나 다음에 누르면 사라진다</item>
+/// </list>
+/// 한 번에 하나만 있으면 되므로 모든 창이 함께 쓴다. 포인터·대상보다 아래에 두어 누를 곳을 가리지 않는다.
+/// </summary>
+public static class CursorHint
+{
+    /// <summary>커서 끝에서 오른쪽·아래로 떨어진 거리. 화살표 커서(약 20px)에 걸리지 않게 그 아래에 둔다.</summary>
+    private const double OffsetX = 4;
+    private const double OffsetY = 26;
+
+    private static Popup? _popup;
+    private static TextBlock? _title;
+    private static TextBlock? _tip;
+    private static Border? _border;
+
+    /// <summary>
+    /// 글자 크기: 잘 보이게 본문(12.5)보다 크게 (사용자 2026-11-25 "메세지 폰트는 잘보이는 폰트 사이즈로").
+    /// 화면 크기 배율(설정)도 따른다.
+    /// </summary>
+    private const double TitleSize = 16;
+    private const double TipSize = 14.5;
+    private static DispatcherTimer? _timer;
+    private static bool _watchingInput;
+
+    public static bool IsOpen => _popup?.IsOpen == true;
+
+    /// <summary>끄는 중: <paramref name="over"/>가 있는 창에서 커서(<paramref name="e"/>의 위치) 바로 아래에 안내를 띄우거나 옮긴다.</summary>
+    public static void Show(UIElement over, DragEventArgs e, string title, string? tip = null)
+    {
+        StopAutoHide();
+        if (Window.GetWindow(over) is not { } win)
+        {
+            return;
+        }
+
+        var at = e.GetPosition(win);
+        Place(win, at.X + OffsetX, at.Y + OffsetY, at.Y - 6, title, tip);
+    }
+
+    /// <summary>
+    /// 누른 뒤의 안내 (안 되는 이유·다음 할 일). 마우스로 했으면 포인터 바로 아래, 키보드로 했으면 입력하던 곳·대상(포커스가 있는 줄·칸) 바로 아래.
+    /// 글 길이에 맞춰 몇 초 보이고, 그 전에 다른 곳을 누르거나 키를 치면 사라진다. 보일 곳이 없으면 false (부르는 쪽이 상태 칸에 쓴다).
+    /// </summary>
+    public static bool ShowWhereLooking(string text, Window? fallbackWindow = null)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var win = Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? fallbackWindow;
+        if (win is not { IsVisible: true } || win.WindowState == WindowState.Minimized)
+        {
+            return false;
+        }
+
+        // 눈길이 머무는 곳 (사용자 2026-11-25): 마우스로 했으면 포인터 바로 아래.
+        // 키보드로 했으면 포인터와 상관없이 입력하던 곳·대상(포커스가 있는 줄·칸) 바로 아래.
+        if (InputManager.Current.MostRecentInputDevice is MouseDevice or StylusDevice or TouchDevice)
+        {
+            // 위치는 창 기준으로 잰다 (창 안 내용은 화면 크기 배율로 늘어날 수 있다)
+            var pointer = Mouse.GetPosition(win);
+            if (pointer.X >= 0 && pointer.Y >= 0 && pointer.X <= win.ActualWidth && pointer.Y <= win.ActualHeight)
+            {
+                Place(win, pointer.X + OffsetX, pointer.Y + OffsetY, pointer.Y - 6, text, null);
+                StartAutoHide(text);
+                return true;
+            }
+        }
+
+        if (Keyboard.FocusedElement is FrameworkElement { IsVisible: true } focused && Window.GetWindow(focused) == win)
+        {
+            // 파일 목록이면 고른 줄 바로 아래, 큰 칸이면 맨 윗줄 아래, 작은 칸(단추·글 칸)이면 그 바로 아래
+            var rect = focused is FastFileList list && list.FocusedRowRect is { } row
+                ? row
+                : new Rect(0, 0, focused.ActualWidth, Math.Min(focused.ActualHeight, 40));
+            var x = Math.Min(rect.Left + 24, Math.Max(0, focused.ActualWidth - 40));
+            var at = focused.TranslatePoint(new Point(x, Math.Clamp(rect.Bottom, 0, focused.ActualHeight) + 2), win);
+            var top = focused.TranslatePoint(new Point(x, Math.Clamp(rect.Top, 0, focused.ActualHeight) - 2), win);
+            Place(win, at.X, at.Y, top.Y, text, null);
+            StartAutoHide(text);
+            return true;
+        }
+
+        return false;
+    }
+
+    public static void Hide()
+    {
+        StopAutoHide();
+        if (_popup is { IsOpen: true })
+        {
+            _popup.IsOpen = false;
+        }
+    }
+
+    /// <summary>
+    /// <paramref name="belowY"/>(포인터·대상 바로 아래)에 띄운다. 창 아래쪽이라 넘치면 <paramref name="aboveBottomY"/>(포인터·대상 바로 위)에 바닥을 맞춰 위로 띄운다
+    /// (Windows가 화면 안으로 밀어 올리다 포인터를 가리지 않게).
+    /// </summary>
+    private static void Place(Window over, double x, double belowY, double aboveBottomY, string title, string? tip)
+    {
+        var popup = _popup ??= Create();
+        // 팝업은 창 밖이라 창의 화면 크기 배율이 닿지 않으므로 같은 배율을 직접 준다
+        _border!.LayoutTransform = over.Content is FrameworkElement { LayoutTransform: { } scale } && !scale.Value.IsIdentity
+            ? scale
+            : System.Windows.Media.Transform.Identity;
+        _title!.Text = title;
+        _title.FontWeight = string.IsNullOrEmpty(tip) ? FontWeights.Normal : FontWeights.SemiBold; // 한 줄짜리 안내는 굵지 않게
+        _tip!.Text = tip ?? "";
+        _tip.Visibility = string.IsNullOrEmpty(tip) ? Visibility.Collapsed : Visibility.Visible;
+        if (!ReferenceEquals(popup.PlacementTarget, over))
+        {
+            popup.IsOpen = false;
+            popup.PlacementTarget = over;
+        }
+
+        _border!.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var size = _border.DesiredSize;
+        var y = belowY + size.Height > over.ActualHeight - 8 && aboveBottomY - size.Height >= 0 ? aboveBottomY - size.Height : belowY;
+        popup.HorizontalOffset = Math.Max(0, Math.Min(x, over.ActualWidth - size.Width - 8));
+        popup.VerticalOffset = y;
+        var wasOpen = popup.IsOpen;
+        popup.IsOpen = true;
+        if (!wasOpen && UIElementAutomationPeer.FromElement(_title) is { } peer)
+        {
+            peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged); // 화면 읽기가 읽어 주게
+        }
+    }
+
+    /// <summary>읽을 시간: 3초 + 글자 수만큼(한 글자 60ms), 최대 9초.</summary>
+    private static void StartAutoHide(string text)
+    {
+        _timer ??= new DispatcherTimer(DispatcherPriority.Background, Dispatcher.CurrentDispatcher);
+        _timer.Stop();
+        _timer.Interval = TimeSpan.FromMilliseconds(Math.Min(9000, 3000 + text.Length * 60));
+        _timer.Tick -= OnTimer;
+        _timer.Tick += OnTimer;
+        _timer.Start();
+        if (!_watchingInput)
+        {
+            // 안내를 띄운 바로 그 입력이 끝난 다음부터 지켜본다 (띄우자마자 닫히지 않게)
+            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+            {
+                if (_timer?.IsEnabled == true && !_watchingInput)
+                {
+                    InputManager.Current.PreProcessInput += OnInput;
+                    _watchingInput = true;
+                }
+            }));
+        }
+    }
+
+    private static void StopAutoHide()
+    {
+        _timer?.Stop();
+        if (_watchingInput)
+        {
+            InputManager.Current.PreProcessInput -= OnInput;
+            _watchingInput = false;
+        }
+    }
+
+    private static void OnTimer(object? sender, EventArgs e) => Hide();
+
+    private static void OnInput(object sender, PreProcessInputEventArgs e)
+    {
+        var ev = e.StagingItem.Input.RoutedEvent;
+        if (ev == Mouse.PreviewMouseDownEvent || ev == Keyboard.PreviewKeyDownEvent || ev == Mouse.PreviewMouseWheelEvent)
+        {
+            Hide();
+        }
+    }
+
+    private static Popup Create()
+    {
+        _title = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = TitleSize };
+        _title.SetResourceReference(TextBlock.ForegroundProperty, "Brush.Text");
+        _tip = new TextBlock { Margin = new Thickness(0, 3, 0, 0), TextWrapping = TextWrapping.Wrap, FontSize = TipSize };
+        _tip.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextSecondary");
+        var stack = new StackPanel();
+        stack.Children.Add(_title);
+        stack.Children.Add(_tip);
+        var border = _border = new Border
+        {
+            Child = stack,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(12, 8, 12, 9),
+            MaxWidth = 420,
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 8, ShadowDepth = 2, Opacity = 0.25 },
+            Margin = new Thickness(0, 0, 8, 8), // 그림자 자리
+        };
+        border.SetResourceReference(TextElement.FontFamilyProperty, "Font.UI");
+        border.SetResourceReference(Border.BackgroundProperty, "Brush.Surface");
+        border.SetResourceReference(Border.BorderBrushProperty, "Brush.BorderStrong");
+        AutomationProperties.SetAutomationId(_title, "CursorHint"); // 시험·화면 읽기 (Border는 자동화 트리에 없다)
+        AutomationProperties.SetLiveSetting(_title, AutomationLiveSetting.Polite);
+        return new Popup
+        {
+            Child = border,
+            Placement = PlacementMode.Relative,
+            AllowsTransparency = true,
+            IsHitTestVisible = false,
+            Focusable = false,
+            StaysOpen = true,
+        };
+    }
+}

@@ -160,6 +160,9 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     public bool SortDescending { get; set; }
 
     /// <summary>행 하나의 화면 위치 (컨트롤 좌표). 이름 바꾸기 입력칸 배치용.</summary>
+    /// <summary>포커스가 있는 줄의 자리 (없으면 null). 포인터가 창 밖일 때 안내(CursorHint)가 쓴다.</summary>
+    public Rect? FocusedRowRect => ItemsSource is { } items && _focus >= 0 && _focus < items.Count ? RowRect(_focus) : null;
+
     public Rect RowRect(int index) => new(0, HeaderHeight + index * RowHeight - _offset.Y, ActualWidth, RowHeight);
 
     /// <summary>이름 칸(아이콘 뒤)의 위치.</summary>
