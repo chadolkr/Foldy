@@ -370,6 +370,9 @@ public sealed class SlowCrawler : IDisposable
 
     public event Action<CrawlStatus>? Changed;
 
+    /// <summary>드라이브 하나를 모으기 시작했다 (드라이브, 까닭: 처음·주기·끊긴 곳부터 이어서·직접 누름 등). 모으기 스레드에서 불린다. 로그용.</summary>
+    public event Action<string, string>? Starting;
+
     private readonly Dictionary<string, CrawlStore> _stores = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, FileSystemWatcher> _watchers = new(StringComparer.OrdinalIgnoreCase);
 
@@ -600,6 +603,7 @@ public sealed class SlowCrawler : IDisposable
                 }
 
                 bool due, onSchedule = false;
+                string why;
                 var done = store.CompletedUtc;
                 var unfinished = HasUnfinished(root); // 모으다 끊긴 것은 주기를 기다리지 않고 이어서 한다 (직접 누를 때만 설정이어도: 사용자가 시작한 것)
                 var retryEmpty = false;
@@ -617,17 +621,24 @@ public sealed class SlowCrawler : IDisposable
                     }
 
                     due = unfinished || retryEmpty;
-                    // 저절로 모으지 않는 설정이면 알림이 넘친 것도 표시만 해 둔다 (주기를 다시 켜면 그때 모은다)
+                    why = unfinished ? "끊긴 곳부터 이어서" : retryEmpty ? "목록이 비어 보여 다시" : "";
+                    // 저절로 모으지 않는 설정이면 알림이 넘친 것도 표시만 해 둔다 (주기를 다시 켜면 그때 모은다).
+                    // 알림이 넘치거나 끊겨도 주기보다 자주 다시 모으지 않는다: 회사 클라우드 드라이브(K:)는 다시 모으기도 1시간 넘게 걸려,
+                    // 끊길 때마다 바로 다시 모으면 쉬지 않고 읽게 된다 (2026-11-25, 다 만든 지 7분 만에 다시 시작한 기록).
+                    // 알림이 끊긴 드라이브는 주기가 되면 "바뀐 것 없어 보임"으로 건너뛰지 않고 꼭 모은다
                     if (!due && _rescanEvery is { } every)
                     {
                         var last = done is { } dd && _quiet.TryGetValue(root, out var q) && q > dd ? q : done;
-                        if (_dirty.Remove(root) || done is null)
+                        if (done is null)
                         {
                             due = true;
+                            why = "처음";
                         }
                         else if (DateTime.UtcNow - last!.Value >= every)
                         {
-                            due = onSchedule = true;
+                            due = true;
+                            onSchedule = !_dirty.Remove(root);
+                            why = onSchedule ? "주기" : "주기 (변경 알림이 끊겼음)";
                         }
                     }
                 }
@@ -653,7 +664,11 @@ public sealed class SlowCrawler : IDisposable
                     continue;
                 }
 
-                did |= TryStart(d, full: false);
+                if (TryStart(d, full: false))
+                {
+                    did = true;
+                    Starting?.Invoke(root, why);
+                }
             }
 
             if (!did && Current() is null)
@@ -724,7 +739,11 @@ public sealed class SlowCrawler : IDisposable
 
             if (ready)
             {
-                did |= TryStart(next, full: true);
+                if (TryStart(next, full: true))
+                {
+                    did = true;
+                    Starting?.Invoke(next, "직접 누름");
+                }
             }
         }
 
@@ -1579,6 +1598,18 @@ public sealed class SlowCrawler : IDisposable
 
     /// <summary>폴더 하나의 목록과 그 폴더 자신의 수정 시각 (목록의 "." 줄, 없으면 0).</summary>
     internal static List<CrawlEntry> List(string dir, out long time)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            // 하위 폴더가 링크인지 목록의 재분석 태그로 안다: 폴더를 따로 열지 않는다 (WinDirList)
+            return WinDirList.List(dir, n => IsWindowsFolder(n), out time);
+        }
+
+        return ListPortable(dir, out time);
+    }
+
+    /// <summary>.NET 폴더 읽기로 읽는다 (Windows가 아닐 때, 시험에서 비교할 때). 재분석 지점인 하위 폴더는 따로 열어 링크인지 본다.</summary>
+    internal static List<CrawlEntry> ListPortable(string dir, out long time)
     {
         long self = 0;
         List<CrawlEntry> entries = [.. new FileSystemEnumerable<CrawlEntry?>(dir, (ref FileSystemEntry e) =>

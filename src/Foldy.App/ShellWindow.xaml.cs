@@ -814,6 +814,8 @@ public partial class ShellWindow : Window, IPaneHost
             LogSpeed(s);
             Dispatcher.BeginInvoke(UpdateIndexText);
         };
+        // 왜 다시 모으는지 남긴다 (드라이브 글자와 까닭만, 폴더 이름은 남기지 않는다)
+        _crawler.Starting += (drive, why) => Log.Information("모으기 시작 {Drive} ({Why})", drive.TrimEnd('\\'), why);
         _search.Crawler = _crawler;
         _search.CrawlDrives = CrawlDrives;
         _crawler.Start();
