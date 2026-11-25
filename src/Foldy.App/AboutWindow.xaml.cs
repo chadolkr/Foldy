@@ -10,6 +10,9 @@ public partial class AboutWindow : Window
     {
         InitializeComponent();
         VersionText.Text = Foldy.Core.Localization.Loc.F("about.version", typeof(AboutWindow).Assembly.GetName().Version?.ToString(3) ?? "?");
+        // 소개 페이지는 앱 언어에 맞는 주소로 (사용자 요청 2026-11-25)
+        SiteLink.NavigateUri = new Uri(Foldy.Core.Localization.ProductSite.Current);
+        SiteText.Text = Foldy.Core.Localization.ProductSite.Current;
     }
 
     private void OnNavigate(object sender, RequestNavigateEventArgs e)

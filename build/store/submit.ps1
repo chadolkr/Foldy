@@ -2,16 +2,17 @@
   Store 판(MSIX)을 Partner Center에 새 제출로 올린다 (.github/workflows/store.yml이 부른다, docs/store.md "PC 없이 제출").
   1) 패키지가 Foldy 것이고 버전이 태그와 같은지 본다.
   2) 패키지를 올려 초안을 만든다 (msstore publish --noCommit: 인증에 내지 않음).
-  3) 5개 언어의 "이 버전의 새로운 기능"을 docs/store-listing 글로 바꾼다.
-  4) -Mode submit일 때만 인증에 낸다. 앞의 어느 단계든 안 되면 내지 않는다.
+     -Mode text-draft·text-submit이면 패키지 없이, 마지막으로 공개된 제출을 그대로 복사한 초안을 만든다 (설명 글만 고칠 때).
+  3) 5개 언어 등록 정보(설명, 새로운 기능, 제품 기능, 짧은 설명, 검색어, 웹 사이트·지원 주소)를 docs/store-listing 글로 바꾼다.
+  4) -Mode submit·text-submit일 때만 인증에 낸다. 앞의 어느 단계든 안 되면 내지 않는다.
 
   인증 값은 환경 변수로만 받는다: STORE_TENANT_ID, STORE_SELLER_ID, STORE_CLIENT_ID, STORE_CLIENT_SECRET.
-  -CheckOnly: 1)과 글만 확인하고 끝난다 (네트워크·인증 값 필요 없음).
+  -CheckOnly: 1)과 글만 확인하고 끝난다 (네트워크·인증 값 필요 없음). CI가 글 모양을 이걸로 본다.
 #>
 param(
-    [Parameter(Mandatory)] [string] $Msix,
-    [Parameter(Mandatory)] [string] $Version,
-    [ValidateSet('draft', 'submit')] [string] $Mode = 'draft',
+    [string] $Msix,
+    [string] $Version,
+    [ValidateSet('draft', 'submit', 'text-draft', 'text-submit')] [string] $Mode = 'draft',
     [string] $ProductId = '9NS1PWL5QGP6',
     [string] $Identity = 'DavidCHA.FoldyFileManager',
     [string] $ListingDir = (Join-Path $PSScriptRoot '../../docs/store-listing'),
@@ -19,40 +20,74 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
+$textOnly = $Mode -like 'text-*'
+$commit = $Mode -in 'submit', 'text-submit'
+if (-not $textOnly -and (-not $Msix -or -not $Version)) { throw "-Mode $Mode 에는 -Msix와 -Version이 필요함" }
 
-# Partner Center 언어 → 등록 정보 파일. 글은 파일의 세 번째 "## " 칸(이 버전의 새로운 기능)
-$languages = [ordered]@{ 'ko-kr' = 'ko.md'; 'en-us' = 'en.md'; 'es-es' = 'es.md'; 'ja-jp' = 'ja.md'; 'zh-cn' = 'zh-cn.md' }
-$noteLimit = 1500 # Store의 "새로운 기능" 글자 수 제한
+# Partner Center 언어 → 등록 정보 파일과 소개 페이지 (site/src/i18n/index.ts의 언어별 주소)
+$site = 'https://chadolkr.github.io/Foldy/'
+$languages = [ordered]@{
+    'ko-kr' = @{ File = 'ko.md'; Site = $site }
+    'en-us' = @{ File = 'en.md'; Site = "${site}en/" }
+    'es-es' = @{ File = 'es.md'; Site = "${site}es/" }
+    'ja-jp' = @{ File = 'ja.md'; Site = "${site}ja/" }
+    'zh-cn' = @{ File = 'zh-cn.md'; Site = "${site}zh-cn/" }
+}
+$support = 'https://github.com/chadolkr/Foldy/issues'
 
-function Get-ReleaseNotes([string] $file) {
+# 파일의 "## " 칸 순서: 1 제품 이름, 2 설명, 3 새로운 기능, 4 제품 기능, 5 짧은 설명, 6 검색어 (뒤는 사람이 보는 참고)
+# 글자 수 제한은 Partner Center 등록 정보 안내를 따른다.
+function Get-Listing([string] $file) {
     $text = (Get-Content -LiteralPath $file -Raw -Encoding UTF8) -replace "`r`n", "`n"
     $sections = [regex]::Split($text, '(?m)^## ')
-    if ($sections.Count -lt 4) { throw "등록 정보 파일 모양이 다름: $file" }
-    $body = ($sections[3] -split "`n", 2)[1].Trim()
-    if ($body.Length -eq 0) { throw "새로운 기능 글이 비어 있음: $file" }
-    if ($body.Length -gt $noteLimit) { throw "새로운 기능 글이 $noteLimit자를 넘음 ($($body.Length)자): $file" }
-    return $body
+    if ($sections.Count -lt 7) { throw "등록 정보 파일 모양이 다름: $file" }
+    $body = { param($i) ($sections[$i] -split "`n", 2)[1].Trim() }
+    $lines = { param($i) @((& $body $i) -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
+    $listing = [ordered]@{
+        description      = & $body 2
+        releaseNotes     = & $body 3
+        features         = @(& $lines 4 | ForEach-Object { $_ -replace '^-\s*', '' })
+        shortDescription = & $body 5
+        keywords         = @(& $lines 6)
+    }
+    $problems = @()
+    foreach ($k in 'description', 'releaseNotes', 'shortDescription') { if (-not $listing[$k]) { $problems += "$k 비어 있음" } }
+    if ($listing.description.Length -gt 10000) { $problems += "설명이 10,000자를 넘음 ($($listing.description.Length)자)" }
+    if ($listing.description -notmatch [regex]::Escape($site)) { $problems += '설명에 소개 페이지 주소가 없음' }
+    if ($listing.releaseNotes.Length -gt 1500) { $problems += "새로운 기능이 1,500자를 넘음 ($($listing.releaseNotes.Length)자)" }
+    if ($listing.shortDescription.Length -gt 1000) { $problems += "짧은 설명이 1,000자를 넘음 ($($listing.shortDescription.Length)자)" }
+    if ($listing.features.Count -lt 1 -or $listing.features.Count -gt 20) { $problems += "제품 기능이 1~20개가 아님 ($($listing.features.Count)개)" }
+    $listing.features | Where-Object { $_.Length -gt 200 } | ForEach-Object { $problems += "제품 기능 한 줄이 200자를 넘음: $_" }
+    if ($listing.keywords.Count -lt 1 -or $listing.keywords.Count -gt 7) { $problems += "검색어가 1~7개가 아님 ($($listing.keywords.Count)개)" }
+    $listing.keywords | Where-Object { $_.Length -gt 30 } | ForEach-Object { $problems += "검색어가 30자를 넘음: $_" }
+    $words = ($listing.keywords | ForEach-Object { @($_ -split '\s+').Count } | Measure-Object -Sum).Sum
+    if ($words -gt 21) { $problems += "검색어 낱말이 모두 21개를 넘음 ($words개)" }
+    if ($problems.Count -gt 0) { throw "등록 정보 글 확인 실패: $file`n  $($problems -join "`n  ")" }
+    return $listing
 }
 
-# 1) 패키지 확인
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $Msix).Path)
-try {
-    $entry = $zip.GetEntry('AppxManifest.xml')
-    if (-not $entry) { throw 'AppxManifest.xml이 없음 (MSIX가 아님)' }
-    $reader = [System.IO.StreamReader]::new($entry.Open())
-    try { [xml] $manifest = $reader.ReadToEnd() } finally { $reader.Dispose() }
+# 1) 패키지 확인 (글만 고칠 때는 패키지가 없다)
+if (-not $textOnly) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $Msix).Path)
+    try {
+        $entry = $zip.GetEntry('AppxManifest.xml')
+        if (-not $entry) { throw 'AppxManifest.xml이 없음 (MSIX가 아님)' }
+        $reader = [System.IO.StreamReader]::new($entry.Open())
+        try { [xml] $manifest = $reader.ReadToEnd() } finally { $reader.Dispose() }
+    }
+    finally { $zip.Dispose() }
+    $id = $manifest.Package.Identity
+    if ($id.Name -ne $Identity) { throw "패키지 Identity가 다름: $($id.Name) (기대: $Identity)" }
+    if ($id.Version -ne "$Version.0") { throw "패키지 버전이 다름: $($id.Version) (기대: $Version.0)" }
+    Write-Host "패키지 확인: $($id.Name) $($id.Version)"
 }
-finally { $zip.Dispose() }
-$id = $manifest.Package.Identity
-if ($id.Name -ne $Identity) { throw "패키지 Identity가 다름: $($id.Name) (기대: $Identity)" }
-if ($id.Version -ne "$Version.0") { throw "패키지 버전이 다름: $($id.Version) (기대: $Version.0)" }
-Write-Host "패키지 확인: $($id.Name) $($id.Version)"
 
-$notes = [ordered]@{}
+$listings = [ordered]@{}
 foreach ($lang in $languages.Keys) {
-    $notes[$lang] = Get-ReleaseNotes (Join-Path $ListingDir $languages[$lang])
-    Write-Host "새로운 기능 글 $lang : $($notes[$lang].Length)자"
+    $l = Get-Listing (Join-Path $ListingDir $languages[$lang].File)
+    $listings[$lang] = $l
+    Write-Host "등록 정보 $lang : 설명 $($l.description.Length)자 $(@($l.description -split "`n").Count)줄, 새로운 기능 $($l.releaseNotes.Length)자, 기능 $($l.features.Count)개, 검색어 $($l.keywords.Count)개"
 }
 if ($CheckOnly) { Write-Host '확인만 하고 끝냄'; return }
 
@@ -105,7 +140,7 @@ $pending = ($answer.Content | ConvertFrom-Json).pendingApplicationSubmission
 Write-Host "앱 확인: $ProductId, 열려 있는 초안 $(if ($pending) { '있음 (새로 만들면 지워져요)' } else { '없음' })"
 
 # 공개 로그에 초안을 바꿀 수 있는 주소(FileUploadUrl의 SAS 서명)가 남지 않게 한다.
-# msstore의 submission get/update는 초안 JSON을 통째로 찍으므로 절대 그대로 내보내지 않는다
+# 초안 JSON(msstore 출력, API 응답)은 절대 그대로 내보내지 않는다
 function Hide-Secret([string] $line) {
     if ($line -match 'FileUploadUrl|blob\.core\.windows\.net|[?&]sig=|skoid') { return '(가림: 올리기 주소)' }
     return $line
@@ -123,43 +158,83 @@ function Invoke-Store([string] $what, [scriptblock] $run) {
 }
 function Show-Store([string[]] $lines) { $lines | ForEach-Object { Write-Host (Hide-Secret $_) } }
 
-# 2) 초안 만들기 (이미 열린 초안이 있으면 마지막으로 공개된 제출에서 새로 만든다)
-$null = Invoke-Store '인증 설정' { msstore reconfigure --tenantId $env:STORE_TENANT_ID --sellerId $env:STORE_SELLER_ID --clientId $env:STORE_CLIENT_ID --clientSecret $env:STORE_CLIENT_SECRET }
-Show-Store (Invoke-Store '패키지 올리기' { msstore publish $Msix -id $ProductId --noCommit })
-
-# 3) 새로운 기능 글. 명령줄 길이 제한(약 32,000자)을 넘으면 글은 사람이 고치도록 초안으로 남긴다
-$raw = (Invoke-Store '초안 읽기' { msstore submission get $ProductId }) -join "`n"
-$start = $raw.IndexOf('{')
-if ($start -lt 0) { throw '초안 내용을 알아볼 수 없음. 초안은 남아 있으니 Partner Center에서 확인해 주세요' }
-$submission = $raw.Substring($start, $raw.LastIndexOf('}') - $start + 1) | ConvertFrom-Json -Depth 100
-if ($env:GITHUB_ACTIONS -and $submission.FileUploadUrl) { Write-Host "::add-mask::$($submission.FileUploadUrl)" }
-foreach ($package in $submission.ApplicationPackages) { Write-Host "패키지 $($package.FileName) : $($package.FileStatus)" }
-Write-Host "가격 $($submission.Pricing.PriceId), 분류 $($submission.ApplicationCategory), 언어 $(@($submission.Listings.PSObject.Properties.Name) -join ', ')"
-$missing = @()
-foreach ($lang in $notes.Keys) {
-    $listing = $submission.Listings.PSObject.Properties | Where-Object { $_.Name -eq $lang } | Select-Object -First 1
-    if ($listing) { $listing.Value.BaseListing | Add-Member -NotePropertyName ReleaseNotes -NotePropertyValue $notes[$lang] -Force } else { $missing += $lang }
+# Partner Center 제출 API (읽기·쓰기). 응답 본문은 찍지 않는다: 초안에는 올리기 주소(SAS)가 들어 있다
+$api = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$ProductId"
+function Invoke-Dev([string] $what, [string] $method, [string] $path, [string] $body) {
+    $call = @{ Method = $method; Uri = "$api$path"; Headers = @{ Authorization = "Bearer $token" }; SkipHttpErrorCheck = $true }
+    if ($null -ne $body) { $call.Body = [Text.Encoding]::UTF8.GetBytes($body); $call.ContentType = 'application/json; charset=utf-8' }
+    $answer = Invoke-WebRequest @call
+    if ($answer.StatusCode -ge 300) {
+        $why = try { $e = ([string] $answer.Content | ConvertFrom-Json); "$($e.code) $($e.message) $(@($e.validationErrors | ForEach-Object { "$($_.target): $($_.message)" }) -join '; ')" } catch { '' }
+        throw "$what 실패: HTTP $($answer.StatusCode) $(Hide-Secret $why)"
+    }
+    if (-not $answer.Content) { return $null }
+    $data = [string] $answer.Content | ConvertFrom-Json -Depth 100
+    if ($env:GITHUB_ACTIONS -and $data.fileUploadUrl) { Write-Host "::add-mask::$($data.fileUploadUrl)" }
+    return $data
 }
-$json = $submission | ConvertTo-Json -Depth 100 -Compress
-$notesDone = $false
-if ($missing.Count -gt 0) { Write-Warning "등록 정보에 없는 언어: $($missing -join ', ')" }
-elseif ($json.Length -gt 30000) { Write-Warning "초안이 커서($($json.Length)자) 글을 자동으로 바꾸지 못함" }
+
+# 있는 칸만 바꾼다 (API가 모르는 칸을 더하면 거절된다). 이름의 대소문자는 응답을 따른다
+function Set-Field($target, [string] $name, $value) {
+    $prop = $target.PSObject.Properties | Where-Object { $_.Name -eq $name } | Select-Object -First 1
+    if ($prop) { $prop.Value = $value; return $true }
+    return $false
+}
+
+# 2) 초안 만들기
+if ($textOnly) {
+    # 글만: 열린 초안을 지우고, 마지막으로 공개된 제출(패키지 포함)을 복사한 새 초안을 만든다
+    if ($pending) {
+        $null = Invoke-Dev '열린 초안 지우기' Delete "/submissions/$($pending.id)" $null
+        Write-Host '열려 있던 초안을 지움'
+    }
+    $draft = Invoke-Dev '초안 만들기' Post '/submissions' ''
+    $draftId = $draft.id
+}
 else {
-    $null = Invoke-Store '글 바꾸기' { msstore submission update $ProductId $json }
-    Write-Host '새로운 기능 글을 바꿈'
-    $notesDone = $true
+    # 패키지: msstore가 열린 초안을 지우고 새 초안에 패키지를 올린다
+    $null = Invoke-Store '인증 설정' { msstore reconfigure --tenantId $env:STORE_TENANT_ID --sellerId $env:STORE_SELLER_ID --clientId $env:STORE_CLIENT_ID --clientSecret $env:STORE_CLIENT_SECRET }
+    Show-Store (Invoke-Store '패키지 올리기' { msstore publish $Msix -id $ProductId --noCommit })
+    $app = Invoke-Dev '앱 다시 읽기' Get '' $null
+    if (-not $app.pendingApplicationSubmission) { throw '패키지를 올린 초안을 찾지 못함' }
+    $draftId = $app.pendingApplicationSubmission.id
 }
+Write-Host "초안 $draftId"
 
-$summary = "Foldy $Version 패키지로 초안을 만들었어요."
-if (-not $notesDone) { $summary += ' "이 버전의 새로운 기능" 글은 바꾸지 못했어요. Partner Center에서 고친 뒤 제출해 주세요.' }
+# 3) 등록 정보 글
+$submission = Invoke-Dev '초안 읽기' Get "/submissions/$draftId" $null
+foreach ($package in $submission.applicationPackages) { Write-Host "패키지 $($package.fileName) : $($package.fileStatus)" }
+Write-Host "가격 $($submission.pricing.priceId), 분류 $($submission.applicationCategory), 언어 $(@($submission.listings.PSObject.Properties.Name) -join ', ')"
+$missing = @()
+foreach ($lang in $listings.Keys) {
+    $entry = $submission.listings.PSObject.Properties | Where-Object { $_.Name -eq $lang } | Select-Object -First 1
+    if (-not $entry) { $missing += $lang; continue }
+    $base = $entry.Value.baseListing
+    $text = $listings[$lang]
+    foreach ($field in 'description', 'releaseNotes', 'shortDescription') {
+        if (-not (Set-Field $base $field $text[$field])) { $base | Add-Member -NotePropertyName $field -NotePropertyValue $text[$field] }
+    }
+    foreach ($field in 'features', 'keywords') {
+        if (-not (Set-Field $base $field ([string[]] $text[$field]))) { $base | Add-Member -NotePropertyName $field -NotePropertyValue ([string[]] $text[$field]) }
+    }
+    $null = Set-Field $base 'websiteUrl' $languages[$lang].Site
+    $null = Set-Field $base 'supportContact' $support
+}
+if ($missing.Count -gt 0) { throw "초안 등록 정보에 없는 언어: $($missing -join ', '). 초안은 남아 있어요" }
+$null = Invoke-Dev '글 바꾸기' Put "/submissions/$draftId" ($submission | ConvertTo-Json -Depth 100 -Compress)
+Write-Host '등록 정보 글을 바꿈 (설명, 새로운 기능, 제품 기능, 짧은 설명, 검색어, 웹 사이트)'
+
+$summary = if ($textOnly) { 'Store 설명 글을 바꾼 초안을 만들었어요 (패키지는 지금 공개된 것 그대로).' } else { "Foldy $Version 패키지와 설명 글로 초안을 만들었어요." }
 
 # 4) 인증에 내기
-if ($Mode -eq 'submit' -and $notesDone) {
-    Show-Store (Invoke-Store '인증에 내기' { msstore submission publish $ProductId })
-    $summary = "Foldy $Version 를 인증에 냈어요. 통과하면 Store에 공개돼요."
+if ($commit) {
+    $result = Invoke-Dev '인증에 내기' Post "/submissions/$draftId/commit" ''
+    Write-Host "제출 상태: $($result.status)"
+    $summary = if ($textOnly) { 'Store 설명 글을 인증에 냈어요. 통과하면 Store에 보여요.' } else { "Foldy $Version 를 인증에 냈어요. 통과하면 Store에 공개돼요." }
 }
-elseif ($Mode -eq 'submit') { $summary += ' 그래서 인증에 내지 않았어요.' }
-else { $summary += ' 초안만 만들었고 인증에 내지 않았어요. Partner Center에서 보기만 하고(고치면 API로 제출할 수 없어요), 괜찮으면 mode를 submit으로 다시 실행해 주세요.' }
+else {
+    $again = if ($textOnly) { 'text-submit' } else { 'submit' }
+    $summary += " 인증에는 내지 않았어요. Partner Center에서 보기만 하고(고치면 API로 제출할 수 없어요), 괜찮으면 mode를 $again 으로 다시 실행해 주세요."
+}
 Write-Host $summary
 if ($env:GITHUB_STEP_SUMMARY) { Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $summary -Encoding utf8 }
-if ($Mode -eq 'submit' -and -not $notesDone) { exit 1 }

@@ -2,18 +2,20 @@ name: Store
 
 # Microsoft Store에 새 버전을 낸다. 사람이 누를 때만 돈다 (휴대폰: GitHub → Actions → Store → Run workflow).
 # 기본은 초안만 만들고 인증에는 내지 않는다. 준비할 것과 순서는 docs/store.md "PC 없이 제출".
+# text-draft·text-submit: 새 패키지 없이 Store 설명 글(docs/store-listing)만 바꾼다. 태그는 비워 둬도 된다.
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: '올릴 릴리스 태그 (예: v1.13.2)'
-        required: true
+        description: '올릴 릴리스 태그 (예: v1.13.2). text-로 시작하는 mode면 비워 두기'
+        required: false
+        default: ''
         type: string
       mode:
-        description: 'draft = 초안만, submit = 인증에 내기'
+        description: 'draft = 초안만, submit = 인증에 내기, text-draft·text-submit = 패키지 없이 설명 글만'
         required: true
         type: choice
-        options: [draft, submit]
+        options: [draft, submit, text-draft, text-submit]
         default: draft
 
 permissions:
@@ -37,6 +39,7 @@ jobs:
           persist-credentials: false
 
       - name: Store package from the release run
+        if: ${{ !startsWith(inputs.mode, 'text-') }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,10 +57,12 @@ jobs:
 
       # Microsoft Store CLI는 .NET 9 데스크톱 런타임이 필요하다
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        if: ${{ !startsWith(inputs.mode, 'text-') }}
         with:
           dotnet-version: 9.0.x
 
-      - uses: microsoft/setup-msstore-cli@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0 # v1.4
+      - if: ${{ !startsWith(inputs.mode, 'text-') }}
+        uses: microsoft/setup-msstore-cli@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0 # v1.4
         with:
           version: v0.4.4
 
@@ -69,4 +74,6 @@ jobs:
           STORE_SELLER_ID: ${{ secrets.STORE_SELLER_ID }}
           STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
           STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
-        run: ./build/store/submit.ps1 -Msix $env:MSIX -Version $env:VERSION -Mode $env:MODE
+        run: |
+          if ($env:MODE -like 'text-*') { ./build/store/submit.ps1 -Mode $env:MODE }
+          else { ./build/store/submit.ps1 -Msix $env:MSIX -Version $env:VERSION -Mode $env:MODE }

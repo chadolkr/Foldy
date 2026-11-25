@@ -16,8 +16,10 @@
 
 휴대폰에서 **GitHub → Actions → Store → Run workflow**를 누르면 그 태그의 Store 패키지를 Partner Center에 올린다(`.github/workflows/store.yml`, `build/store/submit.ps1`).
 
-- `draft`(기본): 패키지를 올리고 5개 언어의 "이 버전의 새로운 기능"을 `docs/store-listing` 글로 바꾼 초안만 만든다. 인증에는 내지 않는다.
+- `draft`(기본): 패키지를 올리고 5개 언어의 등록 정보 글(설명, 새로운 기능 등)을 `docs/store-listing` 글로 바꾼 초안만 만든다. 인증에는 내지 않는다.
 - `submit`: 위에 이어 인증에 낸다. 글을 바꾸지 못하면 내지 않는다.
+- `text-draft`·`text-submit` (2026-11-25): 새 패키지 없이 Store 설명 글만 바꾼다. 태그는 비워 둔다. 마지막으로 공개된 제출을 복사해 초안을 만들고, `docs/store-listing`의 설명·새로운 기능·제품 기능·짧은 설명·검색어와 웹 사이트(언어별 소개 페이지)·지원 주소를 넣는다. 패키지를 낼 때도 같은 글이 함께 올라간다.
+- Store 설명은 Partner Center에 손으로 붙여 넣지 않는다: 줄바꿈이 빠져 한 덩어리로 보였다(2026-11-25).
 - 사람이 누를 때만 돌고, main에서만 시크릿을 읽는다. 열려 있던 초안은 마지막으로 공개된 제출에서 새로 만들어져 사라진다.
 - 2026-11-25에 `draft`가 처음으로 됐다. `submit`은 아직 해 보지 못했다. 초안은 Partner Center에서 **보기만** 한다(거기서 고치면 API로 제출할 수 없다).
 

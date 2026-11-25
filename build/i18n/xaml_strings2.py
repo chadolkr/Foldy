@@ -4,6 +4,8 @@
 XAML2 = [
     # 정보 창
     ("about.developer", "개발자: David CHA", "Developer: David CHA", "Desarrollador: David CHA", "開発者: David CHA", "开发者：David CHA"),
+    ("about.site", "소개 페이지: ", "Website: ", "Sitio web: ", "紹介ページ: ", "介绍页面："),
+    ("about.site.name", "Foldy 소개 페이지 열기", "Open the Foldy website", "Abrir el sitio web de Foldy", "Foldy の紹介ページを開く", "打开 Foldy 介绍页面"),
     ("about.project", "프로젝트: ", "Project: ", "Proyecto: ", "プロジェクト: ", "项目："),
     ("about.bug", '문제 알리기: ', "Report a bug: ", "Informar de un error: ", "バグ報告: ", "报告问题："),
     ("about.bug.tip", "앱·Windows 버전과 최근 로그를 채운 GitHub 이슈 작성 페이지를 엽니다", "Opens a GitHub issue page pre-filled with app and Windows versions and recent logs", "Abre una página de incidencia de GitHub con las versiones de la app y de Windows y los registros recientes", "アプリ・Windows のバージョンと最近のログを入れた GitHub の Issue 作成ページを開きます", "打开已填好应用和 Windows 版本及最近日志的 GitHub 问题页面"),

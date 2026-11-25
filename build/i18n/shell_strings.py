@@ -10,6 +10,7 @@ SHELL = [
     ("shell.help", "도움말", "Help", "Ayuda", "ヘルプ", "帮助"),
     ("shell.help.shorts", "짧은 소개 보기 (영상처럼, 45초)", "Watch the short intro (video-style, 45 s)", "Ver la introducción breve (tipo vídeo, 45 s)", "短い紹介を見る (動画風、45 秒)", "观看简短介绍（视频式，45 秒）"),
     ("shell.help.manual", "사용 설명서", "User guide", "Guía de uso", "使い方ガイド", "使用手册"),
+    ("shell.help.site", "소개 페이지 (웹)", "Foldy website", "Sitio web de Foldy", "紹介ページ (Web)", "介绍页面（网页）"),
     ("shell.more.tip", '모든 명령, 화면 밝기, 숨김 파일, 업데이트, 문제 알리기, 정보 등', "All commands, theme, hidden files, updates, bug report, about and more", "Todos los comandos, tema, archivos ocultos, actualizaciones, informar de un error, acerca de y más", "すべてのコマンド、テーマ、隠しファイル、更新、バグ報告、情報など", "所有命令、主题、隐藏文件、更新、报告问题、关于等"),
     ("shell.more", "더 보기", "More", "Más", "その他", "更多"),
     ("shell.allCommands", "모든 명령…", "All commands…", "Todos los comandos…", "すべてのコマンド…", "所有命令…"),

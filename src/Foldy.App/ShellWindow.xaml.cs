@@ -1527,6 +1527,7 @@ public partial class ShellWindow : Window, IPaneHost
         Add("app.quickSearch", Foldy.Core.Localization.Loc.T("sw.c.quickSearch"), ShowQuickSearch, Key.Space, ModifierKeys.Control, inText: true);
         Add("app.help", Foldy.Core.Localization.Loc.T("sw.c.help"), ShowHelp, Key.F1, inText: true);
         Add("app.tour", Foldy.Core.Localization.Loc.T("sw.c.tour"), () => _ = FirstRunTour.RunAsync(this));
+        Add("app.site", Foldy.Core.Localization.Loc.T("sw.c.site"), () => StartShell(Foldy.Core.Localization.ProductSite.Current));
         Add("app.settings", Foldy.Core.Localization.Loc.T("sw.c.settings"), ShowSettings, Key.OemComma, ModifierKeys.Control, inText: true);
         Add("app.reportBug", Foldy.Core.Localization.Loc.T("sw.c.bug"), App.OpenBugReport);
         Add("app.emptyRecycleBin", Foldy.Core.Localization.Loc.T("sw.c.emptyBin"), () => OnEmptyRecycleBin(this, new RoutedEventArgs()));
@@ -3502,6 +3503,9 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     private void OnShorts(object sender, RoutedEventArgs e) => _ = FirstRunTour.RunAsync(this);
+
+    /// <summary>소개 페이지를 앱 언어로 연다 (사용자 요청 2026-11-25).</summary>
+    private void OnProductSite(object sender, RoutedEventArgs e) => StartShell(Foldy.Core.Localization.ProductSite.Current);
 
     private void OnReportBug(object sender, RoutedEventArgs e) => App.OpenBugReport();
 

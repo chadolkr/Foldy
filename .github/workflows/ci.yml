@@ -46,6 +46,11 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
 
+      # Store 설명 글(docs/store-listing)의 모양과 글자 수 제한. 제출 때 막히지 않게 미리 본다 (네트워크 없음)
+      - name: Store listing text
+        shell: pwsh
+        run: ./build/store/submit.ps1 -Mode text-draft -CheckOnly
+
       - name: Build and test
         shell: pwsh
         run: ./build.ps1
