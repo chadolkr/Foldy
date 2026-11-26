@@ -1733,6 +1733,8 @@
   "sw.drv.paused": "Continues after the current task\n{0:N0} files",
   "sw.drv.preparing": "Getting ready to search",
   "sw.drv.ready": "Ready to search",
+  "sw.drv.recheck": "Checking for changes\n{0:N0} checked · search still works",
+  "sw.drv.resuming": "Continuing the search list\n{0:N0} files (from where it stopped)",
   "sw.drv.soon": "Getting ready to search soon",
   "sw.drv.speed": "{0:N0} a minute · {1:N0} folders read · {2:N0} ms per folder · {3} at once · resting {4:P0}",
   "sw.drv.unreadable": "Couldn't get ready · this drive couldn't be read",

@@ -274,6 +274,9 @@ public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Co
     /// <summary>복사 같은 작업이 끝나기를 기다리며 쉬는 중.</summary>
     public bool Paused { get; init; }
 
+    /// <summary>끊긴 곳(.resume)부터 이어서 모으는 중 (처음부터가 아님).</summary>
+    public bool Resumed { get; init; }
+
     /// <summary>모으는 중의 빠르기 (드라이브에 마우스를 올리면 보인다: 느린 까닭을 찾으려고).</summary>
     public CrawlSpeed? Speed { get; init; }
 }
@@ -945,7 +948,8 @@ public sealed class SlowCrawler : IDisposable
         long found = ck?.Found ?? 0, checks = ck?.Checks ?? 0, misses = ck?.Misses ?? 0;
         int listed = ck?.Listed ?? 0, reused = ck?.Reused ?? 0, skipped = ck?.Skipped ?? 0;
 
-        Report(new CrawlStatus(root, true, found, false, store.CompletedUtc));
+        var resumed = ck is not null;
+        Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Resumed = resumed });
         var pace = new CrawlPace(near, IsNetwork(root) ? MinNetworkPause : MinPause);
         var preferred = PreferFirst?.Invoke() ?? [];
 
@@ -1047,7 +1051,7 @@ public sealed class SlowCrawler : IDisposable
                         if (reading.Count == 0 && ShouldPause?.Invoke() == true)
                         {
                             // 복사 같은 작업 중엔 쉰다. 화면에 "작업이 끝나면 이어서 해요"라고 보이게 알린다
-                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Paused = true });
+                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Paused = true, Resumed = resumed });
                             while (ShouldPause?.Invoke() == true)
                             {
                                 if (ct.WaitHandle.WaitOne(TimeSpan.FromSeconds(2)))
@@ -1056,7 +1060,7 @@ public sealed class SlowCrawler : IDisposable
                                 }
                             }
 
-                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc));
+                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Resumed = resumed });
                             window.Restart();
                         }
 
@@ -1145,7 +1149,7 @@ public sealed class SlowCrawler : IDisposable
                         if (lastReport.Elapsed > TimeSpan.FromSeconds(1))
                         {
                             data.Flush(); // 모으는 중에도 찾을 수 있게
-                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Speed = SpeedNow() });
+                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Speed = SpeedNow(), Resumed = resumed });
                             lastReport.Restart();
                         }
 

@@ -1733,6 +1733,8 @@
   "sw.drv.paused": "Sigue al acabar la tarea\n{0:N0} archivos",
   "sw.drv.preparing": "Preparando la búsqueda",
   "sw.drv.ready": "Lista para buscar",
+  "sw.drv.recheck": "Buscando cambios\n{0:N0} revisados · la búsqueda sigue funcionando",
+  "sw.drv.resuming": "Continuando la lista de búsqueda\n{0:N0} archivos (desde donde se quedó)",
   "sw.drv.soon": "Pronto empezará a prepararse",
   "sw.drv.speed": "{0:N0} por minuto · {1:N0} carpetas leídas · {2:N0} ms por carpeta · {3} a la vez · descanso {4:P0}",
   "sw.drv.unreadable": "No se pudo preparar · no se pudo leer esta unidad",

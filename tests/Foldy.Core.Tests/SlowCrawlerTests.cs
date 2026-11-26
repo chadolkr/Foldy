@@ -156,6 +156,22 @@ public sealed class SlowCrawlerTests : IDisposable
     }
 
     [Fact]
+    public void Checking_again_says_a_complete_list_already_exists()
+    {
+        // 업데이트 뒤 다시 모을 때 "처음부터 다시 하는 것 같다"(사용자 2026-11-26): 다 만든 목록이 있으면 그 시각을 함께 알려
+        // 화면이 "바뀐 곳 확인 중"으로 보이게 한다. 그동안 찾기는 예전 목록으로 그대로 된다.
+        Make(@"a\one.txt");
+        using var c = new SlowCrawler(_store, () => [_root]);
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        var running = new List<CrawlStatus>();
+        c.Changed += s => { if (s.Running) { lock (running) { running.Add(s); } } };
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        Assert.NotEmpty(running);
+        Assert.All(running, s => Assert.NotNull(s.CompletedUtc));
+        Assert.All(running, s => Assert.False(s.Resumed));
+    }
+
+    [Fact]
     public void Interrupted_first_gathering_continues_where_it_stopped()
     {
         // 크고 느린 드라이브를 처음 모으다 Foldy를 끄거나 업데이트해도 처음부터 다시 하지 않는다 (사용자 2026-11-23)
@@ -185,9 +201,13 @@ public sealed class SlowCrawlerTests : IDisposable
         using var c = new SlowCrawler(_store, () => [_root]);
         var asked = 0;
         c.ShouldPause = () => { asked++; return false; };
+        var running = new List<CrawlStatus>();
+        c.Changed += s => { if (s.Running) { lock (running) { running.Add(s); } } };
         c.CrawlOnce(_root, TestContext.Current.CancellationToken);
         var p = c.LastPass!;
         Assert.True(p.Resumed);
+        Assert.NotEmpty(running);
+        Assert.All(running, s => Assert.True(s.Resumed, "화면에 \"이어서 만드는 중\"으로 보이게 알린다 (사용자 2026-11-26)"));
         Assert.True(asked < 21, $"이어서 했으면 남은 폴더만 읽는다 (이번에 본 폴더 {asked})");
         Assert.Equal(21, p.Listed); // 앞에서 읽은 것까지 합쳐 뿌리 + 폴더 20개
         Assert.Equal(20, c.StoreFor(_root).Search(".txt", 100).Count());

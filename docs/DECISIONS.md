@@ -792,3 +792,8 @@
 - 원인: 끌어 놓을 곳을 늘 그 창이 연 폴더로만 봤다. 같은 창이면 "이미 이 폴더에 있음"으로 금지 표시가 됐다. 처음부터 커서 아래 폴더를 보는 코드가 없었다.
 - 결정: 탐색기처럼 커서 아래 줄이 폴더면 그 폴더가 놓을 곳 (`DropRules.TargetFor`). 끌고 있는 폴더 자신 위는 놓을 곳이 아니다(끌기를 시작할 때 커서가 그 위에 있음). 놓을 폴더 줄에 테두리(`FastFileList.DropTargetIndex`). 빈 곳·파일 위는 전처럼 연 폴더. 옮기기/복사 규칙(같은 드라이브면 옮기기, Shift·Ctrl)은 놓을 폴더 기준.
 - 시험: 규칙은 DropRulesTests, 줄 찾기·표시는 FastFileListDropTargetTests. CI에서 흉내 낸 끌기는 Windows 끌기로 이어지지 않아(1.14.0 HandHintTests 경험) FlaUI 끌기 시험은 두지 않음.
+
+## 2026-11-26 · 다시 확인할 때와 처음 만들 때를 왼쪽 메뉴에서 다르게 (1.14.3)
+- **결정**: 다 만든 목록이 있는 드라이브를 다시 모을 때는 "바뀐 곳 확인 중 · N개 확인 · 찾기는 그대로 돼요", 끊긴 곳(.resume)부터 이어 갈 때는 "이어서 만드는 중 (끊긴 곳부터)"으로 보인다. 처음 만들 때만 "파일 목록 만드는 중"이다. `CrawlStatus.Resumed`를 더했고, 다 만든 시각(`CompletedUtc`)은 모으는 중에도 이미 알려 왔다.
+- **왜**: 사용자(2026-11-26, 회사 PC 1.14.2로 업데이트한 뒤) "기존에 K 드라이브 색인한게 지워졌거나 새로 색인하나보다". 1.13.2 뒤로 모으는 코드와 저장 위치(%LOCALAPPDATA%\Foldy\crawl)는 바뀌지 않았고, 업데이트가 이 폴더를 지우지도 않는다. 다시 모을 때 개수가 0부터 세어 올라가서 처음부터 하는 것처럼 보였다. 실제로는 끝 폴더마다 시각만 묻고 같으면 예전 내용을 쓴다. 다만 K:는 폴더 하나 답이 0.4~0.9초라 시각만 물어도 오래 걸린다.
+- **시험**: `SlowCrawlerTests.Checking_again_says_a_complete_list_already_exists`, `Interrupted_first_gathering_continues_where_it_stopped`(이어 갈 때 Resumed).
