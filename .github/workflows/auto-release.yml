@@ -57,5 +57,15 @@ jobs:
           fi
           gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$SHA" >/dev/null
           echo "$tag 태그를 ${SHA:0:7} 에 만들었어요 (최신이던 $latest 다음)"
-          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
-          echo "Release 실행을 시작했어요"
+          # 1.15.0 때 태그를 만들자마자 실행했더니 Release가 main에서 돌아 release 환경(태그만 허용)에 막혔다.
+          # 그래서 태그 전체 이름으로 실행하고, 실행이 정말 태그에서 시작했는지 보고 아니면 다시 한다.
+          for try in 1 2 3; do
+            sleep 10
+            gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "refs/tags/$tag"
+            sleep 15
+            if [ "$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --branch "$tag" --limit 1 --json databaseId --jq length)" = "1" ]; then
+              echo "Release 실행을 $tag 에서 시작했어요"; exit 0
+            fi
+            echo "Release가 $tag 에서 보이지 않아요. 다시 해요 ($try/3)"
+          done
+          echo "::error::Release를 $tag 에서 시작하지 못했어요. Actions → Release → Run workflow에서 $tag 를 골라 주세요"; exit 1
