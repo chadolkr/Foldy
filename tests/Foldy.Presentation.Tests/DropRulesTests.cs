@@ -42,4 +42,30 @@ public class DropRulesTests
         DropRules.IntoItself([], @"C:\work").Should().BeFalse();
         DropRules.IntoItself(null, @"C:\work").Should().BeFalse();
     }
+    [Fact]
+    public void A_folder_under_the_cursor_is_the_drop_target()
+    {
+        // 같은 창 안에서 파일을 하위 폴더 위에 놓으면 그 폴더로 옮긴다
+        var target = DropRules.TargetFor([@"C:\work\보고서.pptx"], @"C:\work", @"C:\work\보관");
+        target.Should().Be(@"C:\work\보관");
+        DropRules.AllAlreadyIn([@"C:\work\보고서.pptx"], @"C:\work", target).Should().BeFalse();
+        DropRules.IntoItself([@"C:\work\보고서.pptx"], target).Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_folder_can_be_dropped_onto_a_sibling_folder()
+    {
+        var target = DropRules.TargetFor([@"C:\work\2025"], @"C:\work", @"C:\work\보관");
+        target.Should().Be(@"C:\work\보관");
+        DropRules.AllAlreadyIn([@"C:\work\2025"], @"C:\work", target).Should().BeFalse();
+        DropRules.IntoItself([@"C:\work\2025"], target).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Empty_space_or_the_dragged_folder_itself_means_the_open_folder()
+    {
+        DropRules.TargetFor([@"C:\work\a.txt"], @"C:\work", null).Should().Be(@"C:\work");
+        // 끌기를 막 시작하면 커서는 끄는 폴더 위에 있다: 그 폴더 자신은 놓을 곳이 아니다
+        DropRules.TargetFor([@"C:\work\보관"], @"C:\work", @"c:\work\보관\").Should().Be(@"C:\work");
+    }
 }

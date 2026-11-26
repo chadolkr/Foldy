@@ -82,6 +82,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     private int _anchor = -1;
     private int _focus = -1;
     private int _hover = -1;
+    private int _dropTarget = -1;
     private Vector _offset;
     private Size _viewport;
     private double _renderTotalMs;
@@ -162,6 +163,28 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     /// <summary>행 하나의 화면 위치 (컨트롤 좌표). 이름 바꾸기 입력칸 배치용.</summary>
     /// <summary>포커스가 있는 줄의 자리 (없으면 null). 포인터가 창 밖일 때 안내(CursorHint)가 쓴다.</summary>
     public Rect? FocusedRowRect => ItemsSource is { } items && _focus >= 0 && _focus < items.Count ? RowRect(_focus) : null;
+
+    /// <summary>
+    /// 이 점(컨트롤 좌표)에 있는 항목 번호 (머리글·빈 곳이면 -1). 끌어 놓을 때 커서 아래 폴더를 찾는 데 쓴다.
+    /// </summary>
+    public int IndexAtPoint(Point p) => IndexAt(p);
+
+    /// <summary>
+    /// 끌어 놓으면 들어갈 폴더 줄 (없으면 -1). 그 줄에 테두리를 그려 "여기에 넣어요"를 보여 준다.
+    /// </summary>
+    public int DropTargetIndex
+    {
+        get => _dropTarget;
+        set
+        {
+            var v = value >= 0 && value < Count ? value : -1;
+            if (v != _dropTarget)
+            {
+                _dropTarget = v;
+                InvalidateVisual();
+            }
+        }
+    }
 
     public Rect RowRect(int index) => new(0, HeaderHeight + index * RowHeight - _offset.Y, ActualWidth, RowHeight);
 
@@ -286,7 +309,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         CancelSlowRename();
         _selected = new BitArray(newList?.Count ?? 0);
         _selectedCount = 0;
-        _anchor = _focus = _hover = -1;
+        _anchor = _focus = _hover = _dropTarget = -1;
         _offset = default;
         InvalidateScroll();
         SelectionChanged?.Invoke(this, EventArgs.Empty);
@@ -302,7 +325,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
             _textCache.Clear();
             _selected = new BitArray(n);
             _selectedCount = 0;
-            _anchor = _focus = _hover = -1;
+            _anchor = _focus = _hover = _dropTarget = -1;
         }
         else if (n > _selected.Length)
         {
@@ -387,6 +410,12 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
                 else if (i == _hover)
                 {
                     dc.DrawRoundedRectangle(HoverBrush, null, Inset(rowRect), 4, 4);
+                }
+
+                if (i == _dropTarget)
+                {
+                    // 끌어 놓을 폴더: 선택돼 있어도 보이게 굵은 테두리
+                    dc.DrawRoundedRectangle(i == _hover || selected ? null : HoverBrush, new Pen(FocusBrush, 2), Inset(rowRect, 1), 4, 4);
                 }
 
                 if (i == _focus && IsKeyboardFocused)
