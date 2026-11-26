@@ -15,7 +15,7 @@ public sealed class FoldyApp : IDisposable
 {
     private readonly string _data = Path.Combine(Path.GetTempPath(), "foldy-ui-" + Guid.NewGuid().ToString("N"));
 
-    private FoldyApp(bool skipTour, string? openPath, string language, bool reportCutText, Action<FoldyApp>? prepare)
+    private FoldyApp(bool skipTour, string? openPath, string language, bool reportCutText, Action<FoldyApp>? prepare, IReadOnlyDictionary<string, string>? env)
     {
         Directory.CreateDirectory(_data);
         Sample = Path.Combine(_data, "sample");
@@ -33,6 +33,11 @@ public sealed class FoldyApp : IDisposable
         if (reportCutText)
         {
             psi.Environment["FOLDY_CUT_TEXT_REPORT"] = CutTextReport; // 잘린 화면 글을 이 파일에 적는다 (CutTextTests)
+        }
+
+        foreach (var (k, v) in env ?? new Dictionary<string, string>())
+        {
+            psi.Environment[k] = v; // 시험 전용 환경 변수 (예: FOLDY_TEST_UPDATE)
         }
 
         psi.ArgumentList.Add(openPath ?? Sample);
@@ -61,10 +66,10 @@ public sealed class FoldyApp : IDisposable
     /// <summary>빌드된 Foldy.exe (솔루션 빌드 출력). 없으면 null → 테스트를 건너뛴다.</summary>
     public static string? Exe { get; } = FindExe();
 
-    public static FoldyApp Start(bool skipTour = true, string? openPath = null, string language = "ko", bool reportCutText = false, Action<FoldyApp>? prepare = null)
+    public static FoldyApp Start(bool skipTour = true, string? openPath = null, string language = "ko", bool reportCutText = false, Action<FoldyApp>? prepare = null, IReadOnlyDictionary<string, string>? env = null)
     {
         Assert.SkipWhen(Exe is null, "Foldy.exe가 없습니다 (dotnet build Foldy.slnx -c Release 먼저)");
-        return new FoldyApp(skipTour, openPath, language, reportCutText, prepare);
+        return new FoldyApp(skipTour, openPath, language, reportCutText, prepare, env);
     }
 
     /// <summary>이름(화면 낭독기 이름)으로 요소를 찾는다. 창 전체에서, 기다리며.</summary>
