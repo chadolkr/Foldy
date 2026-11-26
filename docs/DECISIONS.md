@@ -2,6 +2,15 @@
 
 정한 것을 짧게 남긴다: 날짜, 무엇을, 왜, 다른 안. 최근 것이 위.
 
+## 2026-11-26 · Store 판에 색인 서비스를 패키지 서비스로 넣기 (1.15.0, 사용자 결정)
+- 사용자: "설치판과 동일한 기능을 하도록 개선하지 못하면 store 판은 오픈 못할 것 같어". 사용자 권한 모으기(바로 아래 기록)만으로는 처음 C:에 몇 분이 걸리고, Foldy가 꺼져 있는 동안 바뀐 것은 다음 모으기까지 늦다. 설치판과 같아지려면 MFT·USN을 읽는 SYSTEM 서비스가 있어야 한다.
+- **결정**: 바로 아래 기록에서 보류했던 A안을 실제로 낸다. MSIX에 `desktop6:Service`(foldy-index.exe, `FoldyIndexerStore`, LocalSystem, 자동, 인자 `--service --store`)와 제한 기능 `packagedServices`·`localSystemServices`를 넣는다. 거절되면 저장소 변수 `FOLDY_STORE_SERVICE=false`로 서비스 없이 직접 모으는 판으로 낸다. 앱은 두 경우 모두 그대로 돈다(서비스가 있으면 연결, 없으면 직접 모으기).
+- **서비스 이름**: 설치판의 `FoldyIndexer`와 같으면 둘 다 깐 PC에서 패키지 설치가 실패하므로 `FoldyIndexerStore`. 한 프로세스 서비스라 서비스 안의 이름은 상관없다. 둘 다 있으면 먼저 뜬 쪽이 찾기 통로(파이프)를 맡는다.
+- **스스로 업데이트하지 않기**: 설치판 서비스는 MSI를 받아 설치한다. Store 판에서 그러면 Store 정책 위반이고 설치판이 덧깔린다 → `--store`면 업데이트 기능을 켜지 않는다(시험 `store_package_service_never_updates_itself`).
+- **심사 사유**: `build/store/certification-notes.txt`를 제출의 `notesForCertification`(인증 담당자에게 남기는 글)으로 자동으로 넣는다(submit.ps1). Partner Center의 "제한된 기능" 칸에 따로 써야 하면 사용자가 같은 글을 붙여 넣는다.
+- **확인**: CI가 Store 패키지를 시험 인증서로 서명해 실제로 설치하고, 서비스가 실행 중이 되고 파이프가 열리는지 본 뒤 지운다(`build/store/test-msix-service.ps1`). makeappx 검사는 서비스 있는 판·없는 판 둘 다(`check-msix.ps1`).
+- **다른 안**: 관리자 없이 USN 읽기(`FSCTL_READ_UNPRIVILEGED_USN_JOURNAL`)는 변경 따라가기만 되고 처음 목록(MFT)은 여전히 관리자가 필요해 같아지지 않는다 → 거절됐을 때의 보완으로 남긴다. Store 앱이 설치판 MSI를 내려받아 까는 길은 Store 정책(다른 프로그램 설치·코드 내려받기)에 걸려 하지 않는다. Store에 MSI로 따로 내는 길은 새 Store 제품과 신뢰할 수 있는 코드 서명 인증서가 필요해 인증서가 나온 뒤에 본다.
+
 ## 2026-11-26 · Store 판도 모든 드라이브를 알아서 모으기: 사용자 권한 모으기 + 단축키 도우미 startupTask (1.15.0, 사용자 요청)
 - 사용자: "Store 판은 인덱서가 없구나. 꼭 있어야하는데", "빠른 찾기 도우미 설치도 안됨", "이게 가장큰 장점인데 꼭 있어야함".
 - **찾은 문제**: Store 판(MSIX)에는 색인 서비스가 없고, 서비스에 연결되지 않으면 느린 드라이브 모으기(`SlowCrawler`)도 시작하지 않았다(`OnIndexerStateAsync`가 연결됐을 때만 `StartSlowCrawl`). 그래서 Store 판은 C:는 물론 USB·네트워크 드라이브도 모으지 않고, 무엇이든 찾기는 연 폴더 안만 훑었다. 첫 연결 때 켜던 정리 알림·AI 연결 제안도 나오지 않았다. 단축키 도우미(foldy-hotkey.exe)는 패키지에서 빠져 있었다.

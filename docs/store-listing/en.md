@@ -76,7 +76,7 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ℹ️ Good to know about the Store edition
 • Microsoft Store keeps Foldy up to date.
-• The Store edition also builds a file list of every drive (C:, USB, network drives) on its own and searches it right away. The first list can take a few minutes.
+• The Store edition includes the same fast search helper as the installer edition. It reads C: in seconds and builds file lists for USB and network drives on its own, so Windows may ask for administrator approval once during install.
 • After you run Foldy once, Ctrl+Space opens the search box even when Foldy is closed. You can turn this off in Task Manager → Startup apps.
 • The installer for work and offline PCs is on the website.
 
@@ -89,7 +89,7 @@ It is off by default, read-only when on, and only works inside this computer.
 ## What's new in this version
 
 1.15.0
-• The Store edition now builds a file list of every drive on its own and searches it right away. Before, it only searched inside the open folder.
+• The Store edition now includes the same fast search helper as the installer edition. It reads C: in seconds and finds files that changed while Foldy was closed.
 • In the Store edition, Ctrl+Space now opens the search box even when Foldy is closed (a small helper starts when you sign in).
 
 1.14.4

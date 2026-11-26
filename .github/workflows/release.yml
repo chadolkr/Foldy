@@ -129,6 +129,7 @@ jobs:
           FOLDY_STORE_IDENTITY_NAME: ${{ vars.FOLDY_STORE_IDENTITY_NAME }}
           FOLDY_STORE_PUBLISHER: ${{ vars.FOLDY_STORE_PUBLISHER }}
           FOLDY_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.FOLDY_STORE_PUBLISHER_DISPLAY_NAME }}
+          FOLDY_STORE_SERVICE: ${{ vars.FOLDY_STORE_SERVICE }}   # false면 색인 서비스를 빼고 만든다 (Store 심사에서 거절될 때)
         run: |
           ./build/store/make-msix.ps1 -Version '${{ steps.ver.outputs.version }}' -OutDir artifacts/store
 

@@ -2,7 +2,7 @@
 
 ## 결정 (2026-11-21): 같은 소스에서 두 가지를 만든다
 
-- **Store 판 (MSIX)**: 개인 사용자용. Microsoft가 서명하고 Store가 업데이트한다. 색인 서비스는 없고, 1.15.0부터 Foldy가 사용자 권한으로 모든 드라이브의 목록을 직접 모은다(아래 "Store 판의 찾기").
+- **Store 판 (MSIX)**: 개인 사용자용. Microsoft가 서명하고 Store가 업데이트한다. 1.15.0부터 설치판과 같은 색인 서비스를 패키지 서비스로 넣는다(아래 "Store 판의 찾기"). 서비스가 없으면 Foldy가 사용자 권한으로 모든 드라이브의 목록을 직접 모은다(1.15.0).
 - **설치본 (MSI·setup zip)**: 회사·오프라인 PC용 (Store 판은 설치할 때 인터넷과 Store가 필요하다). Certum 인증서로 서명, 업데이트는 지금처럼 update.json.
 - 실행 파일은 같다. 앱이 패키지로 실행되는지(`AppPackage.IsPackaged`, `GetCurrentPackageFullName`)를 보고 자체 업데이트·서비스 설치를 끈다.
 - release.yml이 태그마다 둘 다 만든다. MSIX는 워크플로 아티팩트 `foldy-store-msix`로 올라가고, Partner Center에 제출한다.
@@ -14,14 +14,15 @@
 
 ## Store 판의 찾기 (1.15.0, 사용자 2026-11-26 "꼭 있어야")
 
+- 색인 서비스(패키지 서비스 FoldyIndexerStore)가 있으면 설치판과 같다: NTFS는 MFT로 몇 초, USN으로 바로 반영. 아래는 서비스가 없거나 꺼져 있을 때다.
 - Foldy가 사용자 권한으로 모든 드라이브(C: 같은 NTFS, USB·SD, 네트워크, Google Drive)의 파일 목록을 `%LOCALAPPDATA%\Foldy\crawl`(패키지 저장소로 옮겨짐)에 만든다. 설치본의 "색인 없는 드라이브 모으기"와 같은 코드(`SlowCrawler`).
 - 단축키 도우미 foldy-hotkey.exe가 패키지에 들어 있고, 매니페스트의 `desktop:StartupTask`가 로그인 때 띄운다(앱을 한 번 켠 뒤부터). Foldy가 꺼져 있어도 Ctrl+Space와 주기 모으기(`Foldy.exe --gather`)가 된다. 작업 관리자 → 시작 앱에서 끌 수 있다.
 - 설치본과 다른 점: 관리자 권한이 없어 NTFS의 MFT를 읽지 못하므로 처음 목록은 폴더를 하나씩 읽어 만든다(C:에 몇 분). 그다음은 바뀐 폴더만 읽고, Foldy가 켜져 있는 동안은 변경 알림으로 바로 반영한다.
 - CI의 "Store package manifest" 단계(`build/store/check-msix.ps1`)가 매니페스트를 makeappx로 미리 검사한다.
 
-### (보류) 패키지 서비스로 내기: 심사 사유 글
+### 패키지 서비스 (1.15.0): 심사 사유 글
 
-나중에 설치본과 같은 색인 서비스를 Store 판에 넣어 보려면 매니페스트에 `desktop6:Service`(foldy-index.exe, StartAccount localSystem)와 제한 기능 `rescap:localSystemServices`·`rescap:packagedServices`를 더하고, Partner Center 제출의 "제출 옵션 → 제한된 기능을 사용하는 이유"에 아래 글을 넣는다. Microsoft 문서는 이 기능이 대부분 승인되지 않는다고 하므로, 거절되어도 지금 판에 영향이 없게 따로 제출한다(자동 배포의 submit이 아닌 손 제출).
+1.15.0부터 make-msix.ps1이 매니페스트에 `desktop6:Service`(foldy-index.exe, `FoldyIndexerStore`, localSystem, 자동, `--service --store`)와 제한 기능 `packagedServices`·`localSystemServices`를 넣는다. 사유 글은 `build/store/certification-notes.txt`이고 submit.ps1이 제출의 `notesForCertification`으로 넣는다. Partner Center가 "제출 옵션 → 제한된 기능을 사용하는 이유" 칸을 따로 요구하면 같은 글을 붙여 넣는다. 거절되면 저장소 변수 `FOLDY_STORE_SERVICE`를 `false`로 두면 서비스 없는 판(1.15.0 방식)으로 만든다. 아래는 처음 적어 둔 초안이다.
 
 > (내기 전에 각 문장, 특히 파이프 권한이 지금 코드와 맞는지 다시 확인한다.)
 >

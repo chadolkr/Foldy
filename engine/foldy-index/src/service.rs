@@ -59,8 +59,10 @@ fn run_service() -> windows_service::Result<()> {
     match rt {
         Ok(rt) => {
             // 자동 업데이트 (설계서 10.5). 내장 공개키가 없거나 설정을 만들 수 없으면 끄고 색인만 한다.
-            match crate::update::UpdateConfig::for_service() {
-                Ok(cfg) => {
+            // Store 판(MSIX 패키지 서비스, `--store`)은 Store가 패키지째 업데이트하므로 MSI를 받거나 설치하지 않는다.
+            match if self_update_allowed(std::env::args()) { crate::update::UpdateConfig::for_service().map(Some) } else { Ok(None) } {
+                Ok(None) => eprintln!("Store 판: 자동 업데이트는 Store가 합니다"),
+                Ok(Some(cfg)) => {
                     let svc = crate::update::UpdateService::new(cfg, Arc::new(crate::update::win::WinHost));
                     crate::update::set_global(svc.clone());
                     rt.spawn(svc.run());
@@ -82,4 +84,21 @@ fn run_service() -> windows_service::Result<()> {
     }
     handle.set_service_status(status(ServiceState::Stopped))?;
     Ok(())
+}
+
+/// 서비스가 스스로 MSI 업데이트를 받아 설치해도 되나. Store 판은 매니페스트가 `--store`를 넘긴다 (build/store/make-msix.ps1).
+fn self_update_allowed(mut args: impl Iterator<Item = String>) -> bool {
+    !args.any(|a| a == "--store")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::self_update_allowed;
+
+    #[test]
+    fn store_package_service_never_updates_itself() {
+        let args = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>().into_iter();
+        assert!(self_update_allowed(args(&["foldy-index.exe", "--service"])), "설치판(MSI)은 스스로 업데이트");
+        assert!(!self_update_allowed(args(&["foldy-index.exe", "--service", "--store"])), "Store 판은 Store가 업데이트");
+    }
 }

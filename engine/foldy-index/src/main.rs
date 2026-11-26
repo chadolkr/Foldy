@@ -67,6 +67,7 @@ fn parse_args() -> Args {
             "--bench" => a.bench = Some(it.next().unwrap_or_else(|| "C:".into())),
             "--bench-scan" => a.bench_scan = it.next(),
             "--service" => a.service = true,
+            "--store" => {} // Store 판 패키지 서비스 (service.rs: 스스로 업데이트하지 않음)
             x if x.starts_with("--update-") => a.update.push((x.to_string(), it.next().unwrap_or_default())),
             "--analysis-dir" => a.analysis_dir = it.next(),
             "--index-dir" => a.index_dir = it.next(),
