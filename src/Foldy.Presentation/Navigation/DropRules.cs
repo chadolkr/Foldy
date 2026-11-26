@@ -36,6 +36,26 @@ public static class DropRules
         });
     }
 
+    /// <summary>
+    /// 놓을 곳: 커서 아래 줄이 폴더이고 끌고 있는 것 중 하나가 아니면 그 폴더, 아니면 지금 연 폴더.
+    /// 같은 창 안에서 파일을 하위 폴더 위에 놓아 옮길 수 있게 한다 (탐색기와 같음).
+    /// 끌기 시작한 바로 그 폴더 위(자기 자신)는 놓을 곳으로 보지 않는다.
+    /// </summary>
+    public static string TargetFor(IReadOnlyList<string>? files, string currentFolder, string? folderUnderCursor)
+    {
+        if (string.IsNullOrEmpty(folderUnderCursor))
+        {
+            return currentFolder;
+        }
+
+        if (files is { Count: > 0 } && files.Any(f => Same(f, folderUnderCursor)))
+        {
+            return currentFolder;
+        }
+
+        return folderUnderCursor;
+    }
+
     private static string Trim(string p) => (PathUtil.Normalize(p) ?? p).TrimEnd('\\', '/');
 
     private static bool Same(string? a, string? b) =>

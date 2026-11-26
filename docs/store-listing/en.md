@@ -88,6 +88,9 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
+1.14.1
+• Dragging files or folders onto a folder in the same pane now moves them into that folder. The target row is outlined.
+
 1.14.0
 • When something can't be done, the reason now appears where you are looking: right below the mouse pointer, or below the selected row if you used the keyboard. It uses larger text and goes away after a few seconds or when you click elsewhere. Before, it showed up small at the bottom of the window and was easy to miss.
 • When a file can't be dropped (both panes show the same folder, or a folder onto itself), the reason appears right below the mouse.

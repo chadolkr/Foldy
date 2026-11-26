@@ -1366,6 +1366,7 @@ public partial class PaneView : UserControl
         {
             _dragSourceFolder = null;
             _dragSourcePane = null;
+            List.DropTargetIndex = -1;
             Foldy.UI.Controls.CursorHint.Hide(); // Esc로 그만두거나 Foldy 밖에 놓았을 때
         }
 
@@ -1402,29 +1403,66 @@ public partial class PaneView : UserControl
             return;
         }
 
+        List.DropTargetIndex = -1;
         Foldy.UI.Controls.CursorHint.Hide();
     }
 
-    private DragDropEffects DropEffectFor(DragEventArgs e) => DropEffectFor(e, out _);
+    private DragDropEffects DropEffectFor(DragEventArgs e) => DropEffectFor(e, out _, out _);
+
+    private DragDropEffects DropEffectFor(DragEventArgs e, out string? why) => DropEffectFor(e, out why, out _);
+
+    /// <summary>
+    /// 놓을 폴더: 커서 아래 줄이 폴더면 그 폴더 (같은 창 안에서 하위 폴더로 옮기기), 아니면 지금 연 폴더.
+    /// <paramref name="row"/>는 놓을 폴더 줄 번호 (지금 연 폴더면 -1).
+    /// </summary>
+    private string DropTargetFor(DragEventArgs e, string[]? files, out int row)
+    {
+        row = -1;
+        var current = _tab!.Path;
+        var i = List.IndexAtPoint(e.GetPosition(List));
+        if (i < 0 || List.ItemsSource is not { } items || i >= items.Count || items[i] is not FileItem { IsFolder: true } item)
+        {
+            return current;
+        }
+
+        var target = Foldy.Presentation.Navigation.DropRules.TargetFor(files, current, item.FullPath);
+        if (!string.Equals(target, current, StringComparison.OrdinalIgnoreCase))
+        {
+            row = i;
+        }
+
+        return target;
+    }
 
     /// <summary>놓으면 무엇을 할지. 안 되는데 이유를 알려야 하면 <paramref name="why"/>에 안내 글 키(앞부분)를 준다.</summary>
-    private DragDropEffects DropEffectFor(DragEventArgs e, out string? why)
+    private DragDropEffects DropEffectFor(DragEventArgs e, out string? why, out string target)
     {
         why = null;
+        target = _tab?.Path ?? "";
         if (_tab is null || !e.Data.GetDataPresent(DataFormats.FileDrop))
         {
+            List.DropTargetIndex = -1;
             return DragDropEffects.None;
         }
 
         var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-        if (Foldy.Presentation.Navigation.DropRules.IntoItself(files, _tab.Path))
+        target = DropTargetFor(e, files, out var row);
+        var effect = DropEffectForTarget(e, files, target, out why);
+        List.DropTargetIndex = effect == DragDropEffects.None ? -1 : row;
+        return effect;
+    }
+
+    private DragDropEffects DropEffectForTarget(DragEventArgs e, string[]? files, string target, out string? why)
+    {
+        why = null;
+        if (Foldy.Presentation.Navigation.DropRules.IntoItself(files, target))
         {
             // 폴더를 자기 안(또는 그 아래 폴더)에 놓으면 복사·이동이 끝나지 않는다
             why = "pane.dropHint.intoItself";
             return DragDropEffects.None;
         }
 
-        if (Foldy.Presentation.Navigation.DropRules.AllAlreadyIn(files, _dragSourceFolder, _tab.Path))
+        if (Foldy.Presentation.Navigation.DropRules.AllAlreadyIn(files, _dragSourceFolder, target))
         {
             // 같은 폴더에 놓기는 아무것도 하지 않는다 (탐색기와 같음).
             // 다만 반대쪽 창이 같은 폴더를 보고 있으면 금지 표시만으로는 왜 안 되는지 모르므로 쉬운 말로 알려 준다.
@@ -1448,7 +1486,7 @@ public partial class PaneView : UserControl
         }
 
         // 탐색기 규칙: 같은 드라이브면 이동, 다르면 복사
-        var sameDrive = files is { Length: > 0 } && !files.Any(Foldy.Presentation.Navigation.PathUtil.IsSftp) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(_tab.Path) && string.Equals(Path.GetPathRoot(files[0]), Path.GetPathRoot(_tab.Path), StringComparison.OrdinalIgnoreCase);
+        var sameDrive = files is { Length: > 0 } && !files.Any(Foldy.Presentation.Navigation.PathUtil.IsSftp) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(target) && string.Equals(Path.GetPathRoot(files[0]), Path.GetPathRoot(target), StringComparison.OrdinalIgnoreCase);
         var want = sameDrive ? DragDropEffects.Move : DragDropEffects.Copy;
         return (want & e.AllowedEffects) != 0 ? want : DragDropEffects.Copy & e.AllowedEffects;
     }
@@ -1456,7 +1494,8 @@ public partial class PaneView : UserControl
     private async void OnListDrop(object sender, DragEventArgs e)
     {
         Foldy.UI.Controls.CursorHint.Hide();
-        var effect = DropEffectFor(e);
+        var effect = DropEffectFor(e, out _, out var target);
+        List.DropTargetIndex = -1;
         if (effect == DragDropEffects.None || _tab is null || _host is null || e.Data.GetData(DataFormats.FileDrop) is not string[] files)
         {
             return;
@@ -1465,7 +1504,7 @@ public partial class PaneView : UserControl
         e.Effects = effect;
         e.Handled = true;
         Activate();
-        await _host.Shell.TransferAsync(files, _tab.Path, move: effect == DragDropEffects.Move);
+        await _host.Shell.TransferAsync(files, target, move: effect == DragDropEffects.Move);
     }
 
     // ───────────── 탭 줄 ─────────────

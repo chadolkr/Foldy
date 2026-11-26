@@ -88,6 +88,9 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ## Novedades de esta versión
 
+1.14.1
+• Arrastrar archivos o carpetas sobre una carpeta del mismo panel ahora los mueve a esa carpeta. La fila de destino se resalta con un borde.
+
 1.14.0
 • Cuando algo no se puede hacer, el motivo aparece donde estás mirando: justo debajo del puntero, o debajo de la fila elegida si usaste el teclado. Usa letra más grande y desaparece a los pocos segundos o al hacer clic en otro sitio. Antes salía pequeño al pie de la ventana y era fácil no verlo.
 • Si no se puede soltar un archivo (los dos paneles muestran la misma carpeta, o una carpeta dentro de sí misma), el motivo aparece justo debajo del ratón.
