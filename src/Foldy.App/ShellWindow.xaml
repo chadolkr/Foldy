@@ -199,6 +199,25 @@
                         Content="&#xE74D;" ToolTip="{loc:T shell.clearRecent}" AutomationProperties.Name="{loc:T shell.clearRecent}" Click="OnClearRecent" />
                 <TextBlock Style="{DynamicResource Foldy.SideHeader}" Text="{loc:T side.recent}" />
               </DockPanel>
+              <!-- Windows 기본 폴더: 늘 이 자리, 폴더마다 다른 그림 (사용자 2026-11-26 "최근폴더에 아래 폴더 추가해줘") -->
+              <ItemsControl x:Name="StandardList" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="{x:Type sb:StandardFolder}">
+                    <Button Style="{DynamicResource Foldy.SideItem}" Click="OnSideFolder" Tag="{Binding}" ToolTip="{Binding Path}" AutomationProperties.Name="{Binding Name}" MinHeight="32">
+                      <Button.ContextMenu>
+                        <ContextMenu>
+                          <MenuItem Header="{loc:T shell.openNewTab}" Click="OnSideFolderNewTab" Tag="{Binding}" />
+                          <MenuItem Header="{loc:T shell.openOtherPane}" Click="OnSideFolderOther" Tag="{Binding}" />
+                        </ContextMenu>
+                      </Button.ContextMenu>
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource SideIcon}" Text="{Binding Glyph}" Foreground="{DynamicResource Brush.Accent}" />
+                        <TextBlock Style="{StaticResource SideName}" Text="{Binding Name}" />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
               <ItemsControl x:Name="RecentList" Focusable="False">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate DataType="{x:Type sb:QuickFolder}">

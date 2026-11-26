@@ -1935,6 +1935,7 @@
   "tree.documents": "문서",
   "tree.downloads": "다운로드",
   "tree.pictures": "사진",
+  "tree.videos": "동영상",
   "tv.absolute": "C:\\처럼 시작하는 전체 위치는 쓸 수 없어요.",
   "tv.badChar": "쓸 수 없는 글자: '{0}'",
   "tv.dotdot": "'..'은 쓸 수 없어요.",

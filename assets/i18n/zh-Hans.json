@@ -1935,6 +1935,7 @@
   "tree.documents": "文档",
   "tree.downloads": "下载",
   "tree.pictures": "图片",
+  "tree.videos": "视频",
   "tv.absolute": "不能使用绝对路径。",
   "tv.badChar": "不能使用的字符：'{0}'",
   "tv.dotdot": "不能使用 '..'。",

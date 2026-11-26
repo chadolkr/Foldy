@@ -89,6 +89,7 @@ The strip on the far left holds features you use from either pane. Collapse it w
   4. 🗂️ **Folders from a template** (**Ctrl+Shift+N**): preview a folder structure like PARA or industry project phases and create it in one go
 - **Pinned folders**: press the **pin** button next to the title to pin the current folder. Click to open it in the active pane; right-click to open it in a new tab or the other pane, reorder or unpin.
 - **Recent folders**: the last 5 folders you opened appear automatically (pinned ones are left out). Clear them with the trash button next to the title.
+- **Standard folders**: **Desktop, Downloads, Documents, Pictures and Videos** are always at the top of Recent folders, each with its own icon. If OneDrive moved your Desktop, Documents or Pictures, or you moved Downloads to another drive, they open in the right place. Clearing recent folders leaves them in place.
 - **Drives**: each drive shows its name, a usage bar and free space. Over 90% full, the bar turns red. Right-click to start a folder analysis right away.
 - **Tools**: the remaining features are gathered into four groups. Clicking a group opens its menu.
   - 🔍 **Find**: file search, folder analysis, images only

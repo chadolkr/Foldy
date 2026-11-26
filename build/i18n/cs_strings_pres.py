@@ -185,6 +185,7 @@ PRES = [
     ("tree.documents", "문서", "Documents", "Documentos", "ドキュメント", "文档"),
     ("tree.downloads", "다운로드", "Downloads", "Descargas", "ダウンロード", "下载"),
     ("tree.pictures", "사진", "Pictures", "Imágenes", "ピクチャ", "图片"),
+    ("tree.videos", "동영상", "Videos", "Vídeos", "ビデオ", "视频"),
     # 업데이트
     ("upd.unavailable", '지금은 업데이트를 확인할 수 없어요', "The update service isn't available", "El servicio de actualización no está disponible", "更新サービスを使用できません", "更新服务不可用"),
     ("upd.off", '자동 업데이트 꺼짐', "Automatic updates off", "Actualizaciones automáticas desactivadas", "自動更新オフ", "自动更新已关闭"),

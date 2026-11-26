@@ -1935,6 +1935,7 @@
   "tree.documents": "Documentos",
   "tree.downloads": "Descargas",
   "tree.pictures": "Imágenes",
+  "tree.videos": "Vídeos",
   "tv.absolute": "No se permiten rutas absolutas.",
   "tv.badChar": "Carácter no permitido: '{0}'",
   "tv.dotdot": "No se permite '..'.",

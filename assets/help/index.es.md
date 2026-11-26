@@ -89,6 +89,7 @@ La franja de la izquierda reúne las funciones que usas desde cualquier panel. C
   4. 🗂️ **Carpetas con plantilla** (**Ctrl+Shift+N**): previsualiza una estructura como PARA o las fases de un proyecto por sector y créala de una vez
 - **Carpetas fijadas**: pulsa el botón de **chincheta** junto al título para fijar la carpeta actual. Haz clic para abrirla en el panel activo; con el botón derecho puedes abrirla en una pestaña nueva o en el otro panel, reordenarla o quitarla.
 - **Carpetas recientes**: aparecen solas las 5 últimas carpetas que abriste (sin las fijadas). Bórralas con el botón de papelera junto al título.
+- **Carpetas básicas**: **Escritorio, Descargas, Documentos, Imágenes y Vídeos** están siempre arriba de las carpetas recientes, cada una con su propio icono. Si OneDrive movió el Escritorio, Documentos o Imágenes, o moviste Descargas a otra unidad, se abren en el lugar correcto. Al borrar las recientes, estas se quedan.
 - **Unidades**: cada unidad muestra su nombre, una barra de uso y el espacio libre. Por encima del 90% la barra se vuelve roja. Con el botón derecho inicias un análisis de carpetas al momento.
 - **Herramientas**: el resto de funciones se reúne en cuatro grupos. Al pulsar un grupo se abre su menú.
   - 🔍 **Buscar**: búsqueda de archivos, análisis de carpetas, solo imágenes

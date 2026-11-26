@@ -1935,6 +1935,7 @@
   "tree.documents": "ドキュメント",
   "tree.downloads": "ダウンロード",
   "tree.pictures": "ピクチャ",
+  "tree.videos": "ビデオ",
   "tv.absolute": "絶対パスは使えません。",
   "tv.badChar": "使えない文字: '{0}'",
   "tv.dotdot": "'..' は使えません。",

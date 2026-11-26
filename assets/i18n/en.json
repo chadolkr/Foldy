@@ -1935,6 +1935,7 @@
   "tree.documents": "Documents",
   "tree.downloads": "Downloads",
   "tree.pictures": "Pictures",
+  "tree.videos": "Videos",
   "tv.absolute": "Absolute paths aren't allowed.",
   "tv.badChar": "Character not allowed: '{0}'",
   "tv.dotdot": "'..' isn't allowed.",

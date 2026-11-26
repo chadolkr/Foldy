@@ -1,3 +1,4 @@
+using Foldy.Core.FileSystem;
 using Foldy.Presentation.Persistence;
 using Foldy.Presentation.Services;
 using Foldy.Presentation.Sidebar;
@@ -129,5 +130,55 @@ public class DriveSpaceTests
         s.SidebarExpanded.Should().BeTrue();
         s.LeftTreeWidth.Should().Be(SessionState.DefaultTreeWidth);
         s.RightTreeWidth.Should().Be(SessionState.DefaultTreeWidth);
+    }
+}
+
+public class StandardFolderTests
+{
+    private static readonly StandardFolder[] Std =
+    [
+        new(@"C:\Users\me\OneDrive\바탕 화면", "바탕 화면", "\uE8FC"),
+        new(@"D:\Downloads", "다운로드", "\uE896"),
+    ];
+
+    [Fact]
+    public void Standard_folders_stay_out_of_recent_ignoring_case()
+    {
+        var q = new QuickAccess(new QuickAccessState { Recent = [@"d:\downloads", @"C:\work"] }, Std);
+        q.Standard.Select(s => s.Name).Should().Equal("바탕 화면", "다운로드");
+        q.Recent.Select(r => r.Path).Should().Equal(@"C:\work");
+
+        var changes = 0;
+        q.Changed += () => changes++;
+        q.Visit(@"D:\DOWNLOADS\");
+        q.Recent.Select(r => r.Path).Should().Equal(@"C:\work");
+        changes.Should().Be(0);
+        q.IsStandard(@"c:\users\me\onedrive\바탕 화면").Should().BeTrue();
+
+        q.ClearRecent();
+        q.Standard.Should().HaveCount(2, "최근 폴더를 지워도 기본 폴더는 남는다");
+        q.Snapshot().Recent.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void All_uses_known_folder_paths_in_order_and_skips_missing_or_same_folders()
+    {
+        var paths = new Dictionary<KnownFolder, string?>
+        {
+            [KnownFolder.Desktop] = @"C:\Users\me\OneDrive\Desktop",
+            [KnownFolder.Downloads] = @"D:\Downloads",
+            [KnownFolder.Documents] = @"C:\Users\me\OneDrive\Documents",
+            [KnownFolder.Pictures] = @"C:\Users\me\OneDrive\Documents\", // 옛 PC: 사진 = 문서
+            [KnownFolder.Videos] = @"C:\Users\me\Videos",
+        };
+        var all = StandardFolders.All(k => paths[k], p => !p.EndsWith("Videos", StringComparison.Ordinal));
+        all.Select(f => f.Path).Should().Equal(@"C:\Users\me\OneDrive\Desktop", @"D:\Downloads", @"C:\Users\me\OneDrive\Documents");
+        all.Select(f => f.Glyph).Should().OnlyHaveUniqueItems("폴더마다 다른 그림");
+    }
+
+    [Fact]
+    public void Music_is_not_shown()
+    {
+        KnownFolders.Shown.Should().Equal(KnownFolder.Desktop, KnownFolder.Downloads, KnownFolder.Documents, KnownFolder.Pictures, KnownFolder.Videos);
     }
 }

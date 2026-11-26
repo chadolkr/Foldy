@@ -134,7 +134,7 @@ public partial class ShellWindow : Window, IPaneHost
         Shell.Search = _search;
 
         // 공통 사이드바: 자주 쓰는 폴더(고정)·최근 폴더·드라이브
-        _quick = new QuickAccess(JsonFileStore.Load(_quickPath, () => new QuickAccessState()));
+        _quick = new QuickAccess(JsonFileStore.Load(_quickPath, () => new QuickAccessState()), StandardFolders.All());
         _quickSave = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromSeconds(1) };
         _quickSave.Tick += (_, _) => SaveQuickAccess();
         _quick.Changed += () => { _quickSave.Stop(); _quickSave.Start(); };
@@ -142,6 +142,7 @@ public partial class ShellWindow : Window, IPaneHost
         _env.Visited = p => _quick.Visit(p);
         PinnedList.ItemsSource = _quick.Pinned;
         RecentList.ItemsSource = _quick.Recent;
+        StandardList.ItemsSource = _quick.Standard;
         SideDrives.ItemsSource = Shell.Left.Drives;
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
         ApplyDensity();
@@ -799,7 +800,7 @@ public partial class ShellWindow : Window, IPaneHost
                 // 자주 쓰는 폴더·최근 폴더가 있는 곳부터 모은다: 쓰는 파일이 먼저 찾아진다 (사용자 2026-11-24 "K 드라이브 색인이 너무 느려서")
                 try
                 {
-                    return Dispatcher.Invoke(() => (IReadOnlyList<string>)[.. _quick.Pinned.Select(q => q.Path), .. _quick.Recent.Select(q => q.Path)]);
+                    return Dispatcher.Invoke(() => (IReadOnlyList<string>)[.. _quick.Pinned.Select(q => q.Path), .. _quick.Standard.Select(q => q.Path), .. _quick.Recent.Select(q => q.Path)]);
                 }
                 catch (Exception ex) when (ex is TaskCanceledException or InvalidOperationException)
                 {
@@ -2506,8 +2507,8 @@ public partial class ShellWindow : Window, IPaneHost
             }, Score: 200);
         }
 
-        // 폴더: 고정·최근 (빈 칸이면 고정 폴더를 먼저 보여 준다)
-        foreach (var f in _quick.Pinned.Concat(_quick.Recent).DistinctBy(f => f.Path, StringComparer.OrdinalIgnoreCase))
+        // 폴더: 고정·기본·최근 (빈 칸이면 고정 폴더를 먼저 보여 준다)
+        foreach (var f in _quick.Pinned.Concat(_quick.Standard.Select(sf => new QuickFolder(sf.Path) { Label = sf.Name })).Concat(_quick.Recent).DistinctBy(f => f.Path, StringComparer.OrdinalIgnoreCase))
         {
             var s = q.Length == 0 ? (_quick.IsPinned(f.Path) ? 1 : 0) : m.Score(f.Name);
             if (s > 0)
@@ -3108,10 +3109,11 @@ public partial class ShellWindow : Window, IPaneHost
     // ───────────── 정리 도구 (로그·다운로드·바탕화면) ─────────────
 
     private double _recentHeight;
+    private double _recentListHeight;
 
     /// <summary>
-    /// 사이드바는 한 화면에 다 보여야 한다: 작은 화면(예: 1366×768)에서 넘치면 "최근 폴더"를 먼저 접고,
-    /// 다시 자리가 생기면 펼친다 (도구 버튼이 스크롤 밖으로 밀리지 않게).
+    /// 사이드바는 한 화면에 다 보여야 한다: 작은 화면(예: 1366×768)에서 넘치면 최근 폴더 목록을 먼저 접고
+    /// (기본 폴더 다섯은 남김), 그래도 넘치면 "최근 폴더" 묶음 전체를 접는다. 다시 자리가 생기면 거꾸로 펼친다.
     /// </summary>
     private void OnSidebarScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
     {
@@ -3123,14 +3125,29 @@ public partial class ShellWindow : Window, IPaneHost
         var over = SidebarScroll.ExtentHeight - SidebarScroll.ViewportHeight;
         if (over > 1 && RecentSection.Visibility == Visibility.Visible)
         {
-            _recentHeight = RecentSection.ActualHeight;
-            RecentSection.Visibility = Visibility.Collapsed;
-            RecentSection.Tag = "auto";
+            if (RecentList.Visibility == Visibility.Visible && RecentList.ActualHeight > 0)
+            {
+                _recentListHeight = RecentList.ActualHeight;
+                RecentList.Visibility = Visibility.Collapsed;
+                RecentList.Tag = "auto";
+            }
+            else
+            {
+                _recentHeight = RecentSection.ActualHeight;
+                RecentSection.Visibility = Visibility.Collapsed;
+                RecentSection.Tag = "auto";
+            }
         }
         else if (RecentSection.Visibility == Visibility.Collapsed && Equals(RecentSection.Tag, "auto") && -over >= _recentHeight + 4)
         {
             RecentSection.Visibility = Visibility.Visible;
             RecentSection.Tag = null;
+        }
+        else if (RecentSection.Visibility == Visibility.Visible && RecentList.Visibility == Visibility.Collapsed
+            && Equals(RecentList.Tag, "auto") && -over >= _recentListHeight + 4)
+        {
+            RecentList.Visibility = Visibility.Visible;
+            RecentList.Tag = null;
         }
     }
 
@@ -3789,6 +3806,14 @@ public partial class ShellWindow : Window, IPaneHost
 
     private static T? TagOf<T>(object sender) where T : class => (sender as FrameworkElement)?.Tag as T;
 
+    /// <summary>사이드바 폴더 줄(고정·최근·기본 폴더)의 경로.</summary>
+    private static string? SideFolderPath(object sender) => (sender as FrameworkElement)?.Tag switch
+    {
+        QuickFolder q => q.Path,
+        StandardFolder s => s.Path,
+        _ => null,
+    };
+
     /// <summary>사이드바에서 고른 폴더를 활성 패널에서 연다 (폴더 탭이 아니면 새 탭).</summary>
     private void OpenInPane(PaneViewModel pane, string path, bool newTab)
     {
@@ -3808,25 +3833,25 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void OnSideFolder(object sender, RoutedEventArgs e)
     {
-        if (TagOf<QuickFolder>(sender) is { } f)
+        if (SideFolderPath(sender) is { } path)
         {
-            OpenInPane(Shell.ActivePane, f.Path, newTab: false);
+            OpenInPane(Shell.ActivePane, path, newTab: false);
         }
     }
 
     private void OnSideFolderNewTab(object sender, RoutedEventArgs e)
     {
-        if (TagOf<QuickFolder>(sender) is { } f)
+        if (SideFolderPath(sender) is { } path)
         {
-            OpenInPane(Shell.ActivePane, f.Path, newTab: true);
+            OpenInPane(Shell.ActivePane, path, newTab: true);
         }
     }
 
     private void OnSideFolderOther(object sender, RoutedEventArgs e)
     {
-        if (TagOf<QuickFolder>(sender) is { } f)
+        if (SideFolderPath(sender) is { } path)
         {
-            OpenInPane(OtherPane, f.Path, newTab: false);
+            OpenInPane(OtherPane, path, newTab: false);
         }
     }
 
