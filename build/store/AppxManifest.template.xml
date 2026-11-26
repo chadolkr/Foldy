@@ -4,11 +4,15 @@
   Identity Name·Publisher·PublisherDisplayName은 Partner Center → 앱 → Product identity 값과 같아야 Store가 받는다.
   표시 이름은 Store에 예약한 이름("Foldy"는 선점돼 "Foldy File Manager")과 같아야 한다. 앱 안의 이름은 Foldy 그대로.
   색인 서비스(SYSTEM)는 넣지 않는다: localSystemServices·packagedServices는 Store에서 대부분 승인되지 않는 제한 기능이다.
+  대신 Foldy가 사용자 권한으로 모든 드라이브의 파일 목록을 직접 모은다(1.15.0, docs/store.md). 로그인 때 단축키 도우미(foldy-hotkey.exe)를
+  startupTask로 띄워, Foldy가 꺼져 있어도 Ctrl+Space와 주기 모으기가 된다. 도우미는 할 일이 없으면(둘 다 끔) 바로 끝난다.
+  사용자는 작업 관리자 → 시작 앱에서 끌 수 있다.
 -->
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-         IgnorableNamespaces="uap rescap">
+         xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+         IgnorableNamespaces="uap rescap desktop">
   <Identity Name="{{IdentityName}}" Publisher="{{Publisher}}" Version="{{Version}}" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>Foldy File Manager</DisplayName>
@@ -35,6 +39,11 @@
                           Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
       </uap:VisualElements>
+      <Extensions>
+        <desktop:Extension Category="windows.startupTask" Executable="foldy-hotkey.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="FoldyQuickSearchKey" Enabled="true" DisplayName="Foldy File Manager" />
+        </desktop:Extension>
+      </Extensions>
     </Application>
   </Applications>
   <Capabilities>

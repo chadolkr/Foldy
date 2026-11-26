@@ -696,6 +696,11 @@ public partial class ShellWindow : Window, IPaneHost
                 IndexerText.Text = Foldy.Core.Localization.Loc.T("sw.idx.crawlOnly");
                 IndexerText.ToolTip = Foldy.Core.Localization.Loc.F("sw.idx.noServiceTip", svc);
                 await _search.RefreshStateAsync();
+                if (SelfGathers)
+                {
+                    StartSelfGather();
+                }
+
                 return;
 
             case IndexerLinkState.Reconnecting:
@@ -738,6 +743,41 @@ public partial class ShellWindow : Window, IPaneHost
         }, Dispatcher);
         _indexStatusTimer.Start();
         StartSlowCrawl();
+    }
+
+    private bool _selfGatherStarted;
+
+    /// <summary>
+    /// Store 판 (1.15.0, 사용자 2026-11-26 "Store 판은 인덱서가 없구나. 꼭 있어야하는데"): SYSTEM 색인 서비스를 넣을 수 없어,
+    /// Foldy가 사용자 권한으로 모든 드라이브의 파일 목록을 직접 모은다 (C: 같은 NTFS 드라이브도). 서비스에 연결된 것처럼
+    /// 상태 표시·드라이브 줄·첫 안내를 켠다. 그사이 서비스에 연결되면(설치본도 함께 깐 PC) 보통 흐름이 이어받는다.
+    /// </summary>
+    private void StartSelfGather()
+    {
+        StartSlowCrawl();
+        UpdateIndexText();
+        if (_selfGatherStarted)
+        {
+            return;
+        }
+
+        _selfGatherStarted = true;
+        Log.Information("Store 판: 모든 드라이브의 파일 목록을 Foldy가 직접 모읍니다");
+        if (_shown)
+        {
+            StartFirstConnectUi();
+        }
+        else
+        {
+            _firstConnectUiPending = true;
+        }
+
+        _indexStatusTimer ??= new DispatcherTimer(TimeSpan.FromSeconds(5), DispatcherPriority.Background, async (_, _) =>
+        {
+            await _search.RefreshStateAsync();
+            UpdateIndexText();
+        }, Dispatcher);
+        _indexStatusTimer.Start();
     }
 
     /// <summary>
@@ -826,6 +866,12 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     /// <summary>
+    /// Store 판처럼 색인 서비스를 쓸 수 없어 Foldy가 모든 드라이브의 목록을 직접 모으는가 (1.15.0).
+    /// 같은 PC에 설치본의 색인 서비스가 있어 연결되면 그 서비스가 다루는 드라이브는 빠진다(<see cref="FileSearchService.IsIndexedPath"/>).
+    /// </summary>
+    private static bool SelfGathers => Foldy.Platform.SystemInfo.AppPackage.IsPackaged;
+
+    /// <summary>
     /// 모을 드라이브: 준비된 드라이브 중 색인 서비스가 다루지 않는 것 (네트워크, NTFS가 아님, 클라우드 가상 드라이브, USB·SD 카드). CD만 뺀다.
     /// (2026-11-21 사용자: "D: 색인 기다리는 중이라는데 언제 되지?" → exFAT SD 카드가 목록에서 빠져 있어 영원히 기다리는 중으로 보였다)
     /// </summary>
@@ -846,7 +892,9 @@ public partial class ShellWindow : Window, IPaneHost
                     continue;
                 }
 
-                if (d.DriveType is DriveType.Network or DriveType.Removable || !string.Equals(d.DriveFormat, "NTFS", StringComparison.OrdinalIgnoreCase) || _search.LastStatus is not null)
+                // Store 판(색인 서비스를 넣을 수 없음)은 이 PC의 NTFS 드라이브(C: 등)도 Foldy가 직접 모은다 (사용자 2026-11-26: "꼭 있어야")
+                if (d.DriveType is DriveType.Network or DriveType.Removable || !string.Equals(d.DriveFormat, "NTFS", StringComparison.OrdinalIgnoreCase) || _search.LastStatus is not null
+                    || SelfGathers)
                 {
                     list.Add(d.Name);
                 }
@@ -911,12 +959,18 @@ public partial class ShellWindow : Window, IPaneHost
     private void UpdateIndexText()
     {
         MarkIndexNowDrives();
+        var self = _search.LastStatus is null && SelfGathers && _crawler is not null;
         if (_search.LastStatus is not { } st)
         {
-            return;
+            if (!self)
+            {
+                return;
+            }
+
+            st = new Foldy.Indexer.Client.StatusReply(Foldy.Indexer.Client.IndexState.NotReady, 0, 0, 0, []);
         }
 
-        IndexerText.Text = st.State switch
+        IndexerText.Text = self ? SelfGatherText() : st.State switch
         {
             Foldy.Indexer.Client.IndexState.Ready => Foldy.Core.Localization.Loc.F("sw.idx.ready", st.IndexedEntries),
             Foldy.Indexer.Client.IndexState.Indexing => Foldy.Core.Localization.Loc.F("sw.idx.building", st.ProgressPermille / 10),
@@ -935,8 +989,8 @@ public partial class ShellWindow : Window, IPaneHost
             if (!indexed.Contains(name))
             {
                 lines.Add(_crawler?.StatusOf(d.Name) is { } cs
-                    ? Foldy.Core.Localization.Loc.F("sw.vol.crawl", name, (cs.Running ? Foldy.Core.Localization.Loc.T("sw.crawl.running") : cs.Complete ? Foldy.Core.Localization.Loc.T("sw.crawl.done") : Foldy.Core.Localization.Loc.T("sw.crawl.idle")), Math.Max(0, cs.Found), (d.DriveType == System.IO.DriveType.Network ? Foldy.Core.Localization.Loc.T("sw.drive.network") : Foldy.Core.Localization.Loc.T("sw.drive.notNtfs")))
-                    : Foldy.Core.Localization.Loc.F("sw.vol.none", name, (d.DriveType == System.IO.DriveType.Network ? Foldy.Core.Localization.Loc.T("sw.drive.network") : Foldy.Core.Localization.Loc.T("sw.drive.notNtfs"))));
+                    ? Foldy.Core.Localization.Loc.F("sw.vol.crawl", name, (cs.Running ? Foldy.Core.Localization.Loc.T("sw.crawl.running") : cs.Complete ? Foldy.Core.Localization.Loc.T("sw.crawl.done") : Foldy.Core.Localization.Loc.T("sw.crawl.idle")), Math.Max(0, cs.Found), DriveKindText(d))
+                    : Foldy.Core.Localization.Loc.F("sw.vol.none", name, DriveKindText(d)));
             }
         }
 
@@ -957,6 +1011,48 @@ public partial class ShellWindow : Window, IPaneHost
                 }
             }
         }
+    }
+
+    /// <summary>색인 서비스가 다루지 않는 까닭 (마우스를 올리면 보이는 드라이브 줄).</summary>
+    private static string DriveKindText(System.IO.DriveInfo d)
+    {
+        if (d.DriveType == System.IO.DriveType.Network)
+        {
+            return Foldy.Core.Localization.Loc.T("sw.drive.network");
+        }
+
+        try
+        {
+            if (SelfGathers && string.Equals(d.DriveFormat, "NTFS", StringComparison.OrdinalIgnoreCase))
+            {
+                return Foldy.Core.Localization.Loc.T("sw.drive.self");
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+
+        return Foldy.Core.Localization.Loc.T("sw.drive.notNtfs");
+    }
+
+    /// <summary>Store 판 상태 줄: 모은 파일 수의 합, 아직 모으는 드라이브가 있으면 "준비 중".</summary>
+    private string SelfGatherText()
+    {
+        if (_crawler is not { } crawler)
+        {
+            return Foldy.Core.Localization.Loc.T("sw.idx.crawlOnly");
+        }
+
+        var all = crawler.KnownDrives.Select(crawler.StatusOf).OfType<Foldy.Core.Search.CrawlStatus>().ToList();
+        var found = all.Sum(c => Math.Max(0, c.Found));
+        if (all.Count == 0)
+        {
+            return Foldy.Core.Localization.Loc.T("sw.idx.preparingAll");
+        }
+
+        return all.Any(c => c.Running || (!c.Complete && c.Error is null))
+            ? Foldy.Core.Localization.Loc.F("sw.idx.selfBuilding", found)
+            : Foldy.Core.Localization.Loc.F("sw.idx.ready", found);
     }
 
     /// <summary>[지금 색인하기]가 보일 드라이브를 표시한다 (색인 서비스가 없어도). 드라이브를 건드리지 않고 모으는 쪽이 아는 목록만 쓴다.</summary>
@@ -2415,7 +2511,9 @@ public partial class ShellWindow : Window, IPaneHost
         _startApps ??= Foldy.Core.QuickSearch.SystemCatalog.LoadStartApps();
         var scope = Shell.ActivePane.ActiveFolder?.Path;
         var indexing = _search.LastStatus is { State: Foldy.Indexer.Client.IndexState.Indexing } ix ? ix.ProgressPermille / 10 : -1;
-        var footer = (_search.IsIndexed
+        var footer = (!_search.IsIndexed && SelfGathers && _crawler is not null
+                ? Foldy.Core.Localization.Loc.T("sw.qs.footerAll") // Store 판: Foldy가 모은 모든 드라이브 목록에서
+                : _search.IsIndexed
                 ? (scope is not null && !_search.IsIndexedPath(scope) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(scope)
                     ? Foldy.Core.Localization.Loc.F("sw.qs.footerHere", Path.GetFileName(scope.TrimEnd('\\')))
                     : Foldy.Core.Localization.Loc.T("sw.qs.footerAll"))
@@ -2685,11 +2783,11 @@ public partial class ShellWindow : Window, IPaneHost
 
     /// <summary>
     /// 느린 드라이브 목록을 Foldy가 꺼져 있을 때도 주기마다 모을 수 있나 (1.13.0, 단축키 도우미가 띄운다).
-    /// 설정에서 모으기를 껐거나 "직접 누를 때만"이면, 또 Store 판(도우미 없음)·시험 실행이면 하지 않는다.
+    /// 설정에서 모으기를 껐거나 "직접 누를 때만"이면, 또 도우미가 없으면 하지 않는다. Store 판도 1.15.0부터 도우미가 있다(startupTask).
     /// </summary>
     private bool GatherWanted =>
         _settings.SlowCrawl && Foldy.Presentation.Persistence.AppSettings.CrawlInterval(_settings.CrawlEvery) is not null
-        && !Foldy.Platform.SystemInfo.AppPackage.IsPackaged && File.Exists(QuickSearchKeyExe);
+        && File.Exists(QuickSearchKeyExe);
 
     /// <summary>
     /// 주기 모으기 설정을 도우미에게 알리고(설정 파일), 필요하면 도우미를 띄운다.
@@ -2698,7 +2796,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void EnsureGatherHelper()
     {
         if (App.Options.IsBench || App.Options.IsCapture || App.Options.DocShots is not null
-            || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 } || Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
+            || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 })
         {
             return;
         }
@@ -2820,12 +2918,13 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>
     /// Foldy가 확인한 키를 단축키 도우미에게 넘긴다 (1.11.0): 도우미가 키를 쥐면 Foldy가 꺼져 있어도 찾기 창이 열린다.
     /// Foldy가 켜져 있을 때도 도우미가 받아 이 Foldy에 "찾기 창 열기"를 보낸다 (둘이 같은 키를 등록할 수 없어서).
-    /// 설정에서 껐거나, Store 판처럼 도우미가 없거나, 도우미가 뜨지 못하면 예전처럼 Foldy가 켜져 있는 동안만 받는다.
+    /// 설정에서 껐거나, 도우미가 없거나, 도우미가 뜨지 못하면 예전처럼 Foldy가 켜져 있는 동안만 받는다.
+    /// Store 판도 1.15.0부터 도우미가 패키지에 들어 있고, 로그인 때는 매니페스트의 startupTask가 띄운다 (사용자 2026-11-26).
     /// </summary>
     private async Task HandOverQuickSearchKeyAsync(IntPtr hwnd, string gesture)
     {
         var exe = QuickSearchKeyExe;
-        if (!_settings.QuickSearchAlways || Foldy.Platform.SystemInfo.AppPackage.IsPackaged || !File.Exists(exe)
+        if (!_settings.QuickSearchAlways || !File.Exists(exe)
             || !GlobalHotkey.TryNative(gesture, out var mods, out var vk))
         {
             await TurnOffQuickSearchAgentAsync();

@@ -1,6 +1,8 @@
 <#
   Foldy Store 판(MSIX)을 만든다. 같은 소스·같은 payload(dist\Foldy-Setup\payload)를 MSIX로 감싼다 (docs/store.md).
-  - 색인 서비스(foldy-index.exe)·자체 업데이트 도구(foldy-update.exe)·단축키 도우미(foldy-hotkey.exe)는 넣지 않는다. 앱은 패키지로 실행되면 이를 알아채고 Store에 맡긴다.
+  - 색인 서비스(foldy-index.exe)·자체 업데이트 도구(foldy-update.exe)는 넣지 않는다. 앱은 패키지로 실행되면 이를 알아채고
+    업데이트는 Store에 맡기고, 드라이브 목록은 사용자 권한으로 직접 모은다(1.15.0).
+  - 단축키 도우미(foldy-hotkey.exe)는 넣는다: 매니페스트의 startupTask로 로그인 때 떠서 Ctrl+Space·주기 모으기를 한다.
   - 서명하지 않는다: Store가 제출받은 패키지를 Microsoft 인증서로 서명한다.
     로컬 시험 설치만 하려면 -TestCert로 자체 서명 인증서를 만들어 서명한다 (그 PC에서만 신뢰).
 
@@ -15,11 +17,13 @@ param(
     [string] $IdentityName = $(if ($env:FOLDY_STORE_IDENTITY_NAME) { $env:FOLDY_STORE_IDENTITY_NAME } else { 'DavidCHA.FoldyFileManager' }),
     [string] $Publisher = $(if ($env:FOLDY_STORE_PUBLISHER) { $env:FOLDY_STORE_PUBLISHER } else { 'CN=2AAA454A-54B0-4C55-B5E3-99DD3024FB14' }),
     [string] $PublisherDisplayName = $(if ($env:FOLDY_STORE_PUBLISHER_DISPLAY_NAME) { $env:FOLDY_STORE_PUBLISHER_DISPLAY_NAME } else { 'David CHA' }),
-    [switch] $TestCert
+    [switch] $TestCert,
+    # CI 검사용: 다른 payload 폴더로 만든다 (build/store/check-msix.ps1이 가짜 exe로 매니페스트·패키지 모양만 확인)
+    [string] $Payload
 )
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')
-$payload = Join-Path $root 'dist\Foldy-Setup\payload'
+$payload = if ($Payload) { (Resolve-Path $Payload).Path } else { Join-Path $root 'dist\Foldy-Setup\payload' }
 if (-not (Test-Path (Join-Path $payload 'Foldy.exe'))) { throw "payload가 없습니다: $payload (먼저 build/setup/make-setup.ps1)" }
 
 # Store 버전은 네 자리, 마지막은 0이어야 한다 (1.2.3 → 1.2.3.0). 미리보기 접미사(-beta 등)는 뗀다.
@@ -33,7 +37,7 @@ $stage = Join-Path $root 'dist\Foldy-Store'
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $stage | Out-Null
 Copy-Item (Join-Path $payload '*') $stage -Recurse
-foreach ($f in 'foldy-index.exe', 'foldy-update.exe', 'foldy-hotkey.exe') { Remove-Item (Join-Path $stage $f) -ErrorAction SilentlyContinue }
+foreach ($f in 'foldy-index.exe', 'foldy-update.exe') { Remove-Item (Join-Path $stage $f) -ErrorAction SilentlyContinue }
 
 # ── 로고 (foldy-256.png에서 크기별로) ──
 Add-Type -AssemblyName System.Drawing
@@ -71,6 +75,7 @@ if (-not $makeappx) { throw 'makeappx.exe를 찾지 못했습니다 (Windows 10/
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $msix = Join-Path (Resolve-Path $OutDir) "Foldy-$core-x64.msix"
 Remove-Item $msix -ErrorAction SilentlyContinue
+if (-not (Test-Path (Join-Path $stage 'foldy-hotkey.exe'))) { throw 'foldy-hotkey.exe가 payload에 없습니다 (매니페스트의 startupTask가 가리킴)' }
 & $makeappx.FullName pack /o /h SHA256 /d $stage /p $msix
 if ($LASTEXITCODE -ne 0) { throw 'makeappx 실패' }
 

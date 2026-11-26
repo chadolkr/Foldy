@@ -51,6 +51,11 @@ jobs:
         shell: pwsh
         run: ./build/store/submit.ps1 -Mode text-draft -CheckOnly
 
+      # Store 판(MSIX) 매니페스트: 릴리스 때만 만들어서 틀려도 늦게 안다. 가짜 exe로 makeappx 검사만 (1.15.0)
+      - name: Store package manifest
+        shell: pwsh
+        run: ./build/store/check-msix.ps1
+
       - name: Build and test
         shell: pwsh
         run: ./build.ps1

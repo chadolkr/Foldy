@@ -76,9 +76,9 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ℹ️ Good to know about the Store edition
 • Microsoft Store keeps Foldy up to date.
-• The Store edition does not include the service that reads whole drives ahead of time, so searching very large drives can be a little slower.
-• Ctrl+Space works while Foldy is running.
-• The installer for work and offline PCs, with the faster pre-read search, is on the website.
+• The Store edition also builds a file list of every drive (C:, USB, network drives) on its own and searches it right away. The first list can take a few minutes.
+• After you run Foldy once, Ctrl+Space opens the search box even when Foldy is closed. You can turn this off in Task Manager → Startup apps.
+• The installer for work and offline PCs is on the website.
 
 🔗 Learn more
 • Website: https://chadolkr.github.io/Foldy/en/
@@ -87,6 +87,10 @@ It is off by default, read-only when on, and only works inside this computer.
 • Privacy policy: https://chadolkr.github.io/Foldy/en/privacy/
 
 ## What's new in this version
+
+1.15.0
+• The Store edition now builds a file list of every drive on its own and searches it right away. Before, it only searched inside the open folder.
+• In the Store edition, Ctrl+Space now opens the search box even when Foldy is closed (a small helper starts when you sign in).
 
 1.14.4
 • In Find anything (Ctrl+Space), Ctrl+Enter opens the containing folder with the found file selected and shown near the middle of the list. Before, you sometimes had to scroll to see it.
