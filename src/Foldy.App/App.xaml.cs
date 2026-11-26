@@ -222,7 +222,7 @@ public partial class App : Application
             }
             else if (Options.QuickSearch && !Options.BenchShell)
             {
-                // 단축키 도우미가 띄웠다: 주 창과 그 위에 찾기 창 (1.15.0부터 주 창도 함께)
+                // 단축키 도우미가 띄웠다: 주 창과 그 위에 찾기 창 (1.14.2부터 주 창도 함께)
                 main.StartForQuickSearch();
             }
             else

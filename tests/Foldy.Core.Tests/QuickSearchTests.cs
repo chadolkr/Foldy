@@ -353,7 +353,7 @@ public sealed class ResultPagerTests
     public void Near_end(double offset, double viewport, double extent, bool expected) =>
         Assert.Equal(expected, ResultPaging.NearEnd(offset, viewport, extent));
 
-    // ── 찾기 창 옮긴 자리 (1.15.0) ──
+    // ── 찾기 창 옮긴 자리 (1.14.2) ──
 
     private static readonly (double, double, double, double) OneScreen = (0, 0, 1920, 1040);
 

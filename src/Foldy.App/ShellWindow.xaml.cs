@@ -2303,7 +2303,7 @@ public partial class ShellWindow : Window, IPaneHost
 
     /// <summary>
     /// 단축키 도우미(foldy-hotkey.exe)가 띄운 Foldy (--quick-search, 1.11.0): 무엇이든 찾기 창을 연다.
-    /// 1.15.0부터 주 창도 함께 띄운다 (2026-11-26 사용자: "본창도 같이 뜨게하면 어떨까?"). 찾기 창은 주 창 위에 뜬다.
+    /// 1.14.2부터 주 창도 함께 띄운다 (2026-11-26 사용자: "본창도 같이 뜨게하면 어떨까?"). 찾기 창은 주 창 위에 뜬다.
     /// 색인 서비스 연결을 잠깐(0.7초까지) 기다려 처음부터 모든 드라이브에서 찾게 한다.
     /// </summary>
     public void StartForQuickSearch()
@@ -2402,7 +2402,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void ShowQuickSearch()
     {
         _quietExit?.Stop();
-        BringMainForward(); // 주 창도 함께 (1.15.0): 숨었거나 작게 줄였거나 다른 프로그램 뒤에 있으면 앞으로
+        BringMainForward(); // 주 창도 함께 (1.14.2): 숨었거나 작게 줄였거나 다른 프로그램 뒤에 있으면 앞으로
         if (_quickSearch is { IsLoaded: true })
         {
             _quickSearch.Activate();
@@ -3970,7 +3970,7 @@ public partial class ShellWindow : Window, IPaneHost
 
         if (options.QuickSearch && options.OpenPath is null)
         {
-            ShowQuickSearch(); // 단축키 도우미: 주 창을 앞으로 가져오고 그 위에 찾기 창 (1.15.0)
+            ShowQuickSearch(); // 단축키 도우미: 주 창을 앞으로 가져오고 그 위에 찾기 창 (1.14.2)
             return;
         }
 

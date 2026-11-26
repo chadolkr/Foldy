@@ -10,7 +10,7 @@ namespace Foldy.UiTests;
 
 /// <summary>
 /// Foldy가 꺼져 있어도 단축키로 무엇이든 찾기 (1.11.0, 사용자 2026-11-24 "Foldy가 실행 안되어 있어도 ctrl + space 키를 누르면 foldy 검색창이 뜨도록").
-/// 단축키 도우미는 Foldy.exe --quick-search를 띄운다. 1.15.0부터 주 창도 함께 뜨고(사용자 2026-11-26 "본창도 같이 뜨게"),
+/// 단축키 도우미는 Foldy.exe --quick-search를 띄운다. 1.14.2부터 주 창도 함께 뜨고(사용자 2026-11-26 "본창도 같이 뜨게"),
 /// 찾기 창은 끌어서 옮길 수 있고 옮긴 자리에 다시 뜬다("Ctrl + space 화면이 고정되어 있는데 옮길 수 있게").
 /// </summary>
 [Collection("ui")]
@@ -55,7 +55,7 @@ public sealed class QuickSearchOnlyTests : IDisposable
         var qs = Retry.WhileNull(() => FindWindow(foldy.Id), TimeSpan.FromSeconds(30), ignoreException: true).Result;
         qs.Should().NotBeNull("Foldy가 꺼져 있어도 찾기 창은 떠야 한다");
         var main = Retry.WhileNull(() => MainWindow(foldy.Id), TimeSpan.FromSeconds(15), ignoreException: true).Result;
-        main.Should().NotBeNull("주 창도 함께 뜬다 (1.15.0)");
+        main.Should().NotBeNull("주 창도 함께 뜬다 (1.14.2)");
 
         // 찾기 창은 평소처럼 쓸 수 있다
         AutomationElement? answer = null;
