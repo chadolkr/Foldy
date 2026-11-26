@@ -207,7 +207,7 @@ const ja: Dictionary = {
     },
     fake: {
       title: "偽の Foldy に気をつけて",
-      lead: "有名な無料ソフトをまねた偽サイトが、悪いプログラムを配ることがあります。Foldy は次の 2 か所と Microsoft Store だけから入手してください。",
+      lead: "有名な無料ソフトをまねた偽サイトが、悪いプログラムを配ることがあります。Foldy は次の 2 か所だけから入手してください。",
       officialTitle: "公式の場所はここだけです",
       store: "Microsoft Store では「Foldy File Manager」（発行元 David CHA）",
       points: [

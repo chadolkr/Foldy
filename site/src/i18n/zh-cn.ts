@@ -207,7 +207,7 @@ const zhCN: Dictionary = {
     },
     fake: {
       title: "小心假冒的 Foldy",
-      lead: "有些假网站会冒充有名的免费软件来传播恶意程序。请只从下面两个地址或 Microsoft Store 下载 Foldy。",
+      lead: "有些假网站会冒充有名的免费软件来传播恶意程序。请只从下面两个地址下载 Foldy。",
       officialTitle: "官方地址只有这些",
       store: "在 Microsoft Store 上是“Foldy File Manager”（发布者 David CHA）",
       points: [

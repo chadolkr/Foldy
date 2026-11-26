@@ -207,7 +207,7 @@ const es: Dictionary = {
     },
     fake: {
       title: "Cuidado con los Foldy falsos",
-      lead: "A veces aparecen sitios falsos que imitan programas gratuitos conocidos para repartir programas dañinos. Descarga Foldy solo de estas dos direcciones o de Microsoft Store.",
+      lead: "A veces aparecen sitios falsos que imitan programas gratuitos conocidos para repartir programas dañinos. Descarga Foldy solo de estas dos direcciones.",
       officialTitle: "Estas son las únicas direcciones oficiales",
       store: "En Microsoft Store: \"Foldy File Manager\", de David CHA",
       points: [
