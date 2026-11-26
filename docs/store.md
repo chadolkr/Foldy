@@ -2,7 +2,7 @@
 
 ## 결정 (2026-11-21): 같은 소스에서 두 가지를 만든다
 
-- **Store 판 (MSIX)**: 개인 사용자용. Microsoft가 서명하고 Store가 업데이트한다. 색인 서비스 없이 폴백 검색.
+- **Store 판 (MSIX)**: 개인 사용자용. Microsoft가 서명하고 Store가 업데이트한다. 1.15.0부터 설치판과 같은 색인 서비스를 패키지 서비스로 넣는다(아래 "Store 판의 찾기"). 서비스가 없으면 Foldy가 사용자 권한으로 모든 드라이브의 목록을 직접 모은다(1.15.0).
 - **설치본 (MSI·setup zip)**: 회사·오프라인 PC용 (Store 판은 설치할 때 인터넷과 Store가 필요하다). Certum 인증서로 서명, 업데이트는 지금처럼 update.json.
 - 실행 파일은 같다. 앱이 패키지로 실행되는지(`AppPackage.IsPackaged`, `GetCurrentPackageFullName`)를 보고 자체 업데이트·서비스 설치를 끈다.
 - release.yml이 태그마다 둘 다 만든다. MSIX는 워크플로 아티팩트 `foldy-store-msix`로 올라가고, Partner Center에 제출한다.
@@ -11,6 +11,22 @@
 - 구현: `build/store/make-msix.ps1`, `AppxManifest.template.xml`, release.yml의 "Store MSIX" 단계(첫 실제 빌드로 검증될 때까지 실패해도 릴리스는 계속), 앱의 Store 판 분기.
 - Store 제품 (2026-11-21 예약): 이름 **Foldy File Manager** ("Foldy"는 선점됨), Store ID `9NS1PWL5QGP6`, Identity `DavidCHA.FoldyFileManager`, Publisher `CN=2AAA454A-54B0-4C55-B5E3-99DD3024FB14`, 표시 이름 `David CHA`, PFN `DavidCHA.FoldyFileManager_2mprgqxmdw8d8`. make-msix.ps1의 기본값이다. 시작 메뉴·Store에는 "Foldy File Manager", 앱 안에서는 Foldy.
 - 로컬 시험: `./build/setup/make-setup.ps1` 다음 `./build/store/make-msix.ps1 -Version x.y.z -TestCert`.
+
+## Store 판의 찾기 (1.15.0, 사용자 2026-11-26 "꼭 있어야")
+
+- 색인 서비스(패키지 서비스 FoldyIndexerStore)가 있으면 설치판과 같다: NTFS는 MFT로 몇 초, USN으로 바로 반영. 아래는 서비스가 없거나 꺼져 있을 때다.
+- Foldy가 사용자 권한으로 모든 드라이브(C: 같은 NTFS, USB·SD, 네트워크, Google Drive)의 파일 목록을 `%LOCALAPPDATA%\Foldy\crawl`(패키지 저장소로 옮겨짐)에 만든다. 설치본의 "색인 없는 드라이브 모으기"와 같은 코드(`SlowCrawler`).
+- 단축키 도우미 foldy-hotkey.exe가 패키지에 들어 있고, 매니페스트의 `desktop:StartupTask`가 로그인 때 띄운다(앱을 한 번 켠 뒤부터). Foldy가 꺼져 있어도 Ctrl+Space와 주기 모으기(`Foldy.exe --gather`)가 된다. 작업 관리자 → 시작 앱에서 끌 수 있다.
+- 설치본과 다른 점: 관리자 권한이 없어 NTFS의 MFT를 읽지 못하므로 처음 목록은 폴더를 하나씩 읽어 만든다(C:에 몇 분). 그다음은 바뀐 폴더만 읽고, Foldy가 켜져 있는 동안은 변경 알림으로 바로 반영한다.
+- CI의 "Store package manifest" 단계(`build/store/check-msix.ps1`)가 매니페스트를 makeappx로 미리 검사한다.
+
+### 패키지 서비스 (1.15.0): 심사 사유 글
+
+1.15.0부터 make-msix.ps1이 매니페스트에 `desktop6:Service`(foldy-index.exe, `FoldyIndexerStore`, localSystem, 자동, `--service --store`)와 제한 기능 `packagedServices`·`localSystemServices`를 넣는다. 사유 글은 `build/store/certification-notes.txt`이고 submit.ps1이 제출의 `notesForCertification`으로 넣는다. Partner Center가 "제출 옵션 → 제한된 기능을 사용하는 이유" 칸을 따로 요구하면 같은 글을 붙여 넣는다. 거절되면 저장소 변수 `FOLDY_STORE_SERVICE`를 `false`로 두면 서비스 없는 판(1.15.0 방식)으로 만든다. 아래는 처음 적어 둔 초안이다.
+
+> (내기 전에 각 문장, 특히 파이프 권한이 지금 코드와 맞는지 다시 확인한다.)
+>
+> Foldy is a file manager whose main feature is instant file name search across all local drives. The packaged service (foldy-index.exe) runs as LocalSystem because reading the NTFS Master File Table and the USN change journal requires a volume handle, which standard users cannot open. The service only reads file names, sizes and times; it never reads file contents, never opens network connections, and only answers the signed-in user's Foldy app over a local named pipe restricted to that user. It is the same open-source service shipped in our MSI installer (source: https://github.com/chadolkr/Foldy, engine/foldy-index). Without it, Foldy has to walk every folder with the user's rights, which takes minutes on large drives and misses changes made while Foldy is closed.
 
 ## PC 없이 제출 (사용자 요청 2026-11-25)
 
@@ -51,7 +67,7 @@
 | 서명 | Microsoft가 무료로 서명 | 우리가 신뢰할 수 있는 CA 인증서로 MSI와 모든 exe·dll을 서명해야 함 (자체 서명 불가) |
 | 추가 비용 | 없음 | 인증서 (Certum 오픈소스 클라우드 €49/년) |
 | 업데이트 | Store가 함 (자체 업데이트는 끔) | 앱이 직접 (지금의 update.json 방식 그대로) |
-| 색인 서비스 (SYSTEM) | **넣을 수 없음**: `localSystemServices`·`packagedServices`는 제한 기능이고 Store 문서가 "대부분 승인되지 않는다"고 함 | 그대로 설치 (제출 화면의 "NT 서비스 사용" 칸에 표시) |
+| 색인 서비스 (SYSTEM) | **넣을 수 없음**: `localSystemServices`·`packagedServices`는 제한 기능이고 Store 문서가 "대부분 승인되지 않는다"고 함 (1.15.0부터는 사용자 권한 모으기로 대신) | 그대로 설치 (제출 화면의 "NT 서비스 사용" 칸에 표시) |
 | 설치 파일 위치 | Store에 올림 | 버전별로 바뀌지 않는 HTTPS 주소 (GitHub Releases 자산 주소), 오프라인 설치, 조용한 설치 지원 필요 (MSI `/qn`) |
 | 할 일 | MSIX 빌드, Store 판 분기(서비스·업데이트 끔), 기능 축소 안내 | Certum 서명을 릴리스에 연결 |
 
@@ -65,7 +81,7 @@
 - **설정·로그·오류 보고**: `%LOCALAPPDATA%`는 패키지별로 가상화되지만 앱에서는 같은 경로로 보인다.
 - 앱 실행은 `runFullTrust`(데스크톱 앱 일반 기능)만 필요하다.
 
-나중에 관리자 권한 없이 도는 사용자 단위 색인을 만들면 A안의 검색도 빨라진다 (별도 작업).
+1.15.0에서 관리자 권한 없이 도는 사용자 단위 모으기를 Store 판에 켰다 (위 "Store 판의 찾기").
 
 ## 사용자가 직접 할 일 (두 안 공통)
 

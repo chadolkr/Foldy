@@ -220,6 +220,12 @@ foreach ($lang in $listings.Keys) {
     $null = Set-Field $base 'websiteUrl' $languages[$lang].Site
     $null = Set-Field $base 'supportContact' $support
 }
+# 인증 담당자에게 남기는 글: 패키지에 색인 서비스(제한 기능 packagedServices·localSystemServices)가 있으면 그 까닭 (1.15.0)
+if (-not $textOnly) {
+    $notes = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'certification-notes.txt')).Trim()
+    if (-not (Set-Field $submission 'notesForCertification' $notes)) { $submission | Add-Member -NotePropertyName 'notesForCertification' -NotePropertyValue $notes }
+    Write-Host "인증 담당자용 글을 넣음 ($($notes.Length)자)"
+}
 if ($missing.Count -gt 0) { throw "초안 등록 정보에 없는 언어: $($missing -join ', '). 초안은 남아 있어요" }
 $null = Invoke-Dev '글 바꾸기' Put "/submissions/$draftId" ($submission | ConvertTo-Json -Depth 100 -Compress)
 Write-Host '등록 정보 글을 바꿈 (설명, 새로운 기능, 제품 기능, 짧은 설명, 검색어, 웹 사이트)'

@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Foldy Store 판(MSIX) 매니페스트. build/store/make-msix.ps1이 {{…}}를 채운다 (docs/store.md).
+  Foldy Store 판(MSIX) 매니페스트. build/store/make-msix.ps1이 이중 중괄호 자리를 채운다 (docs/store.md).
   Identity Name·Publisher·PublisherDisplayName은 Partner Center → 앱 → Product identity 값과 같아야 Store가 받는다.
   표시 이름은 Store에 예약한 이름("Foldy"는 선점돼 "Foldy File Manager")과 같아야 한다. 앱 안의 이름은 Foldy 그대로.
-  색인 서비스(SYSTEM)는 넣지 않는다: localSystemServices·packagedServices는 Store에서 대부분 승인되지 않는 제한 기능이다.
+  색인 서비스(빠른 찾기 도우미, foldy-index.exe)는 1.15.0부터 패키지 서비스(desktop6:Service, LocalSystem)로 넣는다 (사용자 2026-11-26
+  "설치판과 동일한 기능을 하도록 개선하지 못하면 store 판은 오픈 못할 것 같어"). 제한 기능 localSystemServices·packagedServices가 필요하고
+  Store 심사에서 사유를 본다(docs/store.md). 서비스 자리 두 곳은 make-msix.ps1이 채운다(-NoService면 빈칸).
+  서비스가 없을 때(-NoService)는 Foldy가 사용자 권한으로 모든 드라이브의 파일 목록을 직접 모은다(1.15.0). 로그인 때 단축키 도우미(foldy-hotkey.exe)를
+  startupTask로 띄워, Foldy가 꺼져 있어도 Ctrl+Space와 주기 모으기가 된다. 도우미는 할 일이 없으면(둘 다 끔) 바로 끝난다.
+  사용자는 작업 관리자 → 시작 앱에서 끌 수 있다.
 -->
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-         IgnorableNamespaces="uap rescap">
+         xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+         xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+         IgnorableNamespaces="uap rescap desktop desktop6">
   <Identity Name="{{IdentityName}}" Publisher="{{Publisher}}" Version="{{Version}}" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>Foldy File Manager</DisplayName>
@@ -35,9 +42,14 @@
                           Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
       </uap:VisualElements>
+      <Extensions>
+        <desktop:Extension Category="windows.startupTask" Executable="foldy-hotkey.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="FoldyQuickSearchKey" Enabled="true" DisplayName="Foldy File Manager" />
+        </desktop:Extension>
+{{ServiceExtension}}      </Extensions>
     </Application>
   </Applications>
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
-  </Capabilities>
+{{ServiceCapabilities}}  </Capabilities>
 </Package>

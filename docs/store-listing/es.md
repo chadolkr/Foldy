@@ -76,9 +76,9 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ℹ️ Conviene saber sobre la versión de Store
 • Microsoft Store mantiene Foldy actualizado.
-• La versión de Store no incluye el servicio que lee unidades enteras por adelantado, así que buscar en unidades muy grandes puede ser algo más lento.
-• Ctrl+Espacio funciona mientras Foldy está abierto.
-• El instalador para PC del trabajo y sin conexión, con la búsqueda más rápida, está en el sitio web.
+• La versión de Store incluye el mismo asistente de búsqueda rápida que la del instalador. Lee C: en segundos y crea por sí misma la lista de las unidades USB y de red, por eso Windows puede pedir permiso de administrador una vez al instalar.
+• Después de abrir Foldy una vez, Ctrl+Espacio abre el cuadro de búsqueda aunque Foldy esté cerrado. Puedes desactivarlo en Administrador de tareas → Aplicaciones de arranque.
+• El instalador para PC del trabajo y sin conexión está en el sitio web.
 
 🔗 Más información
 • Sitio web: https://chadolkr.github.io/Foldy/es/
@@ -87,6 +87,10 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 • Política de privacidad: https://chadolkr.github.io/Foldy/es/privacy/
 
 ## Novedades de esta versión
+
+1.15.0
+• La versión de Store ahora incluye el mismo asistente de búsqueda rápida que la del instalador. Lee C: en segundos y encuentra los archivos que cambiaron mientras Foldy estaba cerrado.
+• En la versión de Store, Ctrl+Espacio abre el cuadro de búsqueda aunque Foldy esté cerrado (un pequeño asistente se inicia al iniciar sesión).
 
 1.14.4
 • En Buscar cualquier cosa (Ctrl+Espacio), Ctrl+Intro abre la carpeta que lo contiene con el archivo encontrado elegido y visible hacia el centro de la lista. Antes a veces había que desplazarse para verlo.

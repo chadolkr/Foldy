@@ -8,7 +8,7 @@ namespace Foldy.Platform.SystemInfo;
 /// 단축키 도우미 foldy-hotkey.exe (engine/foldy-hotkey): Foldy가 꺼져 있어도 단축키로 무엇이든 찾기 창을 연다 (1.11.0).
 /// Foldy는 키를 확인한 뒤 설정 파일에 적고 도우미를 (다시) 띄운다. 도우미가 키를 쥐고 있는 동안 Foldy는 키를 등록하지 않는다
 /// (둘이 같은 키를 등록할 수 없다). 도우미는 메시지 전용 창(클래스 <see cref="WindowClass"/>)을 하나 두고, 그 창으로 켜졌는지 보고 끈다.
-/// 로그인 때 시작: MSI는 HKLM Run에 넣고, 그 밖의 설치(압축 파일 설치 등)는 Foldy가 사용자 Run에 넣는다.
+/// 로그인 때 시작: MSI는 HKLM Run에 넣고, Store 판(MSIX)은 매니페스트의 startupTask로, 그 밖의 설치(압축 파일 설치 등)는 Foldy가 사용자 Run에 넣는다.
 /// 1.13.0부터 느린 드라이브 목록 주기 모으기도 한다: 주기를 <see cref="GatherFileName"/>에 적어 두면, Foldy가 꺼져 있을 때
 /// 도우미가 주기마다 <c>Foldy.exe --gather</c>를 창 없이 띄운다. 단축키를 쓰지 않아도 모으기가 켜져 있으면 도우미는 남아 있다
 /// (이때 창 이름이 비어 있어 <see cref="HoldsKey"/>는 false). 작업 스케줄러는 쓰지 않는다 (사용자 2026-11-25).
@@ -157,6 +157,11 @@ public static partial class QuickSearchKeyAgent
     /// </summary>
     public static void SetAutostart(string exePath, bool on)
     {
+        if (AppPackage.IsPackaged)
+        {
+            return; // Store 판: 매니페스트의 startupTask가 로그인 때 띄운다 (패키지 안의 사용자 Run 값은 Windows가 따로 두어 쓰이지 않는다)
+        }
+
         try
         {
             using var user = Registry.CurrentUser.CreateSubKey(RunKey, writable: true);

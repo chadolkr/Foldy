@@ -51,9 +51,20 @@ jobs:
         shell: pwsh
         run: ./build/store/submit.ps1 -Mode text-draft -CheckOnly
 
+      # Store 판(MSIX) 매니페스트: 릴리스 때만 만들어서 틀려도 늦게 안다. 가짜 exe로 makeappx 검사만 (1.15.0)
+      - name: Store package manifest
+        shell: pwsh
+        run: ./build/store/check-msix.ps1
+
       - name: Build and test
         shell: pwsh
         run: ./build.ps1
+
+      # Store 판(MSIX)을 실제로 설치해 색인 서비스가 패키지 서비스로 뜨고 찾기 통로가 열리는지 (1.15.0)
+      - name: Store package installs the search service
+        shell: pwsh
+        timeout-minutes: 15
+        run: ./build/store/test-msix-service.ps1
 
       # Rust 프로그램이 Visual C++ 재배포 패키지 없이 도는지 (engine/.cargo/config.toml의 crt-static).
       # 런타임 DLL을 찾으면 그런 PC에서 색인 서비스가 시작하지 못해 MSI 설치가 되돌려진다 (1.3.0, winget 검증).
