@@ -38,8 +38,8 @@ const proofLinks: Record<string, string> = {
   network: `${localeHref(locale.path)}privacy/`,
 };
 // 공식 주소: 가짜 사이트와 구별하도록 글자 그대로 보여 준다 (SECURITY.md와 같게)
-// Microsoft Store 판 (Store ID 9NS1PWL5QGP6, 이름 Foldy File Manager)
-const STORE_URL = 'https://apps.microsoft.com/detail/9NS1PWL5QGP6';
+// Microsoft Store 판(9NS1PWL5QGP6) 단추·안내는 잠시 뺌 (사용자 2026-11-26: Store 판 색인 문제가 고쳐져 공개될 때까지).
+// 다시 넣을 때는 이 커밋을 되돌리면 된다. 글(t.install.store·storeNote, t.safety.fake.store)은 i18n에 남겨 둠.
 
 const OFFICIAL = [
   { label: 'github.com/chadolkr/Foldy', href: repoUrl },
@@ -300,7 +300,6 @@ Object.keys(files).forEach(img);
           <ul>
             {OFFICIAL.map((u) => <li><a href={u.href}><code>{u.label}</code></a></li>)}
           </ul>
-          <p class="muted"><a href={STORE_URL} rel="noopener">{t.safety.fake.store}</a></p>
         </div>
         <ul class="fake-points">
           {t.safety.fake.points.map((x) => <li><Icon name="info" />{x}</li>)}
@@ -361,8 +360,6 @@ Object.keys(files).forEach(img);
           {t.hero.requirements}
         </p>
         <p class="warn"><Icon name="shield" />{t.install.warning}</p>
-        <a class="btn btn-ghost btn-big" href={STORE_URL} rel="noopener">{t.install.store}</a>
-        <p class="muted">{t.install.storeNote}</p>
         <p class="muted">{t.install.uninstall}</p>
         <a class="link" href={`${repoUrl}/releases`}>{t.install.allReleases} →</a>
       </div>

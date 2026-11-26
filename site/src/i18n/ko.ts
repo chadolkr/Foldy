@@ -209,7 +209,7 @@ const ko = {
     },
     fake: {
       title: "가짜 Foldy를 조심하세요",
-      lead: "유명한 무료 프로그램을 흉내 낸 가짜 사이트가 나쁜 프로그램을 퍼뜨리는 일이 있어요. Foldy는 아래 두 곳과 Microsoft Store에서만 받으세요.",
+      lead: "유명한 무료 프로그램을 흉내 낸 가짜 사이트가 나쁜 프로그램을 퍼뜨리는 일이 있어요. Foldy는 아래 두 곳에서만 받으세요.",
       officialTitle: "공식 주소는 이곳뿐이에요",
       store: "Microsoft Store에서는 \"Foldy File Manager\" (게시자 David CHA)",
       points: [
