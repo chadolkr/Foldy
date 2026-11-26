@@ -639,7 +639,15 @@ public partial class PaneView : UserControl
 
     // ───────────── 목록 ↔ ViewModel ─────────────
 
-    private void OnItemsReplaced(string? focus) => RestoreFocus(focus, scrollTo: null);
+    private void OnItemsReplaced(string? focus)
+    {
+        // 찾은 파일·방금 있던 폴더는 화면 가운데쯤 보이게 (끝 줄에 걸치거나 스크롤해야 보이던 문제, 1.14.4)
+        var i = focus is null || _tab is null ? -1 : _tab.Items.IndexOfName(focus);
+        if (i >= 0)
+        {
+            List.RevealIndex(i);
+        }
+    }
 
     private void RestoreFocus(string? name, double? scrollTo)
     {

@@ -88,6 +88,9 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ## Novedades de esta versión
 
+1.14.4
+• En Buscar cualquier cosa (Ctrl+Espacio), Ctrl+Intro abre la carpeta que lo contiene con el archivo encontrado elegido y visible hacia el centro de la lista. Antes a veces había que desplazarse para verlo.
+
 1.14.2
 • Ahora puedes arrastrar la ventana de Buscar cualquier cosa (Ctrl+Espacio) para moverla. Toma la barrita de arriba o cualquier espacio vacío. Recuerda dónde la dejaste y se abre ahí la próxima vez (o en el centro si ese lugar queda fuera de la pantalla).
 • Al abrir la ventana de búsqueda, la ventana de Foldy también aparece, aunque estuviera minimizada o detrás de otro programa.
@@ -95,11 +98,6 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 1.14.1
 • Arrastrar archivos o carpetas sobre una carpeta del mismo panel ahora los mueve a esa carpeta. La fila de destino se resalta con un borde.
-
-1.14.0
-• Cuando algo no se puede hacer, el motivo aparece donde estás mirando: justo debajo del puntero, o debajo de la fila elegida si usaste el teclado. Usa letra más grande y desaparece a los pocos segundos o al hacer clic en otro sitio. Antes salía pequeño al pie de la ventana y era fácil no verlo.
-• Si no se puede soltar un archivo (los dos paneles muestran la misma carpeta, o una carpeta dentro de sí misma), el motivo aparece justo debajo del ratón.
-• Puedes abrir la página web de Foldy desde la ventana Acerca de y el botón ? abajo a la izquierda.
 
 ## Características del producto (una por línea)
 

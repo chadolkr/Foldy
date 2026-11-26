@@ -2616,14 +2616,28 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
-    /// <summary>들어 있는 폴더를 Foldy에서 연다.</summary>
+    /// <summary>들어 있는 폴더를 Foldy에서 열고, 찾은 파일·폴더를 골라 화면에 보이게 한다.</summary>
     private void RevealInFoldy(string path)
     {
         BringToFront();
-        if (Path.GetDirectoryName(path.TrimEnd('\\')) is { } parent)
+        var trimmed = path.TrimEnd('\\');
+        if (Path.GetDirectoryName(trimmed) is not { } parent)
         {
-            OpenInPane(Shell.ActivePane, parent, newTab: false);
+            return;
         }
+
+        var name = Path.GetFileName(trimmed);
+        var pane = Shell.ActivePane;
+        if (pane.ActiveFolder is { } tab)
+        {
+            _ = tab.NavigateAsync(parent, name);
+        }
+        else
+        {
+            pane.NewFolderTab(parent).FocusName = name;
+        }
+
+        (pane == Shell.Left ? LeftPane : RightPane).FocusList();
     }
 
     private void BringToFront()

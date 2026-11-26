@@ -144,8 +144,11 @@ public sealed partial class FolderTabViewModel : TabBase
 
     // ───────────── 이동 ─────────────
 
-    /// <summary>입력한 경로로 이동. 형식이 틀리면 오류만 표시하고 현재 위치에 머문다.</summary>
-    public Task NavigateAsync(string input)
+    /// <summary>
+    /// 입력한 경로로 이동. 형식이 틀리면 오류만 표시하고 현재 위치에 머문다.
+    /// <paramref name="focus"/>를 주면 그 이름의 항목을 골라 보이게 한다 (무엇이든 찾기 Ctrl+Enter).
+    /// </summary>
+    public Task NavigateAsync(string input, string? focus = null)
     {
         var target = PathUtil.Normalize(input);
         if (target is null)
@@ -155,7 +158,12 @@ public sealed partial class FolderTabViewModel : TabBase
             return Task.CompletedTask;
         }
 
-        return LoadAsync(target, push: !string.Equals(target, Path, StringComparison.OrdinalIgnoreCase) && IsLoaded, focus: null);
+        if (focus is not null)
+        {
+            FocusName = focus; // 불러오는 중에 탭을 바꿨다 와도 그 항목으로
+        }
+
+        return LoadAsync(target, push: !string.Equals(target, Path, StringComparison.OrdinalIgnoreCase) && IsLoaded, focus: focus);
     }
 
     public Task GoBackAsync()
