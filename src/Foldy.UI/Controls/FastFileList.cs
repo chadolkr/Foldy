@@ -85,6 +85,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     private int _dropTarget = -1;
     private Vector _offset;
     private Size _viewport;
+    private int _revealPending = -1; // 찾은 항목: 목록 크기가 정해지거나 바뀌어도 보이게 (사용자가 직접 움직이기 전까지)
     private double _renderTotalMs;
     private int _renderCount;
     private Typeface? _typeface;
@@ -218,6 +219,37 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         ScrollIntoView(index);
     }
 
+    /// <summary>
+    /// 찾은 항목을 고르고 화면 가운데쯤 보이게 한다 (무엇이든 찾기 Ctrl+Enter·위로 가기 등, 1.14.4).
+    /// 창을 막 띄워 목록 크기가 아직 0이거나 나중에 바뀌어도, 사용자가 직접 움직이기 전까지는 다시 맞춘다.
+    /// </summary>
+    public void RevealIndex(int index)
+    {
+        if (index < 0 || index >= Count)
+        {
+            return;
+        }
+
+        SelectWithModifiers(index, ModifierKeys.None);
+        _revealPending = index;
+        CenterIfHidden(index);
+    }
+
+    private void CenterIfHidden(int index)
+    {
+        if (_viewport.Height <= 0)
+        {
+            return; // 아직 크기가 없다: ArrangeOverride에서 다시
+        }
+
+        var top = index * RowHeight;
+        if (top < _offset.Y || top + RowHeight > _offset.Y + _viewport.Height)
+        {
+            _offset.Y = top - Math.Max(0, (_viewport.Height - RowHeight) / 2);
+            InvalidateScroll();
+        }
+    }
+
     /// <summary>행 텍스트가 바뀌었을 때 (폴더 크기가 늦게 채워지는 등) 캐시를 비우고 다시 그린다.</summary>
     public void InvalidateText()
     {
@@ -309,7 +341,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         CancelSlowRename();
         _selected = new BitArray(newList?.Count ?? 0);
         _selectedCount = 0;
-        _anchor = _focus = _hover = _dropTarget = -1;
+        _anchor = _focus = _hover = _dropTarget = _revealPending = -1;
         _offset = default;
         InvalidateScroll();
         SelectionChanged?.Invoke(this, EventArgs.Empty);
@@ -325,7 +357,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
             _textCache.Clear();
             _selected = new BitArray(n);
             _selectedCount = 0;
-            _anchor = _focus = _hover = _dropTarget = -1;
+            _anchor = _focus = _hover = _dropTarget = _revealPending = -1;
         }
         else if (n > _selected.Length)
         {
@@ -359,6 +391,10 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     protected override Size ArrangeOverride(Size finalSize)
     {
         _viewport = new Size(finalSize.Width, Math.Max(0, finalSize.Height - HeaderHeight));
+        if (_revealPending >= 0 && _revealPending < Count)
+        {
+            CenterIfHidden(_revealPending);
+        }
         if (FillFirstColumn && Columns.Count > 1 && !_userResizedFirst)
         {
             // 이름 열이 남는 너비를 채운다 (좁은 패널에서 가로 스크롤 없이)
@@ -814,6 +850,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+        _revealPending = -1;
         var hadFocus = IsKeyboardFocusWithin; // 다른 곳에서 넘어온 첫 클릭은 이름 바꾸기가 아니다 (탐색기와 같음)
         CancelSlowRename();
         Focus();
@@ -886,6 +923,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        _revealPending = -1;
         CancelSlowRename();
         var n = Count;
         if (n == 0)
@@ -1116,6 +1154,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
 
     public void SetVerticalOffset(double offset)
     {
+        _revealPending = -1; // 사용자가 (또는 키로) 움직였다
         _offset.Y = offset;
         InvalidateScroll();
     }

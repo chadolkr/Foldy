@@ -88,6 +88,9 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
+1.14.4
+• In Find anything (Ctrl+Space), Ctrl+Enter opens the containing folder with the found file selected and shown near the middle of the list. Before, you sometimes had to scroll to see it.
+
 1.14.2
 • You can now drag the Find anything (Ctrl+Space) window to move it. Grab the short bar at the top or any empty spot. It remembers where you put it and opens there next time (or in the middle if that spot is off screen).
 • Opening the search window now brings the Foldy window up too, even if it was minimized or behind another program.
@@ -95,11 +98,6 @@ It is off by default, read-only when on, and only works inside this computer.
 
 1.14.1
 • Dragging files or folders onto a folder in the same pane now moves them into that folder. The target row is outlined.
-
-1.14.0
-• When something can't be done, the reason now appears where you are looking: right below the mouse pointer, or below the selected row if you used the keyboard. It uses larger text and goes away after a few seconds or when you click elsewhere. Before, it showed up small at the bottom of the window and was easy to miss.
-• When a file can't be dropped (both panes show the same folder, or a folder onto itself), the reason appears right below the mouse.
-• You can open the Foldy website from the About window and the ? button at the bottom left.
 
 ## Product features (one per line)
 
