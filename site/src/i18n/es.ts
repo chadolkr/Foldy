@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: "Nuevo en la 1.14: cuando algo no se puede hacer, el motivo aparece donde estás mirando",
-    eyebrow: 'Foldy 1.14',
+    badge: "Nuevo en la 1.15: arrastra la ventana de búsqueda de Ctrl+Espacio adonde quieras",
+    eyebrow: 'Foldy 1.15',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
+      { icon: 'search', title: 'La búsqueda, donde tú quieras', text: 'Toma la barrita de arriba de la ventana de búsqueda de Ctrl+Espacio y arrástrala; la próxima vez se abre en el mismo sitio. Al abrirla también aparece la ventana de Foldy, aunque estuviera minimizada o cerrada.' },
       { icon: 'pointer', title: "Avisos justo donde miras", text: "Si no puedes soltar un archivo ahí o escribes un carácter que no vale en un nombre, el motivo aparece justo debajo del puntero y no en la barra de abajo. Con el teclado, justo debajo de donde escribías o de la fila elegida. Desaparece solo a los pocos segundos." },
       { icon: 'update', title: 'Listas al día, aunque esté cerrado', text: 'Las listas de unidades del trabajo, de red, en la nube y USB se actualizan cada cierto tiempo (cada hora, 6 horas o día), aunque Foldy esté cerrado. Un pequeño ayudante del atajo abre Foldy un momento sin ventana; solo lee las carpetas que cambiaron y se cierra. No hay nada que configurar ni registrar.' },
       { icon: 'info', title: 'Palabras sencillas en todas las pantallas', text: 'Más de 340 textos se reescribieron para que se entiendan a la primera, sin tecnicismos como “índice” o “panel”. Buscar con las palabras antiguas sigue funcionando.' },
-      { icon: 'turtle', title: 'Tarjetas de memoria, USB y Google Drive, mucho más rápido', text: '180 000 archivos de una tarjeta se recopilan en segundos en lugar de unos seis minutos, y 26 000 de Google Drive en 8 segundos en lugar de 61. Si otro programa usa la misma unidad, Foldy se aparta.' },
     ],
     link: 'Ver todos los cambios',
   },
