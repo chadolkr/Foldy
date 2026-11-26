@@ -1733,6 +1733,8 @@
   "sw.drv.paused": "任务完成后继续\n{0:N0} 个文件",
   "sw.drv.preparing": "正在准备查找",
   "sw.drv.ready": "可以查找",
+  "sw.drv.recheck": "正在检查变化\n已检查 {0:N0} 个 · 仍可正常搜索",
+  "sw.drv.resuming": "继续建立搜索列表\n{0:N0} 个文件（从中断处继续）",
   "sw.drv.soon": "即将开始准备查找",
   "sw.drv.speed": "每分钟 {0:N0} 个 · 已读文件夹 {1:N0} 个 · 每个文件夹响应 {2:N0}ms · 同时 {3} 个 · 休息 {4:P0}",
   "sw.drv.unreadable": "无法准备 · 读取不了这个驱动器",
