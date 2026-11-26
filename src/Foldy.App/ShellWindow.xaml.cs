@@ -2616,13 +2616,14 @@ public partial class ShellWindow : Window, IPaneHost
         }
     }
 
-    /// <summary>들어 있는 폴더를 Foldy에서 연다.</summary>
+    /// <summary>들어 있는 폴더를 Foldy에서 열고, 그 항목을 골라 화면 안에 보이게 한다 (찾기 창 Ctrl+Enter).</summary>
     private void RevealInFoldy(string path)
     {
         BringToFront();
-        if (Path.GetDirectoryName(path.TrimEnd('\\')) is { } parent)
+        var trimmed = path.TrimEnd('\\');
+        if (Path.GetDirectoryName(trimmed) is { } parent)
         {
-            OpenInPane(Shell.ActivePane, parent, newTab: false);
+            OpenInPane(Shell.ActivePane, parent, newTab: false, focus: Path.GetFileName(trimmed));
         }
     }
 
@@ -3817,15 +3818,15 @@ public partial class ShellWindow : Window, IPaneHost
     };
 
     /// <summary>사이드바에서 고른 폴더를 활성 패널에서 연다 (폴더 탭이 아니면 새 탭).</summary>
-    private void OpenInPane(PaneViewModel pane, string path, bool newTab)
+    private void OpenInPane(PaneViewModel pane, string path, bool newTab, string? focus = null)
     {
         if (!newTab && pane.ActiveFolder is { } tab)
         {
-            _ = tab.NavigateAsync(path);
+            _ = tab.NavigateAsync(path, focus);
         }
         else
         {
-            pane.NewFolderTab(path);
+            pane.NewFolderTab(path).FocusName = focus;
         }
 
         (pane == Shell.Left ? LeftPane : RightPane).FocusList();

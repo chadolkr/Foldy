@@ -639,9 +639,10 @@ public partial class PaneView : UserControl
 
     // ───────────── 목록 ↔ ViewModel ─────────────
 
-    private void OnItemsReplaced(string? focus) => RestoreFocus(focus, scrollTo: null);
+    // 목록이 새로 바뀐 뒤 고를 항목이 화면 밖이면 가운데로 (찾기 창에서 "들어 있는 폴더 보기", 위로 가기, 정렬)
+    private void OnItemsReplaced(string? focus) => RestoreFocus(focus, scrollTo: null, center: true);
 
-    private void RestoreFocus(string? name, double? scrollTo)
+    private void RestoreFocus(string? name, double? scrollTo, bool center = false)
     {
         if (_tab is null)
         {
@@ -651,7 +652,7 @@ public partial class PaneView : UserControl
         var i = name is null ? -1 : _tab.Items.IndexOfName(name);
         if (i >= 0)
         {
-            List.FocusIndex(i, select: true);
+            List.FocusIndex(i, select: true, center: center);
         }
         else if (scrollTo is { } y)
         {

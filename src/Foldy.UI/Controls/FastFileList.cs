@@ -198,7 +198,8 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     }
 
     /// <summary>한 항목에 포커스·선택을 두고 보이게 스크롤한다.</summary>
-    public void FocusIndex(int index, bool select = true)
+    /// <param name="center">화면 밖이면 가장자리가 아니라 가운데로 보이게 한다</param>
+    public void FocusIndex(int index, bool select = true, bool center = false)
     {
         if (index < 0 || index >= Count)
         {
@@ -215,7 +216,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
             InvalidateVisual();
         }
 
-        ScrollIntoView(index);
+        ScrollIntoView(index, center);
     }
 
     /// <summary>행 텍스트가 바뀌었을 때 (폴더 크기가 늦게 채워지는 등) 캐시를 비우고 다시 그린다.</summary>
@@ -311,6 +312,7 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         _selectedCount = 0;
         _anchor = _focus = _hover = _dropTarget = -1;
         _offset = default;
+        _pendingScroll = null;
         InvalidateScroll();
         SelectionChanged?.Invoke(this, EventArgs.Empty);
         _ = oldList;
@@ -359,6 +361,16 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
     protected override Size ArrangeOverride(Size finalSize)
     {
         _viewport = new Size(finalSize.Width, Math.Max(0, finalSize.Height - HeaderHeight));
+        if (_pendingScroll is { } pending && _viewport.Height > 0)
+        {
+            // 화면에 놓이기 전에 고른 항목 (창이 막 뜰 때): 이제 높이를 아니 보이게 한다
+            _pendingScroll = null;
+            if (pending.Index < Count)
+            {
+                ScrollIntoView(pending.Index, pending.Center);
+            }
+        }
+
         if (FillFirstColumn && Columns.Count > 1 && !_userResizedFirst)
         {
             // 이름 열이 남는 너비를 채운다 (좁은 패널에서 가로 스크롤 없이)
@@ -1020,10 +1032,24 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
         AnnounceFocus();
     }
 
-    public void ScrollIntoView(int index)
+    /// <param name="center">화면 밖이면 가운데로 (멀리서 찾아온 항목이 맨 아래 줄에 걸리지 않게)</param>
+    public void ScrollIntoView(int index, bool center = false)
     {
+        if (_viewport.Height <= 0)
+        {
+            // 아직 화면에 놓이지 않아 높이를 모른다 (창이 막 떴거나 숨겨져 있었음). 지금 계산하면 항목이 화면 위로 밀려난다
+            _pendingScroll = (index, center);
+            return;
+        }
+
+        _pendingScroll = null;
         var top = index * RowHeight;
-        if (top < _offset.Y)
+        var outside = top < _offset.Y || top + RowHeight > _offset.Y + _viewport.Height;
+        if (center && outside)
+        {
+            SetVerticalOffset(top - (_viewport.Height - RowHeight) / 2);
+        }
+        else if (top < _offset.Y)
         {
             SetVerticalOffset(top);
         }
@@ -1032,6 +1058,8 @@ public sealed class FastFileList : FrameworkElement, IScrollInfo
             SetVerticalOffset(top + RowHeight - _viewport.Height);
         }
     }
+
+    private (int Index, bool Center)? _pendingScroll;
 
     protected override AutomationPeer OnCreateAutomationPeer() => new ListPeer(this);
 

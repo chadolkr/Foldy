@@ -145,7 +145,8 @@ public sealed partial class FolderTabViewModel : TabBase
     // ───────────── 이동 ─────────────
 
     /// <summary>입력한 경로로 이동. 형식이 틀리면 오류만 표시하고 현재 위치에 머문다.</summary>
-    public Task NavigateAsync(string input)
+    /// <param name="focus">다 읽은 뒤 고르고 보이게 할 항목 이름 (찾기 창의 "들어 있는 폴더 보기")</param>
+    public Task NavigateAsync(string input, string? focus = null)
     {
         var target = PathUtil.Normalize(input);
         if (target is null)
@@ -155,7 +156,12 @@ public sealed partial class FolderTabViewModel : TabBase
             return Task.CompletedTask;
         }
 
-        return LoadAsync(target, push: !string.Equals(target, Path, StringComparison.OrdinalIgnoreCase) && IsLoaded, focus: null);
+        if (focus is not null)
+        {
+            FocusName = focus;
+        }
+
+        return LoadAsync(target, push: !string.Equals(target, Path, StringComparison.OrdinalIgnoreCase) && IsLoaded, focus: focus);
     }
 
     public Task GoBackAsync()

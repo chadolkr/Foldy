@@ -61,6 +61,21 @@ public class LocalChangeTests
     private static string[] Names(FolderTabViewModel t) => [.. t.Items.Select(i => i.Name)];
 
     [Fact]
+    public async Task Opening_the_folder_of_a_found_file_asks_to_show_that_file()
+    {
+        // 찾기 창 Ctrl+Enter: 들어 있는 폴더를 열고 그 파일을 고른다 (사용자 2026-11-26)
+        var p = new ListingProvider { Listing = [E("가.txt"), E("나.txt"), E("다.txt")] };
+        var tab = new FolderTabViewModel(new TabEnvironment(p, new InlineDispatcher()));
+        var asked = new List<string?>();
+        tab.ItemsReplaced += asked.Add;
+
+        await tab.NavigateAsync(Dir, focus: "나.txt");
+
+        asked.Should().NotBeEmpty().And.OnlyContain(n => n == "나.txt");
+        tab.FocusName.Should().Be("나.txt", "다시 읽어도 같은 파일을 고른다");
+    }
+
+    [Fact]
     public async Task Rename_shows_new_name_even_when_drive_still_lists_old_name()
     {
         var p = new ListingProvider { Listing = [E("보고서.docx"), E("사진.jpg")] };
