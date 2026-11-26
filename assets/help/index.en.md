@@ -89,6 +89,7 @@ The strip on the far left holds features you use from either pane. Collapse it w
   4. 🗂️ **Folders from a template** (**Ctrl+Shift+N**): preview a folder structure like PARA or industry project phases and create it in one go
 - **Pinned folders**: press the **pin** button next to the title to pin the current folder. Click to open it in the active pane; right-click to open it in a new tab or the other pane, reorder or unpin.
 - **Recent folders**: the last 5 folders you opened appear automatically (pinned ones are left out). Clear them with the trash button next to the title.
+- **Standard folders**: **Desktop, Downloads, Documents, Pictures and Videos** are always at the top of Recent folders, each with its own icon. If OneDrive moved your Desktop, Documents or Pictures, or you moved Downloads to another drive, they open in the right place. Clearing recent folders leaves them in place.
 - **Drives**: each drive shows its name, a usage bar and free space. Over 90% full, the bar turns red. Right-click to start a folder analysis right away.
 - **Tools**: the remaining features are gathered into four groups. Clicking a group opens its menu.
   - 🔍 **Find**: file search, folder analysis, images only
@@ -213,6 +214,8 @@ Whatever program you're using, press **Ctrl+Space** and a big search box appears
 - **Math and unit conversion**: type `12*3+4`, `200*15%`, `5 km to mi`, `100F` or `2 GB MB` for an instant answer; press Enter to copy the result.
 
 The **best match** appears large at the top, with the rest grouped by kind below (apps, settings, folders, Foldy features, files), like Windows search. Click **All, App, Settings, Folder, Files or Foldy features** under the search box, or press **Tab**, to see just one group with more results. Each group name shows how many were found (**Files · 220**). Files keep loading as you scroll down (or press ↓ on the last one), and the bottom line reads "Showing 30 of 220" until you reach "All 220 shown". Groups that show only 5, such as apps and settings, end with **See all 12 ›** to show just that group. You can also open the selected item with the large **[Open]** button on the right. **Enter** opens or runs, **Ctrl+Enter** shows the containing folder in Foldy, and **Esc** or clicking outside closes it. It never searches the internet (nothing is sent outside).
+
+**Moving the window**: grab the short bar above the search box, or any empty spot, and drag. Foldy remembers where you put it and opens it there next time (or in the middle if that spot is off screen, for example after unplugging a monitor). Opening the search window also brings **the Foldy window** up, even if it was minimized, behind another program, or Foldy wasn't running.
 
 When it finds files, a **sharp-nosed bloodhound** sniffs the floor, runs with its ears flapping and fetches them: "Sniff! Fetched 1,284 in 0.03 s". If nothing turns up, it tilts its head. Turn off "Use animations" in settings to see text only.
 

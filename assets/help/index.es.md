@@ -89,6 +89,7 @@ La franja de la izquierda reúne las funciones que usas desde cualquier panel. C
   4. 🗂️ **Carpetas con plantilla** (**Ctrl+Shift+N**): previsualiza una estructura como PARA o las fases de un proyecto por sector y créala de una vez
 - **Carpetas fijadas**: pulsa el botón de **chincheta** junto al título para fijar la carpeta actual. Haz clic para abrirla en el panel activo; con el botón derecho puedes abrirla en una pestaña nueva o en el otro panel, reordenarla o quitarla.
 - **Carpetas recientes**: aparecen solas las 5 últimas carpetas que abriste (sin las fijadas). Bórralas con el botón de papelera junto al título.
+- **Carpetas básicas**: **Escritorio, Descargas, Documentos, Imágenes y Vídeos** están siempre arriba de las carpetas recientes, cada una con su propio icono. Si OneDrive movió el Escritorio, Documentos o Imágenes, o moviste Descargas a otra unidad, se abren en el lugar correcto. Al borrar las recientes, estas se quedan.
 - **Unidades**: cada unidad muestra su nombre, una barra de uso y el espacio libre. Por encima del 90% la barra se vuelve roja. Con el botón derecho inicias un análisis de carpetas al momento.
 - **Herramientas**: el resto de funciones se reúne en cuatro grupos. Al pulsar un grupo se abre su menú.
   - 🔍 **Buscar**: búsqueda de archivos, análisis de carpetas, solo imágenes
@@ -213,6 +214,8 @@ Uses el programa que uses, pulsa **Ctrl+Space** y aparece un gran cuadro de bús
 - **Cálculos y conversión de unidades**: escribe `12*3+4`, `200*15%`, `5 km to mi`, `100F` o `2 GB MB` para obtener la respuesta al instante; Enter copia el resultado.
 
 La **mejor coincidencia** aparece en grande arriba y el resto, agrupado por tipo debajo (apps, configuración, carpetas, funciones de Foldy, archivos), como en la búsqueda de Windows. Pulsa **Todo, App, Configuración, Carpeta, Archivos o Funciones de Foldy** bajo el cuadro de búsqueda, o la tecla **Tab**, para ver un solo grupo con más resultados. Junto al nombre de cada grupo se ve cuántos se encontraron (**Archivos · 220**). Los archivos se siguen cargando al bajar (o con ↓ en el último), y la última línea dice «Mostrando 30 de 220» hasta llegar a «Se muestran los 220». Los grupos que muestran solo 5, como apps y ajustes, terminan con **Ver los 12 ›** para ver solo ese grupo. También puedes abrir lo elegido con el botón grande **[Abrir]** de la derecha. **Enter** abre o ejecuta, **Ctrl+Enter** muestra la carpeta contenedora en Foldy, y **Esc** o un clic fuera lo cierra. Nunca busca en internet (no se envía nada fuera).
+
+**Mover la ventana**: toma la barrita sobre el cuadro de búsqueda, o cualquier espacio vacío, y arrastra. Foldy recuerda dónde la dejaste y la abre ahí la próxima vez (o en el centro si ese lugar queda fuera de la pantalla, por ejemplo al desconectar un monitor). Al abrir la ventana de búsqueda también aparece **la ventana de Foldy**, aunque estuviera minimizada, detrás de otro programa o Foldy no estuviera abierto.
 
 Cuando encuentra archivos, un **sabueso de buen olfato** olfatea el suelo, corre con las orejas al viento y te los trae: "¡Snif! 1.284 encontrados en 0,03 s". Si no encuentra nada, ladea la cabeza. Desactiva "Usar animaciones" en la configuración para ver solo texto.
 

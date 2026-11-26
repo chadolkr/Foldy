@@ -14,8 +14,17 @@ public sealed record QuickAccessState
 /// <summary>사이드바의 폴더 한 줄.</summary>
 public sealed record QuickFolder(string Path)
 {
-    public string Name => PathUtil.DisplayName(Path);
+    /// <summary>보여 줄 이름을 따로 정할 때 (기본 폴더를 "바탕 화면"처럼 그 언어 이름으로).</summary>
+    public string? Label { get; init; }
+
+    public string Name => Label ?? PathUtil.DisplayName(Path);
 }
+
+/// <summary>
+/// 늘 보이는 Windows 기본 폴더 한 줄 (바탕 화면·다운로드·문서·사진·동영상). 지우거나 옮길 수 없다.
+/// <see cref="Glyph"/>는 폴더마다 다른 그림(Segoe 글꼴)이라 글을 못 읽어도 알아본다.
+/// </summary>
+public sealed record StandardFolder(string Path, string Name, string Glyph);
 
 /// <summary>
 /// 공통 사이드바의 "자주 쓰는 폴더"(사용자가 고정)와 "최근 폴더"(자동, 최근 것이 위).
@@ -26,8 +35,16 @@ public sealed class QuickAccess
     public const int MaxRecent = 5;
     public const int MaxPinned = 30;
 
-    public QuickAccess(QuickAccessState? state = null)
+    public QuickAccess(QuickAccessState? state = null, IEnumerable<StandardFolder>? standard = null)
     {
+        foreach (var f in standard ?? [])
+        {
+            if (Clean(f.Path) is { } c && !Standard.Any(s => Same(s.Path, c)))
+            {
+                _standard.Add(f with { Path = c });
+            }
+        }
+
         foreach (var p in state?.Pinned ?? [])
         {
             if (Clean(p) is { } c && !Contains(Pinned, c) && Pinned.Count < MaxPinned)
@@ -38,7 +55,7 @@ public sealed class QuickAccess
 
         foreach (var p in state?.Recent ?? [])
         {
-            if (Clean(p) is { } c && !Contains(Recent, c) && !Contains(Pinned, c) && Recent.Count < MaxRecent)
+            if (Clean(p) is { } c && !Contains(Recent, c) && !Contains(Pinned, c) && !IsStandard(c) && Recent.Count < MaxRecent)
             {
                 Recent.Add(new QuickFolder(c));
             }
@@ -48,6 +65,14 @@ public sealed class QuickAccess
     public ObservableCollection<QuickFolder> Pinned { get; } = [];
 
     public ObservableCollection<QuickFolder> Recent { get; } = [];
+
+    /// <summary>"최근 폴더" 위에 늘 보이는 기본 폴더. 최근 목록에 겹쳐 나오지 않는다 (사용자 2026-11-26).</summary>
+    public IReadOnlyList<StandardFolder> Standard => _standard;
+
+    private readonly List<StandardFolder> _standard = [];
+
+    /// <summary>기본 폴더 가운데 하나인가.</summary>
+    public bool IsStandard(string? path) => Clean(path) is { } c && Standard.Any(s => Same(s.Path, c));
 
     /// <summary>목록이 바뀌었다 (저장할 때).</summary>
     public event Action? Changed;
@@ -102,7 +127,7 @@ public sealed class QuickAccess
     /// <summary>폴더를 열었다. 고정한 폴더나 이미 맨 위면 아무것도 바꾸지 않는다 (목록이 깜빡이지 않게).</summary>
     public void Visit(string? path)
     {
-        if (Clean(path) is not { } c || Contains(Pinned, c))
+        if (Clean(path) is not { } c || Contains(Pinned, c) || IsStandard(c))
         {
             return;
         }
@@ -150,13 +175,15 @@ public sealed class QuickAccess
 
     private static bool Contains(ObservableCollection<QuickFolder> list, string path) => IndexOf(list, path) >= 0;
 
+    // Windows 경로는 대소문자를 가리지 않고, SFTP(유닉스) 경로는 가린다.
+    private static bool Same(string a, string b) =>
+        string.Equals(a, b, PathUtil.IsSftp(b) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
     private static int IndexOf(ObservableCollection<QuickFolder> list, string path)
     {
-        // Windows 경로는 대소문자를 가리지 않고, SFTP(유닉스) 경로는 가린다.
-        var cmp = PathUtil.IsSftp(path) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         for (var i = 0; i < list.Count; i++)
         {
-            if (string.Equals(list[i].Path, path, cmp))
+            if (Same(list[i].Path, path))
             {
                 return i;
             }

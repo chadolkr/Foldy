@@ -134,7 +134,7 @@ public partial class ShellWindow : Window, IPaneHost
         Shell.Search = _search;
 
         // 공통 사이드바: 자주 쓰는 폴더(고정)·최근 폴더·드라이브
-        _quick = new QuickAccess(JsonFileStore.Load(_quickPath, () => new QuickAccessState()));
+        _quick = new QuickAccess(JsonFileStore.Load(_quickPath, () => new QuickAccessState()), StandardFolders.All());
         _quickSave = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromSeconds(1) };
         _quickSave.Tick += (_, _) => SaveQuickAccess();
         _quick.Changed += () => { _quickSave.Stop(); _quickSave.Start(); };
@@ -142,6 +142,7 @@ public partial class ShellWindow : Window, IPaneHost
         _env.Visited = p => _quick.Visit(p);
         PinnedList.ItemsSource = _quick.Pinned;
         RecentList.ItemsSource = _quick.Recent;
+        StandardList.ItemsSource = _quick.Standard;
         SideDrives.ItemsSource = Shell.Left.Drives;
         Title = $"Foldy {typeof(ShellWindow).Assembly.GetName().Version?.ToString(3)}";
         ApplyDensity();
@@ -799,7 +800,7 @@ public partial class ShellWindow : Window, IPaneHost
                 // 자주 쓰는 폴더·최근 폴더가 있는 곳부터 모은다: 쓰는 파일이 먼저 찾아진다 (사용자 2026-11-24 "K 드라이브 색인이 너무 느려서")
                 try
                 {
-                    return Dispatcher.Invoke(() => (IReadOnlyList<string>)[.. _quick.Pinned.Select(q => q.Path), .. _quick.Recent.Select(q => q.Path)]);
+                    return Dispatcher.Invoke(() => (IReadOnlyList<string>)[.. _quick.Pinned.Select(q => q.Path), .. _quick.Standard.Select(q => q.Path), .. _quick.Recent.Select(q => q.Path)]);
                 }
                 catch (Exception ex) when (ex is TaskCanceledException or InvalidOperationException)
                 {
@@ -2302,12 +2303,14 @@ public partial class ShellWindow : Window, IPaneHost
     private DispatcherTimer? _quietExit;
 
     /// <summary>
-    /// 단축키 도우미(foldy-hotkey.exe)가 띄운 Foldy (--quick-search, 1.11.0): 주 창은 띄우지 않고 무엇이든 찾기 창만 연다.
-    /// 색인 서비스 연결을 잠깐(0.7초까지) 기다려 처음부터 모든 드라이브에서 찾게 한다. 주 창은 "Foldy에서 열기"를 고를 때 처음 보인다.
+    /// 단축키 도우미(foldy-hotkey.exe)가 띄운 Foldy (--quick-search, 1.11.0): 무엇이든 찾기 창을 연다.
+    /// 1.14.2부터 주 창도 함께 띄운다 (2026-11-26 사용자: "본창도 같이 뜨게하면 어떨까?"). 찾기 창은 주 창 위에 뜬다.
+    /// 색인 서비스 연결을 잠깐(0.7초까지) 기다려 처음부터 모든 드라이브에서 찾게 한다.
     /// </summary>
     public void StartForQuickSearch()
     {
-        Log.Information("단축키 도우미가 띄움: 찾기 창만 엽니다");
+        Log.Information("단축키 도우미가 띄움: 주 창과 찾기 창을 엽니다");
+        Show();
         _ = Dispatcher.InvokeAsync(async () =>
         {
             var engines = ProbeEnginesAsync();
@@ -2400,6 +2403,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void ShowQuickSearch()
     {
         _quietExit?.Stop();
+        BringMainForward(); // 주 창도 함께 (1.14.2): 숨었거나 작게 줄였거나 다른 프로그램 뒤에 있으면 앞으로
         if (_quickSearch is { IsLoaded: true })
         {
             _quickSearch.Activate();
@@ -2418,6 +2422,14 @@ public partial class ShellWindow : Window, IPaneHost
                 : Foldy.Core.Localization.Loc.F("sw.qs.footerNoService", Path.GetFileName(scope?.TrimEnd('\\') ?? "")))
             + Foldy.Core.Localization.Loc.T("sw.qs.keys") + Foldy.Core.Localization.Loc.T("qs.filterKeys");
         _quickSearch = BuildQuickSearch(scope, footer);
+        // 끌어서 옮긴 자리에 띄운다. 모니터를 떼어 내 그 자리가 화면 밖이면 가운데
+        var screen = (SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        if (Foldy.Core.QuickSearch.QuickSearchPlace.Fit(Foldy.Core.QuickSearch.QuickSearchPlace.Load(App.DataDir), _quickSearch.Width, screen) is { } at)
+        {
+            _quickSearch.PlaceAt = new Point(at.Left, at.Top);
+        }
+
+        _quickSearch.Moved += p => Foldy.Core.QuickSearch.QuickSearchPlace.Save(App.DataDir, p.X, p.Y);
         _quickSearch.Closed += (_, _) =>
         {
             _quickSearch = null;
@@ -2425,8 +2437,32 @@ public partial class ShellWindow : Window, IPaneHost
             {
                 ArmQuietExit();
             }
+
+            QuickSearchClosed?.Invoke(this, EventArgs.Empty);
         };
         _quickSearch.Show();
+    }
+
+    /// <summary>무엇이든 찾기 창이 닫혔다 (단축키로 띄운 Foldy가 처음 묻는 것을 찾기 창이 닫힌 뒤로 미룬다).</summary>
+    public event EventHandler? QuickSearchClosed;
+
+    /// <summary>무엇이든 찾기 창이 떠 있나.</summary>
+    public bool IsQuickSearchOpen => _quickSearch is not null;
+
+    /// <summary>
+    /// 주 창을 보이게 하고 앞으로 가져온다. 다른 앱이 앞에 있으면 Activate만으로는 작업 표시줄만 깜빡일 수 있어 잠깐 맨 위로 올렸다 내린다.
+    /// </summary>
+    private void BringMainForward()
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Show();
+        Activate();
+        Topmost = true;
+        Topmost = false;
     }
 
     private QuickSearchWindow BuildQuickSearch(string? scope, string footer) => new(
@@ -2471,8 +2507,8 @@ public partial class ShellWindow : Window, IPaneHost
             }, Score: 200);
         }
 
-        // 폴더: 고정·최근 (빈 칸이면 고정 폴더를 먼저 보여 준다)
-        foreach (var f in _quick.Pinned.Concat(_quick.Recent).DistinctBy(f => f.Path, StringComparer.OrdinalIgnoreCase))
+        // 폴더: 고정·기본·최근 (빈 칸이면 고정 폴더를 먼저 보여 준다)
+        foreach (var f in _quick.Pinned.Concat(_quick.Standard.Select(sf => new QuickFolder(sf.Path) { Label = sf.Name })).Concat(_quick.Recent).DistinctBy(f => f.Path, StringComparer.OrdinalIgnoreCase))
         {
             var s = q.Length == 0 ? (_quick.IsPinned(f.Path) ? 1 : 0) : m.Score(f.Name);
             if (s > 0)
@@ -3073,10 +3109,11 @@ public partial class ShellWindow : Window, IPaneHost
     // ───────────── 정리 도구 (로그·다운로드·바탕화면) ─────────────
 
     private double _recentHeight;
+    private double _recentListHeight;
 
     /// <summary>
-    /// 사이드바는 한 화면에 다 보여야 한다: 작은 화면(예: 1366×768)에서 넘치면 "최근 폴더"를 먼저 접고,
-    /// 다시 자리가 생기면 펼친다 (도구 버튼이 스크롤 밖으로 밀리지 않게).
+    /// 사이드바는 한 화면에 다 보여야 한다: 작은 화면(예: 1366×768)에서 넘치면 최근 폴더 목록을 먼저 접고
+    /// (기본 폴더 다섯은 남김), 그래도 넘치면 "최근 폴더" 묶음 전체를 접는다. 다시 자리가 생기면 거꾸로 펼친다.
     /// </summary>
     private void OnSidebarScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
     {
@@ -3088,14 +3125,29 @@ public partial class ShellWindow : Window, IPaneHost
         var over = SidebarScroll.ExtentHeight - SidebarScroll.ViewportHeight;
         if (over > 1 && RecentSection.Visibility == Visibility.Visible)
         {
-            _recentHeight = RecentSection.ActualHeight;
-            RecentSection.Visibility = Visibility.Collapsed;
-            RecentSection.Tag = "auto";
+            if (RecentList.Visibility == Visibility.Visible && RecentList.ActualHeight > 0)
+            {
+                _recentListHeight = RecentList.ActualHeight;
+                RecentList.Visibility = Visibility.Collapsed;
+                RecentList.Tag = "auto";
+            }
+            else
+            {
+                _recentHeight = RecentSection.ActualHeight;
+                RecentSection.Visibility = Visibility.Collapsed;
+                RecentSection.Tag = "auto";
+            }
         }
         else if (RecentSection.Visibility == Visibility.Collapsed && Equals(RecentSection.Tag, "auto") && -over >= _recentHeight + 4)
         {
             RecentSection.Visibility = Visibility.Visible;
             RecentSection.Tag = null;
+        }
+        else if (RecentSection.Visibility == Visibility.Visible && RecentList.Visibility == Visibility.Collapsed
+            && Equals(RecentList.Tag, "auto") && -over >= _recentListHeight + 4)
+        {
+            RecentList.Visibility = Visibility.Visible;
+            RecentList.Tag = null;
         }
     }
 
@@ -3754,6 +3806,14 @@ public partial class ShellWindow : Window, IPaneHost
 
     private static T? TagOf<T>(object sender) where T : class => (sender as FrameworkElement)?.Tag as T;
 
+    /// <summary>사이드바 폴더 줄(고정·최근·기본 폴더)의 경로.</summary>
+    private static string? SideFolderPath(object sender) => (sender as FrameworkElement)?.Tag switch
+    {
+        QuickFolder q => q.Path,
+        StandardFolder s => s.Path,
+        _ => null,
+    };
+
     /// <summary>사이드바에서 고른 폴더를 활성 패널에서 연다 (폴더 탭이 아니면 새 탭).</summary>
     private void OpenInPane(PaneViewModel pane, string path, bool newTab)
     {
@@ -3773,25 +3833,25 @@ public partial class ShellWindow : Window, IPaneHost
 
     private void OnSideFolder(object sender, RoutedEventArgs e)
     {
-        if (TagOf<QuickFolder>(sender) is { } f)
+        if (SideFolderPath(sender) is { } path)
         {
-            OpenInPane(Shell.ActivePane, f.Path, newTab: false);
+            OpenInPane(Shell.ActivePane, path, newTab: false);
         }
     }
 
     private void OnSideFolderNewTab(object sender, RoutedEventArgs e)
     {
-        if (TagOf<QuickFolder>(sender) is { } f)
+        if (SideFolderPath(sender) is { } path)
         {
-            OpenInPane(Shell.ActivePane, f.Path, newTab: true);
+            OpenInPane(Shell.ActivePane, path, newTab: true);
         }
     }
 
     private void OnSideFolderOther(object sender, RoutedEventArgs e)
     {
-        if (TagOf<QuickFolder>(sender) is { } f)
+        if (SideFolderPath(sender) is { } path)
         {
-            OpenInPane(OtherPane, f.Path, newTab: false);
+            OpenInPane(OtherPane, path, newTab: false);
         }
     }
 
@@ -3935,7 +3995,7 @@ public partial class ShellWindow : Window, IPaneHost
 
         if (options.QuickSearch && options.OpenPath is null)
         {
-            ShowQuickSearch(); // 단축키 도우미: 주 창은 그대로 두고 찾기 창만
+            ShowQuickSearch(); // 단축키 도우미: 주 창을 앞으로 가져오고 그 위에 찾기 창 (1.14.2)
             return;
         }
 

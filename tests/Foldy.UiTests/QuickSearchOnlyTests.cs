@@ -2,6 +2,7 @@ using System.Diagnostics;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
+using FlaUI.Core.Input;
 using FlaUI.Core.Tools;
 using FlaUI.UIA3;
 
@@ -9,7 +10,8 @@ namespace Foldy.UiTests;
 
 /// <summary>
 /// Foldy가 꺼져 있어도 단축키로 무엇이든 찾기 (1.11.0, 사용자 2026-11-24 "Foldy가 실행 안되어 있어도 ctrl + space 키를 누르면 foldy 검색창이 뜨도록").
-/// 단축키 도우미는 Foldy.exe --quick-search를 띄운다: 주 창 없이 찾기 창만 떠야 하고, 그 뒤 Foldy를 켜면 같은 Foldy가 주 창을 띄워야 한다.
+/// 단축키 도우미는 Foldy.exe --quick-search를 띄운다. 1.14.2부터 주 창도 함께 뜨고(사용자 2026-11-26 "본창도 같이 뜨게"),
+/// 찾기 창은 끌어서 옮길 수 있고 옮긴 자리에 다시 뜬다("Ctrl + space 화면이 고정되어 있는데 옮길 수 있게").
 /// </summary>
 [Collection("ui")]
 public sealed class QuickSearchOnlyTests : IDisposable
@@ -47,12 +49,13 @@ public sealed class QuickSearchOnlyTests : IDisposable
     private Window? MainWindow(int pid) => TopWindow(pid, t => t.StartsWith("Foldy ", StringComparison.Ordinal) && char.IsDigit(t[^1]));
 
     [Fact]
-    public void Quick_search_only_start_shows_just_the_find_window_then_Foldy_opens_in_the_same_process()
+    public void Quick_search_start_shows_the_main_window_too_and_the_find_window_can_be_moved()
     {
         var foldy = Launch("--quick-search");
         var qs = Retry.WhileNull(() => FindWindow(foldy.Id), TimeSpan.FromSeconds(30), ignoreException: true).Result;
         qs.Should().NotBeNull("Foldy가 꺼져 있어도 찾기 창은 떠야 한다");
-        MainWindow(foldy.Id).Should().BeNull("주 창은 띄우지 않는다 (찾기 창만)");
+        var main = Retry.WhileNull(() => MainWindow(foldy.Id), TimeSpan.FromSeconds(15), ignoreException: true).Result;
+        main.Should().NotBeNull("주 창도 함께 뜬다 (1.14.2)");
 
         // 찾기 창은 평소처럼 쓸 수 있다
         AutomationElement? answer = null;
@@ -71,23 +74,37 @@ public sealed class QuickSearchOnlyTests : IDisposable
 
         answer.Should().NotBeNull();
 
-        // 찾기 창을 닫아도 Foldy는 잠시(10분) 남아 다음 단축키에 바로 뜬다
-        qs!.Close();
+        // 맨 위 손잡이를 끌면 찾기 창이 옮겨진다
+        var before = qs!.BoundingRectangle;
+        var grip = new System.Drawing.Point(before.Left + before.Width / 2, before.Top + 24); // 창 둘레 그림자 여백 16 + 손잡이 가운데
+        Mouse.MoveTo(grip);
+        Mouse.Down(MouseButton.Left);
+        Mouse.MoveTo(new System.Drawing.Point(grip.X - 120, grip.Y + 90));
+        Mouse.Up(MouseButton.Left);
+        var moved = Retry.WhileFalse(() => Math.Abs(qs.BoundingRectangle.Top - before.Top - 90) <= 6, TimeSpan.FromSeconds(5), ignoreException: true).Result;
+        moved.Should().BeTrue($"손잡이를 끌면 창이 따라 옮겨져야 한다 (전 {before}, 뒤 {qs.BoundingRectangle})");
+        var place = qs.BoundingRectangle;
+        FindWindow(foldy.Id).Should().NotBeNull("옮기는 동안 찾기 창이 닫히면 안 된다");
+
+        // 찾기 창을 닫아도 주 창은 그대로 남는다
+        qs.Close();
         Thread.Sleep(1500);
         foldy.HasExited.Should().BeFalse();
+        MainWindow(foldy.Id).Should().NotBeNull();
 
-        // 이제 Foldy를 켜면: 새 Foldy는 앞의 Foldy에 넘기고 끝나고, 앞의 Foldy가 주 창을 띄운다 (단일 인스턴스, 사용자 이름 해시 고침)
+        // 다시 Foldy를 켜면: 새 Foldy는 앞의 Foldy에 넘기고 끝난다 (단일 인스턴스, 사용자 이름 해시 고침)
         var second = Launch();
         second.WaitForExit(15_000).Should().BeTrue("이미 켜진 Foldy가 있으면 넘기고 끝나야 한다");
-        var main = Retry.WhileNull(() => MainWindow(foldy.Id), TimeSpan.FromSeconds(30), ignoreException: true).Result;
-        main.Should().NotBeNull("숨어 있던 Foldy가 주 창을 띄워야 한다");
 
-        // 주 창이 떠 있는 Foldy에 --quick-search가 오면(도우미가 보냄) 찾기 창만 더 뜬다
+        // 주 창이 떠 있는 Foldy에 --quick-search가 오면(도우미가 보냄) 옮긴 자리에 찾기 창이 뜬다
         var third = Launch("--quick-search");
         third.WaitForExit(15_000).Should().BeTrue();
         var again = Retry.WhileNull(() => FindWindow(foldy.Id), TimeSpan.FromSeconds(15), ignoreException: true).Result;
         again.Should().NotBeNull();
-        again!.Close();
+        var at = again!.BoundingRectangle;
+        (Math.Abs(at.Left - place.Left) <= 2 && Math.Abs(at.Top - place.Top) <= 2).Should().BeTrue($"옮긴 자리에 다시 떠야 한다 (옮긴 자리 {place}, 다시 뜬 자리 {at})");
+        File.Exists(Path.Combine(_data, "quick-search-place.txt")).Should().BeTrue();
+        again.Close();
         // 주 창 닫기: 제목 표시줄 단추 대신 창 닫기 요청(WM_CLOSE)으로. 찾기 창이 막 닫히는 동안 단추가 잠깐 꺼져 있을 수 있다
         Retry.WhileException(() => main!.Patterns.Window.Pattern.Close(), TimeSpan.FromSeconds(10));
         // 프로세스가 끝나는 시간은 보지 않는다: CI에서는 다른 화면 시험도 닫은 뒤 바로 끝나지 않는다 (FoldyApp의 "Application failed to exit")

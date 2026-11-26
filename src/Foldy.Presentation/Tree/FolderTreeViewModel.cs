@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Foldy.Core.FileSystem;
 using Foldy.Presentation.Services;
+using Foldy.Presentation.Sidebar;
 
 namespace Foldy.Presentation.Tree;
 
@@ -106,7 +107,7 @@ public sealed partial class FolderNode : ObservableObject
 }
 
 /// <summary>
-/// 트리 뿌리: 즐겨찾기(바탕 화면·문서·다운로드·사진) + 드라이브.
+/// 트리 뿌리: 기본 폴더(바탕 화면·다운로드·문서·사진·동영상, <see cref="StandardFolders"/>) + 드라이브.
 /// 패널의 현재 탭이 SFTP면 <see cref="ShowFor"/>가 그 서버의 트리(처음 연 폴더 + /)로 바꾸고, 로컬 탭이면 되돌린다.
 /// </summary>
 public sealed class FolderTreeViewModel
@@ -116,25 +117,9 @@ public sealed class FolderTreeViewModel
     public FolderTreeViewModel(IFileSystemProvider provider, IEnumerable<DriveItem> drives)
     {
         _provider = provider;
-        (Environment.SpecialFolder Folder, string Name, string Glyph)[] quick =
-        [
-            (Environment.SpecialFolder.Desktop, Foldy.Core.Localization.Loc.T("tree.desktop"), ""),
-            (Environment.SpecialFolder.MyDocuments, Foldy.Core.Localization.Loc.T("ftg.documents"), ""),
-            (Environment.SpecialFolder.UserProfile, Foldy.Core.Localization.Loc.T("tree.downloads"), ""),
-            (Environment.SpecialFolder.MyPictures, Foldy.Core.Localization.Loc.T("cf.demo.photos"), ""),
-        ];
-        foreach (var (folder, name, glyph) in quick)
+        foreach (var f in StandardFolders.All())
         {
-            var p = Environment.GetFolderPath(folder);
-            if (name == Foldy.Core.Localization.Loc.T("tree.downloads"))
-            {
-                p = System.IO.Path.Combine(p, "Downloads");
-            }
-
-            if (!string.IsNullOrEmpty(p))
-            {
-                Roots.Add(new FolderNode(provider, name, p, glyph: glyph));
-            }
+            Roots.Add(new FolderNode(provider, f.Name, f.Path, glyph: f.Glyph));
         }
 
         SetDrives(drives);

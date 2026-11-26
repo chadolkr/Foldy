@@ -222,7 +222,7 @@ public partial class App : Application
             }
             else if (Options.QuickSearch && !Options.BenchShell)
             {
-                // 단축키 도우미가 띄웠다: 찾기 창만. 주 창은 사용자가 Foldy에서 열기를 고를 때 처음 보인다
+                // 단축키 도우미가 띄웠다: 주 창과 그 위에 찾기 창 (1.14.2부터 주 창도 함께)
                 main.StartForQuickSearch();
             }
             else
@@ -238,6 +238,17 @@ public partial class App : Application
             if (!(Options.QuickSearch || Options.Gather) || Options.BenchShell)
             {
                 CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
+            }
+            else if (Options.QuickSearch)
+            {
+                // 찾기 창 위로 묻는 창이 뜨면 찾기 창이 닫힌다: 찾기 창을 닫은 뒤에 묻는다
+                EventHandler? once = null;
+                once = (_, _) =>
+                {
+                    main.QuickSearchClosed -= once;
+                    CrashConsentPrompt.ScheduleOnIdle(main, () => main.AutoSendReports, v => main.AutoSendReports = v);
+                };
+                main.QuickSearchClosed += once;
             }
             else
             {
