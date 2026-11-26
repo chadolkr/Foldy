@@ -1241,6 +1241,7 @@
   "qs.calc": "계산",
   "qs.capped": "{1}개 중 {0}개까지 보여요. 낱말을 더 넣으면 좁혀져요",
   "qs.ctrlPanel": "제어판",
+  "qs.dragHint": "끌어서 옮기기",
   "qs.fileError": "파일을 찾다가 문제가 생겼어요: ",
   "qs.fileModified": "{0} · 바뀐 날 {1:g}",
   "qs.filter.all": "모두",

@@ -2302,12 +2302,14 @@ public partial class ShellWindow : Window, IPaneHost
     private DispatcherTimer? _quietExit;
 
     /// <summary>
-    /// 단축키 도우미(foldy-hotkey.exe)가 띄운 Foldy (--quick-search, 1.11.0): 주 창은 띄우지 않고 무엇이든 찾기 창만 연다.
-    /// 색인 서비스 연결을 잠깐(0.7초까지) 기다려 처음부터 모든 드라이브에서 찾게 한다. 주 창은 "Foldy에서 열기"를 고를 때 처음 보인다.
+    /// 단축키 도우미(foldy-hotkey.exe)가 띄운 Foldy (--quick-search, 1.11.0): 무엇이든 찾기 창을 연다.
+    /// 1.15.0부터 주 창도 함께 띄운다 (2026-11-26 사용자: "본창도 같이 뜨게하면 어떨까?"). 찾기 창은 주 창 위에 뜬다.
+    /// 색인 서비스 연결을 잠깐(0.7초까지) 기다려 처음부터 모든 드라이브에서 찾게 한다.
     /// </summary>
     public void StartForQuickSearch()
     {
-        Log.Information("단축키 도우미가 띄움: 찾기 창만 엽니다");
+        Log.Information("단축키 도우미가 띄움: 주 창과 찾기 창을 엽니다");
+        Show();
         _ = Dispatcher.InvokeAsync(async () =>
         {
             var engines = ProbeEnginesAsync();
@@ -2400,6 +2402,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void ShowQuickSearch()
     {
         _quietExit?.Stop();
+        BringMainForward(); // 주 창도 함께 (1.15.0): 숨었거나 작게 줄였거나 다른 프로그램 뒤에 있으면 앞으로
         if (_quickSearch is { IsLoaded: true })
         {
             _quickSearch.Activate();
@@ -2418,6 +2421,14 @@ public partial class ShellWindow : Window, IPaneHost
                 : Foldy.Core.Localization.Loc.F("sw.qs.footerNoService", Path.GetFileName(scope?.TrimEnd('\\') ?? "")))
             + Foldy.Core.Localization.Loc.T("sw.qs.keys") + Foldy.Core.Localization.Loc.T("qs.filterKeys");
         _quickSearch = BuildQuickSearch(scope, footer);
+        // 끌어서 옮긴 자리에 띄운다. 모니터를 떼어 내 그 자리가 화면 밖이면 가운데
+        var screen = (SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        if (Foldy.Core.QuickSearch.QuickSearchPlace.Fit(Foldy.Core.QuickSearch.QuickSearchPlace.Load(App.DataDir), _quickSearch.Width, screen) is { } at)
+        {
+            _quickSearch.PlaceAt = new Point(at.Left, at.Top);
+        }
+
+        _quickSearch.Moved += p => Foldy.Core.QuickSearch.QuickSearchPlace.Save(App.DataDir, p.X, p.Y);
         _quickSearch.Closed += (_, _) =>
         {
             _quickSearch = null;
@@ -2425,8 +2436,32 @@ public partial class ShellWindow : Window, IPaneHost
             {
                 ArmQuietExit();
             }
+
+            QuickSearchClosed?.Invoke(this, EventArgs.Empty);
         };
         _quickSearch.Show();
+    }
+
+    /// <summary>무엇이든 찾기 창이 닫혔다 (단축키로 띄운 Foldy가 처음 묻는 것을 찾기 창이 닫힌 뒤로 미룬다).</summary>
+    public event EventHandler? QuickSearchClosed;
+
+    /// <summary>무엇이든 찾기 창이 떠 있나.</summary>
+    public bool IsQuickSearchOpen => _quickSearch is not null;
+
+    /// <summary>
+    /// 주 창을 보이게 하고 앞으로 가져온다. 다른 앱이 앞에 있으면 Activate만으로는 작업 표시줄만 깜빡일 수 있어 잠깐 맨 위로 올렸다 내린다.
+    /// </summary>
+    private void BringMainForward()
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Show();
+        Activate();
+        Topmost = true;
+        Topmost = false;
     }
 
     private QuickSearchWindow BuildQuickSearch(string? scope, string footer) => new(
@@ -3935,7 +3970,7 @@ public partial class ShellWindow : Window, IPaneHost
 
         if (options.QuickSearch && options.OpenPath is null)
         {
-            ShowQuickSearch(); // 단축키 도우미: 주 창은 그대로 두고 찾기 창만
+            ShowQuickSearch(); // 단축키 도우미: 주 창을 앞으로 가져오고 그 위에 찾기 창 (1.15.0)
             return;
         }
 

@@ -88,6 +88,10 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
+1.15.0
+• You can now drag the Find anything (Ctrl+Space) window to move it. Grab the short bar at the top or any empty spot. It remembers where you put it and opens there next time (or in the middle if that spot is off screen).
+• Opening the search window now brings the Foldy window up too, even if it was minimized or behind another program.
+
 1.14.1
 • Dragging files or folders onto a folder in the same pane now moves them into that folder. The target row is outlined.
 

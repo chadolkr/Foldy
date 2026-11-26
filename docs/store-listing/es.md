@@ -88,6 +88,10 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ## Novedades de esta versión
 
+1.15.0
+• Ahora puedes arrastrar la ventana de Buscar cualquier cosa (Ctrl+Espacio) para moverla. Toma la barrita de arriba o cualquier espacio vacío. Recuerda dónde la dejaste y se abre ahí la próxima vez (o en el centro si ese lugar queda fuera de la pantalla).
+• Al abrir la ventana de búsqueda, la ventana de Foldy también aparece, aunque estuviera minimizada o detrás de otro programa.
+
 1.14.1
 • Arrastrar archivos o carpetas sobre una carpeta del mismo panel ahora los mueve a esa carpeta. La fila de destino se resalta con un borde.
 

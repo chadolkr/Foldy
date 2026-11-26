@@ -14,6 +14,7 @@ namespace Foldy.App;
 /// 자주 쓰는 폴더, Foldy 기능, 파일을 함께 찾는다. 맨 위에 "가장 알맞은 것" 하나, 오른쪽에 미리보기와 [열기].
 /// Windows 검색처럼 결과를 묶음(앱·설정·폴더·Foldy 기능·파일)으로 나눠 보여 주고, 위의 단추(모두·앱·설정…)나 Tab으로 한 묶음만 볼 수 있다.
 /// Enter 열기·실행, Ctrl+Enter 들어 있는 폴더 보기, Esc 또는 다른 곳을 누르면 닫힌다. 밖으로 아무것도 보내지 않는다.
+/// 맨 위 손잡이나 글자 칸·결과 밖의 빈 곳을 끌면 창을 옮길 수 있고, 옮긴 자리는 <see cref="Moved"/>로 알려 다음에도 그 자리에 뜬다 (1.15.0).
 /// </summary>
 internal sealed class QuickSearchWindow : Window
 {
@@ -63,6 +64,15 @@ internal sealed class QuickSearchWindow : Window
     private string _fileHeaderText = "";
     private readonly TextBlock _fileStatus = new() { FontSize = 14, Margin = new Thickness(10, 8, 10, 8), TextWrapping = TextWrapping.Wrap };
 
+    /// <summary>띄울 자리 (왼쪽 위). null이면 화면 가운데 조금 위.</summary>
+    public Point? PlaceAt { get; set; }
+
+    /// <summary>사용자가 끌어서 옮겼다 (새 왼쪽 위).</summary>
+    public event Action<Point>? Moved;
+
+    /// <summary>끌어서 옮기는 손잡이 (맨 위 가운데).</summary>
+    internal FrameworkElement Grip { get; }
+
     /// <summary>맨 위 결과 줄 (문서 캡처가 짧은 소개의 초점으로 쓴다).</summary>
     internal FrameworkElement? TopResult => _hits.Count > 0 ? _hits[0].Row : null;
 
@@ -110,7 +120,7 @@ internal sealed class QuickSearchWindow : Window
         var inputGrid = new Grid { MinHeight = 56 };
         inputGrid.Children.Add(_placeholder);
         inputGrid.Children.Add(_input);
-        var top = new DockPanel { Margin = new Thickness(12, 6, 12, 6) };
+        var top = new DockPanel { Margin = new Thickness(12, 0, 12, 6) };
         DockPanel.SetDock(icon, Dock.Left);
         top.Children.Add(icon);
         top.Children.Add(inputGrid);
@@ -146,9 +156,18 @@ internal sealed class QuickSearchWindow : Window
         _footer = new TextBlock { Text = footer, FontSize = 14, Margin = new Thickness(16, 6, 16, 10), TextWrapping = TextWrapping.Wrap };
         _footer.SetResourceReference(ForegroundProperty, "Brush.TextSecondary");
 
+        // 끌어서 옮기는 손잡이 (2026-11-26 사용자: "화면이 고정되어 있는데 옮길 수 있게"). 휴대폰 아래 막대처럼 보이는 짧은 막대
+        var pill = new Border { Width = 48, Height = 5, CornerRadius = new CornerRadius(2.5), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        pill.SetResourceReference(Border.BackgroundProperty, "Brush.Border");
+        var grip = new Border { Height = 16, Background = Brushes.Transparent, Cursor = Cursors.SizeAll, Child = pill, ToolTip = Foldy.Core.Localization.Loc.T("qs.dragHint") };
+        System.Windows.Automation.AutomationProperties.SetName(grip, Foldy.Core.Localization.Loc.T("qs.dragHint"));
+        System.Windows.Automation.AutomationProperties.SetAutomationId(grip, "QuickSearchGrip");
+        Grip = grip;
+
         var line = new Border { Height = 1 };
         line.SetResourceReference(Border.BackgroundProperty, "Brush.Border");
         var body = new StackPanel();
+        body.Children.Add(grip);
         body.Children.Add(top);
         body.Children.Add(chipRow);
         body.Children.Add(line);
@@ -174,6 +193,7 @@ internal sealed class QuickSearchWindow : Window
         Closing += (_, _) => _closing = true; // 밖에서 닫을 때(Alt+F4 등) 닫히는 중에 Deactivated가 또 닫지 않게
         _input.TextChanged += (_, _) => _ = SearchAsync(_input.Text);
         PreviewKeyDown += OnKey;
+        MouseLeftButtonDown += OnDragStart;
         // 다른 곳을 누르면 닫힌다 (Spotlight처럼). 막 뜬 순간의 포커스 흔들림으로 닫히지 않게, 한 번 활성화되고 잠시 뒤부터
         Activated += (_, _) => _activatedAt ??= DateTime.UtcNow;
         Deactivated += (_, _) =>
@@ -185,9 +205,18 @@ internal sealed class QuickSearchWindow : Window
         };
         Loaded += (_, _) =>
         {
-            var wa = SystemParameters.WorkArea;
-            Left = wa.Left + (wa.Width - ActualWidth) / 2;
-            Top = wa.Top + wa.Height * 0.15;
+            if (PlaceAt is { } at)
+            {
+                Left = at.X;
+                Top = at.Y;
+            }
+            else
+            {
+                var wa = SystemParameters.WorkArea;
+                Left = wa.Left + (wa.Width - ActualWidth) / 2;
+                Top = wa.Top + wa.Height * 0.15;
+            }
+
             Activate();
             _input.Focus();
             MarkChips();
@@ -241,6 +270,59 @@ internal sealed class QuickSearchWindow : Window
             _cts?.Cancel();
             Close();
         }
+    }
+
+    /// <summary>
+    /// 손잡이나 빈 곳(위 여백·보기 단추 사이·아래 안내 글)을 누르고 끌면 창을 옮긴다. 글자 칸·단추·결과 목록·미리보기는 원래대로 눌린다.
+    /// </summary>
+    private void OnDragStart(object sender, MouseButtonEventArgs e)
+    {
+        if (e.Handled || e.ButtonState != MouseButtonState.Pressed || !CanDragFrom(e.OriginalSource as DependencyObject))
+        {
+            return;
+        }
+
+        var before = new Point(Left, Top);
+        try
+        {
+            DragMove(); // 마우스를 놓을 때까지 돌아오지 않는다
+        }
+        catch (InvalidOperationException)
+        {
+            return; // 그새 마우스 단추를 놓았다
+        }
+
+        e.Handled = true;
+        if (Math.Abs(Left - before.X) >= 1 || Math.Abs(Top - before.Y) >= 1)
+        {
+            Moved?.Invoke(new Point(Left, Top));
+        }
+
+        _input.Focus(); // 옮긴 뒤 바로 이어서 칠 수 있게
+    }
+
+    private bool CanDragFrom(DependencyObject? d)
+    {
+        for (; d is not null; d = d is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+        {
+            if (ReferenceEquals(d, Grip))
+            {
+                return true;
+            }
+
+            if (d is TextBox or System.Windows.Controls.Primitives.ButtonBase or System.Windows.Controls.Primitives.ScrollBar
+                || ReferenceEquals(d, _scroll) || ReferenceEquals(d, _preview))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(d, this))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void OnKey(object sender, KeyEventArgs e)

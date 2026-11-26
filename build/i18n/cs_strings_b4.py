@@ -97,6 +97,7 @@ B4 = [
     ("qs.title", "Foldy 빠른 검색", "Foldy quick search", "Búsqueda rápida de Foldy", "Foldy クイック検索", "Foldy 快速搜索"),
     ("qs.boxName", "빠른 검색: 파일·앱·설정·기능·계산", "Quick search: files, apps, settings, features, math", "Búsqueda rápida: archivos, apps, ajustes, funciones, cálculos", "クイック検索: ファイル・アプリ・設定・機能・計算", "快速搜索：文件、应用、设置、功能、计算"),
     ("qs.placeholder", "파일, 앱, 설정, 기능, 계산(12*3)…", "Files, apps, settings, features, math (12*3)…", "Archivos, apps, ajustes, funciones, cálculos (12*3)…", "ファイル、アプリ、設定、機能、計算 (12*3)…", "文件、应用、设置、功能、计算（12*3）…"),
+    ("qs.dragHint", "끌어서 옮기기", "Drag to move", "Arrastra para mover", "ドラッグして移動", "拖动以移动"),
     ("qs.fileError", "파일을 찾다가 문제가 생겼어요: ", "Something went wrong while searching files: ", "Hubo un problema al buscar archivos: ", "ファイルを探している途中で問題が起きました: ", "查找文件时出了问题："),
     ("qs.hintOpen", "Enter: 열기 · Ctrl+Enter: 들어 있는 폴더", "Enter: open · Ctrl+Enter: containing folder", "Enter: abrir · Ctrl+Enter: carpeta contenedora", "Enter: 開く · Ctrl+Enter: 含まれるフォルダー", "Enter：打开 · Ctrl+Enter：所在文件夹"),
     ("qs.hintCopy", "Enter: 결과 복사", "Enter: copy result", "Enter: copiar resultado", "Enter: 結果をコピー", "Enter：复制结果"),

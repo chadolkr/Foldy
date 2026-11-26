@@ -1241,6 +1241,7 @@
   "qs.calc": "Calculadora",
   "qs.capped": "Mostrando {0} de {1}. Añade más palabras para acotar",
   "qs.ctrlPanel": "Panel de control",
+  "qs.dragHint": "Arrastra para mover",
   "qs.fileError": "Hubo un problema al buscar archivos: ",
   "qs.fileModified": "{0} · modificado {1:g}",
   "qs.filter.all": "Todo",

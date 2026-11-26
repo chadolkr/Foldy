@@ -352,4 +352,54 @@ public sealed class ResultPagerTests
     [InlineData(0, 480, 0, false)]
     public void Near_end(double offset, double viewport, double extent, bool expected) =>
         Assert.Equal(expected, ResultPaging.NearEnd(offset, viewport, extent));
+
+    // ── 찾기 창 옮긴 자리 (1.15.0) ──
+
+    private static readonly (double, double, double, double) OneScreen = (0, 0, 1920, 1040);
+
+    [Fact]
+    public void Place_round_trips_and_ignores_garbage()
+    {
+        Assert.Equal((120.0, -30.0), QuickSearchPlace.Parse(QuickSearchPlace.Format(120.4, -30.2)));
+        Assert.Null(QuickSearchPlace.Parse(""));
+        Assert.Null(QuickSearchPlace.Parse("12"));
+        Assert.Null(QuickSearchPlace.Parse("a b"));
+        Assert.Null(QuickSearchPlace.Parse("NaN 3"));
+        Assert.Equal((5.0, 6.0), QuickSearchPlace.Parse(" 5\t6\r\n"));
+    }
+
+    [Fact]
+    public void Place_is_kept_when_it_is_on_screen() =>
+        Assert.Equal((300.0, 200.0), QuickSearchPlace.Fit((300, 200), 932, OneScreen));
+
+    [Theory]
+    [InlineData(5000, 200)] // 떼어 낸 오른쪽 모니터에 있었다
+    [InlineData(-900, 200)] // 왼쪽으로 거의 다 나갔다 (32만 보임)
+    [InlineData(300, -50)] // 위 끝이 화면 위로 나갔다 (끌 곳이 없다)
+    [InlineData(300, 1000)] // 아래 끝에 걸려 입력 칸이 안 보인다
+    public void Place_off_screen_falls_back_to_the_middle(double left, double top) =>
+        Assert.Null(QuickSearchPlace.Fit((left, top), 932, OneScreen));
+
+    [Fact]
+    public void Place_on_a_second_monitor_on_the_left_is_kept() =>
+        Assert.Equal((-1500.0, 100.0), QuickSearchPlace.Fit((-1500, 100), 932, (-1920, 0, 3840, 1080)));
+
+    [Fact]
+    public void Place_saves_and_loads_from_the_data_folder()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "foldy-qsplace-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Assert.Null(QuickSearchPlace.Load(dir));
+            QuickSearchPlace.Save(dir, 640, 128);
+            Assert.Equal((640.0, 128.0), QuickSearchPlace.Load(dir));
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
 }
