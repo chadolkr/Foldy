@@ -122,6 +122,113 @@ public partial class GuideWindow : Window
     }
 
     /// <summary>
+    /// 파일 목록을 보여 주고 고르게 한다 (사용자 의견 2026-11-27: "몇 개(몇 MB)"만으로는 어떤 파일인지 몰라 고를 수 없다).
+    /// 줄마다 파일 이름과 <paramref name="detail"/>(크기·마지막으로 연 날·까닭), [열기]·[폴더에서 보기]가 있고,
+    /// 고른 개수와 크기 합계가 체크할 때마다 바로 바뀐다. 실행 파일(.exe 등)은 [열기]를 두지 않는다 (누르면 설치가 시작된다).
+    /// </summary>
+    public async Task<(string Choice, IReadOnlyList<T> Picked)> PickFilesAsync<T>(string text, IReadOnlyList<T> items, Func<T, string> path, Func<T, string> detail, Func<T, long> size, bool selected, params (string Id, string Label)[] choices)
+    {
+        Say(text);
+        var secondary = (Brush)FindResource("Brush.TextSecondary");
+        var summary = new TextBlock { Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold };
+        System.Windows.Automation.AutomationProperties.SetAutomationId(summary, "GuidePickedSummary");
+        var rows = new List<(T Item, CheckBox Box)>();
+        var list = new StackPanel();
+        foreach (var item in items)
+        {
+            var p = path(item);
+            var name = System.IO.Path.GetFileName(p);
+            var label = new StackPanel();
+            label.Children.Add(new TextBlock { Text = name, TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold });
+            label.Children.Add(new TextBlock { Text = detail(item), TextWrapping = TextWrapping.Wrap, FontSize = 14, Foreground = secondary });
+            var box = new CheckBox { Content = label, IsChecked = selected, ToolTip = p, VerticalContentAlignment = VerticalAlignment.Top };
+            System.Windows.Automation.AutomationProperties.SetName(box, name);
+            box.Checked += (_, _) => Update();
+            box.Unchecked += (_, _) => Update();
+            rows.Add((item, box));
+
+            var links = new TextBlock { Margin = new Thickness(24, 0, 0, 0), FontSize = 14 };
+            if (!Foldy.UI.Markdown.MarkdownLinks.IsExecutable(p))
+            {
+                links.Inlines.Add(Link(Foldy.Core.Localization.Loc.T("guide.openFile"), name, () => OpenFile(p)));
+                links.Inlines.Add(new System.Windows.Documents.Run("   ·   ") { Foreground = secondary });
+            }
+
+            links.Inlines.Add(Link(Foldy.Core.Localization.Loc.T("guide.showInFolder"), name, () => ShowInFolder(p)));
+            list.Children.Add(new StackPanel { Margin = new Thickness(0, 3, 0, 5), Children = { box, links } });
+        }
+
+        var panel = new StackPanel();
+        var toggle = new TextBlock { Margin = new Thickness(0, 0, 0, 4) };
+        var all = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(Foldy.Core.Localization.Loc.T("guide.toggleAll")));
+        all.Click += (_, _) =>
+        {
+            var on = rows.All(r => r.Box.IsChecked == true);
+            foreach (var r in rows)
+            {
+                r.Box.IsChecked = !on;
+            }
+        };
+        toggle.Inlines.Add(all);
+        panel.Children.Add(toggle);
+        panel.Children.Add(new ScrollViewer { Content = list, MaxHeight = 340, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        panel.Children.Add(summary);
+        Update();
+        Add(panel, mine: false);
+        var choice = await ChooseAsync(choices);
+        foreach (var r in rows)
+        {
+            r.Box.IsEnabled = false;
+        }
+
+        return (choice, rows.Where(r => r.Box.IsChecked == true).Select(r => r.Item).ToList());
+
+        void Update()
+        {
+            var picked = rows.Where(r => r.Box.IsChecked == true).ToList();
+            summary.Text = Foldy.Core.Localization.Loc.F("guide.pickedFiles", picked.Count, rows.Count, Foldy.Presentation.Files.FileItem.FormatBytes(picked.Sum(r => size(r.Item))));
+        }
+
+        static System.Windows.Documents.Hyperlink Link(string text, string file, Action go)
+        {
+            var h = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(text));
+            System.Windows.Automation.AutomationProperties.SetName(h, $"{text}: {file}");
+            h.Click += (_, _) => go();
+            return h;
+        }
+    }
+
+    private static void OpenFile(string path)
+    {
+        try
+        {
+            using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or System.IO.IOException)
+        {
+            // 연결된 프로그램이 없거나 그새 옮겨졌다: Windows가 따로 알려 주므로 여기서는 그냥 둔다
+        }
+    }
+
+    /// <summary>들어 있는 폴더를 Foldy 주 창에서 열고 그 파일을 골라 둔다 (이 창은 주 창 위에 그대로 남는다). 주 창이 없으면 Windows 탐색기로.</summary>
+    private void ShowInFolder(string path)
+    {
+        if (Owner is ShellWindow shell)
+        {
+            shell.RevealInFoldy(path);
+            return;
+        }
+
+        try
+        {
+            using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+        }
+    }
+
+    /// <summary>
     /// 암호를 받는다. <paramref name="confirm"/>이면 두 번 입력해 같은지 확인한다. 취소·닫기면 null.
     /// 입력 칸은 답을 받은 뒤 바로 비운다 (암호는 화면·기록에 남기지 않는다).
     /// </summary>

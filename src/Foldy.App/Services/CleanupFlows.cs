@@ -13,8 +13,14 @@ namespace Foldy.App.Services;
 /// <summary>정리 도구가 쓰는 위치.</summary>
 public static class CleanupPaths
 {
+    /// <summary>다운로드 폴더. 시험은 FOLDY_DOWNLOADS_DIR로 다른 폴더를 준다 (진짜 다운로드 폴더를 건드리지 않게).</summary>
     public static string? Downloads()
     {
+        if (Environment.GetEnvironmentVariable("FOLDY_DOWNLOADS_DIR") is { Length: > 0 } test)
+        {
+            return Directory.Exists(test) ? test : null;
+        }
+
         var p = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
         return Directory.Exists(p) ? p : null;
     }
@@ -211,20 +217,17 @@ public static class CleanupFlows
                 _ => (Foldy.Core.Localization.Loc.F("cf.dl.old", DownloadsPlanner.OldDays, group.Count, FileItem.FormatBytes(group.Sum(i => i.Size))), Foldy.Core.Localization.Loc.T("cf.dl.oldWhy")),
             };
             w.Say(found + " " + why);
-            var choice = await w.AskAsync(
-                Foldy.Core.Localization.Loc.F("cf.dl.oldHint", Path.GetFileName(archive)),
-                kind == DownloadKind.Old
-                    ? [C("archive", Foldy.Core.Localization.Loc.T("cf.archive")), C("pick", Foldy.Core.Localization.Loc.T("cf.log.pick")), C("skip", Foldy.Core.Localization.Loc.T("cf.keep"))]
-                    : [C("recycle", Foldy.Core.Localization.Loc.T("ops.toRecycle")), C("archive", Foldy.Core.Localization.Loc.T("cf.archive")), C("pick", Foldy.Core.Localization.Loc.T("cf.log.pick")), C("skip", Foldy.Core.Localization.Loc.T("cf.keep"))]);
-            var chosen = group;
-            if (choice == "pick")
-            {
-                var r = await w.PickAsync(Foldy.Core.Localization.Loc.T("cf.dl.pickHint"),
-                    group.Select(i => (i, $"{Path.GetFileName(i.Path)}  ·  {FileItem.FormatBytes(i.Size)}  ·  {i.Reason}", kind != DownloadKind.Old)),
-                    C("recycle", Foldy.Core.Localization.Loc.T("ops.toRecycle")), C("archive", Foldy.Core.Localization.Loc.T("cf.archive")), C("skip", Foldy.Core.Localization.Loc.T("cf.keep")));
-                choice = r.Choice;
-                chosen = [.. r.Picked];
-            }
+
+            // 어떤 파일인지 먼저 보여 준다 (사용자 의견 2026-11-27: "10개(83MB)"만으로는 휴지통·보관을 고를 수 없다).
+            // 처음에는 다 골라 두고, 남길 파일만 체크를 풀면 된다. 오래된 파일은 보관을 맨 앞(기본)에 둔다.
+            (string, string)[] actions = kind == DownloadKind.Old
+                ? [C("archive", Foldy.Core.Localization.Loc.T("cf.dl.archivePicked")), C("recycle", Foldy.Core.Localization.Loc.T("cf.dl.recyclePicked")), C("skip", Foldy.Core.Localization.Loc.T("cf.keepAll"))]
+                : [C("recycle", Foldy.Core.Localization.Loc.T("cf.dl.recyclePicked")), C("archive", Foldy.Core.Localization.Loc.T("cf.dl.archivePicked")), C("skip", Foldy.Core.Localization.Loc.T("cf.keepAll"))];
+            var r = await w.PickFilesAsync(
+                Foldy.Core.Localization.Loc.T("cf.dl.listHint") + " " + Foldy.Core.Localization.Loc.F("cf.dl.oldHint", Path.GetFileName(archive)),
+                group, i => i.Path, i => Detail(i, kind), i => i.Size, selected: true, actions);
+            var choice = r.Choice;
+            var chosen = r.Picked.ToList();
 
             if (choice == GuideWindow.ClosedChoice)
             {
@@ -251,6 +254,11 @@ public static class CleanupFlows
                 var n = await Task.Run(() => DownloadsPlanner.MoveToArchive(chosen.Select(i => i.Path), archive));
                 archived += n;
                 w.Say(Foldy.Core.Localization.Loc.F("cf.movedToArchive", n));
+            }
+
+            if (group.Count - chosen.Count is var left and > 0)
+            {
+                w.Say(Foldy.Core.Localization.Loc.F("cf.dl.leftAlone", left));
             }
         }
 
@@ -282,6 +290,15 @@ public static class CleanupFlows
         }
 
         w.Close();
+    }
+
+    /// <summary>파일 한 줄 아래 작은 글: 크기 · 마지막으로 연 날 · (오래된 파일이 아니면) 까닭.</summary>
+    internal static string Detail(DownloadItem i, DownloadKind kind)
+    {
+        var used = Foldy.Core.Localization.Loc.F("cf.dl.lastUsed", i.LastUsedUtc.ToLocalTime());
+        return kind == DownloadKind.Old
+            ? $"{FileItem.FormatBytes(i.Size)}  ·  {used}"
+            : $"{FileItem.FormatBytes(i.Size)}  ·  {used}  ·  {i.Reason}";
     }
 
     // ───────────── 바탕화면 정리 ─────────────

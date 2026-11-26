@@ -138,6 +138,8 @@ from cs_strings_bigorg import BIGORG  # noqa: E402
 CS = CS + BIGORG
 from cs_strings_dupkeep import DUPKEEP  # noqa: E402
 CS = CS + DUPKEEP
+from cs_strings_dlpick import DLPICK  # noqa: E402
+CS = CS + DLPICK
 from cs_strings_resume import RESUME  # noqa: E402
 CS = CS + RESUME
 from cs_strings_index import INDEX  # noqa: E402

@@ -88,6 +88,9 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ## Novedades de esta versión
 
+1.16.0
+• La limpieza de Descargas ahora muestra primero los archivos en vez de solo "10 archivos sin abrir en 90 días". Cada archivo muestra su tamaño y el día en que se abrió por última vez, con Abrir y Mostrar en la carpeta, para que desmarques los que quieras conservar.
+
 1.15.0
 • La versión de Store ahora incluye el mismo asistente de búsqueda rápida que la del instalador. Lee C: en segundos y encuentra los archivos que cambiaron mientras Foldy estaba cerrado.
 • En la versión de Store, Ctrl+Espacio abre el cuadro de búsqueda aunque Foldy esté cerrado (un pequeño asistente se inicia al iniciar sesión).
@@ -99,9 +102,6 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 • Ahora puedes arrastrar la ventana de Buscar cualquier cosa (Ctrl+Espacio) para moverla. Toma la barrita de arriba o cualquier espacio vacío. Recuerda dónde la dejaste y se abre ahí la próxima vez (o en el centro si ese lugar queda fuera de la pantalla).
 • Al abrir la ventana de búsqueda, la ventana de Foldy también aparece, aunque estuviera minimizada o detrás de otro programa.
 • Escritorio, Descargas, Documentos, Imágenes y Vídeos están ahora siempre arriba de Carpetas recientes, a la izquierda, cada una con su icono. Las carpetas movidas por OneDrive se abren en el lugar correcto.
-
-1.14.1
-• Arrastrar archivos o carpetas sobre una carpeta del mismo panel ahora los mueve a esa carpeta. La fila de destino se resalta con un borde.
 
 ## Características del producto (una por línea)
 
