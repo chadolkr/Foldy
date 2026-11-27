@@ -109,7 +109,7 @@ DEMO = [
     ("demo.q.disp", "디스", "disp", "pant", "ディス", "显示"),
     ("demo.q.calc", "32평", "5 km to mi", "5 km to mi", "5 km to mi", "5 km to mi"),
     ("demo.q.talk", "다운로드 정리해줘", "Tidy Downloads", "Ordenar Descargas", "ダウンロードを整理", "整理下载"),
-    ("demo.qsFooter", "파일은 지금 폴더 안에서 찾아요. Enter 열기 · Ctrl+Enter 들어 있는 폴더 · Esc 닫기", "Files are searched in the current folder. Enter open · Ctrl+Enter containing folder · Esc close", "Los archivos se buscan en la carpeta actual. Enter abrir · Ctrl+Enter carpeta contenedora · Esc cerrar", "ファイルはいまのフォルダーの中から探します。Enter 開く · Ctrl+Enter 含まれるフォルダー · Esc 閉じる", "在当前文件夹中查找文件。Enter 打开 · Ctrl+Enter 所在文件夹 · Esc 关闭"),
+    ("demo.qsFooter", "파일은 지금 폴더 안에서 찾아요. 두 번 클릭·Enter 열기 · 클릭·Ctrl+Enter 들어 있는 폴더 · Esc 닫기", "Files are searched in the current folder. Double-click/Enter open · Click/Ctrl+Enter containing folder · Esc close", "Los archivos se buscan en la carpeta actual. Doble clic/Enter abrir · Clic/Ctrl+Enter carpeta contenedora · Esc cerrar", "ファイルはいまのフォルダーの中から探します。ダブルクリック/Enter 開く · クリック/Ctrl+Enter 含まれるフォルダー · Esc 閉じる", "在当前文件夹中查找文件。双击/Enter 打开 · 单击/Ctrl+Enter 所在文件夹 · Esc 关闭"),
 ]
 
 DEMO += [

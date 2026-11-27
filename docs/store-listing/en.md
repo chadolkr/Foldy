@@ -88,6 +88,9 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
+1.17.0
+• In Find anything (Ctrl+Space), clicking a file or folder once opens its containing folder with it selected (same as Ctrl+Enter), and double-clicking opens the file (same as Enter). Apps, settings and Control Panel items still run with a single click.
+
 1.16.0
 • Downloads cleanup now shows the actual files first instead of just "10 files not opened in 90 days". Each file shows its size and the day it was last opened, with Open and Show in folder, so you can uncheck the ones you want to keep.
 

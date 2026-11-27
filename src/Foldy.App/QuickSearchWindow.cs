@@ -13,7 +13,7 @@ namespace Foldy.App;
 /// 빠른 검색 창 (Ctrl+Space, macOS Spotlight처럼): 화면 가운데 큰 입력 칸 하나에서 계산·단위 변환, 앱, Windows 설정,
 /// 자주 쓰는 폴더, Foldy 기능, 파일을 함께 찾는다. 맨 위에 "가장 알맞은 것" 하나, 오른쪽에 미리보기와 [열기].
 /// Windows 검색처럼 결과를 묶음(앱·설정·폴더·Foldy 기능·파일)으로 나눠 보여 주고, 위의 단추(모두·앱·설정…)나 Tab으로 한 묶음만 볼 수 있다.
-/// Enter 열기·실행, Ctrl+Enter 들어 있는 폴더 보기, Esc 또는 다른 곳을 누르면 닫힌다. 밖으로 아무것도 보내지 않는다.
+/// Enter 열기·실행, Ctrl+Enter 들어 있는 폴더 보기 (파일·폴더는 한 번 클릭 = Ctrl+Enter, 두 번 클릭 = Enter), Esc 또는 다른 곳을 누르면 닫힌다. 밖으로 아무것도 보내지 않는다.
 /// 맨 위 손잡이나 글자 칸·결과 밖의 빈 곳을 끌면 창을 옮길 수 있고, 옮긴 자리는 <see cref="Moved"/>로 알려 다음에도 그 자리에 뜬다 (1.14.2).
 /// </summary>
 internal sealed class QuickSearchWindow : Window
@@ -79,6 +79,7 @@ internal sealed class QuickSearchWindow : Window
     private int _selected = -1;
     private CancellationTokenSource? _cts;
     private bool _closing;
+    private System.Windows.Threading.DispatcherTimer? _clickWait;
     private DateTime? _activatedAt;
     private readonly bool _animations;
     private readonly SniffDog _dog = new();
@@ -366,8 +367,38 @@ internal sealed class QuickSearchWindow : Window
         }
     }
 
+    /// <summary>한 번 클릭 뒤 두 번 클릭 시간(Windows 설정)이 지나도 두 번째 클릭이 없으면 <paramref name="single"/>을 한다.</summary>
+    private void WaitForSecondClick(Action single)
+    {
+        if (_closing || _clickWait is not null)
+        {
+            return; // 두 번 클릭의 두 번째 놓기, 또는 이미 기다리는 중
+        }
+
+        var wait = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds((double)Math.Clamp(GetDoubleClickTime(), 200u, 900u)) };
+        wait.Tick += (_, _) =>
+        {
+            wait.Stop();
+            if (ReferenceEquals(_clickWait, wait))
+            {
+                _clickWait = null;
+                if (!_closing)
+                {
+                    Run(single);
+                }
+            }
+        };
+        _clickWait = wait;
+        wait.Start();
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDoubleClickTime();
+
     private void Run(Action a)
     {
+        _clickWait?.Stop();
+        _clickWait = null;
         KeepOpen = false;
         SafeClose();
         a();
@@ -595,7 +626,27 @@ internal sealed class QuickSearchWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(row, $"{h.Group}: {h.Title}");
         var index = _hits.Count;
         row.MouseEnter += (_, _) => Select(index);
-        row.MouseLeftButtonUp += (_, _) => Run(h.Run);
+        if (h.Reveal is { } reveal)
+        {
+            // 파일·폴더: 한 번 클릭 = Ctrl+Enter(들어 있는 폴더에서 골라 보이기), 두 번 클릭 = Enter(열기).
+            // 첫 클릭으로 바로 창을 닫으면 두 번째 클릭이 오지 않으므로, 두 번 클릭 시간만큼 기다렸다가 한 번 클릭으로 본다.
+            row.MouseLeftButtonDown += (_, e) =>
+            {
+                if (e.ClickCount >= 2)
+                {
+                    _clickWait?.Stop();
+                    _clickWait = null;
+                    e.Handled = true;
+                    Run(h.Run);
+                }
+            };
+            row.MouseLeftButtonUp += (_, _) => WaitForSecondClick(reveal);
+        }
+        else
+        {
+            row.MouseLeftButtonUp += (_, _) => Run(h.Run);
+        }
+
         _hits.Add((row, h));
         _rows.Children.Add(row);
     }

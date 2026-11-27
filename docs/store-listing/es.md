@@ -88,6 +88,9 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ## Novedades de esta versión
 
+1.17.0
+• En Buscar cualquier cosa (Ctrl+Space), un clic en un archivo o carpeta abre la carpeta contenedora con él seleccionado (igual que Ctrl+Enter), y un doble clic abre el archivo (igual que Enter). Las apps, la configuración y el Panel de control se siguen ejecutando con un solo clic.
+
 1.16.0
 • La limpieza de Descargas ahora muestra primero los archivos en vez de solo "10 archivos sin abrir en 90 días". Cada archivo muestra su tamaño y el día en que se abrió por última vez, con Abrir y Mostrar en la carpeta, para que desmarques los que quieras conservar.
 

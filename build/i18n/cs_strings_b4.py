@@ -99,7 +99,7 @@ B4 = [
     ("qs.placeholder", "파일, 앱, 설정, 기능, 계산(12*3)…", "Files, apps, settings, features, math (12*3)…", "Archivos, apps, ajustes, funciones, cálculos (12*3)…", "ファイル、アプリ、設定、機能、計算 (12*3)…", "文件、应用、设置、功能、计算（12*3）…"),
     ("qs.dragHint", "끌어서 옮기기", "Drag to move", "Arrastra para mover", "ドラッグして移動", "拖动以移动"),
     ("qs.fileError", "파일을 찾다가 문제가 생겼어요: ", "Something went wrong while searching files: ", "Hubo un problema al buscar archivos: ", "ファイルを探している途中で問題が起きました: ", "查找文件时出了问题："),
-    ("qs.hintOpen", "Enter: 열기 · Ctrl+Enter: 들어 있는 폴더", "Enter: open · Ctrl+Enter: containing folder", "Enter: abrir · Ctrl+Enter: carpeta contenedora", "Enter: 開く · Ctrl+Enter: 含まれるフォルダー", "Enter：打开 · Ctrl+Enter：所在文件夹"),
+    ("qs.hintOpen", "두 번 클릭·Enter: 열기 · 한 번 클릭·Ctrl+Enter: 들어 있는 폴더", "Double-click or Enter: open · Click or Ctrl+Enter: containing folder", "Doble clic o Enter: abrir · Clic o Ctrl+Enter: carpeta contenedora", "ダブルクリック・Enter: 開く · クリック・Ctrl+Enter: 含まれるフォルダー", "双击或 Enter：打开 · 单击或 Ctrl+Enter：所在文件夹"),
     ("qs.hintCopy", "Enter: 결과 복사", "Enter: copy result", "Enter: copiar resultado", "Enter: 結果をコピー", "Enter：复制结果"),
     ("qs.hintRun", "Enter: 실행", "Enter: run", "Enter: ejecutar", "Enter: 実行", "Enter：执行"),
     ("qs.folderModified", "폴더 · 바뀐 날 {0:g}", "Folder · modified {0:g}", "Carpeta · modificada {0:g}", "フォルダー · 更新日 {0:g}", "文件夹 · 修改于 {0:g}"),
