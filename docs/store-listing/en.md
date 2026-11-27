@@ -88,6 +88,9 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
+1.17.0
+• In Find anything (Ctrl+Space), clicking a file or folder once opens its containing folder with it selected (same as Ctrl+Enter), and double-clicking opens the file (same as Enter). Apps, settings and Control Panel items still run with a single click.
+
 1.16.0
 • Downloads cleanup now shows the actual files first instead of just "10 files not opened in 90 days". Each file shows its size and the day it was last opened, with Open and Show in folder, so you can uncheck the ones you want to keep.
 
@@ -98,10 +101,6 @@ It is off by default, read-only when on, and only works inside this computer.
 1.14.4
 • In Find anything (Ctrl+Space), Ctrl+Enter opens the containing folder with the found file selected and shown near the middle of the list. Before, you sometimes had to scroll to see it.
 
-1.14.2
-• You can now drag the Find anything (Ctrl+Space) window to move it. Grab the short bar at the top or any empty spot. It remembers where you put it and opens there next time (or in the middle if that spot is off screen).
-• Opening the search window now brings the Foldy window up too, even if it was minimized or behind another program.
-• Desktop, Downloads, Documents, Pictures and Videos are now always at the top of Recent folders on the left, each with its own icon. Folders moved by OneDrive open in the right place.
 
 ## Product features (one per line)
 

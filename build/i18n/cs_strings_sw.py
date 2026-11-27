@@ -103,7 +103,7 @@ SW = [
     ('sw.hidden.show', '숨김 파일 보이기', 'Show hidden files', 'Mostrar archivos ocultos', '隠しファイルを表示', '显示隐藏文件'),
     ('sw.hidden.hide', '숨김 파일 숨기기', 'Hide hidden files', 'Ocultar archivos ocultos', '隠しファイルを隠す', '隐藏隐藏文件'),
     ('sw.qs.footerAll', '준비된 드라이브 전체에서 찾아요.', 'Files are found across all ready drives.', 'Los archivos se buscan en todas las unidades listas.', '準備できた全ドライブから探します。', '将在所有已就绪的驱动器中查找文件。'),
-    ('sw.qs.keys', ' Enter 열기 · Ctrl+Enter 들어 있는 폴더 · Esc 닫기', ' Enter open · Ctrl+Enter containing folder · Esc close', ' Enter abrir · Ctrl+Enter carpeta contenedora · Esc cerrar', ' Enter 開く · Ctrl+Enter 含まれるフォルダー · Esc 閉じる', ' Enter 打开 · Ctrl+Enter 所在文件夹 · Esc 关闭'),
+    ('sw.qs.keys', ' 두 번 클릭·Enter 열기 · 클릭·Ctrl+Enter 들어 있는 폴더 · Esc 닫기', ' Double-click/Enter open · Click/Ctrl+Enter containing folder · Esc close', ' Doble clic/Enter abrir · Clic/Ctrl+Enter carpeta contenedora · Esc cerrar', ' ダブルクリック/Enter 開く · クリック/Ctrl+Enter 含まれるフォルダー · Esc 閉じる', ' 双击/Enter 打开 · 单击/Ctrl+Enter 所在文件夹 · Esc 关闭'),
     ('sw.qs.file', '파일', 'File', 'Archivo', 'ファイル', '文件'),
     ('sw.qs.copyResult', 'Enter로 결과 복사', 'Enter to copy the result', 'Enter para copiar el resultado', 'Enter で結果をコピー', '按 Enter 复制结果'),
     ('sw.qs.folder', '폴더', 'Folder', 'Carpeta', 'フォルダー', '文件夹'),
