@@ -26,7 +26,6 @@ CF = [
     ("cf.archive", "보관하기", "Archive", "Archivar", "保管する", "归档"),
     ("cf.keep", "그대로 두기", "Leave as is", "Dejar como está", "そのままにする", "保持不变"),
     ("cf.recycle", "휴지통으로", "To Recycle Bin", "A la papelera", "ごみ箱へ", "移到回收站"),
-    ("cf.dl.pickHint", "어떤 걸 정리할지 골라 주세요.", "Choose what to clean up.", "Elige qué quieres limpiar.", "どれを整理するか選んでください。", "请选择要整理的内容。"),
     ("cf.keepOk", "네, 그대로 둘게요.", "OK, I'll leave them.", "Vale, los dejo.", "はい、そのままにします。", "好的，保持不变。"),
     ("cf.nothingMoved", "이번에는 아무것도 옮기지 않았어요. 생각나면 언제든 다시 불러 주세요!", "Nothing was moved this time. Call me again whenever you like!", "Esta vez no se movió nada. ¡Llámame cuando quieras!", "今回は何も移しませんでした。思い出したらいつでも呼んでください!", "这次什么都没移动。想整理时随时叫我！"),
     ("cf.recycleNote", "\n휴지통으로 간 파일은 휴지통에서 되살릴 수 있어요.", "\nFiles sent to the Recycle Bin can be restored from there.", "\nLos archivos enviados a la papelera se pueden recuperar desde allí.", "\nごみ箱に移したファイルはごみ箱から戻せます。", "\n移到回收站的文件可以从回收站恢复。"),

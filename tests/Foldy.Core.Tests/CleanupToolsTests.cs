@@ -133,6 +133,10 @@ public sealed class CleanupToolsTests : IDisposable
             ("old.txt", DownloadKind.Old),
         });
 
+        // 목록에 "마지막으로 연 날"을 보여 주려고 그 날을 함께 돌려준다 (사용자 의견 2026-11-27)
+        items.Single(i => i.Kind == DownloadKind.Old).LastUsedUtc.Should().BeCloseTo(Now.AddDays(-200), TimeSpan.FromSeconds(2));
+        items.Single(i => i.Kind == DownloadKind.Unpacked).LastUsedUtc.Should().BeCloseTo(recent, TimeSpan.FromSeconds(2));
+
         DownloadsPlanner.MatchInstalled("Git", ["Git version 2.47.0", "Notepad++"]).Should().Be("Git version 2.47.0");
         DownloadsPlanner.MatchInstalled("Setup", ["Setup Helper"]).Should().BeNull("흔한 이름은 맞추지 않는다");
         DownloadsPlanner.MatchInstalled("Visual Studio Code", ["Microsoft Visual Studio Code (User)"]).Should().BeNull("확실하지 않으면 건너뜀");

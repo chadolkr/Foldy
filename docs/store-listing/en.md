@@ -88,6 +88,9 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
+1.16.0
+• Downloads cleanup now shows the actual files first instead of just "10 files not opened in 90 days". Each file shows its size and the day it was last opened, with Open and Show in folder, so you can uncheck the ones you want to keep.
+
 1.15.0
 • The Store edition now includes the same fast search helper as the installer edition. It reads C: in seconds and finds files that changed while Foldy was closed.
 • In the Store edition, Ctrl+Space now opens the search box even when Foldy is closed (a small helper starts when you sign in).
@@ -99,9 +102,6 @@ It is off by default, read-only when on, and only works inside this computer.
 • You can now drag the Find anything (Ctrl+Space) window to move it. Grab the short bar at the top or any empty spot. It remembers where you put it and opens there next time (or in the middle if that spot is off screen).
 • Opening the search window now brings the Foldy window up too, even if it was minimized or behind another program.
 • Desktop, Downloads, Documents, Pictures and Videos are now always at the top of Recent folders on the left, each with its own icon. Folders moved by OneDrive open in the right place.
-
-1.14.1
-• Dragging files or folders onto a folder in the same pane now moves them into that folder. The target row is outlined.
 
 ## Product features (one per line)
 

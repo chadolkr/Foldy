@@ -18,7 +18,8 @@ public enum DownloadKind : byte
     Old,
 }
 
-public sealed record DownloadItem(string Path, long Size, DownloadKind Kind, string Reason);
+/// <param name="LastUsedUtc">마지막으로 열거나 바꾼 때 (바꾼 날·연 날·받은 날 중 가장 늦은 것). 목록에서 "마지막으로 연 날"로 보여 준다.</param>
+public sealed record DownloadItem(string Path, long Size, DownloadKind Kind, string Reason, DateTime LastUsedUtc);
 
 /// <summary>
 /// 다운로드 폴더 정리 제안. 아무것도 지우지 않는다: 고른 항목을 호출한 쪽이 휴지통으로 보내거나 보관 폴더로 옮긴다.
@@ -50,7 +51,7 @@ public static class DownloadsPlanner
             ct.ThrowIfCancellationRequested();
             if (ProductName(f.FullName) is { } product && installedName(product) is { } app)
             {
-                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Installer, Foldy.Core.Localization.Loc.F("dlc.installer", app));
+                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Installer, Foldy.Core.Localization.Loc.F("dlc.installer", app), LastUsed(f));
             }
         }
 
@@ -64,7 +65,7 @@ public static class DownloadsPlanner
                     var keep = byHash.OrderBy(f => f.Name.Length).ThenBy(f => f.CreationTimeUtc).First();
                     foreach (var f in byHash.Where(f => f != keep && !items.ContainsKey(f.FullName)))
                     {
-                        items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Duplicate, Foldy.Core.Localization.Loc.F("dlc.duplicate", keep.Name));
+                        items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Duplicate, Foldy.Core.Localization.Loc.F("dlc.duplicate", keep.Name), LastUsed(f));
                     }
                 }
             }
@@ -75,17 +76,17 @@ public static class DownloadsPlanner
             var stem = System.IO.Path.GetFileNameWithoutExtension(f.Name);
             if (dirs.Contains(stem))
             {
-                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Unpacked, Foldy.Core.Localization.Loc.F("dlc.unpacked", stem));
+                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Unpacked, Foldy.Core.Localization.Loc.F("dlc.unpacked", stem), LastUsed(f));
             }
         }
 
         foreach (var f in files.Where(f => !items.ContainsKey(f.FullName)))
         {
-            var last = new[] { f.LastWriteTimeUtc, f.LastAccessTimeUtc, f.CreationTimeUtc }.Max();
+            var last = LastUsed(f);
             var days = (int)(nowUtc - last).TotalDays;
             if (days >= OldDays)
             {
-                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Old, Foldy.Core.Localization.Loc.F("dlc.old", days));
+                items[f.FullName] = new DownloadItem(f.FullName, f.Length, DownloadKind.Old, Foldy.Core.Localization.Loc.F("dlc.old", days), last);
             }
         }
 
@@ -123,6 +124,8 @@ public static class DownloadsPlanner
 
         return moved;
     }
+
+    private static DateTime LastUsed(FileInfo f) => new[] { f.LastWriteTimeUtc, f.LastAccessTimeUtc, f.CreationTimeUtc }.Max();
 
     // 받는 중인 파일 (브라우저 임시 확장자)
     private static bool IsPartial(string name) =>
