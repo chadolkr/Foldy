@@ -405,6 +405,55 @@ public sealed partial class MainWindowTests
     }
 
     /// <summary>
+    /// 사용자 의견 2026-11-27: 다운로드 정리가 "90일 넘게 열지 않은 파일 2개(…)"만 말하면 어떤 파일인지 몰라 고를 수 없다.
+    /// 묶음마다 파일 이름·마지막으로 연 날이 바로 보이고, [열어 보기]·[폴더에서 보기]가 있고, 체크를 푼 파일은 그대로 남는다.
+    /// </summary>
+    [Fact]
+    public void Downloads_cleanup_lists_the_files_before_asking_and_keeps_the_unchecked_ones()
+    {
+        string? report = null, photo = null;
+        using var app = FoldyApp.Start(prepare: a =>
+        {
+            Directory.CreateDirectory(a.Downloads);
+            var old = DateTime.UtcNow.AddDays(-200);
+            report = Path.Combine(a.Downloads, "오래된 보고서.pdf");
+            photo = Path.Combine(a.Downloads, "옛 사진.jpg");
+            foreach (var f in new[] { report, photo })
+            {
+                File.WriteAllText(f, "시험 " + f);
+                File.SetCreationTimeUtc(f, old);
+                File.SetLastWriteTimeUtc(f, old);
+                File.SetLastAccessTimeUtc(f, old);
+            }
+        });
+        app.Find("정리하기").AsButton().Invoke();
+        Retry.WhileNull(
+            () => app.Automation.GetDesktop().FindFirstDescendant(app.By.ByName("다운로드 정리").And(app.By.ByControlType(ControlType.MenuItem))),
+            TimeSpan.FromSeconds(10), ignoreException: true).Result!.AsMenuItem().Invoke();
+        var win = app.FindWindow("다운로드 정리", 20);
+
+        var reportBox = app.Find("오래된 보고서.pdf", win, 30).AsCheckBox();
+        var photoBox = app.Find("옛 사진.jpg", win).AsCheckBox();
+        reportBox.IsChecked.Should().BeTrue("처음에는 다 골라 두고 남길 것만 푼다");
+        photoBox.IsChecked.Should().BeTrue();
+        win.FindFirstDescendant(app.By.ByName("열어 보기: 오래된 보고서.pdf")).Should().NotBeNull("파일마다 [열어 보기]가 있어야 한다");
+        win.FindFirstDescendant(app.By.ByName("폴더에서 보기: 오래된 보고서.pdf")).Should().NotBeNull("파일마다 [폴더에서 보기]가 있어야 한다");
+        win.FindFirstDescendant(app.By.ByControlType(ControlType.Text).And(new FlaUI.Core.Conditions.PropertyCondition(app.Automation.PropertyLibrary.Element.Name, "마지막으로 연 날", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring)))
+            .Should().NotBeNull("마지막으로 연 날이 보여야 한다");
+
+        photoBox.IsChecked = false;
+        Retry.WhileFalse(() => win.FindFirstDescendant(app.By.ByAutomationId("GuidePickedSummary"))?.Name.Contains("1개 / 2개") == true, TimeSpan.FromSeconds(5), ignoreException: true);
+        win.FindFirstDescendant(app.By.ByAutomationId("GuidePickedSummary"))!.Name.Should().Contain("1개 / 2개", "고른 개수가 바로 바뀌어야 한다");
+
+        app.Find("고른 파일 보관하기", win).AsButton().Invoke();
+        Retry.WhileTrue(() => File.Exists(report!), TimeSpan.FromSeconds(10), ignoreException: true);
+        File.Exists(report!).Should().BeFalse("고른 파일은 보관 폴더로 옮긴다");
+        Directory.EnumerateFiles(app.Downloads, "오래된 보고서.pdf", SearchOption.AllDirectories).Should().ContainSingle("지우지 않고 보관 폴더에 둔다");
+        File.Exists(photo!).Should().BeTrue("체크를 푼 파일은 그대로 둔다");
+        win.Close();
+    }
+
+    /// <summary>
     /// 사용자 2026-11-23: 폴더 정리의 같은 파일은 어느 폴더의 파일과 같은지 전체 경로로 보이고, 남길 파일을 고를 수 있다.
     /// </summary>
     [Fact]

@@ -29,6 +29,7 @@ public sealed class FoldyApp : IDisposable
 
         var psi = new ProcessStartInfo(Exe!) { UseShellExecute = false };
         psi.Environment["FOLDY_DATA_DIR"] = _data;
+        psi.Environment["FOLDY_DOWNLOADS_DIR"] = Downloads; // 진짜 다운로드 폴더 대신 (없으면 다운로드 정리 제안도 안 뜬다)
         psi.Environment["FOLDY_LANGUAGE"] = language; // 시험은 한국어 화면 기준 (CI는 영어 Windows). 언어별 시험만 다른 언어
         if (reportCutText)
         {
@@ -54,6 +55,9 @@ public sealed class FoldyApp : IDisposable
     public Window Main { get; }
 
     public string Sample { get; }
+
+    /// <summary>시험용 다운로드 폴더 (FOLDY_DOWNLOADS_DIR). 처음에는 없다: 필요한 시험이 prepare에서 만든다.</summary>
+    public string Downloads => Path.Combine(_data, "downloads");
 
     /// <summary>시험용 데이터 폴더 (FOLDY_DATA_DIR). 띄우기 전에 session.json 등을 미리 둘 수 있다.</summary>
     public string DataDir => _data;

@@ -2790,7 +2790,7 @@ public partial class ShellWindow : Window, IPaneHost
     }
 
     /// <summary>들어 있는 폴더를 Foldy에서 열고, 찾은 파일·폴더를 골라 화면에 보이게 한다.</summary>
-    private void RevealInFoldy(string path)
+    internal void RevealInFoldy(string path)
     {
         BringToFront();
         var trimmed = path.TrimEnd('\\');
