@@ -2792,6 +2792,7 @@ public partial class ShellWindow : Window, IPaneHost
     /// <summary>들어 있는 폴더를 Foldy에서 열고, 찾은 파일·폴더를 골라 화면에 보이게 한다.</summary>
     internal void RevealInFoldy(string path)
     {
+        Log.Information("들어 있는 폴더 보기: {Path}", path);
         BringToFront();
         var trimmed = path.TrimEnd('\\');
         if (Path.GetDirectoryName(trimmed) is not { } parent)

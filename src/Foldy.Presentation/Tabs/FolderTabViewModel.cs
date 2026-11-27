@@ -250,6 +250,11 @@ public sealed partial class FolderTabViewModel : TabBase
         {
             await foreach (var batch in _env.Provider.ListBatchedAsync(PathUtil.IsSftp(target) ? new FsPath(ProviderId.Sftp, target) : FsPath.Local(target), cts.Token))
             {
+                if (gen != _generation)
+                {
+                    return; // 그새 다른 폴더로 가기 시작했다: 취소가 늦게 닿아도 옛 폴더로 되돌리지 않는다
+                }
+
                 var mapped = new List<FileItem>(batch.Count);
                 foreach (var e in batch)
                 {
@@ -297,6 +302,11 @@ public sealed partial class FolderTabViewModel : TabBase
                 {
                     Status = Foldy.Core.Localization.Loc.F("tab.loading", all.Count);
                 }
+            }
+
+            if (gen != _generation)
+            {
+                return;
             }
 
             if (!committed)
