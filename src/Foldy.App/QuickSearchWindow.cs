@@ -80,6 +80,7 @@ internal sealed class QuickSearchWindow : Window
     private CancellationTokenSource? _cts;
     private bool _closing;
     private System.Windows.Threading.DispatcherTimer? _clickWait;
+    private string? _searchedText;
     private DateTime? _activatedAt;
     private readonly bool _animations;
     private readonly SniffDog _dog = new();
@@ -138,7 +139,8 @@ internal sealed class QuickSearchWindow : Window
             chipRow.Children.Add(chip);
         }
 
-        _scroll = new ScrollViewer { Content = _rows, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(6, 0, 6, 0) };
+        // 결과를 눌러도 글자 칸에서 포커스를 빼앗지 않는다: 빼앗기면 한글 입력기가 조합 중인 글자를 확정하며 다시 찾아 목록이 새로 그려지고, 누른 줄이 사라져 첫 클릭이 먹지 않았다 (1.17.1)
+        _scroll = new ScrollViewer { Content = _rows, Focusable = false, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(6, 0, 6, 0) };
         _scroll.ScrollChanged += (_, e) =>
         {
             if (e.VerticalChange > 0 && ResultPaging.NearEnd(_scroll.VerticalOffset, _scroll.ViewportHeight, _scroll.ExtentHeight))
@@ -192,7 +194,14 @@ internal sealed class QuickSearchWindow : Window
         }
 
         Closing += (_, _) => _closing = true; // 밖에서 닫을 때(Alt+F4 등) 닫히는 중에 Deactivated가 또 닫지 않게
-        _input.TextChanged += (_, _) => _ = SearchAsync(_input.Text);
+        _input.TextChanged += (_, _) =>
+        {
+            // 한글 입력기가 조합을 끝낼 때 같은 글자로 TextChanged가 한 번 더 온다: 같은 글자면 다시 찾지 않는다 (목록이 새로 그려져 누르던 줄이 사라짐)
+            if (_input.Text != _searchedText)
+            {
+                _ = SearchAsync(_input.Text);
+            }
+        };
         PreviewKeyDown += OnKey;
         MouseLeftButtonDown += OnDragStart;
         // 다른 곳을 누르면 닫힌다 (Spotlight처럼). 막 뜬 순간의 포커스 흔들림으로 닫히지 않게, 한 번 활성화되고 잠시 뒤부터
@@ -375,7 +384,8 @@ internal sealed class QuickSearchWindow : Window
             return; // 두 번 클릭의 두 번째 놓기, 또는 이미 기다리는 중
         }
 
-        var wait = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds((double)Math.Clamp(GetDoubleClickTime(), 200u, 900u)) };
+        // Background(기본) 우선순위는 결과 그리기·애니메이션이 이어지면 한참 밀린다: 입력과 같은 우선순위로
+        var wait = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds((double)Math.Clamp(GetDoubleClickTime(), 200u, 900u)) };
         wait.Tick += (_, _) =>
         {
             wait.Stop();
@@ -423,6 +433,7 @@ internal sealed class QuickSearchWindow : Window
 
     private async Task SearchAsync(string q)
     {
+        _searchedText = q;
         _placeholder.Visibility = q.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         _cts?.Cancel();
         var cts = _cts = new CancellationTokenSource();
@@ -625,7 +636,15 @@ internal sealed class QuickSearchWindow : Window
         row.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, "Brush.Text");
         System.Windows.Automation.AutomationProperties.SetName(row, $"{h.Group}: {h.Title}");
         var index = _hits.Count;
-        row.MouseEnter += (_, _) => Select(index);
+        // 마우스를 올리면 고르기만 한다. 여기서 스크롤까지 하면 줄이 마우스 아래에서 움직여 다른 줄이 골라지고 또 스크롤되며,
+        // 끝에 닿으면 결과를 더 불러와 목록이 계속 바뀌었다 (그동안 클릭이 먹지 않음, 1.17.1)
+        row.MouseEnter += (_, _) =>
+        {
+            if (_clickWait is null)
+            {
+                Select(index, bringIntoView: false);
+            }
+        };
         if (h.Reveal is { } reveal)
         {
             // 파일·폴더: 한 번 클릭 = Ctrl+Enter(들어 있는 폴더에서 골라 보이기), 두 번 클릭 = Enter(열기).
@@ -651,7 +670,7 @@ internal sealed class QuickSearchWindow : Window
         _rows.Children.Add(row);
     }
 
-    private void Select(int i)
+    private void Select(int i, bool bringIntoView = true)
     {
         for (var k = 0; k < _hits.Count; k++)
         {
@@ -668,7 +687,11 @@ internal sealed class QuickSearchWindow : Window
         _selected = i;
         if (i >= 0 && i < _hits.Count)
         {
-            _hits[i].Row.BringIntoView();
+            if (bringIntoView)
+            {
+                _hits[i].Row.BringIntoView();
+            }
+
             ShowPreview(_hits[i].Hit);
         }
         else
