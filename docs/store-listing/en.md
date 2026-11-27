@@ -101,10 +101,6 @@ It is off by default, read-only when on, and only works inside this computer.
 1.14.4
 • In Find anything (Ctrl+Space), Ctrl+Enter opens the containing folder with the found file selected and shown near the middle of the list. Before, you sometimes had to scroll to see it.
 
-1.14.2
-• You can now drag the Find anything (Ctrl+Space) window to move it. Grab the short bar at the top or any empty spot. It remembers where you put it and opens there next time (or in the middle if that spot is off screen).
-• Opening the search window now brings the Foldy window up too, even if it was minimized or behind another program.
-• Desktop, Downloads, Documents, Pictures and Videos are now always at the top of Recent folders on the left, each with its own icon. Folders moved by OneDrive open in the right place.
 
 ## Product features (one per line)
 
