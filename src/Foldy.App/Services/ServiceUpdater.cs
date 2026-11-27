@@ -50,6 +50,43 @@ public sealed class StoreUpdateSource : IUpdateSource
     }
 }
 
+/// <summary>
+/// 시험용: 시험 데이터 폴더(FOLDY_DATA_DIR)로 띄우고 FOLDY_TEST_UPDATE=버전을 주면, 시작하고 조금 뒤 그 버전이 준비된 것처럼 알린다.
+/// 내려받지도 설치하지도 않는다. "새 버전이 있어요" 창을 UI 시험에서 확인하려고 쓴다.
+/// </summary>
+public sealed class TestUpdateSource(string version) : IUpdateSource
+{
+    private Timer? _timer;
+
+    public string? ReadyVersion { get; private set; }
+
+    public string? LastError => null;
+
+    public event Action? Changed;
+
+    public static TestUpdateSource? FromEnvironment() =>
+        Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is { Length: > 0 }
+        && Environment.GetEnvironmentVariable("FOLDY_TEST_UPDATE") is { Length: > 0 } v
+            ? new TestUpdateSource(v)
+            : null;
+
+    public void Start(TimeSpan firstDelay) => _timer = new Timer(_ =>
+    {
+        ReadyVersion = version;
+        Changed?.Invoke();
+    }, null, firstDelay, Timeout.InfiniteTimeSpan);
+
+    public Task<bool> CheckAsync(CancellationToken ct)
+    {
+        ReadyVersion = version;
+        return Task.FromResult(true);
+    }
+
+    public bool LaunchInstaller() => false;
+
+    public void Dispose() => _timer?.Dispose();
+}
+
 /// <summary>기존 <see cref="AppUpdater"/>(관리자 권한 설치 스크립트)를 <see cref="IUpdateSource"/>로 감싼다.</summary>
 public sealed class LegacyUpdateSource(AppUpdater inner) : IUpdateSource
 {

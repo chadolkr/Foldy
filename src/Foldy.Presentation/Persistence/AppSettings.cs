@@ -33,6 +33,9 @@ public sealed record AppSettings
     /// <summary>업데이트 방식(자동 설치/알림만/끔)과 채널(stable/beta).</summary>
     public UpdateSettings Update { get; init; } = UpdateSettings.Default;
 
+    /// <summary>"새 버전이 있어요" 창으로 이미 물어본 버전. 같은 버전은 다시 묻지 않는다 (1.16.0).</summary>
+    public string? UpdateAskedVersion { get; init; }
+
     /// <summary>오류 보고서 보내기 동의. 기본은 보내지 않음.</summary>
     public bool SendCrashReports { get; init; }
 

@@ -127,7 +127,9 @@ public partial class ShellWindow : Window, IPaneHost
         };
 
         // Store(MSIX) 판은 Microsoft Store가 업데이트한다: 자체 업데이트(AppUpdater·서비스)는 쓰지 않는다 (docs/store.md)
-        _updater = Foldy.Platform.SystemInfo.AppPackage.IsPackaged ? new StoreUpdateSource() : new LegacyUpdateSource(new AppUpdater(AppVersion));
+        _updater = Foldy.Platform.SystemInfo.AppPackage.IsPackaged ? new StoreUpdateSource()
+            : TestUpdateSource.FromEnvironment() is { } fake ? fake // 시험: 가짜 새 버전으로 "새 버전이 있어요" 창 확인 (UpdatePromptTests)
+            : new LegacyUpdateSource(new AppUpdater(AppVersion));
         _updater.Changed += OnUpdaterChanged;
         _search = new FileSearchService(() => App.Options.DocShots is null ? _indexer : null, // 문서 캡처는 색인(전체 드라이브)을 검색에 쓰지 않는다
              () => _settings.ShowHidden);
@@ -183,6 +185,7 @@ public partial class ShellWindow : Window, IPaneHost
         Shell.PaneActivated += p => UpdateSelectionText();
         Shell.Jobs.CollectionChanged += OnJobsChanged;
         JobsList.ItemsSource = Shell.Jobs;
+        Activated += (_, _) => AskUpdateSoon(); // 다른 프로그램을 쓰는 동안 준비된 업데이트는 Foldy로 돌아오면 묻는다
 
         BuildCommands();
         UpdateRecycleBinInfo();
@@ -428,7 +431,10 @@ public partial class ShellWindow : Window, IPaneHost
         if (!App.Options.IsBench && !App.Options.IsCapture && !Foldy.Platform.SystemInfo.AppPackage.IsPackaged)
         {
             _updater.Start(TimeSpan.FromSeconds(5)); // 실행 5초 뒤 + 6시간마다 (짧게 켰다 꺼도 확인되게)
-            _ = UseServiceUpdaterAsync(); // 서비스를 쓸 수 있으면 UAC 없는 쪽으로 바꾼다
+            if (_updater is not TestUpdateSource)
+            {
+                _ = UseServiceUpdaterAsync(); // 서비스를 쓸 수 있으면 UAC 없는 쪽으로 바꾼다
+            }
         }
 
         await ProbeEnginesAsync();
@@ -451,6 +457,7 @@ public partial class ShellWindow : Window, IPaneHost
     private void OnUpdaterChanged() => Dispatcher.BeginInvoke(() =>
     {
         UpdateUpdateButton();
+        AskUpdateSoon();
         // 서비스(SYSTEM)는 사용자별 프록시(PAC 스크립트·인증 프록시)를 쓰지 못해 회사망에서 확인이 실패할 수 있다.
         // 그러면 한 번은 앱(사용자 권한, 사용자 프록시 설정)이 직접 확인한다.
         if (!_triedUserProxyFallback && _updater is ServiceUpdater { ReadyVersion: null, LastError: { } e } && IsNetworkError(e))
@@ -2153,10 +2160,78 @@ public partial class ShellWindow : Window, IPaneHost
         UpdateUpdateButton();
         var v = _updater.ReadyVersion;
         Shell.Status = Foldy.Core.Localization.Loc.F("sw.upd.ready", v);
-        if (interactive && Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("sw.upd.title"), Foldy.Core.Localization.Loc.F("sw.upd.readyAsk", v, AppVersion), Foldy.Core.Localization.Loc.T("sw.upd.installNow"), Foldy.Core.Localization.Loc.T("sw.later")))
+        if (interactive)
         {
-            OnInstallUpdate(this, new RoutedEventArgs());
+            RememberUpdateAsked(v);
+            if (Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("sw.upd.title"), Foldy.Core.Localization.Loc.F("sw.upd.readyAsk", v, AppVersion), Foldy.Core.Localization.Loc.T("sw.upd.installNow"), Foldy.Core.Localization.Loc.T("sw.later")))
+            {
+                OnInstallUpdate(this, new RoutedEventArgs());
+            }
         }
+    }
+
+    private bool _askingUpdate;
+
+    /// <summary>
+    /// 새 버전이 준비되면 아래 한 줄 대신 창으로 묻는다 (1.16.0, 사용자 의견 "아래 한 줄은 잘 안 보인다", Notepad++처럼).
+    /// [지금 업데이트]는 [다시 켜고 업데이트] 단추와 같다: 복사·이동 중이면 끝난 뒤에 설치한다.
+    /// 같은 버전은 한 번만 묻고, Foldy를 보고 있지 않거나 다른 대화 상자가 떠 있으면 돌아올 때까지 기다린다.
+    /// </summary>
+    private void AskUpdateSoon() => Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, AskUpdateIfReady);
+
+    private void AskUpdateIfReady()
+    {
+        var userIsHere = IsLoaded && IsVisible && IsActive && WindowState != WindowState.Minimized
+            && !_askingUpdate && !_reallyClose
+            && !App.Options.IsBench && !App.Options.IsCapture && App.Options.DocShots is null && App.Options.Screenshot is null
+            && !OwnedWindows.Cast<Window>().Any(w => w.IsVisible)
+            // 시험·성능 측정(따로 쓰는 데이터 폴더)에서는 진짜 업데이트로 창을 띄우지 않는다: 시험 창을 가린다
+            && (_updater is TestUpdateSource || Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is not { Length: > 0 });
+        var v = _updater.ReadyVersion;
+        if (!Foldy.Presentation.Update.UpdatePrompt.ShouldAsk(v, _settings.UpdateAskedVersion, _settings.Update.Mode, userIsHere, alreadyScheduled: _updateAfterJobs is not null))
+        {
+            return;
+        }
+
+        _askingUpdate = true;
+        try
+        {
+            RememberUpdateAsked(v!); // [나중에]나 창 닫기도 "물어봤음": 같은 버전은 다시 묻지 않는다 (아래 단추는 남는다)
+            var msg = Foldy.Core.Localization.Loc.F("sw.upd.popAsk", v, AppVersion);
+            if (Shell.Jobs.Any(j => !j.IsFinished))
+            {
+                msg += "\n\n" + Foldy.Core.Localization.Loc.T("sw.upd.popJobs");
+            }
+            else if (_updater is not ServiceUpdater)
+            {
+                msg += "\n\n" + Foldy.Core.Localization.Loc.T("sw.upd.popUac");
+            }
+
+            Log.Information("업데이트 {Version}: 지금 업데이트할지 창으로 묻는다", v);
+            if (Foldy.UI.Dialogs.FoldyDialog.Confirm(this, Foldy.Core.Localization.Loc.T("sw.upd.popTitle"), msg, Foldy.Core.Localization.Loc.T("sw.upd.updateNow"), Foldy.Core.Localization.Loc.T("sw.later")))
+            {
+                OnInstallUpdate(this, new RoutedEventArgs());
+            }
+            else
+            {
+                Shell.Status = Foldy.Core.Localization.Loc.F("sw.upd.laterHint", v);
+            }
+        }
+        finally
+        {
+            _askingUpdate = false;
+        }
+    }
+
+    private void RememberUpdateAsked(string? version)
+    {
+        if (version is null || string.Equals(_settings.UpdateAskedVersion, version, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _settings = _settings with { UpdateAskedVersion = version };
+        SaveSettings();
     }
 
     private DispatcherTimer? _updateAfterJobs;
