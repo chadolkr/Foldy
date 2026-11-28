@@ -1812,6 +1812,7 @@
   "sw.qs.footerHere": "Los archivos se buscan en todas las unidades listas y en la carpeta abierta ({0}), que aún no está lista.",
   "sw.qs.footerIndexing": "Preparando la búsqueda ({0}%), así que por ahora solo busco en esta carpeta. Al terminar, buscaré en todas las unidades.",
   "sw.qs.footerNoService": "⚠ El asistente de búsqueda rápida no está en marcha: por ahora solo se buscan archivos en la carpeta abierta ({0}). Revisa \"Búsqueda\" en la barra de estado.",
+  "sw.qs.footerStarting": "El PC acaba de encenderse y el asistente de búsqueda rápida aún se está iniciando. Por un momento solo se busca en la carpeta abierta ({0}); pronto se buscará en todas las unidades.",
   "sw.qs.hotkeyTaken": "Otro programa usa el atajo de búsqueda rápida ({0}), así que solo funciona dentro de Foldy. Puedes cambiarlo en Configuración → Atajos.",
   "sw.qs.hotkeyTitle": "Atajo de búsqueda rápida",
   "sw.qs.intent": "¿Hacer esto? Pulsa Enter para empezar",

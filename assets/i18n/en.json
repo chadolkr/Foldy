@@ -1812,6 +1812,7 @@
   "sw.qs.footerHere": "Files are found across all ready drives and in the open folder ({0}), which isn't ready yet.",
   "sw.qs.footerIndexing": "Getting ready to search ({0}%), so for now I search only this folder. Once done, I search every drive.",
   "sw.qs.footerNoService": "⚠ The fast search helper isn't running, so for now files are found only in the open folder ({0}). Check \"Search\" in the status bar below.",
+  "sw.qs.footerStarting": "Your PC just started and the fast search helper is still starting. For a moment files are found only in the open folder ({0}); soon every drive is searched.",
   "sw.qs.hotkeyTaken": "The quick search shortcut ({0}) is used by another program, so it works only inside Foldy. You can change it in Settings → Shortcuts.",
   "sw.qs.hotkeyTitle": "Quick search shortcut",
   "sw.qs.intent": "Do this? Press Enter to start",

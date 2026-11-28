@@ -2623,6 +2623,8 @@ public partial class ShellWindow : Window, IPaneHost
                     : Foldy.Core.Localization.Loc.T("sw.qs.footerAll"))
                 : indexing >= 0
                     ? Foldy.Core.Localization.Loc.F("sw.qs.footerIndexing", indexing)
+                : IndexerServiceStarting() // PC를 켠 직후: 꺼진 것이 아니라 곧 이어진다 (2026-11-28)
+                    ? Foldy.Core.Localization.Loc.F("sw.qs.footerStarting", Path.GetFileName(scope?.TrimEnd('\\') ?? ""))
                 : Foldy.Core.Localization.Loc.F("sw.qs.footerNoService", Path.GetFileName(scope?.TrimEnd('\\') ?? "")))
             + Foldy.Core.Localization.Loc.T("sw.qs.keys") + Foldy.Core.Localization.Loc.T("qs.filterKeys");
         _quickSearch = BuildQuickSearch(scope, footer);
