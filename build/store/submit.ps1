@@ -194,7 +194,11 @@ if ($textOnly) {
 else {
     # 패키지: msstore가 열린 초안을 지우고 새 초안에 패키지를 올린다
     $null = Invoke-Store '인증 설정' { msstore reconfigure --tenantId $env:STORE_TENANT_ID --sellerId $env:STORE_SELLER_ID --clientId $env:STORE_CLIENT_ID --clientSecret $env:STORE_CLIENT_SECRET }
-    Show-Store (Invoke-Store '패키지 올리기' { msstore publish $Msix -id $ProductId --noCommit })
+    # Partner Center가 가끔 "Please try again"(일시 오류)으로 실패한다 (2026-11-28 1.18.1·1.19.0 두 번). 30초 쉬고 세 번까지
+for ($try = 1; ; $try++) {
+    try { Show-Store (Invoke-Store '패키지 올리기' { msstore publish $Msix -id $ProductId --noCommit }); break }
+    catch { if ($try -ge 3) { throw }; Write-Host "패키지 올리기 실패 ($try/3), 30초 뒤 다시"; Start-Sleep -Seconds 30 }
+}
     $app = Invoke-Dev '앱 다시 읽기' Get '' $null
     if (-not $app.pendingApplicationSubmission) { throw '패키지를 올린 초안을 찾지 못함' }
     $draftId = $app.pendingApplicationSubmission.id

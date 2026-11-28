@@ -76,7 +76,8 @@ impl PackageKind {
     fn matches(self, name: &str) -> bool {
         let lower = name.to_ascii_lowercase();
         match self {
-            PackageKind::Msi => lower.ends_with(".msi"),
+            // "나만 설치" MSI(-user.msi, 1.19.0)는 사용자 폴더용이라 서비스(SYSTEM)가 깔면 안 된다
+            PackageKind::Msi => lower.ends_with(".msi") && !lower.ends_with("-user.msi"),
             PackageKind::Portable => lower.ends_with("-portable.zip"),
         }
     }
@@ -336,6 +337,12 @@ mod tests {
             m.asset(PackageKind::Portable).unwrap().name,
             "Foldy-1.2.3-x64-portable.zip"
         );
+        // "나만 설치" MSI가 앞에 있어도 서비스는 모든 사용자용을 고른다 (1.19.0에서 첫 .msi를 골라 서비스 계정에 깔았다)
+        let mut m = manifest("Foldy-1.2.3-x64-user.msi");
+        m.assets.push(ManifestAsset { name: "Foldy-1.2.3-x64.msi".into(), size: 0, sha256: SHA.into() });
+        assert_eq!(m.asset(PackageKind::Msi).unwrap().name, "Foldy-1.2.3-x64.msi");
+        let only_user = manifest("Foldy-1.2.3-x64-user.msi");
+        assert!(only_user.asset(PackageKind::Msi).is_none());
     }
 
     #[test]
