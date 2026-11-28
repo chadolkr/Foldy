@@ -68,7 +68,7 @@ public static class IndexerService
         return false;
     }
 
-    /// <summary>관리자 PowerShell 한 번으로 등록·설명·시작 (지연된 자동 시작). exe가 보호된 곳에 없으면 거부한다.</summary>
+    /// <summary>관리자 PowerShell 한 번으로 등록·설명·시작 (자동 시작, 1.17.2부터 지연 없이: 켜자마자 빠른 찾기가 색인을 쓰게). exe가 보호된 곳에 없으면 거부한다.</summary>
     public static ProcessStartInfo BuildInstall(string exePath)
     {
         if (!IsProtectedLocation(exePath))
@@ -78,7 +78,7 @@ public static class IndexerService
 
         var bin = $"\\\"{exePath}\\\" --service";
         var script = string.Join("; ",
-            $"sc.exe create {Name} binPath= \"{bin}\" start= delayed-auto DisplayName= \"Foldy Indexer\"",
+            $"sc.exe create {Name} binPath= \"{bin}\" start= auto DisplayName= \"Foldy Indexer\"",
             $"sc.exe description {Name} \"Foldy Indexer by David CHA - 파일 이름 즉시 검색을 위한 디스크 색인\"",
             $"sc.exe failure {Name} reset= 86400 actions= restart/60000/restart/60000//",
             $"sc.exe start {Name}");
