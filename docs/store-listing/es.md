@@ -88,6 +88,10 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ## Novedades de esta versión
 
+1.19.0
+• Al recopilar por primera vez un disco externo, USB o tarjeta SD, Foldy muestra cuánto lleva, como "Aprox. 40% hecho". Las siguientes pasadas muestran el progreso frente a la anterior.
+• Cambiar un disco externo por otro con la misma letra ya no mezcla los archivos del primero.
+
 1.18.0
 • La búsqueda es más rápida. Los nombres de archivo se guardan en memoria, así que los resultados aparecen mientras escribes.
 • Los archivos que cambiaron con Foldy cerrado se ponen al día nada más abrirlo. Foldy lee el registro de cambios de Windows sin permisos de administrador y vuelve a leer solo las carpetas que cambiaron. También se prepara en segundo plano 3 minutos después de iniciar sesión.
@@ -98,10 +102,6 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 1.16.0
 • La limpieza de Descargas ahora muestra primero los archivos en vez de solo "10 archivos sin abrir en 90 días". Cada archivo muestra su tamaño y el día en que se abrió por última vez, con Abrir y Mostrar en la carpeta, para que desmarques los que quieras conservar.
-
-1.15.0
-• La versión de Store ahora incluye el mismo asistente de búsqueda rápida que la del instalador. Lee C: en segundos y encuentra los archivos que cambiaron mientras Foldy estaba cerrado.
-• En la versión de Store, Ctrl+Espacio abre el cuadro de búsqueda aunque Foldy esté cerrado (un pequeño asistente se inicia al iniciar sesión).
 
 
 ## Características del producto (una por línea)

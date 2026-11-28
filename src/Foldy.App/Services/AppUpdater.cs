@@ -97,7 +97,9 @@ public sealed class AppUpdater : IDisposable
                 return true;
             }
 
-            var asset = info.Assets.FirstOrDefault(a => a.Name.EndsWith("-x64.msi", StringComparison.OrdinalIgnoreCase))
+            // "나만 설치"(1.19.0, 사용자 폴더)는 같은 종류의 MSI로: 모든 사용자용 MSI는 관리자 권한이 있어야 깔린다
+            var suffix = Foldy.Platform.SystemInfo.UserMsiInstall.IsUserInstall ? Foldy.Platform.SystemInfo.UserMsiInstall.AssetSuffix : "-x64.msi";
+            var asset = info.Assets.FirstOrDefault(a => a.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
                 ?? throw new InvalidDataException(Foldy.Core.Localization.Loc.T("au.noMsi"));
             var dir = Path.Combine(_root, version);
             Directory.CreateDirectory(dir);
@@ -268,6 +270,13 @@ public sealed class AppUpdater : IDisposable
                 ReadyMsi = null;
                 ReadyVersion = null;
                 return false;
+            }
+
+            if (Foldy.Platform.SystemInfo.UserMsiInstall.IsUserInstall)
+            {
+                // "나만 설치": 이 사용자 권한 그대로 (UAC 없음). 사용자 폴더에 깔리는 것이라 권한 경계가 없다
+                using var u = Process.Start(Foldy.Platform.SystemInfo.UserMsiInstall.BuildStartInfo(ReadyMsi, asset.Sha256));
+                return true;
             }
 
             // 관리자 권한으로 뜬 뒤 보호된 폴더로 복사하고 해시를 다시 확인한 복사본만 설치한다 (ElevatedMsiInstall)

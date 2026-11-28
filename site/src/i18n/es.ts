@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: "Nuevo en la 1.18.0: la versión de la Store también encuentra al abrir los archivos que cambiaron con Foldy cerrado",
-    eyebrow: 'Foldy 1.18.0',
+    badge: "Nuevo en la 1.19.0: instala sin permisos de administrador y ve el progreso al recopilar unidades",
+    eyebrow: 'Foldy 1.19.0',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
+      { icon: 'update', title: 'Instalar sin administrador', text: 'En un PC del trabajo sin permisos de administrador, el instalador solo para mí pone Foldy solo en tu cuenta, y las actualizaciones también se instalan sin pedir administrador. Al recopilar por primera vez un disco externo o USB, Foldy muestra cuánto lleva, como "Aprox. 40% hecho".' },
       { icon: 'search', title: 'Los cambios, nada más abrir', text: 'La versión de la Store encuentra al abrir los archivos que cambiaron mientras Foldy estaba cerrado. Lee el registro de cambios de Windows sin permisos de administrador y vuelve a leer solo las carpetas que cambiaron. Mientras crea la lista por primera vez, avisa de que es solo esa vez, y lo ya listado se puede buscar enseguida.' },
       { icon: 'search', title: 'La búsqueda, donde tú quieras', text: 'Toma la barrita de arriba de la ventana de búsqueda de Ctrl+Espacio y arrástrala; la próxima vez se abre en el mismo sitio. Al abrirla también aparece la ventana de Foldy, aunque estuviera minimizada o cerrada.' },
       { icon: 'panes', title: 'Tus carpetas de siempre, a la izquierda', text: 'Escritorio, Descargas, Documentos, Imágenes y Vídeos aparecen siempre arriba de las carpetas recientes del menú izquierdo, cada una con su dibujo. Las carpetas movidas a OneDrive se abren en su sitio real.' },
-      { icon: 'pointer', title: "Avisos justo donde miras", text: "Si no puedes soltar un archivo ahí o escribes un carácter que no vale en un nombre, el motivo aparece justo debajo del puntero y no en la barra de abajo. Con el teclado, justo debajo de donde escribías o de la fila elegida. Desaparece solo a los pocos segundos." },
     ],
     link: 'Ver todos los cambios',
   },
@@ -256,6 +256,8 @@ const es: Dictionary = {
     warning:
       'Foldy aún no tiene firma de código, así que Windows puede mostrar «Windows protegió su PC». Haz clic en [Más información] y luego en [Ejecutar de todas formas].',
     uninstall: 'Para quitarlo: Configuración de Windows → Aplicaciones → Aplicaciones instaladas → Foldy → Desinstalar. El servicio de índice también se quita.',
+    userNote: '¿No tienes permisos de administrador (por ejemplo, en un PC del trabajo)? Descarga el instalador solo para mí. Se instala solo para tu cuenta sin pedir administrador y se actualiza solo. La primera lista de archivos tarda un poco, solo esa vez.',
+    userLink: 'Solo para mí (sin administrador)',
     allReleases: 'Versiones anteriores y novedades',
     store: 'Obtenerlo en Microsoft Store',
     storeNote: 'La edición de Store la actualiza Microsoft Store. La búsqueda rápida que lee unidades enteras por adelantado, Ctrl+Espacio con Foldy cerrado y seguir reuniendo archivos tras cerrar la ventana solo están en la edición del instalador (MSI). Donde Microsoft Store esté bloqueado, como en algunas empresas, usa el instalador (MSI) de arriba.',

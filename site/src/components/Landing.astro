@@ -1,7 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 import { locales, localeHref, type Locale } from '../i18n';
-import { getLatestRelease, RELEASES_URL, REPO } from '../lib/release';
+import { getLatestRelease, LATEST_USER_MSI_URL, RELEASES_URL, REPO } from '../lib/release';
 import Icon from './Icon.astro';
 
 import appIcon from '../../../assets/icons/png/foldy-128.png';
@@ -361,6 +361,8 @@ Object.keys(files).forEach(img);
         </p>
         <p class="warn"><Icon name="shield" />{t.install.warning}</p>
         <p class="muted">{t.install.uninstall}</p>
+        <!-- 관리자 권한이 없는 PC용 "나만 설치" MSI (1.19.0). release.yml이 릴리스마다 같은 이름으로 올린다 -->
+        <p class="muted">{t.install.userNote} <a class="link" href={LATEST_USER_MSI_URL}>{t.install.userLink} →</a></p>
         <a class="link" href={`${repoUrl}/releases`}>{t.install.allReleases} →</a>
       </div>
     </div>
