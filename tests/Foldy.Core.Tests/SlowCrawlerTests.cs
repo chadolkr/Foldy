@@ -451,6 +451,54 @@ public sealed class SlowCrawlerTests : IDisposable
         Assert.False(WinDirList.IsLinkTag(0x9000001A), "클라우드 파일 폴더는 진짜 폴더");
     }
 
+    [Fact]
+    public void Change_journal_rereads_only_changed_folders_without_admin()
+    {
+        if (!OperatingSystem.IsWindows() || UsnChanges.Now(_root) is null)
+        {
+            Assert.Skip("NTFS 변경 기록이 있는 Windows 전용");
+        }
+
+        Make(@"그대로\깊이\a.txt");
+        Make(@"바뀜\b.txt");
+        Make(@"지울곳\c.txt");
+        using var c = new SlowCrawler(_store, () => [_root]) { UseJournal = _ => true };
+        var ct = TestContext.Current.CancellationToken;
+        c.CrawlOnce(_root, ct);
+        Assert.False(c.LastPass!.Journal); // 처음은 평소처럼, 위치만 남긴다
+        Assert.True(File.Exists(c.StoreFor(_root).FilePath + ".usn"));
+
+        Make(@"바뀜\새파일.txt");
+        Make(@"바뀜\새폴더\더깊이.txt");
+        Directory.Delete(Path.Combine(_root, "지울곳"), recursive: true);
+        c.CrawlOnce(_root, ct);
+        var p = c.LastPass!;
+        Assert.True(p.Journal, "변경 기록으로 모아야 한다");
+        var store = c.StoreFor(_root);
+        Assert.Single(store.Search("새파일", 10));
+        Assert.Single(store.Search("더깊이", 10));
+        Assert.Empty(store.Search("c.txt", 10));
+        Assert.Single(store.Search("a.txt", 10)); // 그대로인 폴더는 지난 목록에서
+        Assert.True(p.Listed <= 3, $"바뀐 폴더(맨 위, 바뀜, 새폴더)만 읽어야 하는데 {p.Listed}개를 읽음");
+    }
+
+    [Fact]
+    public void Change_journal_is_not_used_when_asked_to_read_everything()
+    {
+        if (!OperatingSystem.IsWindows() || UsnChanges.Now(_root) is null)
+        {
+            Assert.Skip("NTFS 변경 기록이 있는 Windows 전용");
+        }
+
+        Make(@"a\b.txt");
+        using var c = new SlowCrawler(_store, () => [_root]) { UseJournal = _ => true };
+        var ct = TestContext.Current.CancellationToken;
+        c.CrawlOnce(_root, ct);
+        c.CrawlOnce(_root, ct, full: true); // [지금 색인하기]: 모든 폴더를 다시 읽는다
+        Assert.False(c.LastPass!.Journal);
+        Assert.True(c.LastPass.Listed >= 2);
+    }
+
     private static void WaitFor(Func<bool> ok)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();

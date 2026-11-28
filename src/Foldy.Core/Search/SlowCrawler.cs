@@ -324,6 +324,7 @@ public sealed class SlowCrawler : IDisposable
         _dir = dir;
         _drives = drives;
         IsNear = LooksNear;
+        UseJournal = root => IsWholeDrive(root) && IsNear(root);
         Directory.CreateDirectory(dir);
     }
 
@@ -657,6 +658,23 @@ public sealed class SlowCrawler : IDisposable
                     due = false;
                 }
 
+                if (!due && done is not null)
+                {
+                    // 켠 뒤 한 번: Foldy가 꺼져 있던 동안 바뀐 것을 변경 기록으로 따라잡는다 (바뀐 폴더만 읽어서 C:도 1~2초, 2026-11-28 Store 판).
+                    // 직접 누를 때만 모으는 설정이면 하지 않는다
+                    bool first;
+                    lock (_gate)
+                    {
+                        first = _rescanEvery is not null && _caughtUp.Add(root);
+                    }
+
+                    if (first && JournalMoved(root))
+                    {
+                        due = true;
+                        why = "꺼져 있던 동안 바뀐 것";
+                    }
+                }
+
                 if (!due)
                 {
                     if (StatusOf(d) is null)
@@ -830,7 +848,7 @@ public sealed class SlowCrawler : IDisposable
     /// Listed: 목록을 새로 읽은 폴더, Reused: 지난 목록을 그대로 쓴 폴더, Skipped: 그중 드라이브에 아무것도 묻지 않은 폴더(위 폴더 목록에 딸려 온 시각으로 판단),
     /// Resumed: 끊긴 곳부터 이어서 했나, TrustTimes: 이 드라이브의 폴더 시각을 믿었나.
     /// </summary>
-    public sealed record PassStats(long Found, int Listed, int Reused, int Skipped, bool Resumed = false, bool TrustTimes = true);
+    public sealed record PassStats(long Found, int Listed, int Reused, int Skipped, bool Resumed = false, bool TrustTimes = true, bool Journal = false);
 
     /// <summary>마지막으로 모은 결과 (시험·진단용).</summary>
     public PassStats? LastPass { get; private set; }
@@ -873,6 +891,55 @@ public sealed class SlowCrawler : IDisposable
 
     /// <summary>드라이브 전체(예: "K:\\")인가 (시험에서 바꾼다: 시험은 임시 폴더를 드라이브처럼 쓴다).</summary>
     internal Func<string, bool> IsWholeDrive { get; set; } = root => string.Equals(Path.GetPathRoot(root), root, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// NTFS 변경 기록으로 바뀐 폴더만 다시 읽어 볼 드라이브인가 (<see cref="UsnChanges"/>). 이 PC에 바로 꽂힌 드라이브 전체만.
+    /// 변경 기록이 없는 드라이브(FAT·exFAT·네트워크)는 물어봐도 없다고 나와 평소처럼 모은다. 시험에서 바꾼다.
+    /// </summary>
+    internal Func<string, bool> UseJournal { get; set; }
+
+    private static UsnChanges.Mark? LoadUsn(string path)
+    {
+        try
+        {
+            var parts = File.Exists(path) ? File.ReadAllText(path).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : [];
+            return parts.Length == 2
+                && ulong.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var id)
+                && long.TryParse(parts[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var usn)
+                ? new UsnChanges.Mark(id, usn) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static void SaveUsn(string path, UsnChanges.Mark m)
+    {
+        try
+        {
+            File.WriteAllText(path, string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{m.JournalId} {m.NextUsn}"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    /// <summary>
+    /// 지난번 다 모은 뒤로 이 드라이브에 바뀐 것이 있나 (변경 기록의 위치만 비교해서 싸다). 기록을 쓰지 않는 드라이브면 false.
+    /// </summary>
+    private bool JournalMoved(string root)
+    {
+        if (!UseJournal(root) || LoadUsn(StoreFor(root).FilePath + ".usn") is not { } since)
+        {
+            return false;
+        }
+
+        return UsnChanges.Now(root) is { } now && (now.JournalId != since.JournalId || now.NextUsn != since.NextUsn);
+    }
+
+    // 이번에 켠 뒤 "꺼져 있던 동안 바뀐 것"을 이미 따라잡은 드라이브 (그다음은 변경 알림이 바로 반영한다)
+    private readonly HashSet<string> _caughtUp = new(StringComparer.OrdinalIgnoreCase);
 
     // 목록이 비어 있는데 드라이브에는 파일이 있는 경우 한 번만 곧바로 다시 모아 본다 (계속 실패해도 드라이브를 두드리지 않게)
     private readonly HashSet<string> _retriedEmpty = new(StringComparer.OrdinalIgnoreCase);
@@ -944,6 +1011,17 @@ public sealed class SlowCrawler : IDisposable
             readAll = ck.ReadAll;
         }
 
+        // NTFS 변경 기록(관리자 없이): 지난번 다 모은 뒤로 안이 바뀐 폴더만 다시 읽고, 나머지는 지난 목록을 그대로 쓴다 (2026-11-28, Store 판).
+        // 이번 위치는 모으기 전에 잡는다: 모으는 동안 바뀐 것은 다음번에 또 나온다. 이어서 하는 것은 앞서 읽은 폴더가 이 위치보다 옛것이라 남기지 않는다
+        var usnPath = store.FilePath + ".usn";
+        var usnStart = ck is null && UseJournal(root) ? UsnChanges.Now(root) : null;
+        HashSet<string>? changed = null;
+        if (usnStart is not null && !readAll && old.Count > 0 && LoadUsn(usnPath) is { } since)
+        {
+            changed = UsnChanges.ChangedFolders(root, since, out _);
+        }
+
+        Func<string, bool>? journalSame = changed is null ? null : d => !changed.Contains(d);
         var pass = ck?.Pass ?? ix.Pass + 1;
         long found = ck?.Found ?? 0, checks = ck?.Checks ?? 0, misses = ck?.Misses ?? 0;
         int listed = ck?.Listed ?? 0, reused = ck?.Reused ?? 0, skipped = ck?.Skipped ?? 0;
@@ -1074,7 +1152,7 @@ public sealed class SlowCrawler : IDisposable
 
                             // 하나씩 읽을 때는 이 스레드에서 (가까운 드라이브는 이 스레드가 남에게 비켜 주며 읽는다).
                             // 같이 읽을 때는 폴더마다 제 스레드: 기다리는 읽기 16개가 공용 스레드를 차지하면 Windows가 스레드를 천천히 늘려 재는 값이 틀어진다
-                            reading.Add((job, pace.Width == 1 && reading.Count == 0 ? Task.FromResult(Fetch(job, root, readAll)) : Task.Factory.StartNew(() => Fetch(job, root, readAll), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)));
+                            reading.Add((job, pace.Width == 1 && reading.Count == 0 ? Task.FromResult(Fetch(job, root, readAll, journalSame)) : Task.Factory.StartNew(() => Fetch(job, root, readAll, journalSame), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)));
                         }
 
                         // 다 읽은 것이 있으면 먼저 기록한다 (끊으라는 말이 와도 읽은 것은 남긴다). 기다리는 동안 끊으면 읽는 중인 폴더는 다시 쌓아 다음에 읽는다
@@ -1108,6 +1186,7 @@ public sealed class SlowCrawler : IDisposable
                                 reused++;
                                 skipped++;
                                 found += CountLines(r.Block);
+                                newChildren.AddRange(r.Children); // 변경 기록으로 그대로 쓴 폴더는 지난 목록의 하위 폴더로 내려간다 (끝 폴더는 없음)
                             }
                             else
                             {
@@ -1208,6 +1287,14 @@ public sealed class SlowCrawler : IDisposable
                 File.Move(idxTemp, idxPath, overwrite: true);
                 TryDelete(marksPath);
                 TryDelete(resumePath);
+                if (usnStart is { } journalMark)
+                {
+                    SaveUsn(usnPath, journalMark);
+                }
+                else
+                {
+                    TryDelete(usnPath);
+                }
                 trusted = TimesTrusted(tc, tm);
             }
             finally
@@ -1215,7 +1302,7 @@ public sealed class SlowCrawler : IDisposable
                 oldData?.Dispose();
             }
 
-            LastPass = new PassStats(found, listed, reused, skipped, ck is not null, trusted);
+            LastPass = new PassStats(found, listed, reused, skipped, ck is not null, trusted, changed is not null);
             Report(new CrawlStatus(root, false, found, true, DateTime.UtcNow));
             return found;
         }
@@ -1281,10 +1368,28 @@ public sealed class SlowCrawler : IDisposable
     }
 
     /// <summary>폴더 하나: 시각을 보고 그대로인 끝 폴더면 지난 목록을, 아니면 목록을 새로 읽는다. 여러 스레드에서 같이 불린다(공유하는 것을 건드리지 않는다).</summary>
-    private static Fetched Fetch(FetchJob job, string root, bool readAll)
+    private static Fetched Fetch(FetchJob job, string root, bool readAll, Func<string, bool>? journalSame = null)
     {
         var r = new Fetched();
         var sw = Stopwatch.StartNew();
+        if (journalSame is not null && job.Before is not null && job.OldBlock is not null && journalSame(job.Dir))
+        {
+            // 변경 기록에 이 폴더 안의 일이 없다: 드라이브에 묻지 않고 지난 목록을 쓰고, 하위 폴더도 지난 목록에서 내려간다
+            r.MTime = job.Before.MTime;
+            r.SameTime = true;
+            r.Block = job.OldBlock;
+            r.Reused = true;
+            foreach (var line in Encoding.UTF8.GetString(job.OldBlock).Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (CrawlStore.Parse(line.TrimEnd('\r')) is { IsFolder: true } e)
+                {
+                    r.Children.Add((e.Path, e.ModifiedUtc.Ticks));
+                }
+            }
+
+            return r;
+        }
+
         // 폴더 자신의 시각을 본다. 위 폴더 목록에 적힌 시각은 NTFS에서 늦게 고쳐져서, 그것을 기록하면 다음에 거의 모든 폴더를 다시 읽게 된다(CI 확인).
         // 목록을 안 읽어도 될 수 있는 끝 폴더만 시각을 따로 묻고, 나머지는 목록의 "." 줄에 딸려 오는 것을 쓴다
         // (Google Drive는 한 번 묻는 데 0.7ms. 2026-11-24 D:·G:·C: 11,681개 폴더에서 "." 시각이 따로 물은 시각과 모두 같음)

@@ -1067,10 +1067,16 @@ public partial class ShellWindow : Window, IPaneHost
             return Foldy.Core.Localization.Loc.T("sw.idx.preparingAll");
         }
 
-        return all.Any(c => c.Running || (!c.Complete && c.Error is null))
+        return SelfFirstBuild(all)
+            ? Foldy.Core.Localization.Loc.F("sw.idx.selfFirst", found) // 처음 한 번만 오래 걸린다는 것을 알게 (사용자 2026-11-28)
+            : all.Any(c => c.Running || (!c.Complete && c.Error is null))
             ? Foldy.Core.Localization.Loc.F("sw.idx.selfBuilding", found)
             : Foldy.Core.Localization.Loc.F("sw.idx.ready", found);
     }
+
+    /// <summary>Store 판: 아직 한 번도 다 모으지 못한 드라이브를 처음으로 모으는 중인가 (그다음부터는 바뀐 폴더만이라 금방 끝난다).</summary>
+    private static bool SelfFirstBuild(IReadOnlyList<Foldy.Core.Search.CrawlStatus> all) =>
+        all.Any(c => c.CompletedUtc is null && c.Error is null && (c.Running || !c.Complete));
 
     /// <summary>[지금 색인하기]가 보일 드라이브를 표시한다 (색인 서비스가 없어도). 드라이브를 건드리지 않고 모으는 쪽이 아는 목록만 쓴다.</summary>
     private void MarkIndexNowDrives()
@@ -2615,8 +2621,11 @@ public partial class ShellWindow : Window, IPaneHost
         _startApps ??= Foldy.Core.QuickSearch.SystemCatalog.LoadStartApps();
         var scope = Shell.ActivePane.ActiveFolder?.Path;
         var indexing = _search.LastStatus is { State: Foldy.Indexer.Client.IndexState.Indexing } ix ? ix.ProgressPermille / 10 : -1;
+        var selfAll = _crawler?.KnownDrives.Select(_crawler.StatusOf).OfType<Foldy.Core.Search.CrawlStatus>().ToList() ?? [];
         var footer = (!_search.IsIndexed && SelfGathers && _crawler is not null
-                ? Foldy.Core.Localization.Loc.T("sw.qs.footerAll") // Store 판: Foldy가 모은 모든 드라이브 목록에서
+                ? SelfFirstBuild(selfAll) // Store 판 처음 목록: 모은 데까지 찾고, 처음 한 번만이라고 (사용자 2026-11-28)
+                    ? Foldy.Core.Localization.Loc.F("sw.qs.footerSelfFirst", selfAll.Sum(c => Math.Max(0, c.Found)))
+                    : Foldy.Core.Localization.Loc.T("sw.qs.footerAll") // Store 판: Foldy가 모은 모든 드라이브 목록에서
                 : _search.IsIndexed
                 ? (scope is not null && !_search.IsIndexedPath(scope) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(scope)
                     ? Foldy.Core.Localization.Loc.F("sw.qs.footerHere", Path.GetFileName(scope.TrimEnd('\\')))

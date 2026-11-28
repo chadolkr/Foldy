@@ -37,8 +37,10 @@ pub const GATHER_ARG: &str = "--gather";
 /// Foldy는 이 이름으로 "도우미가 키를 받는 중"인지 본다.
 pub const KEY_WINDOW_NAME: &str = "key";
 
-/// 로그인한 뒤 처음 모으기까지 기다리는 시간 (로그인 직후 컴퓨터가 바쁠 때를 피한다).
-pub const FIRST_GATHER_AFTER_SECS: u64 = 10 * 60;
+/// 로그인한 뒤 처음 모으기까지 기다리는 시간 (로그인 직후 컴퓨터가 가장 바쁠 때는 피한다).
+/// 1.18.0: 10분 → 3분. NTFS 드라이브는 변경 기록으로 바뀐 폴더만 읽어 가벼워져서, 사용자가 Foldy를 열 때 이미 준비돼 있게
+/// (사용자 2026-11-28 "로그인할 때 뒤에서 미리 준비하기"). 모으는 Foldy는 다른 프로그램에 비켜 주며 읽는다.
+pub const FIRST_GATHER_AFTER_SECS: u64 = 3 * 60;
 
 /// 주기 모으기 설정을 읽는다: 몇 시간마다 (1~168). 없거나 `off`거나 알아볼 수 없으면 None (모으지 않음).
 pub fn parse_gather(text: &str) -> Option<u32> {
@@ -46,7 +48,7 @@ pub fn parse_gather(text: &str) -> Option<u32> {
     line.parse::<u32>().ok().filter(|h| (1..=168).contains(h))
 }
 
-/// 지금 Foldy를 띄워 모을 때인가 (초 단위 벽시계). 처음은 도우미가 뜬 뒤 10분, 그다음은 지난번 뒤 주기만큼.
+/// 지금 Foldy를 띄워 모을 때인가 (초 단위 벽시계). 처음은 도우미가 뜬 뒤 3분, 그다음은 지난번 뒤 주기만큼.
 /// 시계가 거꾸로 갔으면(시각을 고침) 바로 한 번 한다.
 pub fn gather_due(now: u64, started: u64, last: Option<u64>, hours: u32) -> bool {
     match last {
@@ -210,12 +212,12 @@ mod tests {
     }
 
     #[test]
-    fn gather_waits_ten_minutes_then_the_interval() {
+    fn gather_waits_three_minutes_then_the_interval() {
         let start = 1_000_000;
         assert!(!gather_due(start, start, None, 1));
-        assert!(!gather_due(start + 599, start, None, 1));
-        assert!(gather_due(start + 600, start, None, 1));
-        let last = start + 600;
+        assert!(!gather_due(start + 179, start, None, 1));
+        assert!(gather_due(start + 180, start, None, 1));
+        let last = start + 180;
         assert!(!gather_due(last + 3599, start, Some(last), 1));
         assert!(gather_due(last + 3600, start, Some(last), 1));
         assert!(!gather_due(last + 5 * 3600, start, Some(last), 6));

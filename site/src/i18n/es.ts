@@ -38,15 +38,15 @@ const es: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: "Nuevo en la 1.14.2: mueve la ventana de búsqueda, y Escritorio y Descargas siempre a la izquierda",
-    eyebrow: 'Foldy 1.14.2',
+    badge: "Nuevo en la 1.18.0: la versión de la Store también encuentra al abrir los archivos que cambiaron con Foldy cerrado",
+    eyebrow: 'Foldy 1.18.0',
     title: 'Novedades recientes',
     lead: 'Desde la 1.0 seguimos puliendo Foldy con el uso diario. Si ya lo usas, se actualiza solo a la última versión.',
     items: [
+      { icon: 'search', title: 'Los cambios, nada más abrir', text: 'La versión de la Store encuentra al abrir los archivos que cambiaron mientras Foldy estaba cerrado. Lee el registro de cambios de Windows sin permisos de administrador y vuelve a leer solo las carpetas que cambiaron. Mientras crea la lista por primera vez, avisa de que es solo esa vez, y lo ya listado se puede buscar enseguida.' },
       { icon: 'search', title: 'La búsqueda, donde tú quieras', text: 'Toma la barrita de arriba de la ventana de búsqueda de Ctrl+Espacio y arrástrala; la próxima vez se abre en el mismo sitio. Al abrirla también aparece la ventana de Foldy, aunque estuviera minimizada o cerrada.' },
       { icon: 'panes', title: 'Tus carpetas de siempre, a la izquierda', text: 'Escritorio, Descargas, Documentos, Imágenes y Vídeos aparecen siempre arriba de las carpetas recientes del menú izquierdo, cada una con su dibujo. Las carpetas movidas a OneDrive se abren en su sitio real.' },
       { icon: 'pointer', title: "Avisos justo donde miras", text: "Si no puedes soltar un archivo ahí o escribes un carácter que no vale en un nombre, el motivo aparece justo debajo del puntero y no en la barra de abajo. Con el teclado, justo debajo de donde escribías o de la fila elegida. Desaparece solo a los pocos segundos." },
-      { icon: 'update', title: 'Listas al día, aunque esté cerrado', text: 'Las listas de unidades del trabajo, de red, en la nube y USB se actualizan cada cierto tiempo (cada hora, 6 horas o día), aunque Foldy esté cerrado. Un pequeño ayudante del atajo abre Foldy un momento sin ventana; solo lee las carpetas que cambiaron y se cierra. No hay nada que configurar ni registrar.' },
     ],
     link: 'Ver todos los cambios',
   },
