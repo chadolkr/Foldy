@@ -13,6 +13,8 @@ SW = [
     ('sw.copyBasic', '복사: 기본 방식', 'Copy: standard mode', 'Copia: modo estándar', 'コピー: 標準', '复制：标准模式'),
     ('sw.copyRustTip', '빠른 복사를 쓰고 있어요 (foldy_copy.dll)', 'Using fast copy (foldy_copy.dll)', 'Usando la copia rápida (foldy_copy.dll)', '高速コピーを使っています (foldy_copy.dll)', '正在使用快速复制（foldy_copy.dll）'),
     ('sw.idx.crawlOnly', '찾기: 연 폴더만', 'Search: open folder only', 'Búsqueda: solo carpeta abierta', '検索: 開いたフォルダーのみ', '查找：仅打开的文件夹'),
+    ('sw.idx.starting', '찾기: 빠른 찾기 도우미가 켜지는 중', 'Search: fast search helper is starting', 'Búsqueda: el asistente de búsqueda rápida se está iniciando', '検索: 高速検索ヘルパーを起動中', '查找：快速查找助手正在启动'),
+    ('sw.idx.startingTip', 'PC를 켠 지 얼마 안 돼서 빠른 찾기 도우미가 아직 켜지는 중이에요. 곧 저절로 이어져요. 그동안은 연 폴더에서만 찾아요.', "Your PC just started, so the fast search helper is still starting. It connects by itself in a moment. Until then, search looks only in the open folder.", 'El PC acaba de encenderse y el asistente de búsqueda rápida aún se está iniciando. Se conectará solo en un momento. Mientras tanto, la búsqueda mira solo en la carpeta abierta.', 'PC を起動したばかりなので、高速検索ヘルパーはまだ起動中です。まもなく自動でつながります。それまではいま開いているフォルダーだけを検索します。', '电脑刚启动，快速查找助手还在启动中，稍后会自动连接。在此之前只在打开的文件夹中查找。'),
     ('sw.idx.preparingAll', '찾기: 준비 중', 'Search: getting ready', 'Búsqueda: preparándose', '検索: 準備中', '查找：正在准备'),
     ('sw.crawl.running', '천천히 모으는 중', 'collecting slowly', 'recopilando despacio', 'ゆっくり収集中', '正在慢慢收集'),
     ('sw.crawl.done', '모으기 완료', 'collected', 'recopilado', '収集完了', '收集完成'),

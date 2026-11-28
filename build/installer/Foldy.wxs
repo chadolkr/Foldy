@@ -90,7 +90,7 @@
                          Type="string" Value="&quot;[#FoldyHotkeyExe]&quot;" />
         </Component>
 
-        <!-- 색인 서비스: LocalSystem, 지연된 자동 시작, 실패 시 재시작 -->
+        <!-- 색인 서비스: LocalSystem, 자동 시작(지연 없음, 1.17.2), 실패 시 재시작 -->
         <Component Id="IndexerService" Bitness="always64">
           <File Id="FoldyIndexExe" Source="$(PayloadDir)\foldy-index.exe" KeyPath="yes" />
           <ServiceInstall Id="FoldyIndexerInstall"
@@ -103,7 +103,6 @@
                           ErrorControl="normal"
                           Arguments="--service"
                           Vital="yes" />
-          <!-- 지연된 자동 시작은 MsiServiceConfig(문서상 불안정) 대신 아래 CustomAction(sc.exe)으로 지정한다 -->
           <!-- 실패 시 60초 뒤 재시작, 24시간 후 카운터 초기화 -->
           <util:ServiceConfig ServiceName="FoldyIndexer"
                               FirstFailureActionType="restart"
@@ -119,9 +118,11 @@
       </Directory>
     </StandardDirectory>
 
-    <!-- 서비스 시작 유형을 '자동(지연된 시작)'으로: ServiceInstall 직후 sc.exe로 변경 (64비트 System32) -->
-    <CustomAction Id="SetIndexerDelayedAuto" Directory="TARGETDIR"
-                  ExeCommand="&quot;[System64Folder]sc.exe&quot; config FoldyIndexer start= delayed-auto"
+    <!-- 서비스 시작 유형을 그냥 '자동'으로 (1.17.2, 64비트 System32의 sc.exe). 1.17.1까지는 '자동(지연된 시작)'이라
+         PC를 켜고 2~3분 동안 색인 서비스가 없어 빠른 찾기가 폴더 훑기로만 돌았다 (사용자 2026-11-28 "빠른 찾기가 꺼져 있다").
+         ServiceInstall Start="auto"만으로도 되지만, 업데이트 때 예전 서비스의 지연 표시가 남지 않게 한 번 더 지정한다. -->
+    <CustomAction Id="SetIndexerAutoStart" Directory="TARGETDIR"
+                  ExeCommand="&quot;[System64Folder]sc.exe&quot; config FoldyIndexer start= auto"
                   Execute="deferred" Impersonate="no" Return="ignore" />
     <!-- 다시 설치·업데이트·제거: AI 앱이 띄운 AI 연결용 Foldy(Foldy.exe 뒤에 mcp 인자, 창 없음)는 끝내고 진행한다 (사용자 2026-11-22).
          창이 있는 Foldy는 건드리지 않는다 (복사·이동 중일 수 있다, 파일 사용 중 안내를 따른다). AI 앱이 다음에 다시 띄운다.
@@ -137,7 +138,7 @@
     <InstallExecuteSequence>
       <Custom Action="EndAiConnectionFoldy" Before="InstallValidate" />
       <Custom Action="EndQuickSearchKey" Before="RemoveFiles" />
-      <Custom Action="SetIndexerDelayedAuto" After="InstallServices" Condition="NOT REMOVE" />
+      <Custom Action="SetIndexerAutoStart" After="InstallServices" Condition="NOT REMOVE" />
     </InstallExecuteSequence>
 
     <!-- 나머지 모든 파일(수백 개의 DLL, 로캘 폴더 등)은 페이로드에서 자동 수집 -->

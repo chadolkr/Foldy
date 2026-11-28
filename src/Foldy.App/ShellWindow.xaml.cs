@@ -700,8 +700,18 @@ public partial class ShellWindow : Window, IPaneHost
             case IndexerLinkState.NotConnected:
                 var svc = DescribeIndexerService();
                 Log.Information("색인 서비스에 연결하지 못함 ({Service}). 30초마다 다시 시도", svc);
-                IndexerText.Text = Foldy.Core.Localization.Loc.T("sw.idx.crawlOnly");
-                IndexerText.ToolTip = Foldy.Core.Localization.Loc.F("sw.idx.noServiceTip", svc);
+                if (IndexerServiceStarting())
+                {
+                    // 자동 시작 서비스가 아직 안 떴다 (PC를 켠 직후): "꺼져 있어요" 대신 켜지는 중이라고 (2026-11-28)
+                    IndexerText.Text = Foldy.Core.Localization.Loc.T("sw.idx.starting");
+                    IndexerText.ToolTip = Foldy.Core.Localization.Loc.T("sw.idx.startingTip");
+                }
+                else
+                {
+                    IndexerText.Text = Foldy.Core.Localization.Loc.T("sw.idx.crawlOnly");
+                    IndexerText.ToolTip = Foldy.Core.Localization.Loc.F("sw.idx.noServiceTip", svc);
+                }
+
                 await _search.RefreshStateAsync();
                 if (SelfGathers)
                 {
@@ -1133,6 +1143,25 @@ public partial class ShellWindow : Window, IPaneHost
         catch (Exception)
         {
             return "서비스가 설치되어 있지 않음";
+        }
+#pragma warning restore CA1031
+    }
+
+    /// <summary>색인 서비스가 설치되어 있고 자동 시작인데 아직 켜지는 중인가 (PC를 켠 직후, 서비스가 실패 뒤 다시 시작을 기다릴 때).</summary>
+    private static bool IndexerServiceStarting()
+    {
+        try
+        {
+            using var sc = new System.ServiceProcess.ServiceController("FoldyIndexer");
+            return sc.StartType == System.ServiceProcess.ServiceStartMode.Automatic
+                && sc.Status is System.ServiceProcess.ServiceControllerStatus.Stopped
+                    or System.ServiceProcess.ServiceControllerStatus.StartPending
+                    or System.ServiceProcess.ServiceControllerStatus.Running;
+        }
+#pragma warning disable CA1031
+        catch (Exception)
+        {
+            return false;
         }
 #pragma warning restore CA1031
     }

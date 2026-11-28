@@ -22,8 +22,9 @@ public sealed class SlowCrawlerTests : IDisposable
             {
                 Directory.Delete(d, recursive: true);
             }
-            catch (IOException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
+                // 임시 폴더 치우기만 실패한 것 (정션을 지울 때 이 노트북의 Windows가 "권한 없음"을 낸 적 있음, 2026-11-28)
             }
         }
     }

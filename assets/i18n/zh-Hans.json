@@ -1775,6 +1775,8 @@
   "sw.idx.reconnectingTip": "快速查找助手暂时休息一下，很快会自动恢复。在此之前，会在已收集的列表和打开的文件夹中查找。",
   "sw.idx.removed": "已删除快速查找助手。",
   "sw.idx.selfBuilding": "查找：正在建立列表 · {0:N0} 个文件",
+  "sw.idx.starting": "查找：快速查找助手正在启动",
+  "sw.idx.startingTip": "电脑刚启动，快速查找助手还在启动中，稍后会自动连接。在此之前只在打开的文件夹中查找。",
   "sw.idx.storeOnly": "Store 版无需另外安装。Foldy 会自己建立所有驱动器的文件列表，并直接在列表中查找。",
   "sw.idx.tipHeader": "文件名查找（Ctrl+F、Ctrl+Space）的准备状态\n",
   "sw.idxnow.already": "{0} 已在建立列表或正在排队。",

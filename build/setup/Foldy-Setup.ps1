@@ -114,7 +114,7 @@ $lnk.IconLocation = "$exe,0"
 $lnk.Description = 'Foldy 파일 관리자'
 $lnk.Save()
 
-Step '색인 서비스 등록 (FoldyIndexer, SYSTEM, 지연된 자동 시작)'
+Step '색인 서비스 등록 (FoldyIndexer, SYSTEM, 자동 시작)'
 $indexer = Join-Path $target 'foldy-index.exe'
 $bin = "`"$indexer`" --service"
 # Windows PowerShell 5.1은 네이티브 명령 인수 안의 따옴표를 지워 버리므로 sc.exe create 대신 New-Service / CIM을 쓴다
@@ -127,8 +127,9 @@ if ($existing) {
     New-Service -Name $service -BinaryPathName $bin -DisplayName 'Foldy Indexer' -Description $desc -StartupType Automatic | Out-Null
 }
 Set-Service -Name $service -Description $desc
-$out = & sc.exe config $service start= delayed-auto
-if ($LASTEXITCODE -ne 0) { Write-Host "    (지연 시작 설정 실패: $out)" }
+# 그냥 자동 시작 (1.17.2): 지연된 시작이면 PC를 켜고 2~3분 동안 빠른 찾기가 색인 없이 돈다. 예전에 지연으로 만든 서비스도 바꾼다.
+$out = & sc.exe config $service start= auto
+if ($LASTEXITCODE -ne 0) { Write-Host "    (자동 시작 설정 실패: $out)" }
 $out = & sc.exe failure $service reset= 86400 actions= restart/60000/restart/60000//
 if ($LASTEXITCODE -ne 0) { Write-Host "    (실패 시 재시작 설정 실패: $out)" }
 Start-Service $service

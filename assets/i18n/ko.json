@@ -1775,6 +1775,8 @@
   "sw.idx.reconnectingTip": "빠른 찾기 도우미가 잠깐 쉬었다 와요. 곧 저절로 다시 이어져요. 그동안은 모아 둔 목록과 연 폴더에서 찾아요.",
   "sw.idx.removed": "빠른 찾기 도우미를 지웠어요.",
   "sw.idx.selfBuilding": "찾기: 목록 만드는 중 · 파일 {0:N0}개",
+  "sw.idx.starting": "찾기: 빠른 찾기 도우미가 켜지는 중",
+  "sw.idx.startingTip": "PC를 켠 지 얼마 안 돼서 빠른 찾기 도우미가 아직 켜지는 중이에요. 곧 저절로 이어져요. 그동안은 연 폴더에서만 찾아요.",
   "sw.idx.storeOnly": "Store 판은 따로 설치할 것이 없어요. Foldy가 모든 드라이브의 파일 목록을 직접 만들어 두고, 그 목록에서 바로 찾아요.",
   "sw.idx.tipHeader": "파일 이름 찾기(Ctrl+F·Ctrl+Space)를 위한 준비 상태\n",
   "sw.idxnow.already": "{0}은(는) 이미 목록을 만드는 중이거나 차례를 기다리고 있어요.",
