@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "나만 설치" MSI의 WixUI 문구 (1.19.0). 한국어 먼저, 영어 한 줄 (Strings.en-us.wxl과 같은 방식) -->
+<WixLocalization Culture="en-us" Codepage="949" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="WelcomeEulaDlgTitle" Value="{\WixUI_Font_Bigger}Foldy를 나만 쓰게 설치할게요" Overridable="yes" />
+  <String Id="ExitDialogTitle" Value="{\WixUI_Font_Bigger}설치가 끝났어요" Overridable="yes" />
+  <String Id="ExitDialogDescription" Value="관리자 권한 없이 이 사용자에게만 설치했어요. 시작 메뉴에서 Foldy를 여세요.&#xD;&#xA;&#xD;&#xA;처음 한 번은 파일 목록을 만드느라 조금 걸리고, 다음부터는 바로 찾아요. 어디서든 Ctrl+Space로 무엇이든 찾을 수 있어요.&#xD;&#xA;&#xD;&#xA;Installed just for you, no admin rights needed. Open Foldy from the Start menu. Press Ctrl+Space anywhere to find anything." Overridable="yes" />
+</WixLocalization>

@@ -88,6 +88,10 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
+1.19.0
+• While an external drive, USB stick or SD card is gathered for the first time, Foldy shows how far along it is, like "About 40% done". Later passes show progress against the last one.
+• Swapping one external drive for another on the same letter no longer mixes in the first drive's files.
+
 1.18.0
 • Search is faster. File names are kept in memory, so results appear as you type.
 • Files that changed while Foldy was closed are caught up as soon as it opens. Foldy reads the Windows change record without admin rights and rereads only the folders that changed. It also gets ready in the background 3 minutes after you sign in.
@@ -98,10 +102,6 @@ It is off by default, read-only when on, and only works inside this computer.
 
 1.16.0
 • Downloads cleanup now shows the actual files first instead of just "10 files not opened in 90 days". Each file shows its size and the day it was last opened, with Open and Show in folder, so you can uncheck the ones you want to keep.
-
-1.15.0
-• The Store edition now includes the same fast search helper as the installer edition. It reads C: in seconds and finds files that changed while Foldy was closed.
-• In the Store edition, Ctrl+Space now opens the search box even when Foldy is closed (a small helper starts when you sign in).
 
 
 ## Product features (one per line)

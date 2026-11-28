@@ -380,6 +380,13 @@ public sealed record CrawlStatus(string Drive, bool Running, long Found, bool Co
 
     /// <summary>모으는 중의 빠르기 (드라이브에 마우스를 올리면 보인다: 느린 까닭을 찾으려고).</summary>
     public CrawlSpeed? Speed { get; init; }
+
+    /// <summary>
+    /// 대략의 진행률, 천분율 0~990 (1.19.0, 사용자 "얼마나 진행되고 있는지 궁금할꺼다"). 다시 모을 때는 지난번 파일 수에 견주고,
+    /// 처음 모을 때는 이 PC에 꽂힌 드라이브만 모은 파일 크기 ÷ 드라이브 사용 용량으로. 알 수 없으면(처음 모으는 네트워크·클라우드 드라이브) null: 그때는 수와 빠르기만.
+    /// 빼는 것(휴지통·시스템 폴더 등)이 있어 다 모으기 전에는 99%를 넘지 않는다. 큰 외장하드는 몇 분 동안 1%도 안 되어 천분율로 둔다.
+    /// </summary>
+    public int? Permille { get; init; }
 }
 
 /// <summary>모으는 빠르기: 이번에 1분에 몇 개, 읽은 폴더 수, 폴더 하나 답에 걸린 시간, 같이 읽는 수, 쉰 시간의 몫(0~1), 같이 읽는 수를 재 본 결과.</summary>
@@ -1411,6 +1418,11 @@ public sealed class SlowCrawler : IDisposable
         var rested = TimeSpan.Zero;
         var foundAtStart = found;
         var foldersAtStart = listed + reused;
+        // 진행률의 기준: 지난번 다 모은 파일 수, 없으면 (가까운 드라이브 전체일 때) 사용 용량
+        long lastCount = old.Count > 0 && store.Exists ? (store.Count >= 0 ? store.Count : store.CountLines()) : 0;
+        long used = lastCount == 0 && near && IsWholeDrive(root) ? UsedSpaceOf(root) : 0;
+        long bytes = 0;
+        int? PercentNow() => lastCount > 0 ? (int)Math.Min(990, found * 1000 / lastCount) : used > 0 ? (int)Math.Min(990, bytes * 1000 / used) : null;
 
         void Breathe(TimeSpan batch, int folders, TimeSpan perAsk)
         {
@@ -1572,6 +1584,7 @@ public sealed class SlowCrawler : IDisposable
                                 askedTime += r.Took;
                                 listed++;
                                 found += r.Count;
+                                bytes += r.Bytes;
                                 if (r.Ok && r.SameTime && job.OldBlock is not null)
                                 {
                                     // 스스로 시험: 시각은 그대로인데 안 목록이 바뀌었나
@@ -1606,7 +1619,7 @@ public sealed class SlowCrawler : IDisposable
                         if (lastReport.Elapsed > TimeSpan.FromSeconds(1))
                         {
                             data.Flush(); // 모으는 중에도 찾을 수 있게
-                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Speed = SpeedNow(), Resumed = resumed });
+                            Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Speed = SpeedNow(), Resumed = resumed, Permille = PercentNow() });
                             lastReport.Restart();
                         }
 
@@ -1750,6 +1763,8 @@ public sealed class SlowCrawler : IDisposable
 
         public long Count { get; set; }
 
+        public long Bytes { get; set; }
+
         public TimeSpan Took { get; set; }
 
         public List<(string Dir, long Time)> Children { get; } = [];
@@ -1822,6 +1837,7 @@ public sealed class SlowCrawler : IDisposable
         {
             sb.Append(CrawlStore.Format(e)).Append('\n');
             r.Count++;
+            r.Bytes += e.IsFolder ? 0 : e.Size;
             if (e.IsFolder)
             {
                 r.Children.Add((e.Path, e.ModifiedUtc.Ticks));

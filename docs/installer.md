@@ -58,3 +58,9 @@ wix msi validate -sice ICE43 -sice ICE57 -sice ICE61 artifacts\Foldy-0.1.0-x64.m
 - 설치 UI는 영어(환영 화면에 한국어 안내 병기). 로캘별 UI는 없다.
 - 서비스 시작 유형은 `ServiceInstall Start="auto"`에 더해 `sc.exe config ... start= auto` 사용자 지정 동작(`SetIndexerAutoStart`)으로 한 번 더 지정한다. 1.17.1까지는 같은 자리에서 `delayed-auto`(지연된 시작)로 바꿨는데, 그러면 PC를 켜고 2~3분 동안 서비스가 없어 빠른 찾기가 "연 폴더만"으로 돌았다(DECISIONS 2026-11-28). 업데이트로 예전 서비스의 지연 표시가 남지 않게 이 동작을 남겨 둔다. MsiServiceConfig는 Microsoft 문서상 불안정해서 쓰지 않았다.
 - 제거 시 `%ProgramData%\Foldy` 와 사용자 설정은 삭제하지 않는다.
+
+## "나만 설치" MSI (1.19.0)
+
+- `build/installer/FoldyUser.wxs` → `Foldy-<버전>-x64-user.msi` (build-msi.ps1이 모든 사용자용 다음에 함께 만든다). Scope=perUser, `%LOCALAPPDATA%\Programs\Foldy`, 관리자 권한 없이 설치·업데이트·제거. 색인 서비스·foldy-index.exe는 넣지 않는다. 단축키 도우미는 HKCU Run. UpgradeCode `3F7C2A91-…`(모든 사용자용과 다름). UI는 WixUI_Minimal(라이선스 → 설치, 위치는 고르지 않음: 업데이트가 늘 같은 자리를 찾게).
+- 업데이트는 앱이 한다(`AppUpdater` + `UserMsiInstall`): `-x64-user.msi`를 받아 update.json 서명·SHA-256 확인 → 이 사용자 권한으로 `msiexec /i /passive` → `%LOCALAPPDATA%\Programs\Foldy\Foldy.exe`를 다시 띄움.
+- ICE38/64/91은 끈다: 사용자 폴더에 통째로 넣는 페이로드 파일은 파일이 KeyPath라 사용자별 설치 규칙(레지스트리 KeyPath, 폴더마다 RemoveFolder)에 걸린다. 본체·도우미 구성 요소는 HKCU 값을 KeyPath로 둔다.

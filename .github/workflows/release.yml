@@ -308,6 +308,12 @@ jobs:
           Copy-Item $msi.FullName latest-alias/Foldy-Setup.msi
           gh release upload $tag latest-alias/Foldy-Setup.msi
           if ($LASTEXITCODE -ne 0) { throw 'Foldy-Setup.msi 올리기 실패' }
+          # "나만 설치"(관리자 권한 없이, 1.19.0)도 늘 같은 주소로: releases/latest/download/Foldy-Setup-user.msi
+          $userMsi = Get-ChildItem artifacts/release -Filter 'Foldy-*-x64-user.msi' | Select-Object -First 1
+          if (-not $userMsi) { throw '나만 설치 MSI가 없음' }
+          Copy-Item $userMsi.FullName latest-alias/Foldy-Setup-user.msi
+          gh release upload $tag latest-alias/Foldy-Setup-user.msi
+          if ($LASTEXITCODE -ne 0) { throw 'Foldy-Setup-user.msi 올리기 실패' }
 
       # 소개 사이트에 새 버전 반영. 이 작업의 GITHUB_TOKEN으로 만든 릴리스는 pages.yml의 'release: published'를
       # 깨우지 못해서(GitHub 규칙) 여기서 직접 다시 만든다. 실패해도 릴리스는 그대로 둔다.

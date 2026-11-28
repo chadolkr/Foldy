@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: "New in 1.18.0: the Store version also finds files that changed while Foldy was closed, right away",
-    eyebrow: 'Foldy 1.18.0',
+    badge: "New in 1.19.0: install without admin rights, and see progress while drives are gathered",
+    eyebrow: 'Foldy 1.19.0',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
+      { icon: 'update', title: 'Install without admin rights', text: 'On a work PC without admin rights, the just-for-me installer puts Foldy in your account only, and updates install without an admin prompt too. While an external drive or USB stick is gathered for the first time, Foldy shows how far along it is, like "About 40% done".' },
       { icon: 'search', title: 'Changes found as soon as it opens', text: 'The Store version now finds files that changed while Foldy was closed as soon as you open it. It reads the change record Windows keeps, without admin rights, and rereads only the folders that changed. While the list is built the first time, Foldy says it happens only once, and what is listed so far is searchable right away.' },
       { icon: 'search', title: 'Put the search window where you like', text: 'Grab the short bar at the top of the Ctrl+Space search window and drag it; it opens in the same spot next time. Opening it also brings up the Foldy window, even if it was minimized or closed.' },
       { icon: 'panes', title: 'Everyday folders always on the left', text: 'Desktop, Downloads, Documents, Pictures and Videos now always sit at the top of the recent folders in the left menu, each with its own picture. Folders moved to OneDrive open in their real place.' },
-      { icon: 'pointer', title: "Help right where you're looking", text: "When you can't drop a file there or type a character names can't use, the reason now appears right under the mouse pointer instead of the status bar at the bottom. With the keyboard, it appears right below where you were typing or the selected row. It disappears on its own after a few seconds." },
     ],
     link: 'See everything that changed',
   },
@@ -256,9 +256,11 @@ const en: Dictionary = {
     warning:
       'Foldy is not code-signed yet, so Windows may show a “Windows protected your PC” screen. Click [More info], then [Run anyway].',
     uninstall: 'To remove it: Windows Settings → Apps → Installed apps → Foldy → Uninstall. The index service is removed too.',
+    userNote: 'No admin rights (a work PC, for example)? Get the just-for-me installer. It installs for your account only without an admin prompt and still updates itself. The first file list takes a little while to build, only once.',
+    userLink: 'Just for me (no admin rights)',
     allReleases: 'Older versions and release notes',
     store: 'Get it from Microsoft Store',
-    storeNote: 'The Store edition is updated by Microsoft Store. Fast search that reads whole drives ahead of time, Ctrl+Space while Foldy is closed, and gathering after you close the window are only in the installer (MSI) edition. Where Microsoft Store is blocked, such as at some workplaces, use the installer (MSI) above.',
+    storeNote: 'The Store edition is updated by Microsoft Store and has the same features as the installer (MSI) edition. It includes the fast search helper too, so Windows may ask for administrator approval once during install. On PCs where that is not allowed, Foldy builds the file lists for every drive itself and finds files the same way; only the first list takes a little longer (about 20 seconds for 2 million files on C:). Where Microsoft Store is blocked, such as at some workplaces, use the installer (MSI) above or the just-for-me installer that needs no admin rights.',
   },
   faq: {
     title: 'Questions',

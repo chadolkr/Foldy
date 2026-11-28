@@ -96,4 +96,21 @@ if ($LASTEXITCODE) { throw 'wix build 실패' }
 wix msi validate -sice ICE43 -sice ICE57 -sice ICE61 $msi
 if ($LASTEXITCODE) { throw 'wix msi validate 실패' }
 Write-Host "MSI:$msi ($([math]::Round((Get-Item $msi).Length / 1MB, 1)) MB, 버전 $msiVersion)"
+
+# ── "나만 설치" MSI (1.19.0): 관리자 권한 없이 %LOCALAPPDATA%\Programs\Foldy에, 색인 서비스 없이 (FoldyUser.wxs) ──
+# 이름이 -x64.msi로 끝나지 않아, 모든 사용자용 MSI를 고르는 업데이트(서비스·AppUpdater)와 섞이지 않는다
+$userMsi = Join-Path $outDir "Foldy-$full-x64-user.msi"
+Remove-Item $userMsi -ErrorAction SilentlyContinue
+wix build (Join-Path $PSScriptRoot 'FoldyUser.wxs') `
+    -arch x64 `
+    -ext WixToolset.UI.wixext `
+    -loc (Join-Path $PSScriptRoot 'StringsUser.en-us.wxl') `
+    -d "PayloadDir=$payload" -d "Version=$msiVersion" -d "RepoRoot=$root" -d "LicenseRtf=$rtfPath" `
+    -o $userMsi
+if ($LASTEXITCODE) { throw 'wix build 실패 (나만 설치)' }
+# 억제 항목: 사용자 폴더에 통째로 넣는 페이로드 파일(수백 개)은 파일이 KeyPath라 ICE38/64/91이 사용자별 설치 규칙으로 경고한다.
+# 이 MSI는 이 사용자만 쓰고(Scope=perUser), 제거는 MSI가 파일 목록대로 지운다 (docs/installer.md)
+wix msi validate -sice ICE38 -sice ICE43 -sice ICE57 -sice ICE61 -sice ICE64 -sice ICE91 $userMsi
+if ($LASTEXITCODE) { throw 'wix msi validate 실패 (나만 설치)' }
+Write-Host "MSI:$userMsi ($([math]::Round((Get-Item $userMsi).Length / 1MB, 1)) MB, 나만 설치)"
 $global:LASTEXITCODE = 0

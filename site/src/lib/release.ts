@@ -7,6 +7,8 @@ export const RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
 /** release.yml이 릴리스마다 함께 올리는 버전 없는 이름의 MSI */
 export const LATEST_MSI_NAME = 'Foldy-Setup.msi';
 export const LATEST_MSI_URL = `${RELEASES_URL}/download/${LATEST_MSI_NAME}`;
+/** 관리자 권한 없이 이 사용자에게만 까는 MSI (1.19.0). 같은 이름으로 늘 최신 */
+export const LATEST_USER_MSI_URL = `${RELEASES_URL}/download/Foldy-Setup-user.msi`;
 
 export interface LatestRelease {
   version: string | null;

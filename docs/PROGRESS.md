@@ -2,6 +2,7 @@
 
 다음에 이어서 작업할 때 이 문서부터 읽는다. 설계: `docs/DESIGN.md`, 디자인 원칙: `docs/DESIGN-PRINCIPLES.md`, 결정: `docs/DECISIONS.md`, 변경: `CHANGELOG.md`, 시험: `docs/TESTING.md`, 리뷰: `docs/reviews/`.
 
+- 2026-11-28 (1.19.0 준비): "나만 설치" MSI(`FoldyUser.wxs`, `UserMsiInstall`, 릴리스 `Foldy-Setup-user.msi`), 모으기 진행률(`CrawlStatus.Permille`, `sw.drv.pct`). 남은 것: 소개 페이지 storeNote가 1.15.0 전 내용(Store 판에 없는 기능 목록)이라 고쳐야 함.
 - 2026-11-28 (1.18.1 준비): 모으기 목록을 글자#볼륨 일련번호로(`SlowCrawler.KeyOf`·`StoreFor`·`Adopt`·`MoveList`, `VolumeId`), 서비스는 켜진 채 디스크가 빠지거나 바뀌면 색인을 비우고 다시 연다(`state.rs start_ntfs`). DECISIONS.md 같은 날짜.
 - 2026-11-28 (1.18.0 준비): Store 판이 NTFS 변경 기록(관리자 없이, `UsnChanges`)으로 바뀐 폴더만 다시 읽기, 켠 뒤 한 번 따라잡기(`SlowCrawler.JournalMoved`), "처음 한 번만" 안내(`sw.idx.selfFirst`·`sw.qs.footerSelfFirst`). C: 다시 확인 23초 → 9초. 이어서 같은 1.18.0에: 이름 메모리 찾기(`NameIndex`, 0.94초 → 2~11ms, 69MB), 서비스가 없는 설치판도 같은 방식(`ShellWindow.SelfGathers`), 처음 목록 같이 읽기(`NearPool`, 36초 → 22초). 다음 할 일: 설치 파일을 관리자 없이 사용자 폴더에 설치(+ 그때의 업데이트).
 - 2026-11-28 (1.17.2 준비): 색인 서비스를 "지연된 시작" 없이 자동 시작(MSI `SetIndexerAutoStart`, Foldy-Setup.ps1, `IndexerService.BuildInstall`). PC를 켜고 2~3분 "찾기: 연 폴더만"이던 것. 서비스가 아직 켜지는 중이면 `sw.idx.starting`. DECISIONS.md 같은 날짜 항목.
