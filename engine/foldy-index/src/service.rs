@@ -55,6 +55,9 @@ fn run_service() -> windows_service::Result<()> {
     handle.set_service_status(status(ServiceState::Running))?;
 
     let indexer: Arc<Indexer> = crate::start_indexer(&crate::Args::default());
+    if self_update_allowed(std::env::args()) {
+        remove_stray_user_install();
+    }
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build();
     match rt {
         Ok(rt) => {
@@ -84,6 +87,36 @@ fn run_service() -> windows_service::Result<()> {
     }
     handle.set_service_status(status(ServiceState::Stopped))?;
     Ok(())
+}
+
+/// "나만 설치" MSI의 UpgradeCode (build/installer/FoldyUser.wxs).
+const USER_MSI_UPGRADE_CODE: &str = "{3F7C2A91-8B4E-4D6A-B1C5-7E92D04A6B18}";
+
+/// 1.18.x 서비스가 1.19.0 릴리스에서 "나만 설치" MSI를 골라 서비스 계정(SYSTEM)에 깔아 둔 것을 지운다 (2026-11-28).
+/// 그 MSI는 SYSTEM의 사용자 폴더(`config\systemprofile\AppData\Local\Programs\Foldy`)에 깔리고 아무도 쓰지 않는다.
+/// 업데이트 설치(msiexec)와 겹치지 않게 2분 뒤에, SYSTEM 맥락에 그 제품이 있을 때만 한 번 제거한다.
+fn remove_stray_user_install() {
+    let Some(root) = std::env::var_os("SystemRoot") else { return };
+    let dir = std::path::Path::new(&root).join(r"System32\config\systemprofile\AppData\Local\Programs\Foldy");
+    if !dir.exists() {
+        return;
+    }
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(120));
+        let script = format!(
+            "$i = New-Object -ComObject WindowsInstaller.Installer; foreach ($p in $i.RelatedProducts('{USER_MSI_UPGRADE_CODE}')) {{ Start-Process -Wait -FilePath (Join-Path $env:SystemRoot 'System32\\msiexec.exe') -ArgumentList @('/x', $p, '/qn', '/norestart') }}"
+        );
+        let ps = std::path::Path::new(&root).join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        match std::process::Command::new(ps).args(["-NoProfile", "-NonInteractive", "-Command", &script]).creation_flags(CREATE_NO_WINDOW).status() {
+            Ok(s) => eprintln!("서비스 계정에 잘못 깔린 나만 설치 제거: {s}"),
+            Err(e) => eprintln!("서비스 계정에 잘못 깔린 나만 설치를 지우지 못함: {e}"),
+        }
+        if dir.exists() {
+            let _ = std::fs::remove_dir_all(&dir);
+        }
+    });
 }
 
 /// 서비스가 스스로 MSI 업데이트를 받아 설치해도 되나. Store 판은 매니페스트가 `--store`를 넘긴다 (build/store/make-msix.ps1).

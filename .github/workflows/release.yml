@@ -185,7 +185,9 @@ jobs:
           $out = 'artifacts/release'
           if (-not $env:FOLDY_UPDATE_SIGNING_KEY) { throw '시크릿 FOLDY_UPDATE_SIGNING_KEY가 없습니다 (docs/release-signing.md)' }
           $tool = 'engine/target/release/foldy-update.exe'
-          $assets = Get-ChildItem $out -File | Where-Object { $_.Name -like '*.zip' -or $_.Name -like '*.msi' } | ForEach-Object FullName
+          # 모든 사용자용 MSI(-x64.msi)를 맨 앞에: 1.18.x까지의 서비스는 목록의 첫 .msi를 골라, 1.19.0에서 "나만 설치" MSI를 서비스 계정에 깔았다 (2026-11-28)
+          $assets = Get-ChildItem $out -File | Where-Object { $_.Name -like '*.zip' -or $_.Name -like '*.msi' } |
+            Sort-Object { if ($_.Name -like '*-x64.msi') { 0 } elseif ($_.Name -like '*.zip') { 1 } else { 2 } }, Name | ForEach-Object FullName
           & $tool manifest --version $v --channel '${{ steps.ver.outputs.channel }}' --out "$out/update.json" @assets
           if ($LASTEXITCODE -ne 0) { throw 'manifest 실패' }
           & $tool sign "$out/update.json"
