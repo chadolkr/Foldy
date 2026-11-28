@@ -88,6 +88,11 @@ It is off by default, read-only when on, and only works inside this computer.
 
 ## What's new in this version
 
+1.18.0
+• Search is faster. File names are kept in memory, so results appear as you type.
+• Files that changed while Foldy was closed are caught up as soon as it opens. Foldy reads the Windows change record without admin rights and rereads only the folders that changed. It also gets ready in the background 3 minutes after you sign in.
+• Foldy tells you that building the file list takes time only the first time, and what is listed so far is searchable right away.
+
 1.17.0
 • In Find anything (Ctrl+Space), clicking a file or folder once opens its containing folder with it selected (same as Ctrl+Enter), and double-clicking opens the file (same as Enter). Apps, settings and Control Panel items still run with a single click.
 
@@ -97,9 +102,6 @@ It is off by default, read-only when on, and only works inside this computer.
 1.15.0
 • The Store edition now includes the same fast search helper as the installer edition. It reads C: in seconds and finds files that changed while Foldy was closed.
 • In the Store edition, Ctrl+Space now opens the search box even when Foldy is closed (a small helper starts when you sign in).
-
-1.14.4
-• In Find anything (Ctrl+Space), Ctrl+Enter opens the containing folder with the found file selected and shown near the middle of the list. Before, you sometimes had to scroll to see it.
 
 
 ## Product features (one per line)

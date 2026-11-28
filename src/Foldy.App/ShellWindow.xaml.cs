@@ -779,7 +779,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         _selfGatherStarted = true;
-        Log.Information("Store 판: 모든 드라이브의 파일 목록을 Foldy가 직접 모읍니다");
+        Log.Information("색인 서비스 없이 모든 드라이브의 파일 목록을 Foldy가 직접 모읍니다 (Store 판 {Packaged})", Foldy.Platform.SystemInfo.AppPackage.IsPackaged);
         if (_shown)
         {
             StartFirstConnectUi();
@@ -884,9 +884,31 @@ public partial class ShellWindow : Window, IPaneHost
 
     /// <summary>
     /// Store 판처럼 색인 서비스를 쓸 수 없어 Foldy가 모든 드라이브의 목록을 직접 모으는가 (1.15.0).
+    /// 1.18.0부터 설치판도 색인 서비스가 설치되어 있지 않으면 그렇게 한다 (관리자 권한이 없는 회사 PC, 압축판, 서비스 설치가 막힌 PC:
+    /// 전에는 "연 폴더만" 찾았다. 사용자 2026-11-28 "관리자 권한 유무를 자동 검출해서"). 서비스가 설치돼 있으면(켜지는 중이어도) 서비스를 기다린다.
+    /// 시험용 실행(FOLDY_DATA_DIR)은 PC 전체를 모으지 않게 전처럼 둔다.
     /// 같은 PC에 설치본의 색인 서비스가 있어 연결되면 그 서비스가 다루는 드라이브는 빠진다(<see cref="FileSearchService.IsIndexedPath"/>).
     /// </summary>
-    private static bool SelfGathers => Foldy.Platform.SystemInfo.AppPackage.IsPackaged;
+    private static bool SelfGathers => Foldy.Platform.SystemInfo.AppPackage.IsPackaged || s_noIndexService.Value;
+
+    private static readonly Lazy<bool> s_noIndexService = new(() =>
+        Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is not { Length: > 0 } && !IndexerServiceInstalled());
+
+    private static bool IndexerServiceInstalled()
+    {
+        try
+        {
+            using var sc = new System.ServiceProcess.ServiceController("FoldyIndexer");
+            _ = sc.Status; // 없으면 InvalidOperationException
+            return true;
+        }
+#pragma warning disable CA1031
+        catch (Exception)
+        {
+            return false;
+        }
+#pragma warning restore CA1031
+    }
 
     /// <summary>
     /// 모을 드라이브: 준비된 드라이브 중 색인 서비스가 다루지 않는 것 (네트워크, NTFS가 아님, 클라우드 가상 드라이브, USB·SD 카드). CD만 뺀다.
@@ -1067,10 +1089,16 @@ public partial class ShellWindow : Window, IPaneHost
             return Foldy.Core.Localization.Loc.T("sw.idx.preparingAll");
         }
 
-        return all.Any(c => c.Running || (!c.Complete && c.Error is null))
+        return SelfFirstBuild(all)
+            ? Foldy.Core.Localization.Loc.F("sw.idx.selfFirst", found) // 처음 한 번만 오래 걸린다는 것을 알게 (사용자 2026-11-28)
+            : all.Any(c => c.Running || (!c.Complete && c.Error is null))
             ? Foldy.Core.Localization.Loc.F("sw.idx.selfBuilding", found)
             : Foldy.Core.Localization.Loc.F("sw.idx.ready", found);
     }
+
+    /// <summary>Store 판: 아직 한 번도 다 모으지 못한 드라이브를 처음으로 모으는 중인가 (그다음부터는 바뀐 폴더만이라 금방 끝난다).</summary>
+    private static bool SelfFirstBuild(IReadOnlyList<Foldy.Core.Search.CrawlStatus> all) =>
+        all.Any(c => c.CompletedUtc is null && c.Error is null && (c.Running || !c.Complete));
 
     /// <summary>[지금 색인하기]가 보일 드라이브를 표시한다 (색인 서비스가 없어도). 드라이브를 건드리지 않고 모으는 쪽이 아는 목록만 쓴다.</summary>
     private void MarkIndexNowDrives()
@@ -2615,8 +2643,11 @@ public partial class ShellWindow : Window, IPaneHost
         _startApps ??= Foldy.Core.QuickSearch.SystemCatalog.LoadStartApps();
         var scope = Shell.ActivePane.ActiveFolder?.Path;
         var indexing = _search.LastStatus is { State: Foldy.Indexer.Client.IndexState.Indexing } ix ? ix.ProgressPermille / 10 : -1;
+        var selfAll = _crawler?.KnownDrives.Select(_crawler.StatusOf).OfType<Foldy.Core.Search.CrawlStatus>().ToList() ?? [];
         var footer = (!_search.IsIndexed && SelfGathers && _crawler is not null
-                ? Foldy.Core.Localization.Loc.T("sw.qs.footerAll") // Store 판: Foldy가 모은 모든 드라이브 목록에서
+                ? SelfFirstBuild(selfAll) // Store 판 처음 목록: 모은 데까지 찾고, 처음 한 번만이라고 (사용자 2026-11-28)
+                    ? Foldy.Core.Localization.Loc.F("sw.qs.footerSelfFirst", selfAll.Sum(c => Math.Max(0, c.Found)))
+                    : Foldy.Core.Localization.Loc.T("sw.qs.footerAll") // Store 판: Foldy가 모은 모든 드라이브 목록에서
                 : _search.IsIndexed
                 ? (scope is not null && !_search.IsIndexedPath(scope) && !Foldy.Presentation.Navigation.PathUtil.IsSftp(scope)
                     ? Foldy.Core.Localization.Loc.F("sw.qs.footerHere", Path.GetFileName(scope.TrimEnd('\\')))

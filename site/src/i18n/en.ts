@@ -38,15 +38,15 @@ const en: Dictionary = {
   ],
   // 최근 버전 안내 (맨 위 배지 + 바뀐 점). 새 버전이 나오면 고친다.
   news: {
-    badge: "New in 1.14.2: move the search window, and Desktop and Downloads always on the left",
-    eyebrow: 'Foldy 1.14.2',
+    badge: "New in 1.18.0: the Store version also finds files that changed while Foldy was closed, right away",
+    eyebrow: 'Foldy 1.18.0',
     title: 'What’s new lately',
     lead: 'Since 1.0 we have kept polishing Foldy through daily use. If you already use it, it updates to the latest version on its own.',
     items: [
+      { icon: 'search', title: 'Changes found as soon as it opens', text: 'The Store version now finds files that changed while Foldy was closed as soon as you open it. It reads the change record Windows keeps, without admin rights, and rereads only the folders that changed. While the list is built the first time, Foldy says it happens only once, and what is listed so far is searchable right away.' },
       { icon: 'search', title: 'Put the search window where you like', text: 'Grab the short bar at the top of the Ctrl+Space search window and drag it; it opens in the same spot next time. Opening it also brings up the Foldy window, even if it was minimized or closed.' },
       { icon: 'panes', title: 'Everyday folders always on the left', text: 'Desktop, Downloads, Documents, Pictures and Videos now always sit at the top of the recent folders in the left menu, each with its own picture. Folders moved to OneDrive open in their real place.' },
       { icon: 'pointer', title: "Help right where you're looking", text: "When you can't drop a file there or type a character names can't use, the reason now appears right under the mouse pointer instead of the status bar at the bottom. With the keyboard, it appears right below where you were typing or the selected row. It disappears on its own after a few seconds." },
-      { icon: 'update', title: 'Up-to-date lists, even when closed', text: 'Lists for work, network, cloud and USB drives are refreshed on the schedule you choose (every hour, 6 hours or day), even when Foldy is closed. A tiny shortcut helper starts Foldy briefly without a window; it reads only folders that changed, then closes. Nothing to set up or register.' },
     ],
     link: 'See everything that changed',
   },

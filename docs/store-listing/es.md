@@ -88,6 +88,11 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 
 ## Novedades de esta versión
 
+1.18.0
+• La búsqueda es más rápida. Los nombres de archivo se guardan en memoria, así que los resultados aparecen mientras escribes.
+• Los archivos que cambiaron con Foldy cerrado se ponen al día nada más abrirlo. Foldy lee el registro de cambios de Windows sin permisos de administrador y vuelve a leer solo las carpetas que cambiaron. También se prepara en segundo plano 3 minutos después de iniciar sesión.
+• Foldy avisa de que crear la lista de archivos solo tarda la primera vez, y lo ya listado se puede buscar enseguida.
+
 1.17.0
 • En Buscar cualquier cosa (Ctrl+Space), un clic en un archivo o carpeta abre la carpeta contenedora con él seleccionado (igual que Ctrl+Enter), y un doble clic abre el archivo (igual que Enter). Las apps, la configuración y el Panel de control se siguen ejecutando con un solo clic.
 
@@ -97,9 +102,6 @@ Viene desactivado, es de solo lectura cuando lo activas y solo funciona dentro d
 1.15.0
 • La versión de Store ahora incluye el mismo asistente de búsqueda rápida que la del instalador. Lee C: en segundos y encuentra los archivos que cambiaron mientras Foldy estaba cerrado.
 • En la versión de Store, Ctrl+Espacio abre el cuadro de búsqueda aunque Foldy esté cerrado (un pequeño asistente se inicia al iniciar sesión).
-
-1.14.4
-• En Buscar cualquier cosa (Ctrl+Espacio), Ctrl+Intro abre la carpeta que lo contiene con el archivo encontrado elegido y visible hacia el centro de la lista. Antes a veces había que desplazarse para verlo.
 
 
 ## Características del producto (una por línea)
