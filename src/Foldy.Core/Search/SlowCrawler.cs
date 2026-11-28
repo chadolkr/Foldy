@@ -586,17 +586,193 @@ public sealed class SlowCrawler : IDisposable
         }
     }
 
+    /// <summary>
+    /// 그 드라이브의 목록. 목록은 글자 + 볼륨 일련번호로 구분한다 (1.18.1): 외장하드를 빼고 다른 것을 꽂아 같은 글자가 되면 새 목록,
+    /// 같은 디스크가 다른 글자로 꽂히면 예전 목록을 그 글자로 고쳐 이어 쓴다(<see cref="Adopt"/>). 쓰는 중에 디스크가 바뀌면
+    /// 그 글자의 상태·변경 알림을 지우고 새 목록으로 바꾼다.
+    /// </summary>
     public CrawlStore StoreFor(string drive)
+    {
+        var root = Root(drive);
+        var key = KeyFor(root); // 드라이브에 묻는 일은 잠그기 전에
+        var file = Path.Combine(_dir, key + ".txt");
+        lock (_gate)
+        {
+            if (_stores.TryGetValue(root, out var s) && string.Equals(s.FilePath, file, StringComparison.OrdinalIgnoreCase))
+            {
+                return s;
+            }
+
+            if (s is not null)
+            {
+                VolumeChanged(root);
+            }
+
+            if (!File.Exists(file))
+            {
+                Adopt(root, key, file);
+            }
+
+            _stores[root] = s = new CrawlStore(file);
+            return s;
+        }
+    }
+
+    /// <summary>같은 글자에 다른 디스크가 꽂혔다: 앞 디스크의 상태·변경 알림·따라잡기 기록을 버린다 (잠근 채로 부른다).</summary>
+    private void VolumeChanged(string root)
+    {
+        _status.Remove(root);
+        _caughtUp.Remove(root);
+        _retriedEmpty.Remove(root);
+        _dirty.Remove(root);
+        _quiet.Remove(root);
+        if (_watchers.Remove(root, out var w))
+        {
+            w.Dispose();
+        }
+    }
+
+    /// <summary>볼륨 일련번호 (시험에서 바꿔 디스크를 갈아 끼운 것처럼 한다).</summary>
+    internal Func<string, uint?> VolumeSerialOf { get; set; } = VolumeId.Serial;
+
+    // 글자마다 마지막으로 본 목록 이름. 네트워크 드라이브는 끊긴 서버에 묻다 멈출 수 있어 한 번만 본다, 나머지는 5초마다
+    private readonly Dictionary<string, (string Key, long At)> _keys = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>디스크가 바뀌었는지 다시 보는 간격 (ms, 시험에서 0).</summary>
+    internal long KeyRecheckMs { get; set; } = 5000;
+
+    private string KeyFor(string root)
     {
         lock (_gate)
         {
-            var root = Root(drive);
-            if (!_stores.TryGetValue(root, out var s))
+            if (_keys.TryGetValue(root, out var k) && (Environment.TickCount64 - k.At < KeyRecheckMs || VolumeId.IsNetwork(root)))
             {
-                _stores[root] = s = new CrawlStore(Path.Combine(_dir, KeyOf(drive) + ".txt"));
+                return k.Key;
+            }
+        }
+
+        var key = KeyOf(root);
+        lock (_gate)
+        {
+            _keys[root] = (key, Environment.TickCount64);
+        }
+
+        return key;
+    }
+
+    /// <summary>
+    /// 이 이름의 목록이 아직 없을 때 쓸 만한 예전 목록을 가져온다 (잠근 채로 부른다).
+    /// <list type="number">
+    /// <item>같은 디스크(같은 일련번호)가 다른 글자로 모아 둔 목록: 줄마다 글자를 고쳐 옮긴다. 그 글자에 같은 디스크가 아직 꽂혀 있으면 두지 않는다.</item>
+    /// <item>1.18.0까지의 글자(+이름표)만 쓴 목록: 맨 위 몇 줄이 지금 디스크에 정말 있으면 이 디스크의 것으로 본다 (아니면 다른 디스크의 것이라 그대로 둔다:
+    /// 그 디스크가 다시 꽂히면 그때 가져간다).</item>
+    /// </list>
+    /// </summary>
+    private void Adopt(string root, string key, string file)
+    {
+        try
+        {
+            var hash = key.LastIndexOf('#');
+            var letter = LetterOf(root);
+            if (hash > 0 && letter is not null)
+            {
+                foreach (var other in Directory.EnumerateFiles(_dir, "?_" + key[hash..] + ".txt"))
+                {
+                    var otherLetter = Path.GetFileName(other)[0];
+                    if (char.ToUpperInvariant(otherLetter) == char.ToUpperInvariant(letter.Value)
+                        || VolumeSerialOf($"{otherLetter}:\\") is { } s && key.EndsWith("#" + s.ToString("X8", System.Globalization.CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue; // 그 글자에 같은 디스크가 아직 있다
+                    }
+
+                    MoveList(other, file, $"{otherLetter}:", $"{letter}:");
+                    return;
+                }
             }
 
-            return s;
+            var legacy = Path.Combine(_dir, LegacyKeyOf(root));
+            foreach (var old in new[] { legacy + ".txt" }.Concat(Directory.EnumerateFiles(_dir, Path.GetFileName(legacy) + "-*.txt")))
+            {
+                if (File.Exists(old) && !Path.GetFileNameWithoutExtension(old).Contains('#', StringComparison.Ordinal) && BelongsHere(old))
+                {
+                    MoveList(old, file, null, null);
+                    return;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // 못 가져오면 새로 모은다
+        }
+    }
+
+    private static char? LetterOf(string root) =>
+        root.Length >= 2 && root[1] == ':' && char.IsAsciiLetter(root[0]) && string.Equals(Path.GetPathRoot(root), root, StringComparison.OrdinalIgnoreCase) ? char.ToUpperInvariant(root[0]) : null;
+
+    /// <summary>목록 맨 위 몇 줄(드라이브 맨 위 폴더의 것)이 지금 그 자리에 있나: 80% 넘게 있으면 이 디스크의 목록.</summary>
+    private static bool BelongsHere(string list)
+    {
+        int seen = 0, here = 0;
+        foreach (var line in File.ReadLines(list).Take(50))
+        {
+            if (CrawlStore.Parse(line) is not { } e)
+            {
+                continue;
+            }
+
+            seen++;
+            if (e.IsFolder ? Directory.Exists(e.Path) : File.Exists(e.Path))
+            {
+                here++;
+            }
+        }
+
+        return seen > 0 && here * 10 >= seen * 8;
+    }
+
+    /// <summary>목록과 폴더 기록·변경 기록 위치를 새 이름으로 옮긴다. 글자가 다르면 줄마다 앞 글자를 고친다 (끊긴 곳 기록은 버린다).</summary>
+    internal static void MoveList(string from, string to, string? oldDrive, string? newDrive)
+    {
+        var fromBase = from[..^4];
+        var toBase = to[..^4];
+        foreach (var ext in new[] { ".txt", ".txt.idx", ".txt.usn" })
+        {
+            var src = fromBase + ext;
+            if (!File.Exists(src))
+            {
+                continue;
+            }
+
+            if (oldDrive is null || ext == ".txt.usn")
+            {
+                File.Move(src, toBase + ext, overwrite: true);
+                continue;
+            }
+
+            var temp = toBase + ext + ".move";
+            using (var w = new StreamWriter(temp, append: false, new UTF8Encoding(false)))
+            {
+                foreach (var line in File.ReadLines(src, Encoding.UTF8))
+                {
+                    w.Write(line.StartsWith(oldDrive, StringComparison.OrdinalIgnoreCase) ? newDrive + line[oldDrive.Length..] : line);
+                    w.Write('\n');
+                }
+            }
+
+            File.Move(temp, toBase + ext, overwrite: true);
+            File.Delete(src);
+        }
+
+        foreach (var ext in new[] { ".txt.part", ".txt.marks", ".txt.resume" })
+        {
+            if (oldDrive is null && File.Exists(fromBase + ext))
+            {
+                File.Move(fromBase + ext, toBase + ext, overwrite: true); // 같은 글자: 끊긴 곳부터 이어서
+            }
+            else
+            {
+                TryDelete(fromBase + ext);
+            }
         }
     }
 
@@ -970,6 +1146,9 @@ public sealed class SlowCrawler : IDisposable
     /// 다 읽었는데 하나도 없을 때 알리는 오류 (<see cref="CrawlStatus.Error"/>). 화면은 이것을 보고 "읽지 못했어요"라고 쉬운 말로 알린다.
     /// </summary>
     public const string NothingReadable = "nothing-readable";
+
+    /// <summary>모으는 사이 같은 글자에 다른 디스크가 꽂혔을 때의 오류 (1.18.1). 곧 새 디스크를 처음부터 모은다.</summary>
+    public const string DriveChanged = "drive-changed";
 
     /// <summary>드라이브에서 쓰고 있는 공간이 이보다 많은데 하나도 못 읽으면 문제로 본다.</summary>
     internal const long NothingFoundBytes = 64L * 1024 * 1024;
@@ -1481,6 +1660,15 @@ public sealed class SlowCrawler : IDisposable
                     (tc, tm) = (tc / 2, tm / 2);
                 }
 
+                if (!string.Equals(KeyOf(root), Path.GetFileNameWithoutExtension(store.FilePath), StringComparison.OrdinalIgnoreCase))
+                {
+                    // 모으는 사이 디스크를 갈아 끼웠다: 두 디스크가 섞였을 수 있어 남기지 않는다 (새 디스크는 다음에 처음부터)
+                    TryDelete(temp);
+                    TryDelete(marksPath);
+                    TryDelete(resumePath);
+                    throw new IOException(DriveChanged);
+                }
+
                 SaveIndex(idxTemp, new IndexFile(pass, marks, tc, tm, Signal(root)));
                 store.Replace(temp, found);
                 File.Move(idxTemp, idxPath, overwrite: true);
@@ -1979,7 +2167,17 @@ public sealed class SlowCrawler : IDisposable
 
     private static string Root(string drive) => drive.Length == 2 && drive[1] == ':' ? drive + "\\" : drive;
 
-    private static string KeyOf(string drive)
+    /// <summary>목록 이름: 글자(위치) + # + 볼륨 일련번호 (1.18.1). 일련번호를 알 수 없으면 예전처럼 글자 + 이름표.</summary>
+    private string KeyOf(string root)
+    {
+        var r = root.TrimEnd('\\').Replace(':', '_').Replace('\\', '_');
+        return VolumeSerialOf(root) is { } serial
+            ? r + "#" + serial.ToString("X8", System.Globalization.CultureInfo.InvariantCulture)
+            : LegacyKeyOf(root);
+    }
+
+    /// <summary>1.18.0까지의 목록 이름 (글자 + 이름표).</summary>
+    private static string LegacyKeyOf(string drive)
     {
         var r = Root(drive).TrimEnd('\\').Replace(':', '_').Replace('\\', '_');
         string label;
