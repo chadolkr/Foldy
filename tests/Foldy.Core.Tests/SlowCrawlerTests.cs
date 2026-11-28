@@ -499,6 +499,82 @@ public sealed class SlowCrawlerTests : IDisposable
         Assert.True(c.LastPass.Listed >= 2);
     }
 
+    [Fact]
+    public void Memory_name_index_finds_the_same_as_reading_the_file()
+    {
+        Make(@"영업\2026 제안서.pptx");
+        Make(@"영업\견적\제안서_A사.DOCX");
+        Make(@"Café\Ärger Report.txt");
+        Make(@"Café\notes.md");
+        Make(@"Report\x.txt");
+        using var c = new SlowCrawler(_store, () => [_root]);
+        c.CrawlOnce(_root, TestContext.Current.CancellationToken);
+        var store = c.StoreFor(_root);
+        string[] queries = ["제안", "제안서 a사", "docx", "ärger", "ÄRGER report", "café", "report", "없는낱말", "x"];
+        var byFile = queries.ToDictionary(q => q, q => Names(store, q));
+        Assert.True(store.BuildIndexNow());
+        foreach (var q in queries)
+        {
+            Assert.Equal(byFile[q], Names(store, q));
+        }
+
+        Assert.Equal(["Report", "Ärger Report.txt"], Names(store, "report"));
+        Assert.Equal(["제안서_A사.DOCX"], Names(store, "제안서 a사"));
+    }
+
+    [Fact]
+    public void Memory_name_index_is_not_used_after_the_list_is_replaced()
+    {
+        Make(@"a\옛파일.txt");
+        using var c = new SlowCrawler(_store, () => [_root]);
+        var ct = TestContext.Current.CancellationToken;
+        c.CrawlOnce(_root, ct);
+        var store = c.StoreFor(_root);
+        Assert.True(store.BuildIndexNow());
+        Make(@"b\새파일.txt");
+        c.CrawlOnce(_root, ct, full: true); // 목록 파일이 새것으로 바뀐다
+        Assert.Single(store.Search("새파일", 10)); // 낡은 색인이 아니라 새 목록에서
+        Assert.Single(store.Search("옛파일", 10));
+    }
+
+    [Fact]
+    public void Reading_several_folders_at_once_on_a_near_drive_gives_the_same_list()
+    {
+        for (var i = 0; i < 30; i++)
+        {
+            Make($@"d{i}\e{i % 3}\f{i}.txt");
+        }
+
+        var ct = TestContext.Current.CancellationToken;
+        using var one = new SlowCrawler(_store, () => [_root]);
+        var n1 = one.CrawlOnce(_root, ct, full: true);
+        var list1 = one.StoreFor(_root).ReadAll(ct).Select(e => e.Path).Order(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var store2 = _store + "-wide";
+        try
+        {
+            using var wide = new SlowCrawler(store2, () => [_root]) { NearWidth = _ => 4 };
+            var n2 = wide.CrawlOnce(_root, ct, full: true);
+            var list2 = wide.StoreFor(_root).ReadAll(ct).Select(e => e.Path).Order(StringComparer.OrdinalIgnoreCase).ToList();
+            Assert.Equal(n1, n2);
+            Assert.Equal(list1, list2);
+            Assert.Equal(90, n2); // 폴더 30 + 30 + 파일 30
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(store2, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
+    private static List<string> Names(CrawlStore store, string q) =>
+        store.Search(q, 100).Select(e => Path.GetFileName(e.Path)).Order(StringComparer.Ordinal).ToList();
+
     private static void WaitFor(Func<bool> ok)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();

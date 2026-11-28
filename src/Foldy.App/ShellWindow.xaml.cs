@@ -779,7 +779,7 @@ public partial class ShellWindow : Window, IPaneHost
         }
 
         _selfGatherStarted = true;
-        Log.Information("Store 판: 모든 드라이브의 파일 목록을 Foldy가 직접 모읍니다");
+        Log.Information("색인 서비스 없이 모든 드라이브의 파일 목록을 Foldy가 직접 모읍니다 (Store 판 {Packaged})", Foldy.Platform.SystemInfo.AppPackage.IsPackaged);
         if (_shown)
         {
             StartFirstConnectUi();
@@ -884,9 +884,31 @@ public partial class ShellWindow : Window, IPaneHost
 
     /// <summary>
     /// Store 판처럼 색인 서비스를 쓸 수 없어 Foldy가 모든 드라이브의 목록을 직접 모으는가 (1.15.0).
+    /// 1.18.0부터 설치판도 색인 서비스가 설치되어 있지 않으면 그렇게 한다 (관리자 권한이 없는 회사 PC, 압축판, 서비스 설치가 막힌 PC:
+    /// 전에는 "연 폴더만" 찾았다. 사용자 2026-11-28 "관리자 권한 유무를 자동 검출해서"). 서비스가 설치돼 있으면(켜지는 중이어도) 서비스를 기다린다.
+    /// 시험용 실행(FOLDY_DATA_DIR)은 PC 전체를 모으지 않게 전처럼 둔다.
     /// 같은 PC에 설치본의 색인 서비스가 있어 연결되면 그 서비스가 다루는 드라이브는 빠진다(<see cref="FileSearchService.IsIndexedPath"/>).
     /// </summary>
-    private static bool SelfGathers => Foldy.Platform.SystemInfo.AppPackage.IsPackaged;
+    private static bool SelfGathers => Foldy.Platform.SystemInfo.AppPackage.IsPackaged || s_noIndexService.Value;
+
+    private static readonly Lazy<bool> s_noIndexService = new(() =>
+        Environment.GetEnvironmentVariable("FOLDY_DATA_DIR") is not { Length: > 0 } && !IndexerServiceInstalled());
+
+    private static bool IndexerServiceInstalled()
+    {
+        try
+        {
+            using var sc = new System.ServiceProcess.ServiceController("FoldyIndexer");
+            _ = sc.Status; // 없으면 InvalidOperationException
+            return true;
+        }
+#pragma warning disable CA1031
+        catch (Exception)
+        {
+            return false;
+        }
+#pragma warning restore CA1031
+    }
 
     /// <summary>
     /// 모을 드라이브: 준비된 드라이브 중 색인 서비스가 다루지 않는 것 (네트워크, NTFS가 아님, 클라우드 가상 드라이브, USB·SD 카드). CD만 뺀다.

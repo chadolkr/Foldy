@@ -12,7 +12,7 @@ namespace Foldy.Core.Search;
 /// 2026-11-24 SD 카드 실측(폴더 22,330개): 폴더마다 10ms를 쉬면 Windows 타이머 때문에 실제로는 16ms씩, 353초 중 거의 전부가 쉬는 시간이었다.
 /// 그래서 쉴 시간은 모아 두었다가 한 번에 쉬고, 더 잔 만큼은 다음에서 뺀다.
 /// </summary>
-internal sealed class CrawlPace(bool near, TimeSpan minPause)
+internal sealed class CrawlPace(bool near, TimeSpan minPause, int nearWidth = 1)
 {
     /// <summary>한 번에 쉬는 시간의 최소: 이보다 짧게 부탁해도 Windows는 이쯤 쉰다.</summary>
     public static readonly TimeSpan Tick = TimeSpan.FromMilliseconds(15);
@@ -66,7 +66,7 @@ internal sealed class CrawlPace(bool near, TimeSpan minPause)
     public double AskMs => Math.Max(0, _baseline);
 
     /// <summary>같이 읽을 폴더 수.</summary>
-    public int Width { get; private set; } = near ? 1 : Tries[0];
+    public int Width { get; private set; } = near ? Math.Max(1, nearWidth) : Tries[0];
 
     /// <summary>마지막으로 재 본 결과 ("4개 120ms · 8개 70ms · 16개 66ms → 8개", 폴더 하나에 든 시간). 아직 없으면 null.</summary>
     public string? Tried { get; private set; }
@@ -128,8 +128,8 @@ internal sealed class CrawlPace(bool near, TimeSpan minPause)
 
         if (!Far)
         {
-            // 가까운 드라이브는 하나씩 (CPU 한 줄까지만, 남에게 비켜 주며)
-            Width = 1;
+            // 가까운 드라이브는 하나씩 (CPU 한 줄까지만, 남에게 비켜 주며). 처음 목록은 여럿 같이 (nearWidth, 1.18.0)
+            Width = Math.Max(1, nearWidth);
             _trial = -1;
             _picked = false;
             CheckSlow(wall);

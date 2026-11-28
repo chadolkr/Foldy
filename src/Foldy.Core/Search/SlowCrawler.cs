@@ -9,7 +9,8 @@ public readonly record struct CrawlEntry(string Path, bool IsFolder, long Size, 
 
 /// <summary>
 /// 색인이 없는 드라이브(네트워크·회사 보안 드라이브, Google Drive, NTFS가 아닌 드라이브)의 파일 목록을 모아 둔 파일.
-/// 한 줄에 하나: 경로 \t 폴더(1/0) \t 크기 \t 수정시각(UTC ticks). 찾을 때는 파일을 앞에서부터 읽으며 이름을 맞춘다
+/// 한 줄에 하나: 경로 \t 폴더(1/0) \t 크기 \t 수정시각(UTC ticks). 찾을 때는 이름만 메모리에 담은 색인(<see cref="NameIndex"/>, 1.18.0)으로 찾고,
+/// 색인을 만드는 동안에는 파일을 앞에서부터 읽으며 이름을 맞춘다
 /// (백만 줄도 1초 안). 다 모으면 새 파일로 바꿔 넣어, 모으는 도중에도 예전 목록으로 찾을 수 있다.
 /// </summary>
 public sealed class CrawlStore(string file)
@@ -93,12 +94,13 @@ public sealed class CrawlStore(string file)
         seen.UnionWith(removed); // 지워진 것은 목록에 있어도 보이지 않게
         foreach (var f in new[] { FilePath + ".part", FilePath })
         {
-            if (!File.Exists(f))
+            if (!File.Exists(f) || (SkipPart && f != FilePath && Exists))
             {
                 continue;
             }
 
-            foreach (var e in SearchFile(f, query, ct))
+            var hits = f == FilePath && ReadyIndex() is { } ix ? SearchIndex(ix, query, ct) : SearchFile(f, query, ct);
+            foreach (var e in hits)
             {
                 if (seen.Add(e.Path))
                 {
@@ -107,6 +109,101 @@ public sealed class CrawlStore(string file)
                     {
                         yield break;
                     }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 참이면 다 모은 목록이 있을 때 모으는 중인 목록(.part)은 찾지 않는다. 변경 기록으로 다시 모을 때(바뀐 폴더 몇 개만 새로 읽고 나머지는
+    /// 지난 목록을 옮겨 적는다) .part는 거의 같은 내용이라, 함께 훑으면 몇 초 동안 찾기가 0.7초씩 느려진다. 모으는 쪽이 켜고 끈다.
+    /// </summary>
+    internal bool SkipPart { get; set; }
+
+    private NameIndex? _index;
+    private int _building;
+
+    /// <summary>이름을 메모리에 담아 찾을지 (기본 켬, 시험에서 끈다).</summary>
+    internal static bool UseMemoryIndex { get; set; } = true;
+
+    /// <summary>다 모은 목록의 이름 색인 (파일이 그대로일 때만). 없거나 낡았으면 뒤에서 만들기 시작하고 이번에는 null (파일을 훑는다).</summary>
+    private NameIndex? ReadyIndex()
+    {
+        if (!UseMemoryIndex)
+        {
+            return null;
+        }
+
+        var ix = Volatile.Read(ref _index);
+        if (ix is not null && ix.StillFits())
+        {
+            return ix;
+        }
+
+        StartIndex();
+        return null;
+    }
+
+    private void StartIndex()
+    {
+        if (Interlocked.CompareExchange(ref _building, 1, 0) != 0)
+        {
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                BuildIndexNow();
+            }
+            finally
+            {
+                Volatile.Write(ref _building, 0);
+            }
+        });
+    }
+
+    /// <summary>지금 이름 색인을 만든다 (시험·미리 준비). 만들었으면 true.</summary>
+    internal bool BuildIndexNow()
+    {
+        var ix = NameIndex.Build(FilePath);
+        Volatile.Write(ref _index, ix);
+        return ix is not null;
+    }
+
+    private static IEnumerable<CrawlEntry> SearchIndex(NameIndex ix, string query, CancellationToken ct)
+    {
+        var words = query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(NameIndex.Key).ToList();
+        FileStream fs;
+        try
+        {
+            fs = new FileStream(ix.File, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.RandomAccess);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            yield break;
+        }
+
+        using (fs)
+        {
+            if (fs.Length != ix.Length)
+            {
+                // 그사이 새 목록으로 바뀌었다: 이번에는 파일을 훑는다
+                foreach (var e in SearchFile(ix.File, query, ct))
+                {
+                    yield return e;
+                }
+
+                yield break;
+            }
+
+            var scratch = new byte[4096];
+            foreach (var offset in ix.Find(words, ct))
+            {
+                if (NameIndex.ReadLineAt(fs, offset, scratch) is { } line && Parse(line) is { } e)
+                {
+                    yield return e;
                 }
             }
         }
@@ -265,6 +362,10 @@ public sealed class CrawlStore(string file)
         File.Move(tempFile, FilePath, overwrite: true);
         Count = count;
         ClearDelta();
+        if (Volatile.Read(ref _index) is not null)
+        {
+            StartIndex(); // 찾기에 쓰던 색인이면 새 목록으로 바로 다시 만든다 (모으기만 하는 Foldy는 만들지 않는다)
+        }
     }
 }
 
@@ -898,6 +999,99 @@ public sealed class SlowCrawler : IDisposable
     /// </summary>
     internal Func<string, bool> UseJournal { get; set; }
 
+    /// <summary>
+    /// 가까운 드라이브의 처음 목록을 같이 읽는 폴더 수 (1.18.0). 드라이브 전체만: USB·SD는 4개(2026-11-24 SD 카드 1개 9.7초 → 4개 4.5초),
+    /// 디스크는 CPU 수까지 8개. 일꾼 스레드마다 다른 프로그램에 비켜 주며(<see cref="GiveWay"/>) 읽는다. 시험에서 바꾼다.
+    /// </summary>
+    internal Func<string, int> NearWidth { get; set; } = DefaultNearWidth;
+
+    private int NearWidthOf(string root) => Math.Clamp(NearWidth(root), 1, MaxWidth);
+
+    private static int DefaultNearWidth(string root)
+    {
+        try
+        {
+            if (!string.Equals(Path.GetPathRoot(root), root, StringComparison.OrdinalIgnoreCase))
+            {
+                return 1;
+            }
+
+            return new DriveInfo(root).DriveType == DriveType.Removable ? 4 : Math.Clamp(Environment.ProcessorCount, 2, 8);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// 가까운 드라이브를 같이 읽는 일꾼 스레드들. 스레드마다 처음 한 번 비켜 주기(디스크 순서 맨 뒤)를 켜고 끝날 때까지 둔다
+    /// (폴더마다 켰다 끄면 그때마다 CPU 순서가 잠깐 낮아진다, <see cref="GiveWay"/>).
+    /// </summary>
+    private sealed class NearPool : IDisposable
+    {
+        private readonly System.Collections.Concurrent.BlockingCollection<(Func<Fetched> Work, TaskCompletionSource<Fetched> Done)> _jobs = [];
+        private readonly Thread[] _threads;
+
+        public NearPool(int width)
+        {
+            _threads = new Thread[width];
+            for (var i = 0; i < width; i++)
+            {
+                _threads[i] = new Thread(() => GiveWay.Run(Work)) { IsBackground = true, Name = "SlowCrawler near", Priority = ThreadPriority.BelowNormal };
+                _threads[i].Start();
+            }
+        }
+
+        public Task<Fetched> Run(Func<Fetched> work)
+        {
+            var done = new TaskCompletionSource<Fetched>(TaskCreationOptions.RunContinuationsAsynchronously);
+            try
+            {
+                _jobs.Add((work, done));
+            }
+            catch (InvalidOperationException)
+            {
+                done.SetCanceled();
+            }
+
+            return done.Task;
+        }
+
+        private void Work()
+        {
+            foreach (var (work, done) in _jobs.GetConsumingEnumerable())
+            {
+                try
+                {
+                    done.SetResult(work());
+                }
+#pragma warning disable CA1031 // 읽다 난 뜻밖의 오류는 모으는 쪽으로 넘긴다
+                catch (Exception ex)
+#pragma warning restore CA1031
+                {
+                    done.SetException(ex);
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            _jobs.CompleteAdding();
+            while (_jobs.TryTake(out var left))
+            {
+                left.Done.TrySetCanceled();
+            }
+
+            foreach (var t in _threads)
+            {
+                t.Join(TimeSpan.FromSeconds(5));
+            }
+
+            _jobs.Dispose();
+        }
+    }
+
     private static UsnChanges.Mark? LoadUsn(string path)
     {
         try
@@ -1022,13 +1216,16 @@ public sealed class SlowCrawler : IDisposable
         }
 
         Func<string, bool>? journalSame = changed is null ? null : d => !changed.Contains(d);
+        store.SkipPart = journalSame is not null; // 다시 쓰는 .part는 지난 목록과 거의 같다: 찾기는 다 모은 목록(메모리 색인)으로
         var pass = ck?.Pass ?? ix.Pass + 1;
         long found = ck?.Found ?? 0, checks = ck?.Checks ?? 0, misses = ck?.Misses ?? 0;
         int listed = ck?.Listed ?? 0, reused = ck?.Reused ?? 0, skipped = ck?.Skipped ?? 0;
 
         var resumed = ck is not null;
         Report(new CrawlStatus(root, true, found, false, store.CompletedUtc) { Resumed = resumed });
-        var pace = new CrawlPace(near, IsNetwork(root) ? MinNetworkPause : MinPause);
+        // 가까운 드라이브의 처음 목록(전부 읽기)은 폴더 여럿을 같이 읽는다 (1.18.0: 노트북 C: 8개 19초, 하나씩 47초). 다시 모을 때는 하나씩
+        var pace = new CrawlPace(near, IsNetwork(root) ? MinNetworkPause : MinPause, near && readAll ? NearWidthOf(root) : 1);
+        using var nearPool = near && readAll && NearWidthOf(root) > 1 ? new NearPool(NearWidthOf(root)) : null;
         var preferred = PreferFirst?.Invoke() ?? [];
 
         var running = Stopwatch.StartNew();
@@ -1152,7 +1349,9 @@ public sealed class SlowCrawler : IDisposable
 
                             // 하나씩 읽을 때는 이 스레드에서 (가까운 드라이브는 이 스레드가 남에게 비켜 주며 읽는다).
                             // 같이 읽을 때는 폴더마다 제 스레드: 기다리는 읽기 16개가 공용 스레드를 차지하면 Windows가 스레드를 천천히 늘려 재는 값이 틀어진다
-                            reading.Add((job, pace.Width == 1 && reading.Count == 0 ? Task.FromResult(Fetch(job, root, readAll, journalSame)) : Task.Factory.StartNew(() => Fetch(job, root, readAll, journalSame), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)));
+                            reading.Add((job, pace.Width == 1 && reading.Count == 0 ? Task.FromResult(Fetch(job, root, readAll, journalSame))
+                                : nearPool is not null ? nearPool.Run(() => Fetch(job, root, readAll, journalSame)) // 가까운 드라이브: 비켜 주는 일꾼 스레드에서
+                                : Task.Factory.StartNew(() => Fetch(job, root, readAll, journalSame), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)));
                         }
 
                         // 다 읽은 것이 있으면 먼저 기록한다 (끊으라는 말이 와도 읽은 것은 남긴다). 기다리는 동안 끊으면 읽는 중인 폴더는 다시 쌓아 다음에 읽는다
@@ -1302,6 +1501,7 @@ public sealed class SlowCrawler : IDisposable
                 oldData?.Dispose();
             }
 
+            store.SkipPart = false;
             LastPass = new PassStats(found, listed, reused, skipped, ck is not null, trusted, changed is not null);
             Report(new CrawlStatus(root, false, found, true, DateTime.UtcNow));
             return found;
@@ -1309,6 +1509,7 @@ public sealed class SlowCrawler : IDisposable
         catch (OperationCanceledException)
         {
             // 모은 데까지(.part)와 끊긴 곳(.resume)은 남긴다: 다음에 이어서 한다
+            store.SkipPart = false;
             TryDelete(idxTemp);
             Report(new CrawlStatus(root, false, store.Count, store.Exists, store.CompletedUtc));
             return found;
@@ -1316,6 +1517,7 @@ public sealed class SlowCrawler : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // 드라이브가 끊긴 경우 등: 마지막으로 남긴 곳부터 다음에 이어서 한다
+            store.SkipPart = false;
             TryDelete(idxTemp);
             Report(new CrawlStatus(root, false, store.Count, store.Exists, store.CompletedUtc, ex.Message));
             return found;
