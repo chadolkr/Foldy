@@ -279,6 +279,7 @@ pub fn start_ntfs(slot: Arc<VolumeSlot>, indexer: Arc<Indexer>) {
     std::thread::spawn(move || {
         // 스냅샷 복원은 시작할 때 한 번만 시도한다. 그 뒤 재구축은 항상 전체 구축이다.
         let mut try_restore = true;
+        let mut first_open = true; // 처음부터 열 수 없는 볼륨은 예전처럼 그만둔다
         'rebuild: loop {
             if let Ok(mut g) = slot.persist.lock() {
                 *g = None;
@@ -289,12 +290,24 @@ pub fn start_ntfs(slot: Arc<VolumeSlot>, indexer: Arc<Indexer>) {
                     slot.state.store(state::NOT_READY, Ordering::Release);
                     if e.kind() == std::io::ErrorKind::PermissionDenied {
                         slot.set_message("관리자 권한이 없어 색인하지 않음 (not ready, 클라이언트는 폴백)");
-                    } else {
-                        slot.set_message(format!("볼륨을 열 수 없음: {e}"));
+                        return;
                     }
-                    return;
+                    if first_open {
+                        slot.set_message(format!("볼륨을 열 수 없음: {e}"));
+                        return;
+                    }
+                    // 빠졌거나 NTFS가 아닌 디스크로 바뀐 볼륨 (1.18.1): 앱은 그 글자를 직접 모은다. 같은 글자에 NTFS 디스크가 다시 꽂히면 이어서 색인한다
+                    slot.set_message(format!("볼륨을 기다리는 중: {e}"));
+                    for _ in 0..30 {
+                        if indexer.shutdown.load(Ordering::Relaxed) {
+                            return;
+                        }
+                        std::thread::sleep(Duration::from_secs(1));
+                    }
+                    continue 'rebuild;
                 }
             };
+            first_open = false;
             let stem = volume::volume_guid(&slot.name).unwrap_or_else(|| format!("serial-{:016x}", vol.boot.serial));
             let snap_path = persist::snapshot_path(&indexer.index_dir(), &stem);
             // 구축 전에 저널 위치를 잡아 두면, 구축하는 동안 생긴 변경도 뒤이어 반영된다.
@@ -394,6 +407,23 @@ pub fn start_ntfs(slot: Arc<VolumeSlot>, indexer: Arc<Indexer>) {
                         continue 'rebuild;
                     }
                     Err(e) => {
+                        // 외장하드를 뺐거나 같은 글자에 다른 디스크가 꽂혔으면(1.18.1, 사용자 제보 "E를 빼고 다른 외장하드를 꽂았더니 또 E"):
+                        // 앞 디스크의 색인을 그 디스크 이름(GUID)으로 저장해 두고, 이 글자의 색인은 비운 뒤 새 디스크를 기다려 다시 연다
+                        let same = Volume::open(&slot.name).map(|v| v.boot.serial == vol.boot.serial).unwrap_or(false);
+                        if !same {
+                            if slot.dirty.load(Ordering::Relaxed) {
+                                indexer.save_slot(&slot);
+                            }
+                            if let Ok(mut g) = slot.index.write() {
+                                *g = None;
+                            }
+                            slot.entries.store(0, Ordering::Relaxed);
+                            slot.dirty.store(false, Ordering::Relaxed);
+                            slot.state.store(state::NOT_READY, Ordering::Release);
+                            slot.set_message(format!("볼륨이 빠지거나 바뀜 ({e}) - 다시 열기"));
+                            try_restore = true; // 새 디스크에 저장해 둔 색인이 있으면 쓴다
+                            continue 'rebuild;
+                        }
                         slot.set_message(format!("USN 읽기 오류: {e}"));
                         std::thread::sleep(Duration::from_secs(5));
                     }

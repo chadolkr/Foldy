@@ -572,6 +572,81 @@ public sealed class SlowCrawlerTests : IDisposable
         }
     }
 
+    [Fact]
+    public void Another_disk_on_the_same_letter_gets_its_own_list()
+    {
+        // 사용자 2026-11-28: 외장하드 E:를 빼고 다른 외장하드를 꽂았더니 또 E:. 앞 디스크의 목록이 보이면 안 된다
+        Make(@"앞디스크\사진.jpg");
+        uint serial = 0x1111AAAA;
+        using var c = new SlowCrawler(_store, () => [_root]) { VolumeSerialOf = _ => serial, KeyRecheckMs = 0 };
+        var ct = TestContext.Current.CancellationToken;
+        c.CrawlOnce(_root, ct);
+        Assert.Single(c.StoreFor(_root).Search("사진", 10));
+        Assert.NotNull(c.StatusOf(_root));
+
+        serial = 0x2222BBBB; // 다른 디스크
+        var store = c.StoreFor(_root);
+        Assert.False(store.Exists, "새 디스크는 새 목록");
+        Assert.Empty(store.Search("사진", 10));
+        Assert.Null(c.StatusOf(_root)); // 앞 디스크의 "완료" 상태도 지운다
+
+        serial = 0x1111AAAA; // 앞 디스크를 다시 꽂음: 그 목록을 다시 쓴다
+        Assert.Single(c.StoreFor(_root).Search("사진", 10));
+    }
+
+    [Fact]
+    public void List_saved_by_letter_only_is_kept_when_it_matches_the_disk()
+    {
+        Make(@"a\예전목록.txt");
+        var ct = TestContext.Current.CancellationToken;
+        using (var old = new SlowCrawler(_store, () => [_root]) { VolumeSerialOf = _ => null }) // 1.18.0까지: 글자(+이름표)만
+        {
+            old.CrawlOnce(_root, ct);
+        }
+
+        using var c = new SlowCrawler(_store, () => [_root]) { VolumeSerialOf = _ => 0x12345678 };
+        var store = c.StoreFor(_root);
+        Assert.True(store.Exists, "이 디스크의 것이 맞으니 가져온다");
+        Assert.Contains("#12345678", store.FilePath, StringComparison.Ordinal);
+        Assert.Single(store.Search("예전목록", 10));
+    }
+
+    [Fact]
+    public void List_saved_by_letter_only_is_left_alone_when_it_belongs_to_another_disk()
+    {
+        Make(@"a\x.txt");
+        var ct = TestContext.Current.CancellationToken;
+        string legacyFile;
+        using (var old = new SlowCrawler(_store, () => [_root]) { VolumeSerialOf = _ => null })
+        {
+            old.CrawlOnce(_root, ct);
+            legacyFile = old.StoreFor(_root).FilePath;
+        }
+
+        Directory.Delete(Path.Combine(_root, "a"), recursive: true); // 지금 꽂힌 것은 다른 디스크 (목록의 것이 하나도 없다)
+        using var c = new SlowCrawler(_store, () => [_root]) { VolumeSerialOf = _ => 0x0BADF00D };
+        Assert.False(c.StoreFor(_root).Exists);
+        Assert.True(File.Exists(legacyFile), "다른 디스크의 목록은 그대로 둔다 (그 디스크가 다시 꽂히면 가져간다)");
+    }
+
+    [Fact]
+    public void Moving_a_list_to_another_letter_rewrites_the_paths()
+    {
+        Directory.CreateDirectory(_store);
+        var from = Path.Combine(_store, "F_#ABCD0001.txt");
+        var to = Path.Combine(_store, "G_#ABCD0001.txt");
+        File.WriteAllText(from, "F:\\a\t1\t0\t1\nF:\\a\\b.txt\t0\t5\t2\n");
+        File.WriteAllText(from + ".idx", "#pass 1\nF:\\a\t1\t0\t10\t0\n");
+        File.WriteAllText(from + ".usn", "1 2");
+        File.WriteAllText(from + ".resume", "x");
+        SlowCrawler.MoveList(from, to, "F:", "G:");
+        Assert.Equal("G:\\a\t1\t0\t1\nG:\\a\\b.txt\t0\t5\t2\n", File.ReadAllText(to));
+        Assert.StartsWith("#pass 1\nG:\\a\t", File.ReadAllText(to + ".idx"), StringComparison.Ordinal);
+        Assert.Equal("1 2", File.ReadAllText(to + ".usn"));
+        Assert.False(File.Exists(from) || File.Exists(from + ".idx") || File.Exists(from + ".resume"));
+        Assert.False(File.Exists(to + ".resume"), "다른 글자로는 끊긴 곳부터 잇지 않는다");
+    }
+
     private static List<string> Names(CrawlStore store, string q) =>
         store.Search(q, 100).Select(e => Path.GetFileName(e.Path)).Order(StringComparer.Ordinal).ToList();
 
