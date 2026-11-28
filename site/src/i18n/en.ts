@@ -260,7 +260,7 @@ const en: Dictionary = {
     userLink: 'Just for me (no admin rights)',
     allReleases: 'Older versions and release notes',
     store: 'Get it from Microsoft Store',
-    storeNote: 'The Store edition is updated by Microsoft Store. Fast search that reads whole drives ahead of time, Ctrl+Space while Foldy is closed, and gathering after you close the window are only in the installer (MSI) edition. Where Microsoft Store is blocked, such as at some workplaces, use the installer (MSI) above.',
+    storeNote: 'The Store edition is updated by Microsoft Store and has the same features as the installer (MSI) edition. It includes the fast search helper too, so Windows may ask for administrator approval once during install. On PCs where that is not allowed, Foldy builds the file lists for every drive itself and finds files the same way; only the first list takes a little longer (about 20 seconds for 2 million files on C:). Where Microsoft Store is blocked, such as at some workplaces, use the installer (MSI) above or the just-for-me installer that needs no admin rights.',
   },
   faq: {
     title: 'Questions',

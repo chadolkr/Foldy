@@ -260,7 +260,7 @@ const ja: Dictionary = {
     userLink: '自分だけにインストール (管理者権限なし)',
     allReleases: '以前のバージョンと変更内容',
     store: 'Microsoft Store から入手',
-    storeNote: 'Store 版は Microsoft Store が更新します。ドライブ全体を前もって読み込んでおく高速検索、Foldy を閉じているときの Ctrl+Space、ウィンドウを閉じたあとの収集の継続は、インストーラー (MSI) 版だけの機能です。会社などで Microsoft Store を使えない場合は、上のインストーラー (MSI) をお使いください。',
+    storeNote: 'Store 版は Microsoft Store が更新し、機能はインストーラー (MSI) 版と同じです。高速検索ヘルパーも入っているので、インストール時に Windows が管理者の許可を一度求めることがあります。許可できない PC でも Foldy がすべてのドライブのファイル一覧を自分で作って同じように探せ、最初の一回だけ少し時間がかかります (C: の 200 万ファイルで約 20 秒)。会社などで Microsoft Store を使えない場合は、上のインストーラー (MSI) か、管理者権限なしで入る自分だけ用のインストーラーをお使いください。',
   },
   faq: {
     title: 'よくある質問',

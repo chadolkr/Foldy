@@ -260,7 +260,7 @@ const es: Dictionary = {
     userLink: 'Solo para mí (sin administrador)',
     allReleases: 'Versiones anteriores y novedades',
     store: 'Obtenerlo en Microsoft Store',
-    storeNote: 'La edición de Store la actualiza Microsoft Store. La búsqueda rápida que lee unidades enteras por adelantado, Ctrl+Espacio con Foldy cerrado y seguir reuniendo archivos tras cerrar la ventana solo están en la edición del instalador (MSI). Donde Microsoft Store esté bloqueado, como en algunas empresas, usa el instalador (MSI) de arriba.',
+    storeNote: 'La edición de Store la actualiza Microsoft Store y tiene las mismas funciones que la del instalador (MSI). También incluye el asistente de búsqueda rápida, así que Windows puede pedir permiso de administrador una vez al instalar. En los PC donde no se permite, Foldy crea él mismo las listas de archivos de todas las unidades y busca igual; solo la primera lista tarda un poco más (unos 20 segundos para 2 millones de archivos en C:). Donde Microsoft Store esté bloqueado, como en algunas empresas, usa el instalador (MSI) de arriba o el instalador solo para mí, que no necesita administrador.',
   },
   faq: {
     title: 'Preguntas',

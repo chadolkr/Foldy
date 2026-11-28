@@ -260,7 +260,7 @@ const zhCN: Dictionary = {
     userLink: '仅为我安装（无需管理员权限）',
     allReleases: '历史版本和更新内容',
     store: '从 Microsoft Store 获取',
-    storeNote: 'Store 版由 Microsoft Store 负责更新。预先读取整个驱动器的快速搜索、Foldy 关闭时按 Ctrl+Space、关闭窗口后继续收集，只有安装程序（MSI）版才有。如果公司等环境无法使用 Microsoft Store，请下载上面的安装程序（MSI）。',
+    storeNote: 'Store 版由 Microsoft Store 负责更新，功能与安装程序（MSI）版相同。也包含快速查找助手，因此安装时 Windows 可能会请求一次管理员许可。在不允许的电脑上，Foldy 也会自己为所有驱动器建立文件列表，查找方式相同，只有第一次稍慢（C: 盘 200 万个文件约 20 秒）。如果公司等环境无法使用 Microsoft Store，请下载上面的安装程序（MSI），或无需管理员权限的“仅为我安装”安装包。',
   },
   faq: {
     title: '常见问题',
